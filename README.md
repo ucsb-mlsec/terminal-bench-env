@@ -90,7 +90,6 @@ vllm serve ucsb-mlsec/TermiGen-32B \
 pip install openai
 pip install terminal-bench
 
-
 # Set environment variables
 export MODEL_ENDPOINT="http://localhost:8000/v1"
 export MODEL_NAME="ucsb-mlsec/TermiGen-32B"
@@ -107,7 +106,7 @@ terminal-bench-env/
 ├── README.md                      # This file
 ├── bash_agent.py                  # Minimal ReAct agent implementation
 ├── requirements.txt               # Python dependencies
-├── termigen_env.zip               # 3,500+ Docker tasks (download separately)
+├── termigen_env.zip               # 3,500+ Docker tasks
 └── environments/                  # Extracted task dirs (after unzip: task1, task2, ...)
     ├── build_compilation/
     ├── system_admin/
