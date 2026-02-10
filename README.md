@@ -68,11 +68,8 @@ Our environments span **11 task categories** across **3 tiers**:
 git clone https://github.com/ucsb-mlsec/terminal-bench-env.git
 cd terminal-bench-env
 
-# Download environments (3,500+ Docker tasks in ZIP format) from Releases
-wget https://github.com/ucsb-mlsec/terminal-bench-env/releases/download/v1.0/termigen_environments.zip
-
 # Extract environments
-unzip termigen_environments.zip -d environments/
+unzip termigen_env.zip -d environments/
 ```
 
 ### Step 2: Deploy TermiGen Model
