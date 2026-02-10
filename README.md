@@ -107,8 +107,8 @@ terminal-bench-env/
 ├── README.md                      # This file
 ├── bash_agent.py                  # Minimal ReAct agent implementation
 ├── requirements.txt               # Python dependencies
-├── termigen_environments.zip      # 3,500+ Docker tasks (download separately)
-└── tasks/                         # Extracted environments (after unzip)
+├── termigen_env.zip               # 3,500+ Docker tasks (download separately)
+└── environments/                  # Extracted task dirs (after unzip: task1, task2, ...)
     ├── build_compilation/
     ├── system_admin/
     ├── security_forensics/
@@ -121,14 +121,14 @@ terminal-bench-env/
 
 ### Using Individual Tasks
 
-After extracting `termigen_environments.zip`:
+After extracting `termigen_env.zip` (see Step 1 above; result is `environments/task1`, `environments/task2`, ...):
 ```bash
-tb run --agent claude-code --model anthropic/claude-sonnet-4-5-20250929 --dataset-path tasks --task-id XXX --log-level debug --n-concurrent 1
+tb run --agent claude-code --model anthropic/claude-sonnet-4-5-20250929 --dataset-path environments --task-id XXX --log-level debug --n-concurrent 1
 ```
 
 ### Using Full Dataset
 ```bash
-tb run --agent claude-code --model anthropic/claude-sonnet-4-5-20250929 --dataset terminal-bench-core==0.1.1 --dataset-path tasks --log-level debug --n-concurrent 4
+tb run --agent claude-code --model anthropic/claude-sonnet-4-5-20250929 --dataset terminal-bench-core==0.1.1 --dataset-path environments --log-level debug --n-concurrent 4
 ```
 
 
