@@ -198,7 +198,8 @@ If you use TermiGen in your research, please cite:
 @article{zhu2026termigen,
   title={TermiGen: High-Fidelity Environment and Robust Trajectory Synthesis for Terminal Agents},
   author={Zhu, Kaijie and Nie, Yuzhou and Li, Yijiang and Huang, Yiming and Wu, Jialian and Liu, Jiang and Sun, Ximeng and Yin, Zhenfei and Wang, Lun and Liu, Zicheng and Barsoum, Emad and Wang, William Yang and Guo, Wenbo},
-  journal={arXiv preprint arXiv:XXXX.XXXXX},
+  journal={arXiv preprint arXiv:2602.07274},
+  url={https://arxiv.org/abs/2602.07274}, 
   year={2026}
 }
 ```
