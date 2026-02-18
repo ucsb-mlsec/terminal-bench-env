@@ -12,7 +12,7 @@ Official implementation and datasets for **TermiGen**, a framework for training 
 
 This repository provides:
 
-1. **3,500+ Verified Docker Environments** - Executable tasks across 11 categories (as ZIP archive)
+1. **3,500+ Verified Docker Environments** - Executable tasks across 11 categories. These are provided as ZIP archives because some tasks involve GitHub repositories containing .git metadata.
 2. **BashAgent** - Minimal ReAct-style agent implementation (`bash_agent.py`)
 
 
