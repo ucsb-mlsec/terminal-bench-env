@@ -2,7 +2,7 @@
 
 Official implementation and datasets for **TermiGen**, a framework for training robust terminal agents through verified environments and error-correction trajectories.
 
-📄 **Paper:** [TermiGen: High-Fidelity Environment and Robust Trajectory Synthesis for Terminal Agents](https://arxiv.org/abs/XXXX.XXXXX)  
+📄 **Paper:** [TermiGen: High-Fidelity Environment and Robust Trajectory Synthesis for Terminal Agents](https://arxiv.org/abs/2602.07274)  
 🤖 **Model:** [TermiGen-32B](https://huggingface.co/UCSB-SURFI/TerminGen-32B)  
 🧪 **Benchmark:** [TerminalBench](https://github.com/laude-institute/terminal-bench)
 
