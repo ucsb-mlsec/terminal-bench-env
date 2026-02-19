@@ -1,3 +1,0 @@
-TEST_DIR = tests
-TEST_FRAMEWORK = pytest
-TEST_OPTIONS = -v

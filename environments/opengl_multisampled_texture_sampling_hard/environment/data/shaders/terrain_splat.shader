@@ -1,3 +1,0 @@
-sampler: sampler2DArray
-texture_target: TEXTURE_2D_MULTISAMPLE_ARRAY
-samples: 4
