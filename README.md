@@ -71,8 +71,8 @@ cd terminal-bench-env
 # Extract environments (TerminalBench 1.0 format)
 unzip termigen_env.zip -d environments/
 
-# Or use Harbor 2.0 format (recommended for harbor eval harness)
-unzip termigen_env_harbor2.zip -d environments/
+# Extract Harbor 2.0 format (recommended for harbor eval harness)
+unzip termigen_env_harbor2.zip -d environments_harbor/
 ```
 
 ### Step 2: Deploy TermiGen Model
@@ -106,7 +106,7 @@ tb run --dataset terminal-bench-core==0.1.1 --agent-import-path bash_agent:BashA
 pip install harbor
 
 # Run agent using Harbor eval harness
-harbor run -p environments/ --agent-import-path bash_agent:BashAgent -m ucsb-mlsec/TermiGen-32B -t hello-world --debug
+harbor run -p environments_harbor/ --agent-import-path bash_agent:BashAgent -m ucsb-mlsec/TermiGen-32B -t hello-world --debug
 ```
 
 ---
@@ -134,12 +134,12 @@ terminal-bench-env/
 
 After extracting environments (see Step 1):
 ```bash
-harbor run -a claude-code -m anthropic/claude-sonnet-4-5-20250929 -p environments/ -t XXX --debug
+harbor run -a claude-code -m anthropic/claude-sonnet-4-5-20250929 -p environments_harbor/ -t XXX --debug
 ```
 
 ### Using Full Dataset
 ```bash
-harbor run -a claude-code -m anthropic/claude-sonnet-4-5-20250929 -p environments/ -n 4 --debug
+harbor run -a claude-code -m anthropic/claude-sonnet-4-5-20250929 -p environments_harbor/ -n 4 --debug
 ```
 
 
