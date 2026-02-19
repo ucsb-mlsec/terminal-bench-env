@@ -1,0 +1,35 @@
+FROM ghcr.io/laude-institute/t-bench/ubuntu-24-04:20250624
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install python3-pip and create python symlink
+RUN apt-get update && \
+    apt-get install -y python3-pip && \
+    ln -s /usr/bin/python3 /usr/bin/python && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install test dependencies
+RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
+
+RUN apt-get update && \
+    apt-get install -y \
+    build-essential \
+    swig \
+    python3-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install dependencies from Phase 2.5 analysis
+RUN apt-get update && apt-get install -y swig && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /workspace/signal_project
+
+COPY signal_project/signal_ops.c /workspace/signal_project/signal_ops.c
+COPY signal_project/signal_ops.h /workspace/signal_project/signal_ops.h
+COPY signal_project/signal.i /workspace/signal_project/signal.i
+COPY signal_project/setup.py /workspace/signal_project/setup.py
+
+WORKDIR /workspace
+
+# Mapped from docker-compose.yaml
+ENV TEST_DIR=/tests

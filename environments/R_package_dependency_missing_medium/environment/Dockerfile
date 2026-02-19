@@ -1,0 +1,35 @@
+FROM ghcr.io/laude-institute/t-bench/ubuntu-24-04:20250624
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install python3-pip and create python symlink
+RUN apt-get update && \
+    apt-get install -y python3-pip && \
+    ln -s /usr/bin/python3 /usr/bin/python && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install test dependencies
+RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
+
+# Install R and basic dependencies
+RUN apt-get update && \
+    apt-get install -y \
+    r-base \
+    r-base-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install dependencies from Phase 2.5 analysis
+RUN apt-get update && apt-get install -y r-base build-essential && \
+    rm -rf /var/lib/apt/lists/*
+
+# Create necessary directories
+RUN mkdir -p /home/user /tmp
+
+# Copy test script to the expected location
+COPY test_jsonlite.R /home/user/test_jsonlite.R
+
+# Set working directory
+WORKDIR /home/user
+
+# Mapped from docker-compose.yaml
+ENV TEST_DIR=/tests
