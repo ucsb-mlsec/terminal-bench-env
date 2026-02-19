@@ -81,7 +81,7 @@ unzip termigen_env_harbor2.zip -d environments_harbor/
 pip install vllm
 
 # Deploy model (requires GPU)
-vllm serve ucsb-mlsec/TermiGen-32B \
+vllm serve UCSB-SURFI/TermiGen-32B \
   --port 8000 \
   --tensor-parallel-size 4 \
   --dtype bfloat16
@@ -95,7 +95,7 @@ pip install terminal-bench
 
 # Set environment variables
 export MODEL_ENDPOINT="http://localhost:8000/v1"
-export MODEL_NAME="ucsb-mlsec/TermiGen-32B"
+export MODEL_NAME="UCSB-SURFI/TermiGen-32B"
 
 # Run agent on TerminalBench 1.0 (example task: hello-world)
 tb run --dataset terminal-bench-core==0.1.1 --agent-import-path bash_agent:BashAgent --task-id hello-world --log-level debug
@@ -106,7 +106,11 @@ tb run --dataset terminal-bench-core==0.1.1 --agent-import-path bash_agent:BashA
 pip install harbor
 
 # Run agent using Harbor eval harness
-harbor run -p environments_harbor/ --agent-import-path bash_agent:BashAgent -m ucsb-mlsec/TermiGen-32B -t hello-world --debug
+harbor run -p environments_harbor/ \
+  --agent-import-path bash_agent:BashAgent \
+  -m ucsb-mlsec/TermiGen-32B \
+  --ak model_endpoint=http://localhost:8000/v1 \
+  -t hello-world --debug
 ```
 
 ---
