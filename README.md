@@ -106,11 +106,11 @@ tb run --dataset terminal-bench-core==0.1.1 --agent-import-path bash_agent:BashA
 pip install harbor
 
 # Run agent using Harbor eval harness
-harbor run -p environments_harbor/ \
+harbor run -d hello-world \
   --agent-import-path bash_agent:BashAgent \
-  -m ucsb-mlsec/TermiGen-32B \
+  -m UCSB-SURFI/TermiGen-32B \
   --ak model_endpoint=http://localhost:8000/v1 \
-  -t hello-world --debug
+  --debug
 ```
 
 ---
@@ -139,19 +139,20 @@ terminal-bench-env/
 After extracting environments (see Step 1):
 ```bash
 # TerminalBench 1.0
-tb run --agent claude-code --model anthropic/claude-sonnet-4-5-20250929 --dataset-path environments --task-id XXX --log-level debug --n-concurrent 1
+tb run --agent claude-code --model anthropic/claude-sonnet-4-5-20250929 --dataset-path environments --task-id a_b_testing_models_medium --log-level debug --n-concurrent 1
 
 # Harbor 2.0
-harbor run -a claude-code -m anthropic/claude-sonnet-4-5-20250929 -p environments_harbor/ -t XXX --debug
+harbor run -a claude-code -m anthropic/claude-sonnet-4-5-20250929 -p environments_harbor/ -t a_b_testing_models_medium --debug
 ```
 
 ### Using Full Dataset
 ```bash
 # TerminalBench 1.0
-tb run --agent claude-code --model anthropic/claude-sonnet-4-5-20250929 --dataset terminal-bench-core==0.1.1 --dataset-path environments --log-level debug --n-concurrent 4
+tb run --agent claude-code --model anthropic/claude-sonnet-4-5-20250929 --dataset terminal-bench-core==0.1.1 --dataset-path environments --log-level debug --n-concurrent 2
 
 # Harbor 2.0
-harbor run -a claude-code -m anthropic/claude-sonnet-4-5-20250929 -p environments_harbor/ -n 4 --debug
+harbor run -a claude-code -m anthropic/claude-sonnet-4-5-20250929 -p environments_harbor/ -n 2 --debug
+# try using smaller n for stability.
 ```
 
 
