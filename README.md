@@ -134,19 +134,11 @@ terminal-bench-env/
 
 After extracting environments (see Step 1):
 ```bash
-# TerminalBench 1.0
-tb run --agent claude-code --model anthropic/claude-sonnet-4-5-20250929 --dataset-path environments --task-id XXX --log-level debug --n-concurrent 1
-
-# Harbor 2.0
 harbor run -a claude-code -m anthropic/claude-sonnet-4-5-20250929 -p environments/ -t XXX --debug
 ```
 
 ### Using Full Dataset
 ```bash
-# TerminalBench 1.0
-tb run --agent claude-code --model anthropic/claude-sonnet-4-5-20250929 --dataset terminal-bench-core==0.1.1 --dataset-path environments --log-level debug --n-concurrent 4
-
-# Harbor 2.0
 harbor run -a claude-code -m anthropic/claude-sonnet-4-5-20250929 -p environments/ -n 4 --debug
 ```
 
