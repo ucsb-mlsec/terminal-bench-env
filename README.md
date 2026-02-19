@@ -68,8 +68,11 @@ Our environments span **11 task categories** across **3 tiers**:
 git clone https://github.com/ucsb-mlsec/terminal-bench-env.git
 cd terminal-bench-env
 
-# Extract environments
+# Extract environments (TerminalBench 1.0 format)
 unzip termigen_env.zip -d environments/
+
+# Or use Harbor 2.0 format (recommended for harbor eval harness)
+unzip termigen_env_harbor2.zip -d environments/
 ```
 
 ### Step 2: Deploy TermiGen Model
@@ -98,6 +101,14 @@ export MODEL_NAME="ucsb-mlsec/TermiGen-32B"
 tb run --dataset terminal-bench-core==0.1.1 --agent-import-path bash_agent:BashAgent --task-id hello-world --log-level debug
 ```
 
+**Or with Harbor 2.0:**
+```bash
+pip install harbor
+
+# Run agent using Harbor eval harness
+harbor run -p environments/ --agent-import-path bash_agent:BashAgent -m ucsb-mlsec/TermiGen-32B -t hello-world --debug
+```
+
 ---
 
 ## 📁 Repository Structure
@@ -106,7 +117,8 @@ terminal-bench-env/
 ├── README.md                      # This file
 ├── bash_agent.py                  # Minimal ReAct agent implementation
 ├── requirements.txt               # Python dependencies
-├── termigen_env.zip               # 3,500+ Docker tasks
+├── termigen_env.zip               # 3,500+ Docker tasks (TerminalBench 1.0 format)
+├── termigen_env_harbor2.zip       # Same tasks in Harbor 2.0 format
 └── environments/                  # Extracted task dirs (after unzip: task1, task2, ...)
     ├── build_compilation/
     ├── system_admin/
@@ -120,20 +132,30 @@ terminal-bench-env/
 
 ### Using Individual Tasks
 
-After extracting `termigen_env.zip` (see Step 1 above; result is `environments/task1`, `environments/task2`, ...):
+After extracting environments (see Step 1):
 ```bash
+# TerminalBench 1.0
 tb run --agent claude-code --model anthropic/claude-sonnet-4-5-20250929 --dataset-path environments --task-id XXX --log-level debug --n-concurrent 1
+
+# Harbor 2.0
+harbor run -a claude-code -m anthropic/claude-sonnet-4-5-20250929 -p environments/ -t XXX --debug
 ```
 
 ### Using Full Dataset
 ```bash
+# TerminalBench 1.0
 tb run --agent claude-code --model anthropic/claude-sonnet-4-5-20250929 --dataset terminal-bench-core==0.1.1 --dataset-path environments --log-level debug --n-concurrent 4
+
+# Harbor 2.0
+harbor run -a claude-code -m anthropic/claude-sonnet-4-5-20250929 -p environments/ -n 4 --debug
 ```
 
 
 ### Task Structure
 
-Each task follows TerminalBench 1.0 format, it contains:
+Each task is available in two formats:
+
+**TerminalBench 1.0** (`termigen_env.zip`):
 ```
 task_name/
 ├── task.yaml              # Task description and metadata
@@ -142,6 +164,18 @@ task_name/
 ├── run-tests.sh          # Test execution script
 ├── tests/                # Unit tests (pytest)
 │   └── test_*.py
+└── [task files]          # Source code, configs, data, git repos
+```
+
+**Harbor 2.0** (`termigen_env_harbor2.zip`):
+```
+task_name/
+├── task.toml              # Task metadata
+├── instruction.md         # Task description
+├── environment/
+│   └── Dockerfile         # Environment specification
+├── tests/
+│   └── test.sh           # Test script with reward logging
 └── [task files]          # Source code, configs, data, git repos
 ```
 
