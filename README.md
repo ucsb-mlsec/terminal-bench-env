@@ -115,23 +115,6 @@ harbor run -d hello-world \
 
 ---
 
-## 📁 Repository Structure
-```
-terminal-bench-env/
-├── README.md                      # This file
-├── bash_agent.py                  # Minimal ReAct agent implementation
-├── requirements.txt               # Python dependencies
-├── termigen_env.zip               # 3,500+ Docker tasks (TerminalBench 1.0 format)
-├── termigen_env_harbor2.zip       # Same tasks in Harbor 2.0 format
-└── environments/                  # Extracted task dirs (after unzip: task1, task2, ...)
-    ├── build_compilation/
-    ├── system_admin/
-    ├── security_forensics/
-    └── ...
-```
-
----
-
 ## 🔧 Environment Details
 
 ### Using Individual Tasks
@@ -182,6 +165,19 @@ task_name/
 ├── tests/
 │   └── test.sh           # Test script with reward logging
 └── [task files]          # Source code, configs, data, git repos
+```
+
+---
+
+## 📁 Repository Structure
+```
+terminal-bench-env/
+├── README.md                      # This file
+├── bash_agent.py                  # Minimal ReAct agent implementation
+├── termigen_env.zip               # 3,500+ Docker tasks (TerminalBench 1.0 format)
+├── termigen_env_harbor2.zip       # Same tasks in Harbor 2.0 format
+├── environments/                  # Extracted from termigen_env.zip (after unzip)
+└── environments_harbor/           # Extracted from termigen_env_harbor2.zip (after unzip)
 ```
 
 ---
