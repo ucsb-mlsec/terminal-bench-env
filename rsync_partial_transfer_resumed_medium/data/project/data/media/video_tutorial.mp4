@@ -1,0 +1,58 @@
+#!/bin/bash
+# Backup Resume Script
+# Resumes interrupted backup operation with checksum verification
+
+SOURCE_DIR="/home/project/data"
+BACKUP_DIR="/backup/project_backup"
+REPORT_FILE="/home/backup_report.txt"
+START_TIME=$(date +%s)
+
+# Create backup directory if it doesn't exist
+mkdir -p "$BACKUP_DIR"
+
+# Use rsync to resume interrupted backup
+# -a: archive mode (preserves permissions, timestamps, etc.)
+# -v: verbose
+# -h: human-readable
+# --partial: keep partially transferred files
+# --append-verify: resume partial files and verify with checksum
+# --progress: show progress
+rsync -avh --partial --append-verify "$SOURCE_DIR/" "$BACKUP_DIR/"
+
+# Calculate statistics
+TOTAL_FILES=$(find "$SOURCE_DIR" -type f | wc -l)
+TOTAL_SIZE_BYTES=$(du -sb "$SOURCE_DIR" | cut -f1)
+TOTAL_SIZE_MB=$((TOTAL_SIZE_BYTES / 1048576))
+END_TIME=$(date +%s)
+TRANSFER_TIME=$((END_TIME - START_TIME))
+
+# Verify backup completion
+STATUS="COMPLETE"
+while IFS= read -r -d '' source_file; do
+    rel_path="${source_file#$SOURCE_DIR/}"
+    backup_file="$BACKUP_DIR/$rel_path"
+    
+    if [ ! -f "$backup_file" ]; then
+        STATUS="INCOMPLETE"
+        break
+    fi
+    
+    source_size=$(stat -c%s "$source_file" 2>/dev/null || stat -f%z "$source_file" 2>/dev/null)
+    backup_size=$(stat -c%s "$backup_file" 2>/dev/null || stat -f%z "$backup_file" 2>/dev/null)
+    
+    if [ "$source_size" != "$backup_size" ]; then
+        STATUS="INCOMPLETE"
+        break
+    fi
+done < <(find "$SOURCE_DIR" -type f -print0)
+
+# Generate report
+cat > "$REPORT_FILE" << EOF
+STATUS=$STATUS
+TOTAL_FILES=$TOTAL_FILES
+TOTAL_SIZE_MB=$TOTAL_SIZE_MB
+TRANSFER_TIME_SECONDS=$TRANSFER_TIME
+EOF
+
+echo "Backup operation completed. Report saved to $REPORT_FILE"
+exit 0

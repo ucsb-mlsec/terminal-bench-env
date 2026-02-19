@@ -1,0 +1,66 @@
+Power Trace Collection Metadata
+=====================================
+
+ACQUISITION PARAMETERS
+----------------------
+Sampling rate: 500 MS/s (mega-samples per second)
+Number of traces: 5000
+Samples per trace: 3000
+Total acquisition time per trace: 6 microseconds
+Trigger point: Sample 200 (encryption starts at this sample)
+
+DEVICE INFORMATION
+------------------
+Device: AES-128 hardware implementation
+Algorithm: Advanced Encryption Standard (AES-128)
+Key size: 128 bits (16 bytes)
+Encryption mode: ECB (Electronic Codebook)
+Device architecture: 8-bit microcontroller with hardware AES accelerator
+
+TARGET OPERATION
+----------------
+Target operation: First round SubBytes after AddRoundKey
+Leakage model: Hamming weight of S-box output
+Leakage point: Power consumption during byte substitution in round 1
+Expected leakage window: Samples 200-800 (approximately)
+
+SIGNAL CHARACTERISTICS
+----------------------
+Noise level: Gaussian noise with standard deviation 0.3
+Signal-to-noise ratio: Moderate (SNR ~5-10 dB)
+Trace alignment: All traces synchronized to encryption trigger
+Sampling jitter: Negligible (< 0.5 samples)
+
+DATA QUALITY NOTES
+------------------
+- Traces exhibit strong correlation with Hamming weight model during SubBytes operation
+- Each of the 16 S-box operations appears sequentially in the power trace
+- Byte operations are processed serially, allowing individual byte recovery
+- Power consumption peaks are visible around samples 250-750
+- Background noise is predominantly Gaussian with minimal outliers
+- No significant electromagnetic interference detected during acquisition
+- Temperature maintained at 25°C ± 2°C during all measurements
+
+ANALYSIS RECOMMENDATIONS
+-------------------------
+- Use Pearson correlation coefficient for key recovery
+- Target Hamming weight of S-box(plaintext_byte XOR key_byte) as leakage model
+- Process each key byte independently using corresponding plaintext bytes
+- Expected correlation peaks: 0.7-0.9 for correct key hypothesis
+- Incorrect key hypotheses typically show correlation < 0.3
+- Consider averaging correlation across multiple sample points for robustness
+
+SECURITY IMPLICATIONS
+---------------------
+This dataset demonstrates vulnerability to Correlation Power Analysis (CPA) attacks.
+The device shows significant side-channel leakage during cryptographic operations.
+Countermeasures such as masking or noise injection should be implemented in production devices.
+
+DATASET GENERATION
+------------------
+Date collected: 2024-01-15
+Collection duration: Approximately 3 hours
+Equipment: High-bandwidth oscilloscope with differential probe
+Measurement point: VDD power rail with 1Ω shunt resistor
+Plaintexts: Randomly generated using cryptographically secure PRNG
+Ground truth key: Available for validation purposes only

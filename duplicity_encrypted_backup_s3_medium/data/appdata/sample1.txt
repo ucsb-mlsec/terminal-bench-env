@@ -1,0 +1,43 @@
+#!/bin/bash
+
+# Configuration and environment setup
+export PASSPHRASE=$(cat /root/.backup_passphrase)
+export AWS_CONFIG_FILE=/root/.s3cfg
+SOURCE_DIR="/opt/appdata"
+S3_DESTINATION="s3://s3.example.com/company-backups"
+CACHE_DIR="/var/cache/duplicity"
+
+# FULL BACKUP
+duplicity full \
+  --encrypt-key="${BACKUP_GPG_KEY}" \
+  --sign-key="${BACKUP_GPG_KEY}" \
+  --s3-use-new-style \
+  --archive-dir="${CACHE_DIR}" \
+  "${SOURCE_DIR}" \
+  "${S3_DESTINATION}"
+
+# INCREMENTAL BACKUP
+duplicity incremental \
+  --encrypt-key="${BACKUP_GPG_KEY}" \
+  --sign-key="${BACKUP_GPG_KEY}" \
+  --s3-use-new-style \
+  --archive-dir="${CACHE_DIR}" \
+  "${SOURCE_DIR}" \
+  "${S3_DESTINATION}"
+
+# CLEANUP OLD BACKUPS
+duplicity remove-older-than 30D \
+  --force \
+  --encrypt-key="${BACKUP_GPG_KEY}" \
+  --sign-key="${BACKUP_GPG_KEY}" \
+  --s3-use-new-style \
+  --archive-dir="${CACHE_DIR}" \
+  "${S3_DESTINATION}"
+
+duplicity remove-all-inc-of-but-n-full 1 \
+  --force \
+  --encrypt-key="${BACKUP_GPG_KEY}" \
+  --sign-key="${BACKUP_GPG_KEY}" \
+  --s3-use-new-style \
+  --archive-dir="${CACHE_DIR}" \
+  "${S3_DESTINATION}"

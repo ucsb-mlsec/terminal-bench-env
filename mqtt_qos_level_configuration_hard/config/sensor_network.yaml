@@ -1,0 +1,59 @@
+# IoT Sensor Network Configuration
+# This file defines the MQTT broker settings, publishers, and subscribers
+# for the distributed temperature sensor network
+
+broker:
+  host: localhost
+  port: 1883
+  version: 5.0
+
+# Publishers: Three types of sensor data with different reliability requirements
+publishers:
+  - name: critical_alerts
+    topic: sensors/temperature/critical
+    # RELIABILITY REQUIREMENT: Must be delivered exactly once - fire safety system
+    # Current QoS 0 is INCORRECT - will cause message loss for critical alerts
+    qos: 0
+    interval: 60
+    description: "Critical temperature alerts for fire safety system"
+    
+  - name: sensor_readings
+    topic: sensors/temperature/readings
+    # RELIABILITY REQUIREMENT: Should be delivered at least once - monitoring dashboard
+    # Current QoS 2 is INCORRECT - too high overhead for standard readings
+    qos: 2
+    interval: 30
+    description: "Standard temperature readings for monitoring dashboard"
+    
+  - name: heartbeat
+    topic: sensors/heartbeat
+    # RELIABILITY REQUIREMENT: Can tolerate message loss - system health checks
+    # Current QoS 1 is INCORRECT - wasting bandwidth on diagnostic messages
+    qos: 1
+    interval: 10
+    description: "Diagnostic heartbeat messages for system health monitoring"
+
+# Subscribers: Services consuming sensor data
+subscribers:
+  - name: fire_safety_monitor
+    topic: sensors/temperature/critical
+    # INCORRECT: QoS 0 will miss critical alerts
+    qos: 0
+    description: "Fire safety monitoring service - requires exact-once delivery"
+    
+  - name: dashboard_service
+    topic: sensors/temperature/readings
+    # INCORRECT: QoS 2 causes unnecessary overhead and duplicate processing
+    qos: 2
+    description: "Main monitoring dashboard - requires at-least-once delivery"
+    
+  - name: health_checker
+    topic: sensors/heartbeat
+    # INCORRECT: QoS 1 wastes bandwidth on heartbeat messages
+    qos: 1
+    description: "System health monitoring - tolerates message loss"
+
+# Network settings
+network_settings:
+  bandwidth_limit: 1000
+  message_retention: true

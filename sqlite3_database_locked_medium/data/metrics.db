@@ -1,0 +1,214 @@
+#!/bin/bash
+# fix_database_locking.sh - Solution for SQLite database locking issues
+
+set -e
+
+DB_PATH="/workspace/data/metrics.db"
+BACKUP_PATH="/workspace/data/metrics.db.backup"
+SOLUTION_SUMMARY="/workspace/solution_summary.txt"
+TEST_SCRIPT="/workspace/test_concurrent_access.sh"
+
+echo "Starting database locking issue resolution..."
+
+# Step 1: Create backup of existing database
+echo "Creating backup of database..."
+if [ -f "$DB_PATH" ]; then
+    cp "$DB_PATH" "$BACKUP_PATH"
+    echo "Backup created at $BACKUP_PATH"
+fi
+
+# Step 2: Enable WAL (Write-Ahead Logging) mode
+# WAL mode allows multiple readers and one writer to operate concurrently
+echo "Enabling WAL mode for concurrent access..."
+sqlite3 "$DB_PATH" "PRAGMA journal_mode=WAL;"
+
+# Step 3: Set appropriate timeout and other pragmas for better concurrency
+echo "Configuring database pragmas for optimal concurrent access..."
+sqlite3 "$DB_PATH" <<EOF
+PRAGMA busy_timeout=5000;
+PRAGMA synchronous=NORMAL;
+PRAGMA cache_size=10000;
+PRAGMA temp_store=MEMORY;
+EOF
+
+# Step 4: Create a Python helper script that uses proper connection settings
+echo "Creating Python database helper with proper connection handling..."
+cat > /workspace/scripts/db_helper.py <<'PYTHON_EOF'
+import sqlite3
+import time
+import random
+from contextlib import contextmanager
+
+@contextmanager
+def get_db_connection(db_path, timeout=10.0):
+    """Context manager for database connections with proper settings"""
+    conn = None
+    try:
+        conn = sqlite3.connect(db_path, timeout=timeout, isolation_level=None)
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA busy_timeout=5000")
+        yield conn
+    finally:
+        if conn:
+            conn.close()
+
+def write_metric_safe(db_path, timestamp, service_name, response_time_ms, status_code, max_retries=5):
+    """Write metric with retry logic for handling transient locks"""
+    for attempt in range(max_retries):
+        try:
+            with get_db_connection(db_path) as conn:
+                conn.execute(
+                    "INSERT INTO performance_metrics (timestamp, service_name, response_time_ms, status_code) VALUES (?, ?, ?, ?)",
+                    (timestamp, service_name, response_time_ms, status_code)
+                )
+                conn.commit()
+                return True
+        except sqlite3.OperationalError as e:
+            if "locked" in str(e).lower() and attempt < max_retries - 1:
+                time.sleep(random.uniform(0.01, 0.1) * (attempt + 1))
+                continue
+            raise
+    return False
+
+def read_metrics_safe(db_path, limit=10):
+    """Read metrics with proper connection handling"""
+    with get_db_connection(db_path) as conn:
+        cursor = conn.execute(
+            "SELECT * FROM performance_metrics ORDER BY timestamp DESC LIMIT ?",
+            (limit,)
+        )
+        return cursor.fetchall()
+PYTHON_EOF
+
+# Step 5: Update any existing scripts to use the helper (create example)
+cat > /workspace/scripts/write_metrics_concurrent.py <<'PYTHON_EOF2'
+#!/usr/bin/env python3
+import sys
+import time
+from datetime import datetime
+from db_helper import write_metric_safe
+
+def main():
+    db_path = "/workspace/data/metrics.db"
+    process_id = sys.argv[1] if len(sys.argv) > 1 else "unknown"
+    
+    services = ['api-gateway', 'auth-service', 'payment-service', 'user-service', 'notification-service']
+    status_codes = [200, 201, 400, 404, 500, 503]
+    
+    # Write multiple metrics
+    for i in range(10):
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
+        service = services[i % len(services)]
+        response_time = 50 + (i * 100)
+        status = status_codes[i % len(status_codes)]
+        
+        success = write_metric_safe(db_path, timestamp, service, response_time, status)
+        if success:
+            print(f"Process {process_id}: Written metric {i+1}/10")
+        else:
+            print(f"Process {process_id}: Failed to write metric {i+1}/10")
+            sys.exit(1)
+        
+        time.sleep(0.01)
+    
+    print(f"Process {process_id}: Completed successfully")
+
+if __name__ == "__main__":
+    main()
+PYTHON_EOF2
+
+chmod +x /workspace/scripts/write_metrics_concurrent.py
+
+# Step 6: Verify WAL mode is enabled
+echo "Verifying WAL mode..."
+JOURNAL_MODE=$(sqlite3 "$DB_PATH" "PRAGMA journal_mode;")
+echo "Current journal mode: $JOURNAL_MODE"
+
+# Step 7: Run the concurrent access test
+echo "Running concurrent access test..."
+ERRORS_ENCOUNTERED=0
+CONCURRENT_PROCESSES_TESTED=5
+
+if [ -f "$TEST_SCRIPT" ]; then
+    chmod +x "$TEST_SCRIPT"
+    
+    # Run the test and capture results
+    if bash "$TEST_SCRIPT" 2>&1 | tee /tmp/test_output.txt; then
+        # Check for any locking errors in the output
+        if grep -qi "locked\|error" /tmp/test_output.txt; then
+            ERRORS_ENCOUNTERED=$(grep -ci "locked\|error" /tmp/test_output.txt || echo 0)
+        fi
+        STATUS="success"
+    else
+        STATUS="failed"
+        ERRORS_ENCOUNTERED=1
+    fi
+else
+    # Create and run our own test if the test script doesn't exist
+    echo "Test script not found, creating and running custom test..."
+    
+    cat > /tmp/run_concurrent_test.sh <<'TESTEOF'
+#!/bin/bash
+PIDS=()
+FAILED=0
+
+for i in {1..5}; do
+    python3 /workspace/scripts/write_metrics_concurrent.py "proc_$i" &
+    PIDS+=($!)
+done
+
+for pid in "${PIDS[@]}"; do
+    if ! wait $pid; then
+        FAILED=$((FAILED + 1))
+    fi
+done
+
+exit $FAILED
+TESTEOF
+    
+    chmod +x /tmp/run_concurrent_test.sh
+    
+    if bash /tmp/run_concurrent_test.sh; then
+        STATUS="success"
+        ERRORS_ENCOUNTERED=0
+    else
+        STATUS="failed"
+        ERRORS_ENCOUNTERED=$?
+    fi
+fi
+
+# Step 8: Write solution summary
+echo "Writing solution summary..."
+cat > "$SOLUTION_SUMMARY" <<EOF
+STATUS=$STATUS
+CONCURRENT_PROCESSES_TESTED=$CONCURRENT_PROCESSES_TESTED
+ERRORS_ENCOUNTERED=$ERRORS_ENCOUNTERED
+EOF
+
+echo "Solution summary written to $SOLUTION_SUMMARY"
+cat "$SOLUTION_SUMMARY"
+
+# Step 9: Display final statistics
+echo ""
+echo "=== Solution Applied ==="
+echo "1. Enabled WAL (Write-Ahead Logging) mode"
+echo "2. Set busy_timeout to 5000ms"
+echo "3. Configured optimal synchronous and cache settings"
+echo "4. Created helper scripts with retry logic"
+echo "5. Tested concurrent access with $CONCURRENT_PROCESSES_TESTED processes"
+echo ""
+echo "Database status:"
+sqlite3 "$DB_PATH" "SELECT COUNT(*) as total_records FROM performance_metrics;" | while read count; do
+    echo "  Total records: $count"
+done
+echo "  Journal mode: $(sqlite3 "$DB_PATH" "PRAGMA journal_mode;")"
+echo "  Busy timeout: $(sqlite3 "$DB_PATH" "PRAGMA busy_timeout;")"
+echo ""
+
+if [ "$STATUS" = "success" ] && [ "$ERRORS_ENCOUNTERED" -eq 0 ]; then
+    echo "✓ Database locking issues resolved successfully!"
+    exit 0
+else
+    echo "✗ Some issues encountered. Check logs for details."
+    exit 1
+fi

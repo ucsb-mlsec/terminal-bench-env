@@ -1,0 +1,170 @@
+import torch
+import numpy as np
+from typing import Tuple
+
+
+def rand_bbox(size: Tuple[int, int, int, int], lam: float) -> Tuple[int, int, int, int]:
+    """
+    Generate random bounding box coordinates for CutMix.
+    
+    Args:
+        size: Tuple of (batch_size, channels, height, width)
+        lam: Lambda value from Beta distribution (determines cut ratio)
+    
+    Returns:
+        Tuple of (bbx1, bby1, bbx2, bby2) representing the bounding box coordinates
+    """
+    W = size[3]
+    H = size[2]
+    
+    # Calculate cut ratio
+    cut_rat = np.sqrt(1. - lam)
+    cut_w = int(W * cut_rat)
+    cut_h = int(H * cut_rat)
+    
+    # Uniform sampling of center point
+    cx = np.random.randint(W)
+    cy = np.random.randint(H)
+    
+    # Calculate bounding box coordinates
+    bbx1 = np.clip(cx - cut_w // 2, 0, W)
+    bby1 = np.clip(cy - cut_h // 2, 0, H)
+    bbx2 = np.clip(cx + cut_w // 2, 0, W)
+    bby2 = np.clip(cy + cut_h // 2, 0, H)
+    
+    return bbx1, bby1, bbx2, bby2
+
+
+def apply_cutmix(images: torch.Tensor, labels: torch.Tensor, alpha: float = 1.0, prob: float = 1.0) -> Tuple[torch.Tensor, torch.Tensor]:
+    """
+    Apply CutMix augmentation to a batch of images and labels.
+    
+    CutMix cuts a rectangular patch from one image and pastes it onto another image,
+    while mixing the labels proportionally to the area of the patch.
+    
+    Args:
+        images: Input batch of images with shape (N, C, H, W)
+        labels: Input labels with shape (N,) for class indices or (N, num_classes) for one-hot
+        alpha: Parameter for Beta distribution. Higher values lead to more uniform mixing.
+               Typical values: 0.5, 1.0, 2.0
+        prob: Probability of applying CutMix. Default is 1.0 (always apply)
+    
+    Returns:
+        Tuple of (mixed_images, mixed_labels):
+            - mixed_images: Augmented images with shape (N, C, H, W)
+            - mixed_labels: Mixed labels as tuple (labels_a, labels_b, lam) where:
+                * labels_a: Original labels
+                * labels_b: Shuffled labels
+                * lam: Mixing coefficient (for loss calculation)
+    """
+    # Check if CutMix should be applied based on probability
+    if np.random.rand() > prob:
+        return images, labels
+    
+    batch_size = images.size(0)
+    
+    # Handle edge case: single image in batch
+    if batch_size < 2:
+        return images, labels
+    
+    # Sample lambda from Beta distribution
+    if alpha > 0:
+        lam = np.random.beta(alpha, alpha)
+    else:
+        lam = 1.0
+    
+    # Generate random permutation for shuffling
+    rand_index = torch.randperm(batch_size).to(images.device)
+    
+    # Get shuffled labels
+    labels_a = labels
+    labels_b = labels[rand_index]
+    
+    # Generate bounding box
+    bbx1, bby1, bbx2, bby2 = rand_bbox(images.size(), lam)
+    
+    # Apply CutMix: replace the bounding box region with shuffled images
+    mixed_images = images.clone()
+    mixed_images[:, :, bby1:bby2, bbx1:bbx2] = images[rand_index, :, bby1:bby2, bbx1:bbx2]
+    
+    # Adjust lambda to exactly match the cut region ratio
+    lam = 1 - ((bbx2 - bbx1) * (bby2 - bby1) / (images.size()[-1] * images.size()[-2]))
+    
+    return mixed_images, (labels_a, labels_b, lam)
+
+
+def cutmix_criterion(criterion, pred: torch.Tensor, labels_tuple: Tuple) -> torch.Tensor:
+    """
+    Calculate loss for CutMix augmented data.
+    
+    Args:
+        criterion: Loss function (e.g., nn.CrossEntropyLoss())
+        pred: Model predictions with shape (N, num_classes)
+        labels_tuple: Tuple of (labels_a, labels_b, lam) from apply_cutmix
+    
+    Returns:
+        Mixed loss value
+    """
+    if isinstance(labels_tuple, tuple) and len(labels_tuple) == 3:
+        labels_a, labels_b, lam = labels_tuple
+        return lam * criterion(pred, labels_a) + (1 - lam) * criterion(pred, labels_b)
+    else:
+        # Regular loss if CutMix wasn't applied
+        return criterion(pred, labels_tuple)
+
+
+def apply_cutmix_simple(images: torch.Tensor, labels: torch.Tensor, alpha: float = 1.0) -> Tuple[torch.Tensor, torch.Tensor]:
+    """
+    Simplified CutMix that returns standard label format for easy integration.
+    This version returns one-hot encoded mixed labels instead of tuple format.
+    
+    Args:
+        images: Input batch of images with shape (N, C, H, W)
+        labels: Input class labels with shape (N,)
+        alpha: Parameter for Beta distribution
+    
+    Returns:
+        Tuple of (mixed_images, mixed_labels_onehot):
+            - mixed_images: Augmented images with shape (N, C, H, W)
+            - mixed_labels_onehot: Mixed one-hot labels with shape (N, num_classes)
+    """
+    batch_size = images.size(0)
+    
+    if batch_size < 2:
+        # Convert to one-hot and return
+        num_classes = labels.max().item() + 1
+        labels_onehot = torch.zeros(batch_size, num_classes, device=labels.device)
+        labels_onehot.scatter_(1, labels.unsqueeze(1), 1)
+        return images, labels_onehot
+    
+    # Sample lambda from Beta distribution
+    if alpha > 0:
+        lam = np.random.beta(alpha, alpha)
+    else:
+        lam = 1.0
+    
+    # Generate random permutation
+    rand_index = torch.randperm(batch_size).to(images.device)
+    
+    # Generate bounding box
+    bbx1, bby1, bbx2, bby2 = rand_bbox(images.size(), lam)
+    
+    # Apply CutMix
+    mixed_images = images.clone()
+    mixed_images[:, :, bby1:bby2, bbx1:bbx2] = images[rand_index, :, bby1:bby2, bbx1:bbx2]
+    
+    # Adjust lambda
+    lam = 1 - ((bbx2 - bbx1) * (bby2 - bby1) / (images.size()[-1] * images.size()[-2]))
+    
+    # Create mixed one-hot labels
+    num_classes = labels.max().item() + 1
+    labels_onehot = torch.zeros(batch_size, num_classes, device=labels.device)
+    labels_a_onehot = torch.zeros(batch_size, num_classes, device=labels.device)
+    labels_b_onehot = torch.zeros(batch_size, num_classes, device=labels.device)
+    
+    labels_a_onehot.scatter_(1, labels.unsqueeze(1), 1)
+    labels_b_onehot.scatter_(1, labels[rand_index].unsqueeze(1), 1)
+    
+    mixed_labels_onehot = lam * labels_a_onehot + (1 - lam) * labels_b_onehot
+    
+    return mixed_images, mixed_labels_onehot

@@ -1,0 +1,39 @@
+#include <fstream>
+#include <random>
+#include <cstdint>
+
+int main() {
+    std::ofstream file("/workspace/data/vertices.dat", std::ios::binary);
+    
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> dis(-100.0f, 100.0f);
+    std::uniform_int_distribution<int> category(0, 9);
+    
+    const int num_vertices = 50000;
+    
+    for (int i = 0; i < num_vertices; ++i) {
+        for (int coord = 0; coord < 3; ++coord) {
+            float value;
+            int cat = category(gen);
+            
+            if (cat == 0) {
+                // 10% exactly zero
+                value = 0.0f;
+            } else if (cat <= 5) {
+                // 50% positive
+                value = dis(gen);
+                if (value <= 0.0f) value = -value + 0.1f;
+            } else {
+                // 40% negative
+                value = dis(gen);
+                if (value >= 0.0f) value = -value - 0.1f;
+            }
+            
+            file.write(reinterpret_cast<const char*>(&value), sizeof(float));
+        }
+    }
+    
+    file.close();
+    return 0;
+}

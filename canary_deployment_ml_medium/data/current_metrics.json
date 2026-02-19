@@ -1,0 +1,206 @@
+[
+  {
+    "{":"  \"stable_model\": {"
+  },
+  {
+    "{":"    \"requests_processed\": 7650"
+  },
+  {
+    "{":"  \"canary_model\": {"
+  },
+  {
+    "{":"    \"requests_processed\": 850"
+  },
+  {
+    "{":"  \"current_traffic_split\": {"
+  },
+  {
+    "{":"    \"stable_percent\": 90"
+  },
+  {
+    "{":"  }"
+  },
+  {
+    "{":"}"
+  },
+  {
+    "{":"```"
+  },
+  {
+    "{":"Now I'll implement the canary deployment controller:"
+  },
+  {
+    "{":"```python"
+  },
+  {
+    "{":"import json"
+  },
+  {
+    "{":"import os"
+  },
+  {
+    "{":"# Read current metrics"
+  },
+  {
+    "{":"    metrics = json.load(f)"
+  },
+  {
+    "{":"stable = metrics['stable_model']"
+  },
+  {
+    "{":"canary = metrics['canary_model']"
+  },
+  {
+    "{":"current_split = metrics['current_traffic_split']"
+  },
+  {
+    "{":"# Extract current canary traffic percentage"
+  },
+  {
+    "{":"current_canary_percent = current_split['canary_percent']"
+  },
+  {
+    "{":"# Performance criteria checks"
+  },
+  {
+    "{":"accuracy_diff = abs(canary['accuracy'] - stable['accuracy'])"
+  },
+  {
+    "{":"accuracy_threshold = 0.02  # 2% threshold"
+  },
+  {
+    "{":"latency_diff = canary['average_latency_ms'] - stable['average_latency_ms']"
+  },
+  {
+    "{":"latency_threshold = 50  # 50ms threshold"
+  },
+  {
+    "{":"error_rate_threshold = 0.01  # 1% threshold"
+  },
+  {
+    "{":"# Evaluate metrics"
+  },
+  {
+    "{":"accuracy_healthy = canary['accuracy'] >= (stable['accuracy'] - accuracy_threshold)"
+  },
+  {
+    "{":"latency_healthy = latency_diff <= latency_threshold"
+  },
+  {
+    "{":"error_rate_healthy = canary['error_rate'] < error_rate_threshold"
+  },
+  {
+    "{":"all_metrics_healthy = accuracy_healthy and latency_healthy and error_rate_healthy"
+  },
+  {
+    "{":"# Decision logic"
+  },
+  {
+    "{":"if not all_metrics_healthy:"
+  },
+  {
+    "{":"    # Rollback - metrics failing"
+  },
+  {
+    "{":"    canary_traffic = 0"
+  },
+  {
+    "{":"    stable_traffic = 100"
+  },
+  {
+    "{":"    status = \"rolled_back\""
+  },
+  {
+    "{":"    reasons = []"
+  },
+  {
+    "{":"    if not accuracy_healthy:"
+  },
+  {
+    "{":"        reasons.append(f\"accuracy gap {accuracy_diff:.3f} > 0.02\")"
+  },
+  {
+    "{":"    if not latency_healthy:"
+  },
+  {
+    "{":"        reasons.append(f\"latency +{latency_diff:.1f}ms > 50ms\")"
+  },
+  {
+    "{":"    if not error_rate_healthy:"
+  },
+  {
+    "{":"        reasons.append(f\"error rate {canary['error_rate']:.3f} >= 0.01\")"
+  },
+  {
+    "{":"elif current_canary_percent >= 100:"
+  },
+  {
+    "{":"    # Already completed"
+  },
+  {
+    "{":"    canary_traffic = 100"
+  },
+  {
+    "{":"    stable_traffic = 0"
+  },
+  {
+    "{":"    status = \"completed\""
+  },
+  {
+    "{":"    decision_reason = \"Deployment completed successfully\""
+  },
+  {
+    "{":"elif current_canary_percent + 10 >= 100:"
+  },
+  {
+    "{":"    # Complete the rollout"
+  },
+  {
+    "{":"    canary_traffic = 100"
+  },
+  {
+    "{":"    stable_traffic = 0"
+  },
+  {
+    "{":"    status = \"completed\""
+  },
+  {
+    "{":"else:"
+  },
+  {
+    "{":"    # Progress to next stage"
+  },
+  {
+    "{":"    canary_traffic = current_canary_percent + 10"
+  },
+  {
+    "{":"    stable_traffic = 100 - canary_traffic"
+  },
+  {
+    "{":"    status = \"progressing\""
+  },
+  {
+    "{":"# Create output configuration"
+  },
+  {
+    "{":"config = {"
+  },
+  {
+    "{":"    \"decision_reason\": decision_reason"
+  },
+  {
+    "{":"}"
+  },
+  {
+    "{":"# Ensure output directory exists"
+  },
+  {
+    "{":"# Write configuration"
+  },
+  {
+    "{":"print(f\"Canary deployment decision: {status}\")"
+  },
+  {
+    "{":"print(f\"Reason: {decision_reason}\")"
+  }
+]

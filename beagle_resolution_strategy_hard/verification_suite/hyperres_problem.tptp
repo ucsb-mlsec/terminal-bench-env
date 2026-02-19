@@ -1,0 +1,47 @@
+% Problem: Multi-pass rendering verification
+% Type: hyperresolution_suitable
+% Description: Verifies correctness of multi-pass rendering optimizations
+% Characteristics: Positive clauses with multiple literals, efficient for hyperresolution
+% Clause structure: Many positive unit clauses and clauses with single negative literal
+
+% Positive unit clauses - rendering passes are valid
+cnf(pos1, axiom, render_pass_valid(pass1)).
+cnf(pos2, axiom, render_pass_valid(pass2)).
+cnf(pos3, axiom, render_pass_valid(pass3)).
+cnf(pos4, axiom, input_valid(stage(pass1, geometry))).
+cnf(pos5, axiom, input_valid(stage(pass2, lighting))).
+cnf(pos6, axiom, input_valid(stage(pass3, compositing))).
+cnf(pos7, axiom, pass_complete(pass1)).
+cnf(pos8, axiom, cached(result(pass1))).
+cnf(pos9, axiom, cached(result(pass2))).
+
+% Horn clauses with one negative and multiple positive literals
+cnf(rule1, axiom, ~input_valid(X) | output_valid(X) | cached(result(X))).
+cnf(rule2, axiom, ~render_pass_valid(X) | pass_complete(X) | optimized(X, partial)).
+cnf(rule3, axiom, ~output_valid(X) | ~cached(result(X)) | optimized(X, full)).
+cnf(rule4, axiom, ~pass_complete(X) | ~input_valid(stage(X, Y)) | output_valid(stage(X, Y))).
+cnf(rule5, axiom, ~render_pass_valid(X) | input_valid(stage(X, geometry)) | input_valid(stage(X, lighting))).
+cnf(rule6, axiom, ~optimized(X, full) | ~optimized(Y, full) | render_pass_valid(pass(X, Y))).
+cnf(rule7, axiom, ~output_valid(stage(X, Y)) | ~render_pass_valid(X) | cached(result(X))).
+cnf(rule8, axiom, ~cached(result(X)) | ~cached(result(Y)) | optimized(pass(X, Y), partial)).
+
+% Additional positive unit clauses
+cnf(pos10, axiom, render_pass_valid(pass(pass1, pass2))).
+cnf(pos11, axiom, input_valid(stage(pass(pass1, pass2), compositing))).
+cnf(pos12, axiom, pass_complete(pass2)).
+
+% More Horn clauses
+cnf(rule9, axiom, ~pass_complete(X) | ~pass_complete(Y) | pass_complete(pass(X, Y))).
+cnf(rule10, axiom, ~input_valid(stage(X, geometry)) | ~input_valid(stage(X, lighting)) | output_valid(X)).
+cnf(rule11, axiom, ~render_pass_valid(pass(X, Y)) | render_pass_valid(X) | render_pass_valid(Y)).
+cnf(rule12, axiom, ~optimized(X, partial) | ~pass_complete(X) | optimized(X, full)).
+cnf(rule13, axiom, ~output_valid(X) | ~output_valid(Y) | output_valid(pass(X, Y))).
+cnf(rule14, axiom, ~cached(result(X)) | ~render_pass_valid(X) | pass_complete(X)).
+
+% Additional axioms for multi-pass rendering
+cnf(pos13, axiom, input_valid(result(pass1))).
+cnf(rule15, axiom, ~input_valid(result(X)) | ~pass_complete(X) | output_valid(result(X))).
+cnf(rule16, axiom, ~output_valid(result(X)) | ~output_valid(result(Y)) | optimized(pass(X, Y), full)).
+
+% Conjecture with multiple conditions - prove that combined passes are optimized
+cnf(conjecture1, negated_conjecture, ~optimized(pass(pass1, pass2), full) | ~optimized(pass(pass2, pass3), full) | ~output_valid(pass(pass1, pass3))).

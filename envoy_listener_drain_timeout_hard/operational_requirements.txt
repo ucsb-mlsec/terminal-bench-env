@@ -1,0 +1,30 @@
+OPERATIONAL REQUIREMENTS FOR ENVOY GATEWAY GRACEFUL SHUTDOWN
+
+1. Maximum Request Duration Support:
+   - The system must support requests that take up to 90 seconds to complete
+   - No in-flight requests should be terminated prematurely during rolling updates
+
+2. Graceful Shutdown Sequence:
+   - When a pod receives a termination signal, it should:
+     a) First, allow time for load balancer/service mesh to remove the pod from rotation (preStop delay)
+     b) Then, receive SIGTERM and begin draining existing connections
+     c) Finally, force shutdown only after all connections are drained or grace period expires
+
+3. Timing Requirements:
+   - preStop Hook Delay: Must allow 20 seconds for traffic to shift away from the pod before Envoy receives SIGTERM
+   - Envoy Drain Timeout: Must be at least (max_request_duration + safety_buffer) where safety_buffer is 10 seconds
+   - Kubernetes Grace Period: Must be at least (preStop_delay + envoy_drain_timeout + 5_second_buffer_for_shutdown)
+
+4. Safety Buffers:
+   - A 10-second safety buffer is required after the maximum request duration to account for connection draining overhead
+   - A 5-second buffer is required after Envoy drain completes to allow final cleanup before force-kill
+
+5. Calculation Formula:
+   - envoy_drain_timeout = max_request_duration + 10 seconds
+   - k8s_grace_period = preStop_delay + envoy_drain_timeout + 5 seconds
+   - preStop_delay = 20 seconds (fixed requirement)
+
+With max_request_duration = 90 seconds, the correct values should be:
+- envoy_drain_timeout = 100 seconds
+- k8s_grace_period = 125 seconds
+- prestop_delay = 20 seconds

@@ -1,0 +1,157 @@
+import gzip
+import json
+from datetime import datetime, timedelta
+import random
+
+# Generate realistic CloudTrail log entries
+records = []
+
+# IP addresses with some showing patterns
+suspicious_ips = ["203.0.113.42", "198.51.100.17", "192.0.2.88"]
+legitimate_ips = ["10.0.1.25", "10.0.2.50", "172.16.0.100", "172.31.45.200", "10.1.5.33"]
+
+# AWS event names
+error_events = [
+    "ConsoleLogin", "AssumeRole", "AssumeRoleWithSAML", "GetObject", 
+    "PutObject", "DeleteBucket", "ListUsers", "CreateUser", 
+    "DeleteUser", "UpdateTrail", "DeleteAlarm", "TerminateInstances",
+    "ModifyInstanceAttribute", "AuthorizeSecurityGroupIngress"
+]
+
+success_events = [
+    "DescribeInstances", "ListBuckets", "GetObject", "PutObject",
+    "DescribeSecurityGroups", "DescribeVolumes", "ListUsers",
+    "GetUser", "DescribeSnapshots", "DescribeTags", "ListRoles",
+    "GetRole", "ListPolicies", "DescribeVpcs", "DescribeSubnets"
+]
+
+error_codes = [
+    "AccessDenied", "UnauthorizedOperation", "InvalidSignature",
+    "InvalidClientTokenId", "SignatureDoesNotMatch", "AuthFailure"
+]
+
+error_messages = {
+    "AccessDenied": "User is not authorized to perform this operation",
+    "UnauthorizedOperation": "You are not authorized to perform this operation",
+    "InvalidSignature": "The request signature we calculated does not match the signature you provided",
+    "InvalidClientTokenId": "The security token included in the request is invalid",
+    "SignatureDoesNotMatch": "The request signature we calculated does not match the signature you provided",
+    "AuthFailure": "AWS was not able to validate the provided access credentials"
+}
+
+user_identities = [
+    {"type": "IAMUser", "principalId": "AIDACKCEVSQ6C2EXAMPLE"},
+    {"type": "IAMUser", "principalId": "AIDAI23HXS44EXAMPLE"},
+    {"type": "AssumedRole", "principalId": "AROAIDPPEZS35WEXAMPLE"},
+    {"type": "Root", "principalId": "123456789012"},
+    {"type": "IAMUser", "principalId": "AIDAJQABLZS4A3EXAMPLE"},
+    {"type": "FederatedUser", "principalId": "AROAI4QRP7UFT2EXAMPLE"}
+]
+
+# Base timestamp
+base_time = datetime(2024, 1, 19, 7, 0, 0)
+
+# Generate 14 failed authentication/authorization events
+for i in range(14):
+    hours_offset = random.randint(0, 16)
+    minutes_offset = random.randint(0, 59)
+    seconds_offset = random.randint(0, 59)
+    
+    event_time = base_time + timedelta(hours=hours_offset, minutes=minutes_offset, seconds=seconds_offset)
+    
+    error_code = random.choice(error_codes)
+    event_name = random.choice(error_events)
+    source_ip = random.choice(suspicious_ips if i < 8 else suspicious_ips + legitimate_ips)
+    
+    record = {
+        "eventVersion": "1.08",
+        "userIdentity": random.choice(user_identities),
+        "eventTime": event_time.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "eventSource": f"{event_name.lower().replace('console', 'signin')}.amazonaws.com",
+        "eventName": event_name,
+        "awsRegion": random.choice(["us-east-1", "us-west-2", "eu-west-1"]),
+        "sourceIPAddress": source_ip,
+        "userAgent": random.choice([
+            "aws-cli/2.13.5 Python/3.11.4 Linux/5.15.0",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Boto3/1.26.137 Python/3.9.16 Linux/5.10.0",
+            "aws-sdk-java/2.20.52"
+        ]),
+        "errorCode": error_code,
+        "errorMessage": error_messages[error_code],
+        "requestParameters": {
+            "userName" if "User" in event_name else "bucketName": f"{'test-user' if 'User' in event_name else 'example-bucket'}-{random.randint(1,100)}"
+        },
+        "responseElements": None,
+        "requestID": f"{random.randint(10000000, 99999999)}-{random.randint(1000, 9999)}-{random.randint(1000, 9999)}-{random.randint(1000, 9999)}-{random.randint(100000000000, 999999999999)}",
+        "eventID": f"{random.randint(10000000, 99999999)}-{random.randint(1000, 9999)}-{random.randint(1000, 9999)}-{random.randint(1000, 9999)}-{random.randint(100000000000, 999999999999)}",
+        "readOnly": random.choice([True, False]),
+        "eventType": "AwsApiCall",
+        "managementEvent": True,
+        "recipientAccountId": "123456789012"
+    }
+    
+    records.append(record)
+
+# Generate 34 successful events
+for i in range(34):
+    hours_offset = random.randint(0, 16)
+    minutes_offset = random.randint(0, 59)
+    seconds_offset = random.randint(0, 59)
+    
+    event_time = base_time + timedelta(hours=hours_offset, minutes=minutes_offset, seconds=seconds_offset)
+    
+    event_name = random.choice(success_events)
+    source_ip = random.choice(legitimate_ips)
+    
+    record = {
+        "eventVersion": "1.08",
+        "userIdentity": random.choice(user_identities),
+        "eventTime": event_time.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "eventSource": f"{event_name.lower()}.amazonaws.com",
+        "eventName": event_name,
+        "awsRegion": random.choice(["us-east-1", "us-west-2", "eu-west-1", "ap-southeast-1"]),
+        "sourceIPAddress": source_ip,
+        "userAgent": random.choice([
+            "aws-cli/2.13.5 Python/3.11.4 Linux/5.15.0",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+            "Boto3/1.26.137 Python/3.9.16 Linux/5.10.0",
+            "aws-sdk-java/2.20.52",
+            "AWS Internal"
+        ]),
+        "errorCode": None,
+        "errorMessage": None,
+        "requestParameters": {
+            "maxResults" if "Describe" in event_name or "List" in event_name else "key": random.randint(10, 100) if "Describe" in event_name or "List" in event_name else f"data/file-{random.randint(1,1000)}.txt"
+        },
+        "responseElements": {
+            "status": "success",
+            "count": random.randint(1, 50) if "List" in event_name or "Describe" in event_name else None
+        },
+        "requestID": f"{random.randint(10000000, 99999999)}-{random.randint(1000, 9999)}-{random.randint(1000, 9999)}-{random.randint(1000, 9999)}-{random.randint(100000000000, 999999999999)}",
+        "eventID": f"{random.randint(10000000, 99999999)}-{random.randint(1000, 9999)}-{random.randint(1000, 9999)}-{random.randint(1000, 9999)}-{random.randint(100000000000, 999999999999)}",
+        "readOnly": True if "Describe" in event_name or "List" in event_name or "Get" in event_name else False,
+        "eventType": "AwsApiCall",
+        "managementEvent": True,
+        "recipientAccountId": "123456789012"
+    }
+    
+    records.append(record)
+
+# Sort records by eventTime
+records.sort(key=lambda x: x["eventTime"])
+
+# Create the CloudTrail log structure
+cloudtrail_log = {
+    "Records": records
+}
+
+# Convert to JSON and compress
+json_data = json.dumps(cloudtrail_log, indent=2)
+compressed_data = gzip.compress(json_data.encode('utf-8'))
+
+# Write to file
+with open('data/cloudtrail_2024_01_19.json.gz', 'wb') as f:
+    f.write(compressed_data)
+
+print("CloudTrail log file generated successfully")

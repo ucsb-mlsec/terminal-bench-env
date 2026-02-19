@@ -1,0 +1,133 @@
+#!/bin/bash
+
+# Vault Unseal Automation Script
+# Path: /opt/vault/unseal_vault.sh
+
+set -e
+
+# Configuration
+STATE_DIR="/var/vault/state"
+SEAL_STATUS_FILE="${STATE_DIR}/seal_status.json"
+UNSEAL_KEYS_DIR="${STATE_DIR}/unseal_keys"
+UNSEAL_LOG_FILE="${STATE_DIR}/unseal_log.json"
+
+# Function to log errors
+log_error() {
+    echo "ERROR: $1" >&2
+}
+
+# Function to check if required files exist
+check_prerequisites() {
+    if [ ! -f "${SEAL_STATUS_FILE}" ]; then
+        log_error "Seal status file not found: ${SEAL_STATUS_FILE}"
+        exit 1
+    fi
+    
+    if [ ! -d "${UNSEAL_KEYS_DIR}" ]; then
+        log_error "Unseal keys directory not found: ${UNSEAL_KEYS_DIR}"
+        exit 1
+    fi
+}
+
+# Function to read seal status
+read_seal_status() {
+    if ! cat "${SEAL_STATUS_FILE}" 2>/dev/null; then
+        log_error "Failed to read seal status file"
+        exit 1
+    fi
+}
+
+# Function to check if vault is already unsealed
+is_unsealed() {
+    local sealed=$(grep -o '"sealed"[[:space:]]*:[[:space:]]*[a-z]*' "${SEAL_STATUS_FILE}" | grep -o '[a-z]*$')
+    if [ "${sealed}" = "false" ]; then
+        return 0
+    fi
+    return 1
+}
+
+# Function to get threshold value
+get_threshold() {
+    grep -o '"threshold"[[:space:]]*:[[:space:]]*[0-9]*' "${SEAL_STATUS_FILE}" | grep -o '[0-9]*$'
+}
+
+# Function to unseal vault
+unseal_vault() {
+    local threshold=$1
+    local keys_used=0
+    
+    # Check if we have enough key files
+    for i in $(seq 1 ${threshold}); do
+        if [ ! -f "${UNSEAL_KEYS_DIR}/key${i}.txt" ]; then
+            log_error "Missing key file: ${UNSEAL_KEYS_DIR}/key${i}.txt"
+            return 1
+        fi
+    done
+    
+    # Process each key
+    for i in $(seq 1 ${threshold}); do
+        local key_file="${UNSEAL_KEYS_DIR}/key${i}.txt"
+        if [ -f "${key_file}" ]; then
+            keys_used=$((keys_used + 1))
+        fi
+    done
+    
+    # Update seal status to unsealed
+    cat > "${SEAL_STATUS_FILE}" <<EOF
+{
+  "sealed": false,
+  "threshold": ${threshold},
+  "progress": ${threshold}
+}
+EOF
+    
+    # Log the unseal operation
+    local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    local log_entry="{
+  \"timestamp\": \"${timestamp}\",
+  \"keys_used\": ${keys_used},
+  \"success\": true
+}"
+    
+    if [ -f "${UNSEAL_LOG_FILE}" ]; then
+        echo "${log_entry}" >> "${UNSEAL_LOG_FILE}"
+    else
+        echo "${log_entry}" > "${UNSEAL_LOG_FILE}"
+    fi
+    
+    return 0
+}
+
+# Main execution
+main() {
+    # Check prerequisites
+    check_prerequisites
+    
+    # Check if already unsealed
+    if is_unsealed; then
+        echo "Vault is already unsealed"
+        exit 0
+    fi
+    
+    # Get threshold value
+    threshold=$(get_threshold)
+    
+    if [ -z "${threshold}" ] || [ "${threshold}" -le 0 ]; then
+        log_error "Invalid threshold value: ${threshold}"
+        exit 1
+    fi
+    
+    echo "Vault is sealed. Threshold: ${threshold}"
+    echo "Beginning unseal process..."
+    
+    # Unseal the vault
+    if unseal_vault ${threshold}; then
+        echo "Vault successfully unsealed"
+        exit 0
+    else
+        log_error "Failed to unseal vault"
+        exit 1
+    fi
+}
+
+# Run main function

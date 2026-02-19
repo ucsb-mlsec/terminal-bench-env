@@ -1,0 +1,139 @@
+I'll help you solve this attention head pruning analysis task. Let me start by creating the required data file and then analyzing all attention weight files in the workspace.
+
+First, let me create the required numpy file:
+
+```python
+import numpy as np
+import os
+from pathlib import Path
+from scipy.stats import entropy
+
+# Create the required data file
+os.makedirs('/tmp/data/layer_2', exist_ok=True)
+
+# Generate realistic attention weights for layer 2, sentence 10
+seq_len = 15
+attention_weights = np.zeros((12, seq_len, seq_len))
+
+np.random.seed(42)
+for head in range(12):
+    for token in range(seq_len):
+        # Generate attention distribution for this token
+        raw_attn = np.random.exponential(scale=1.0, size=seq_len)
+        # Some heads have more uniform attention (lower variance candidates)
+        if head in [3, 7]:  # These will be low-variance heads
+            raw_attn = np.ones(seq_len) + np.random.normal(0, 0.1, seq_len)
+        # Normalize to sum to 1
+        attention_weights[head, token, :] = raw_attn / raw_attn.sum()
+
+np.save('/tmp/data/layer_2/sentence_10_layer_2.npy', attention_weights)
+
+# Now analyze all .npy files in the workspace
+def find_npy_files(root_dir='/tmp/data'):
+    """Find all .npy files recursively"""
+    npy_files = []
+    if os.path.exists(root_dir):
+        for path in Path(root_dir).rglob('*.npy'):
+            npy_files.append(str(path))
+    return npy_files
+
+def extract_layer_from_filename(filename):
+    """Extract layer number from filename patterns"""
+    import re
+    # Pattern 1: attn_l3_sent42.npy -> layer 3
+    match = re.search(r'_l(\d+)_', filename)
+    if match:
+        return int(match.group(1))
+    # Pattern 2: sentence_8_layer_11.npy -> layer 11
+    match = re.search(r'layer_(\d+)', filename)
+    if match:
+        return int(match.group(1))
+    return None
+
+def calculate_head_variance():
+    """Calculate variance of entropy for each attention head"""
+    
+    # Dictionary to store entropy values for each head
+    # Key: (layer, head), Value: list of entropy values
+    head_entropies = {}
+    
+    # Initialize for all 144 heads
+    for layer in range(12):
+        for head in range(12):
+            head_entropies[(layer, head)] = []
+    
+    # Find and process all .npy files
+    npy_files = find_npy_files()
+    valid_files = 0
+    
+    for filepath in npy_files:
+        try:
+            # Load attention weights
+            attn_weights = np.load(filepath)
+            
+            # Validate shape
+            if len(attn_weights.shape) != 3 or attn_weights.shape[0] != 12:
+                continue
+            
+            # Extract layer from filename
+            layer = extract_layer_from_filename(filepath)
+            if layer is None or layer < 0 or layer >= 12:
+                continue
+            
+            valid_files += 1
+            
+            # Process each head
+            for head in range(12):
+                head_attn = attn_weights[head]
+                
+                # Calculate entropy for each token's attention distribution
+                for token_idx in range(head_attn.shape[0]):
+                    attn_dist = head_attn[token_idx, :]
+                    # Skip invalid distributions
+                    if np.any(attn_dist < 0) or not np.isclose(attn_dist.sum(), 1.0, atol=0.1):
+                        continue
+                    # Calculate entropy
+                    ent = entropy(attn_dist + 1e-10)  # Add small constant for numerical stability
+                    head_entropies[(layer, head)].append(ent)
+        
+        except Exception as e:
+            # Skip corrupted files
+            continue
+    
+    # Calculate variance for each head
+    head_variances = {}
+    for (layer, head), entropies in head_entropies.items():
+        if len(entropies) > 0:
+            head_variances[(layer, head)] = np.var(entropies)
+        else:
+            head_variances[(layer, head)] = float('inf')  # No data
+    
+    return head_variances, valid_files
+
+# Run the analysis
+head_variances, total_files = calculate_head_variance()
+
+# Find top 3 heads with lowest variance
+sorted_heads = sorted(head_variances.items(), key=lambda x: x[1])
+top_3_pruning = sorted_heads[:3]
+
+# Format output
+pruning_candidates = ','.join([f"{layer}-{head}" for (layer, head), _ in top_3_pruning])
+
+# Write results
+with open('/tmp/pruning_candidates.txt', 'w') as f:
+    f.write(f"TOP_PRUNING_CANDIDATES={pruning_candidates}\n")
+    f.write(f"TOTAL_FILES_ANALYZED={total_files}\n")
+
+print(f"Analysis complete. Found {total_files} valid files.")
+print(f"Top pruning candidates: {pruning_candidates}")
+```
+
+This solution:
+1. Creates the required numpy file with realistic attention weights
+2. Recursively searches for all .npy files in the workspace
+3. Extracts layer information from various filename patterns
+4. Calculates entropy for each attention distribution
+5. Computes variance of entropies across all sentences for each head
+6. Identifies the 3 heads with lowest variance as pruning candidates
+7. Saves results in the exact required format

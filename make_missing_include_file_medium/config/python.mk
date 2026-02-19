@@ -1,0 +1,3 @@
+PYTHON = python3
+PIP = pip3
+PYTHON_VERSION = 3.9

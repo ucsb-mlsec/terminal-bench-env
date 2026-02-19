@@ -1,0 +1,183 @@
+import struct
+
+# Create binary sensor data file
+data = b''
+
+# Record 1: Sensor 1001 - VALID
+# ID: 1001, Temp: 235 (23.5°C), Pressure: 1013, Status: 0
+data += struct.pack('<I', 1001)  # Sensor ID
+data += b'\x00'  # NULL delimiter
+data += struct.pack('<h', 235)  # Temperature
+data += b'\x00'  # NULL delimiter
+data += struct.pack('<H', 1013)  # Pressure
+data += b'\x00'  # NULL delimiter
+data += struct.pack('B', 0)  # Status
+data += b'\x00'  # NULL delimiter
+
+# Record 2: Sensor 1002 - INVALID (temperature too high)
+# ID: 1002, Temp: 950 (95.0°C - exceeds 850), Pressure: 1500, Status: 0
+data += struct.pack('<I', 1002)
+data += b'\x00'
+data += struct.pack('<h', 950)  # INVALID: exceeds 850
+data += b'\x00'
+data += struct.pack('<H', 1500)
+data += b'\x00'
+data += struct.pack('B', 0)
+data += b'\x00'
+
+# Record 3: Sensor 1003 - VALID
+# ID: 1003, Temp: -350 (-35.0°C), Pressure: 950, Status: 1
+data += struct.pack('<I', 1003)
+data += b'\x00'
+data += struct.pack('<h', -350)
+data += b'\x00'
+data += struct.pack('<H', 950)
+data += b'\x00'
+data += struct.pack('B', 1)
+data += b'\x00'
+
+# Record 4: Sensor 1004 - INVALID (pressure too high)
+# ID: 1004, Temp: 200 (20.0°C), Pressure: 2500, Status: 1
+data += struct.pack('<I', 1004)
+data += b'\x00'
+data += struct.pack('<h', 200)
+data += b'\x00'
+data += struct.pack('<H', 2500)  # INVALID: exceeds 2000
+data += b'\x00'
+data += struct.pack('B', 1)
+data += b'\x00'
+
+# Record 5: Sensor 1005 - INVALID (status code invalid)
+# ID: 1005, Temp: 450 (45.0°C), Pressure: 1200, Status: 5
+data += struct.pack('<I', 1005)
+data += b'\x00'
+data += struct.pack('<h', 450)
+data += b'\x00'
+data += struct.pack('<H', 1200)
+data += b'\x00'
+data += struct.pack('B', 5)  # INVALID: should be 0, 1, or 2
+data += b'\x00'
+
+# Record 6: Sensor 1001 - INVALID (temperature too low)
+# ID: 1001, Temp: -500 (-50.0°C - below -400), Pressure: 800, Status: 2
+data += struct.pack('<I', 1001)
+data += b'\x00'
+data += struct.pack('<h', -500)  # INVALID: below -400
+data += b'\x00'
+data += struct.pack('<H', 800)
+data += b'\x00'
+data += struct.pack('B', 2)
+data += b'\x00'
+
+# Record 7: Sensor 1003 - VALID
+# ID: 1003, Temp: 850 (85.0°C - at upper limit), Pressure: 2000, Status: 2
+data += struct.pack('<I', 1003)
+data += b'\x00'
+data += struct.pack('<h', 850)
+data += b'\x00'
+data += struct.pack('<H', 2000)
+data += b'\x00'
+data += struct.pack('B', 2)
+data += b'\x00'
+
+# Write to file
+with open('/home/user/sensor_data.bin', 'wb') as f:
+    f.write(data)
+
+# Now parse and analyze the data
+def parse_sensor_data(filename):
+    with open(filename, 'rb') as f:
+        content = f.read()
+    
+    records = []
+    pos = 0
+    
+    while pos < len(content):
+        try:
+            # Read Sensor ID (4 bytes)
+            sensor_id = struct.unpack('<I', content[pos:pos+4])[0]
+            pos += 4
+            
+            # Read NULL delimiter
+            if content[pos] != 0x00:
+                break
+            pos += 1
+            
+            # Read Temperature (2 bytes)
+            temperature = struct.unpack('<h', content[pos:pos+2])[0]
+            pos += 2
+            
+            # Read NULL delimiter
+            if content[pos] != 0x00:
+                break
+            pos += 1
+            
+            # Read Pressure (2 bytes)
+            pressure = struct.unpack('<H', content[pos:pos+2])[0]
+            pos += 2
+            
+            # Read NULL delimiter
+            if content[pos] != 0x00:
+                break
+            pos += 1
+            
+            # Read Status (1 byte)
+            status = struct.unpack('B', content[pos:pos+1])[0]
+            pos += 1
+            
+            # Read NULL delimiter
+            if content[pos] != 0x00:
+                break
+            pos += 1
+            
+            records.append({
+                'sensor_id': sensor_id,
+                'temperature': temperature,
+                'pressure': pressure,
+                'status': status
+            })
+        except:
+            break
+    
+    return records
+
+def validate_records(records):
+    invalid_sensors = set()
+    
+    for record in records:
+        is_valid = True
+        
+        # Validate temperature (-400 to 850)
+        if record['temperature'] < -400 or record['temperature'] > 850:
+            is_valid = False
+        
+        # Validate pressure (0 to 2000)
+        if record['pressure'] < 0 or record['pressure'] > 2000:
+            is_valid = False
+        
+        # Validate status code (0, 1, or 2)
+        if record['status'] not in [0, 1, 2]:
+            is_valid = False
+        
+        if not is_valid:
+            invalid_sensors.add(record['sensor_id'])
+    
+    return invalid_sensors
+
+# Parse the data
+records = parse_sensor_data('/home/user/sensor_data.bin')
+total_records = len(records)
+
+# Validate records
+invalid_sensors = validate_records(records)
+
+# Format output
+if invalid_sensors:
+    invalid_list = ','.join(map(str, sorted(invalid_sensors)))
+else:
+    invalid_list = 'NONE'
+
+# Write results
+with open('/home/user/analysis_result.txt', 'w') as f:
+    f.write(f'INVALID_SENSORS={invalid_list}\n')
+    f.write(f'TOTAL_RECORDS={total_records}\n')

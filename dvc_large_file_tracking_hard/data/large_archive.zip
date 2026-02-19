@@ -1,0 +1,244 @@
+#!/usr/bin/env python3
+import os
+import json
+import subprocess
+import shutil
+from pathlib import Path
+
+# Set up paths
+project_dir = Path("/workspace/ml_project")
+dvc_storage = Path("/workspace/dvc_storage")
+solution_file = Path("/workspace/solution.json")
+
+# Create project structure with various files
+project_dir.mkdir(parents=True, exist_ok=True)
+dvc_storage.mkdir(parents=True, exist_ok=True)
+
+# Create directory structure
+(project_dir / "data").mkdir(exist_ok=True)
+(project_dir / "models").mkdir(exist_ok=True)
+(project_dir / "src").mkdir(exist_ok=True)
+(project_dir / "config").mkdir(exist_ok=True)
+
+# Create files for the project
+
+# 1. Large binary ZIP file (>1MB)
+zip_file = project_dir / "data" / "large_archive.zip"
+# Create valid ZIP file with header and random data (2.5MB)
+with open(zip_file, "wb") as f:
+    # ZIP file signature
+    f.write(bytes([0x50, 0x4B, 0x03, 0x04]))
+    # Add random binary data to make it 2.5MB
+    import random
+    f.write(bytes([random.randint(0, 255) for _ in range(2621440 - 4)]))
+
+# 2. Large CSV file (>500KB)
+csv_file = project_dir / "data" / "raw_data.csv"
+with open(csv_file, "w") as f:
+    f.write("id,feature1,feature2,feature3,feature4,target\n")
+    for i in range(15000):
+        f.write(f"{i},{i*0.1},{i*0.2},{i*0.3},{i*0.4},{i%2}\n")
+
+# 3. Medium CSV file (>500KB)
+csv_file2 = project_dir / "data" / "processed_data.csv"
+with open(csv_file2, "w") as f:
+    f.write("id,normalized_f1,normalized_f2,scaled_f3,encoded_f4,label\n")
+    for i in range(12000):
+        f.write(f"{i},{i*0.01},{i*0.02},{i*0.03},{i*0.04},{i%3}\n")
+
+# 4. Large model file (binary, >1MB)
+model_file = project_dir / "models" / "trained_model.pkl"
+with open(model_file, "wb") as f:
+    f.write(b"MODEL_HEADER" + bytes([random.randint(0, 255) for _ in range(1500000)]))
+
+# 5. Small model metadata (should stay in git)
+model_meta = project_dir / "models" / "model_metadata.json"
+with open(model_meta, "w") as f:
+    json.dump({"model_type": "RandomForest", "accuracy": 0.95, "features": 10}, f)
+
+# 6. Python script (should stay in git)
+script_file = project_dir / "src" / "train.py"
+with open(script_file, "w") as f:
+    f.write("""#!/usr/bin/env python3
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+
+def train_model(data_path, output_path):
+    df = pd.read_csv(data_path)
+    model = RandomForestClassifier()
+    model.fit(df.drop('target', axis=1), df['target'])
+    return model
+
+if __name__ == '__main__':
+    train_model('data/processed_data.csv', 'models/trained_model.pkl')
+""")
+
+# 7. Small config file (should stay in git)
+config_file = project_dir / "config" / "pipeline.yaml"
+with open(config_file, "w") as f:
+    f.write("""pipeline:
+  data_source: data/raw_data.csv
+  preprocessing:
+    normalize: true
+    scale: true
+  model:
+    type: RandomForest
+    n_estimators: 100
+""")
+
+# 8. README (should stay in git)
+readme_file = project_dir / "README.md"
+with open(readme_file, "w") as f:
+    f.write("""# ML Project
+
+This project contains machine learning pipelines for data processing and model training.
+
+## Structure
+- data/: Raw and processed datasets
+- models/: Trained models
+- src/: Source code
+- config/: Configuration files
+""")
+
+# 9. Small JSON data file (should stay in git, <500KB)
+small_json = project_dir / "config" / "feature_schema.json"
+with open(small_json, "w") as f:
+    json.dump({
+        "features": [
+            {"name": "feature1", "type": "float", "range": [0, 100]},
+            {"name": "feature2", "type": "float", "range": [0, 200]},
+            {"name": "feature3", "type": "float", "range": [0, 300]},
+        ]
+    }, f, indent=2)
+
+# 10. Large features file (>1MB)
+features_file = project_dir / "data" / "engineered_features.csv"
+with open(features_file, "w") as f:
+    header = "id," + ",".join([f"feature_{i}" for i in range(50)]) + ",target\n"
+    f.write(header)
+    for i in range(10000):
+        row = f"{i}," + ",".join([str(i*0.01*j) for j in range(50)]) + f",{i%2}\n"
+        f.write(row)
+
+# Initialize Git repository
+os.chdir(project_dir)
+subprocess.run(["git", "init"], check=True, capture_output=True)
+subprocess.run(["git", "config", "user.email", "test@example.com"], check=True, capture_output=True)
+subprocess.run(["git", "config", "user.name", "Test User"], check=True, capture_output=True)
+
+# Simulate that large files were previously committed to git
+subprocess.run(["git", "add", "."], check=True, capture_output=True)
+subprocess.run(["git", "commit", "-m", "Initial commit with large files"], check=True, capture_output=True)
+
+# Initialize DVC
+subprocess.run(["dvc", "init"], check=True, capture_output=True)
+
+# Configure DVC remote storage
+subprocess.run(["dvc", "remote", "add", "-d", "storage", str(dvc_storage)], check=True, capture_output=True)
+
+# Function to get file size
+def get_file_size(filepath):
+    return filepath.stat().st_size
+
+# Function to check if file is binary
+def is_binary_file(filepath):
+    binary_extensions = {'.pkl', '.zip', '.tar', '.gz', '.bin', '.h5', '.parquet'}
+    return filepath.suffix.lower() in binary_extensions
+
+# Function to determine if file should use DVC
+def should_use_dvc(filepath):
+    if not filepath.is_file():
+        return False
+    
+    size = get_file_size(filepath)
+    suffix = filepath.suffix.lower()
+    
+    # Code files stay in git
+    if suffix in {'.py', '.sh', '.md'}:
+        return False
+    
+    # Binary files use DVC regardless of size
+    if is_binary_file(filepath):
+        return True
+    
+    # Files larger than 1MB use DVC
+    if size > 1_048_576:  # 1MB
+        return True
+    
+    # CSV/JSON files larger than 500KB use DVC
+    if suffix in {'.csv', '.json'} and size > 512_000:  # 500KB
+        return True
+    
+    # Config files smaller than 100KB stay in git
+    if size < 102_400:  # 100KB
+        return False
+    
+    return False
+
+# Scan all files and categorize them
+dvc_files = []
+git_files = []
+total_size = 0
+
+for filepath in project_dir.rglob("*"):
+    if filepath.is_file() and ".git" not in str(filepath) and ".dvc" not in str(filepath):
+        relative_path = filepath.relative_to(project_dir)
+        
+        if should_use_dvc(filepath):
+            dvc_files.append(str(relative_path))
+            total_size += get_file_size(filepath)
+        else:
+            git_files.append(str(relative_path))
+
+# Remove large files from git history and add to DVC
+for dvc_file in dvc_files:
+    filepath = project_dir / dvc_file
+    
+    # Remove from git tracking
+    subprocess.run(["git", "rm", "--cached", dvc_file], capture_output=True)
+    
+    # Add to DVC
+    subprocess.run(["dvc", "add", dvc_file], check=True, capture_output=True)
+    
+    # Add .dvc file to git
+    dvc_meta_file = f"{dvc_file}.dvc"
+    if Path(dvc_meta_file).exists():
+        subprocess.run(["git", "add", dvc_meta_file], check=True, capture_output=True)
+
+# Add .gitignore entries for DVC-tracked files (DVC automatically does this)
+subprocess.run(["git", "add", ".gitignore"], capture_output=True)
+subprocess.run(["git", "add", ".dvc/.gitignore"], capture_output=True)
+subprocess.run(["git", "add", ".dvc/config"], capture_output=True)
+subprocess.run(["git", "add", ".dvcignore"], capture_output=True)
+
+# Commit DVC setup
+subprocess.run(["git", "commit", "-m", "Migrate large files to DVC"], capture_output=True)
+
+# Push to DVC remote
+subprocess.run(["dvc", "push"], check=True, capture_output=True)
+
+# Verify remote is configured
+result = subprocess.run(["dvc", "remote", "list"], capture_output=True, text=True)
+remote_configured = "storage" in result.stdout
+
+# Verify DVC cache is populated
+cache_dir = project_dir / ".dvc" / "cache"
+cache_populated = cache_dir.exists() and any(cache_dir.rglob("*"))
+
+# Create solution output
+solution = {
+    "dvc_tracked_files": sorted(dvc_files),
+    "git_tracked_files": sorted(git_files),
+    "total_space_saved": total_size,
+    "remote_configured": remote_configured
+}
+
+# Write solution to file
+with open(solution_file, "w") as f:
+    json.dump(solution, f, indent=2)
+
+print(f"Migration complete!")
+print(f"DVC tracked files: {len(dvc_files)}")
+print(f"Git tracked files: {len(git_files)}")
+print(f"Total space saved: {total_size:,} bytes")
+print(f"Remote configured: {remote_configured}")

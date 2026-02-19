@@ -1,0 +1,63 @@
+import numpy as np
+from scipy.ndimage import rotate, gaussian_filter
+from sklearn.datasets import load_digits
+import warnings
+warnings.filterwarnings('ignore')
+
+# Set random seed for reproducibility
+np.random.seed(42)
+
+# Generate base digit images using sklearn's load_digits
+# We'll use this as a starting point and create 28x28 versions
+digits_data = load_digits()
+base_images = digits_data.images
+base_labels = digits_data.target
+
+# Function to resize 8x8 to 28x28 using simple interpolation
+def resize_8x8_to_28x28(img):
+    from scipy.ndimage import zoom
+    return zoom(img, 28/8, order=1)
+
+# Create 3000 degraded images
+n_samples = 3000
+degraded_images = []
+
+for i in range(n_samples):
+    # Select a random digit from the base dataset
+    idx = np.random.randint(0, len(base_images))
+    img = base_images[idx].copy()
+    
+    # Resize to 28x28
+    img = resize_8x8_to_28x28(img)
+    
+    # Normalize to [0, 1]
+    img = img / 16.0  # load_digits has values 0-16
+    
+    # Apply rotation: uniform random between -25 and +25 degrees
+    angle = np.random.uniform(-25, 25)
+    img = rotate(img, angle, reshape=False, mode='constant', cval=0)
+    
+    # Apply Gaussian blur with sigma = 1.5
+    img = gaussian_filter(img, sigma=1.5)
+    
+    # Add Gaussian noise with standard deviation = 0.08
+    noise = np.random.normal(0, 0.08, img.shape)
+    img = img + noise
+    
+    # Clip to [0, 1] range
+    img = np.clip(img, 0, 1)
+    
+    degraded_images.append(img)
+
+# Convert to numpy array
+degraded_images = np.array(degraded_images, dtype=np.float32)
+
+# Verify shape
+assert degraded_images.shape == (3000, 28, 28), f"Expected shape (3000, 28, 28), got {degraded_images.shape}"
+
+# Save as NPZ without labels
+np.savez('/workspace/data/degraded_digits.npz', images=degraded_images)
+
+print(f"Generated degraded_digits.npz with shape {degraded_images.shape}")
+print(f"Value range: [{degraded_images.min():.3f}, {degraded_images.max():.3f}]")
+print(f"Mean: {degraded_images.mean():.3f}, Std: {degraded_images.std():.3f}")

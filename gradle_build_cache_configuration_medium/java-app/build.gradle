@@ -1,0 +1,90 @@
+// Build configuration for Java application
+plugins {
+    id 'java'
+}
+
+// Project metadata
+group = 'com.example'
+version = '1.0.0'
+
+// Java version configuration
+sourceCompatibility = JavaVersion.VERSION_11
+targetCompatibility = JavaVersion.VERSION_11
+
+// Repository configuration
+repositories {
+    mavenCentral()
+}
+
+// Project dependencies
+dependencies {
+    // Testing framework
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.mockito:mockito-core:4.8.0'
+    
+    // Logging
+    implementation 'org.slf4j:slf4j-api:1.7.36'
+    implementation 'ch.qos.logback:logback-classic:1.2.11'
+    
+    // Utilities
+    implementation 'org.apache.commons:commons-lang3:3.12.0'
+    implementation 'com.google.guava:guava:31.1-jre'
+}
+
+// Test task configuration
+test {
+    useJUnit()
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+    }
+}
+
+// Custom task: Generate source files
+task generateSources {
+    def outputDir = file("${buildDir}/generated-sources")
+    outputs.dir outputDir
+    
+    doLast {
+        outputDir.mkdirs()
+        new File(outputDir, "Generated.java").text = """
+            package com.example.generated;
+            public class Generated {
+                public static final String VERSION = "${project.version}";
+            }
+        """
+    }
+}
+
+// Custom task: Process resources
+task processCustomResources {
+    def inputDir = file("src/main/resources")
+    def outputDir = file("${buildDir}/processed-resources")
+    
+    inputs.dir inputDir
+    outputs.dir outputDir
+    
+    doLast {
+        outputDir.mkdirs()
+        fileTree(inputDir).each { file ->
+            copy {
+                from file
+                into outputDir
+            }
+        }
+    }
+}
+
+// Custom task: Generate documentation
+task generateDocs {
+    def outputDir = file("${buildDir}/docs")
+    outputs.dir outputDir
+    
+    doLast {
+        outputDir.mkdirs()
+        new File(outputDir, "README.html").text = "<html><body><h1>Project Documentation</h1></body></html>"
+    }
+}
+
+// Task dependencies
+compileJava.dependsOn generateSources

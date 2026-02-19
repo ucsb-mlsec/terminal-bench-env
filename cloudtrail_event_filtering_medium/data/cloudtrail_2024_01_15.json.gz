@@ -1,0 +1,145 @@
+#!/usr/bin/env python3
+import gzip
+import json
+from datetime import datetime, timedelta
+import random
+
+# Generate realistic CloudTrail events
+events = []
+
+# Base timestamp
+base_time = datetime(2024, 1, 15, 8, 0, 0)
+
+# Sample data
+source_ips = [
+    "203.0.113.42", "198.51.100.17", "192.0.2.33", "203.0.113.89",
+    "198.51.100.44", "192.0.2.156", "203.0.113.7", "198.51.100.201",
+    "192.0.2.98", "203.0.113.123", "198.51.100.66", "192.0.2.77"
+]
+
+event_names = [
+    "ConsoleLogin", "AssumeRole", "GetObject", "PutBucketPolicy",
+    "DescribeInstances", "CreateUser", "DeleteBucket", "PutObject",
+    "ListBuckets", "GetBucketAcl", "CreateAccessKey", "AttachUserPolicy",
+    "RunInstances", "TerminateInstances", "GetCallerIdentity"
+]
+
+error_codes = [
+    "AccessDenied", "UnauthorizedOperation", "InvalidClientTokenId",
+    "AccessDeniedException", "AuthorizationError", "InvalidAccessKeyId",
+    "SignatureDoesNotMatch", "TokenRefreshRequired"
+]
+
+error_messages = {
+    "AccessDenied": "User is not authorized to perform this operation",
+    "UnauthorizedOperation": "You are not authorized to perform this operation",
+    "InvalidClientTokenId": "The security token included in the request is invalid",
+    "AccessDeniedException": "Access to the resource is denied",
+    "AuthorizationError": "Authorization failed for this request",
+    "InvalidAccessKeyId": "The AWS Access Key Id you provided does not exist",
+    "SignatureDoesNotMatch": "The request signature we calculated does not match",
+    "TokenRefreshRequired": "The security token must be refreshed"
+}
+
+principal_ids = [
+    "AIDAI23EXAMPLEEXAMPLE", "AIDAI45EXAMPLEEXAMPLE", "AIDAI67EXAMPLEEXAMPLE",
+    "AIDAI89EXAMPLEEXAMPLE", "AIDAI01EXAMPLEEXAMPLE", "AIDAI34EXAMPLEEXAMPLE"
+]
+
+user_names = ["john.doe", "jane.smith", "admin", "developer1", "auditor", "contractor"]
+
+# Generate 15 failed events
+for i in range(15):
+    minutes_offset = random.randint(0, 960)  # 16 hours worth of minutes
+    event_time = base_time + timedelta(minutes=minutes_offset)
+    
+    error_code = random.choice(error_codes)
+    event_name = random.choice(event_names)
+    source_ip = random.choice(source_ips)
+    principal_id = random.choice(principal_ids)
+    user_name = random.choice(user_names)
+    
+    event = {
+        "eventVersion": "1.08",
+        "eventTime": event_time.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "eventName": event_name,
+        "sourceIPAddress": source_ip,
+        "userAgent": "aws-cli/2.13.5 Python/3.11.4 Linux/5.10.0",
+        "errorCode": error_code,
+        "errorMessage": error_messages[error_code],
+        "userIdentity": {
+            "type": "IAMUser",
+            "principalId": principal_id,
+            "arn": f"arn:aws:iam::123456789012:user/{user_name}",
+            "accountId": "123456789012",
+            "userName": user_name
+        },
+        "requestParameters": {
+            "bucketName": f"prod-data-bucket-{random.randint(1,5)}" if "Bucket" in event_name else None,
+            "instanceId": f"i-0{random.randint(1000000000,9999999999)}" if "Instance" in event_name else None
+        },
+        "responseElements": None,
+        "requestID": f"{random.randint(10000000,99999999)}-{random.randint(1000,9999)}-{random.randint(1000,9999)}",
+        "eventID": f"{random.randint(10000000,99999999)}-{random.randint(1000,9999)}-{random.randint(1000,9999)}-{random.randint(1000,9999)}",
+        "readOnly": event_name in ["GetObject", "DescribeInstances", "ListBuckets", "GetBucketAcl", "GetCallerIdentity"],
+        "eventType": "AwsApiCall",
+        "recipientAccountId": "123456789012"
+    }
+    
+    events.append(event)
+
+# Generate 35 successful events
+for i in range(35):
+    minutes_offset = random.randint(0, 960)
+    event_time = base_time + timedelta(minutes=minutes_offset)
+    
+    event_name = random.choice(event_names)
+    source_ip = random.choice(source_ips)
+    principal_id = random.choice(principal_ids)
+    user_name = random.choice(user_names)
+    
+    event = {
+        "eventVersion": "1.08",
+        "eventTime": event_time.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "eventName": event_name,
+        "sourceIPAddress": source_ip,
+        "userAgent": "aws-cli/2.13.5 Python/3.11.4 Linux/5.10.0",
+        "errorCode": None,
+        "errorMessage": None,
+        "userIdentity": {
+            "type": "IAMUser",
+            "principalId": principal_id,
+            "arn": f"arn:aws:iam::123456789012:user/{user_name}",
+            "accountId": "123456789012",
+            "userName": user_name
+        },
+        "requestParameters": {
+            "bucketName": f"prod-data-bucket-{random.randint(1,5)}" if "Bucket" in event_name else None,
+            "instanceId": f"i-0{random.randint(1000000000,9999999999)}" if "Instance" in event_name else None,
+            "userName": f"newuser{random.randint(1,100)}" if event_name == "CreateUser" else None
+        },
+        "responseElements": {
+            "ConsoleLogin": "Success" if event_name == "ConsoleLogin" else None
+        } if event_name == "ConsoleLogin" else {"success": True},
+        "requestID": f"{random.randint(10000000,99999999)}-{random.randint(1000,9999)}-{random.randint(1000,9999)}",
+        "eventID": f"{random.randint(10000000,99999999)}-{random.randint(1000,9999)}-{random.randint(1000,9999)}-{random.randint(1000,9999)}",
+        "readOnly": event_name in ["GetObject", "DescribeInstances", "ListBuckets", "GetBucketAcl", "GetCallerIdentity"],
+        "eventType": "AwsApiCall",
+        "recipientAccountId": "123456789012"
+    }
+    
+    events.append(event)
+
+# Sort events by timestamp
+events.sort(key=lambda x: x["eventTime"])
+
+# Create CloudTrail log structure
+cloudtrail_log = {
+    "Records": events
+}
+
+# Write compressed JSON file
+with gzip.open('/tmp/cloudtrail_2024_01_15.json.gz', 'wt', encoding='utf-8') as f:
+    json.dump(cloudtrail_log, f, indent=2)
+
+print("CloudTrail log file generated successfully")

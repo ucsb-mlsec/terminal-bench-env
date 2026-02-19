@@ -1,0 +1,64 @@
+=== Elasticsearch Performance Monitoring ===
+Cluster: production-cluster
+Monitoring Period: Last 2 hours
+Timestamp: 2024-01-15 14:30:00 UTC
+
+--- Indexing Rates (docs/sec) ---
+14:00:00 - 850 docs/sec (target: 5000 docs/sec)
+14:05:00 - 820 docs/sec
+14:10:00 - 790 docs/sec
+14:15:00 - 810 docs/sec
+14:20:00 - 780 docs/sec
+14:25:00 - 800 docs/sec
+14:30:00 - 795 docs/sec
+
+Average: 806 docs/sec (84% below target)
+
+--- Merge Operations ---
+Active merges: 5
+Queued merges: 12
+Total merge time: 1800000 ms (30 minutes)
+Merge throttle time: 1650000 ms (27.5 minutes)
+Merge throttle ratio: 91.7% (CRITICAL)
+
+Merge I/O Activity:
+- Current merge rate: 18-22 MB/sec
+- Configured throttle limit: 20 MB/sec
+- Observed I/O wait: HIGH
+- Merge queue depth: 12 (GROWING)
+
+--- Storage Performance ---
+Disk Type: NVMe SSD
+Available Write Throughput: 520 MB/sec
+Current Utilization: 3.8% (20 MB/sec merge throttle)
+Read IOPS: 45000
+Write IOPS: 38000
+
+--- Performance Analysis ---
+BOTTLENECK IDENTIFIED: Merge throttling
+- Merge operations consuming 91.7% of time in throttled state
+- Available I/O bandwidth: 520 MB/sec
+- Currently limited to: 20 MB/sec (96% underutilization)
+- Merge queue growing: 12 pending operations
+- Indexing rate severely impacted: 800 vs 5000 docs/sec expected
+
+RECOMMENDATION: Increase merge throttle limit to utilize available SSD I/O capacity
+
+--- Node-Level Metrics ---
+Node: es-node-01
+- Heap usage: 68%
+- CPU usage: 45%
+- Disk I/O wait: 12%
+- Network throughput: 180 MB/sec
+
+Node: es-node-02
+- Heap usage: 71%
+- CPU usage: 48%
+- Disk I/O wait: 14%
+- Network throughput: 175 MB/sec
+
+Node: es-node-03
+- Heap usage: 66%
+- CPU usage: 42%
+- Disk I/O wait: 11%
+- Network throughput: 190 MB/sec

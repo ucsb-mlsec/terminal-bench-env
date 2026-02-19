@@ -1,0 +1,45 @@
+I'll help you recover the orphaned commits. Let me start by examining the Git repository structure and finding the orphaned commits.
+
+First, let me explore the repository and identify all commits:
+
+```bash
+cd /workspace/repo
+
+# Find all commit objects in the object database
+find .git/objects -type f | grep -v pack | while read obj; do
+    # Extract SHA from path
+    dir=$(basename $(dirname $obj))
+    file=$(basename $obj)
+    if [ ${#dir} -eq 2 ] && [ ${#file} -eq 38 ]; then
+        sha="${dir}${file}"
+        type=$(git cat-file -t $sha 2>/dev/null)
+        if [ "$type" = "commit" ]; then
+            echo $sha
+        fi
+    fi
+done > /tmp/all_commits.txt
+
+# Find reachable commits from all refs
+git rev-list --all > /tmp/reachable_commits.txt
+
+# Find orphaned commits (in object db but not reachable)
+comm -23 <(sort /tmp/all_commits.txt) <(sort /tmp/reachable_commits.txt) > /tmp/orphaned_commits.txt
+
+# Get commit timestamps and find the most recent orphaned commit
+latest_commit=""
+latest_timestamp=0
+
+while read commit; do
+    timestamp=$(git cat-file -p $commit | grep "^committer" | sed 's/.* \([0-9]\{10\}\) .*/\1/')
+    if [ $timestamp -gt $latest_timestamp ]; then
+        latest_timestamp=$timestamp
+        latest_commit=$commit
+    fi
+done < /tmp/orphaned_commits.txt
+
+# Count orphaned commits
+orphaned_count=$(wc -l < /tmp/orphaned_commits.txt)
+
+# Write results
+echo "ORPHANED_COUNT=$orphaned_count" > /workspace/result.txt
+echo "LATEST_COMMIT=$latest_commit" >> /workspace/result.txt

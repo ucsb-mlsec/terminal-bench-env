@@ -1,0 +1,96 @@
+I need to analyze the source code first to understand the vulnerability, then create the fixed version. Let me start by examining the source code.
+
+Since I need to provide a corrected source file at `/home/agent/solution.c`, let me create a fixed version of the config parser that addresses the buffer overflow vulnerability:
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_LINE_LENGTH 256
+#define MAX_KEY_LENGTH 64
+#define MAX_VALUE_LENGTH 128
+
+typedef struct {
+    char key[MAX_KEY_LENGTH];
+    char value[MAX_VALUE_LENGTH];
+} ConfigEntry;
+
+int parse_config_line(const char *line, ConfigEntry *entry) {
+    char *equals_pos = strchr(line, '=');
+    if (equals_pos == NULL) {
+        return -1;
+    }
+    
+    size_t key_len = equals_pos - line;
+    if (key_len >= MAX_KEY_LENGTH) {
+        fprintf(stderr, "Error: Key too long (max %d characters)\n", MAX_KEY_LENGTH - 1);
+        return -1;
+    }
+    
+    strncpy(entry->key, line, key_len);
+    entry->key[key_len] = '\0';
+    
+    // Trim trailing whitespace from key
+    while (key_len > 0 && (entry->key[key_len - 1] == ' ' || entry->key[key_len - 1] == '\t')) {
+        entry->key[--key_len] = '\0';
+    }
+    
+    const char *value_start = equals_pos + 1;
+    while (*value_start == ' ' || *value_start == '\t') {
+        value_start++;
+    }
+    
+    size_t value_len = strlen(value_start);
+    while (value_len > 0 && (value_start[value_len - 1] == '\n' || value_start[value_len - 1] == '\r' || 
+                              value_start[value_len - 1] == ' ' || value_start[value_len - 1] == '\t')) {
+        value_len--;
+    }
+    
+    if (value_len >= MAX_VALUE_LENGTH) {
+        fprintf(stderr, "Error: Value too long (max %d characters)\n", MAX_VALUE_LENGTH - 1);
+        return -1;
+    }
+    
+    strncpy(entry->value, value_start, value_len);
+    entry->value[value_len] = '\0';
+    
+    return 0;
+}
+
+int main(int argc, char *argv[]) {
+    if (argc != 2) {
+        fprintf(stderr, "Usage: %s <config_file>\n", argv[0]);
+        return 1;
+    }
+    
+    FILE *file = fopen(argv[1], "r");
+    if (file == NULL) {
+        perror("Error opening file");
+        return 1;
+    }
+    
+    char line[MAX_LINE_LENGTH];
+    ConfigEntry entry;
+    int line_number = 0;
+    
+    while (fgets(line, sizeof(line), file) != NULL) {
+        line_number++;
+        
+        // Skip empty lines and comments
+        if (line[0] == '\n' || line[0] == '#') {
+            continue;
+        }
+        
+        if (parse_config_line(line, &entry) == 0) {
+            // Successfully parsed
+        } else {
+            fprintf(stderr, "Warning: Failed to parse line %d\n", line_number);
+        }
+    }
+    
+    fclose(file);
+    printf("Configuration parsed successfully\n");
+    
+    return 0;
+}

@@ -1,0 +1,107 @@
+# Sentry Fingerprinting Rules for API Service
+# Generated: 2023-11-15
+# Owner: API Team
+
+fingerprinting_rules:
+  # Rule 1: Valid - Database timeout errors
+  - matchers:
+      - type: DatabaseError
+    fingerprint:
+      - database
+      - timeout
+      - "{{ transaction }}"
+
+  # Rule 2: Valid - Path-based grouping for user endpoints
+  - matchers:
+      - path: "*/api/users/*"
+    fingerprint:
+      - api
+      - users
+      - "{{ transaction }}"
+
+  # Rule 3: Invalid - Using deprecated 'match' syntax
+  - match:
+      - type: ValidationError
+    fingerprint:
+      - validation
+      - error
+
+  # Rule 4: Valid - Message matcher with default fingerprint
+  - matchers:
+      - message: "Connection refused*"
+    fingerprint:
+      - "{{ default }}"
+      - connection-refused
+
+  # Rule 5: Invalid - Fingerprint as string instead of list
+  - matchers:
+      - type: TimeoutError
+    fingerprint: timeout-error-group
+
+  # Rule 6: Valid - Multiple matchers with custom fingerprint
+  - matchers:
+      - type: HTTPError
+      - value: "502*"
+    fingerprint:
+      - http
+      - bad-gateway
+      - "{{ transaction }}"
+
+  # Rule 7: Invalid - Using deprecated 'app' attribute
+  - matchers:
+      - app: legacy_module
+      - type: RuntimeError
+    fingerprint:
+      - legacy
+      - runtime
+
+  # Rule 8: Valid - Exception type matcher
+  - matchers:
+      - exception.type: KeyError
+    fingerprint:
+      - keyerror
+      - "{{ exception.value }}"
+
+  # Rule 9: Invalid - Missing required 'matchers' field
+  - fingerprint:
+      - orphaned
+      - rule
+
+  # Rule 10: Valid - Tags environment matcher
+  - matchers:
+      - tags.environment: production
+      - type: MemoryError
+    fingerprint:
+      - production
+      - memory
+      - critical
+
+  # Rule 11: Invalid - Malformed variable syntax (unclosed brackets)
+  - matchers:
+      - type: AssertionError
+    fingerprint:
+      - assertion
+      - "{{ transaction"
+
+  # Rule 12: Valid - Multiple path patterns
+  - matchers:
+      - path: "*/api/v2/*"
+    fingerprint:
+      - api-v2
+      - "{{ transaction }}"
+      - "{{ default }}"
+
+  # Rule 13: Invalid - Invalid matcher type 'custom_field'
+  - matchers:
+      - custom_field: some_value
+      - type: ValueError
+    fingerprint:
+      - custom
+      - value-error
+
+  # Rule 14: Valid - Complex message pattern
+  - matchers:
+      - message: "*rate limit exceeded*"
+    fingerprint:
+      - rate-limit
+      - "{{ default }}"

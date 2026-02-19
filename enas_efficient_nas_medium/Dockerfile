@@ -1,0 +1,23 @@
+FROM ghcr.io/laude-institute/t-bench/ubuntu-24-04:20250624
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install python3-pip and create python symlink
+RUN apt-get update && \
+    apt-get install -y python3-pip && \
+    ln -s /usr/bin/python3 /usr/bin/python && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install dependencies from Phase 2.5 analysis
+RUN pip3 install --no-cache-dir --break-system-packages numpy
+
+# Install test dependencies
+RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
+
+RUN mkdir -p /workspace/enas_analysis
+
+COPY data/shared_weights.json /workspace/enas_analysis/shared_weights.json
+COPY data/architectures.json /workspace/enas_analysis/architectures.json
+COPY data/validation_data.json /workspace/enas_analysis/validation_data.json
+
+WORKDIR /workspace

@@ -1,0 +1,160 @@
+I'll create a Python script to generate the satellite data and then solve the query problem efficiently using a spatial indexing approach.
+
+```python
+import random
+import json
+
+# Generate satellite_data.txt
+print("Generating satellite data...")
+random.seed(42)
+
+with open('/workspace/satellite_data.txt', 'w') as f:
+    num_objects = 10000
+    entries_per_object = 5  # Average entries per object over 24 hours
+    
+    for _ in range(52000):
+        object_id = random.randint(1, num_objects)
+        
+        # Create some clustering for realism
+        if random.random() < 0.3:  # 30% clustered
+            cluster_x = random.choice([-30000, -10000, 0, 10000, 30000])
+            cluster_y = random.choice([-30000, -10000, 0, 10000, 30000])
+            x_coord = round(cluster_x + random.uniform(-5000, 5000), 2)
+            y_coord = round(cluster_y + random.uniform(-5000, 5000), 2)
+        else:  # 70% uniform
+            x_coord = round(random.uniform(-50000.0, 50000.0), 2)
+            y_coord = round(random.uniform(-50000.0, 50000.0), 2)
+        
+        timestamp = random.randint(1700000000, 1700086400)
+        
+        f.write(f"{object_id} {x_coord} {y_coord} {timestamp}\n")
+
+print("Satellite data generated.")
+
+# Generate some sample queries
+print("Generating queries...")
+with open('/workspace/queries.txt', 'w') as f:
+    # Mix of different sized queries
+    for _ in range(20):
+        center_x = random.uniform(-40000, 40000)
+        center_y = random.uniform(-40000, 40000)
+        
+        if random.random() < 0.3:  # Small queries
+            width = random.uniform(1000, 5000)
+            height = random.uniform(1000, 5000)
+        elif random.random() < 0.6:  # Medium queries
+            width = random.uniform(5000, 20000)
+            height = random.uniform(5000, 20000)
+        else:  # Large queries
+            width = random.uniform(20000, 40000)
+            height = random.uniform(20000, 40000)
+        
+        x_min = round(center_x - width/2, 2)
+        x_max = round(center_x + width/2, 2)
+        y_min = round(center_y - height/2, 2)
+        y_max = round(center_y + height/2, 2)
+        
+        f.write(f"{x_min} {x_max} {y_min} {y_max}\n")
+
+print("Queries generated.")
+
+# Now solve the query problem using a 2D spatial index
+print("Loading satellite data...")
+
+class Point:
+    def __init__(self, obj_id, x, y):
+        self.obj_id = obj_id
+        self.x = x
+        self.y = y
+
+# Read all data points
+points = []
+with open('/workspace/satellite_data.txt', 'r') as f:
+    for line in f:
+        parts = line.strip().split()
+        obj_id = int(parts[0])
+        x = float(parts[1])
+        y = float(parts[2])
+        points.append(Point(obj_id, x, y))
+
+print(f"Loaded {len(points)} data points.")
+
+# Build a simple grid-based spatial index for efficient querying
+print("Building spatial index...")
+
+# Determine bounds
+min_x = min(p.x for p in points)
+max_x = max(p.x for p in points)
+min_y = min(p.y for p in points)
+max_y = max(p.y for p in points)
+
+# Create grid
+grid_size = 100  # 100x100 grid
+cell_width = (max_x - min_x) / grid_size
+cell_height = (max_y - min_y) / grid_size
+
+# Initialize grid
+grid = [[[] for _ in range(grid_size)] for _ in range(grid_size)]
+
+# Populate grid
+for point in points:
+    grid_x = int((point.x - min_x) / cell_width)
+    grid_y = int((point.y - min_y) / cell_height)
+    
+    # Handle edge case where point is exactly at max boundary
+    if grid_x >= grid_size:
+        grid_x = grid_size - 1
+    if grid_y >= grid_size:
+        grid_y = grid_size - 1
+    
+    grid[grid_x][grid_y].append(point)
+
+print("Spatial index built.")
+
+# Process queries
+print("Processing queries...")
+
+def query_rectangle(x_min, x_max, y_min, y_max):
+    """Find all objects within the rectangular region using spatial index"""
+    result_ids = set()
+    
+    # Determine which grid cells overlap with the query rectangle
+    start_x = max(0, int((x_min - min_x) / cell_width))
+    end_x = min(grid_size - 1, int((x_max - min_x) / cell_width))
+    start_y = max(0, int((y_min - min_y) / cell_height))
+    end_y = min(grid_size - 1, int((y_max - min_y) / cell_height))
+    
+    # Check all relevant grid cells
+    for gx in range(start_x, end_x + 1):
+        for gy in range(start_y, end_y + 1):
+            for point in grid[gx][gy]:
+                # Check if point is actually within the query rectangle
+                if (x_min <= point.x <= x_max and 
+                    y_min <= point.y <= y_max):
+                    result_ids.add(point.obj_id)
+    
+    return sorted(list(result_ids))
+
+results = {}
+
+with open('/workspace/queries.txt', 'r') as f:
+    query_num = 1
+    for line in f:
+        parts = line.strip().split()
+        x_min = float(parts[0])
+        x_max = float(parts[1])
+        y_min = float(parts[2])
+        y_max = float(parts[3])
+        
+        result = query_rectangle(x_min, x_max, y_min, y_max)
+        results[f"query_{query_num}"] = result
+        query_num += 1
+
+print(f"Processed {len(results)} queries.")
+
+# Save results
+print("Saving results...")
+with open('/workspace/results.json', 'w') as f:
+    json.dump(results, f, indent=2)
+
+print("Done! Results saved to /workspace/results.json")

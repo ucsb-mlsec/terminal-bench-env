@@ -1,0 +1,361 @@
+#!/usr/bin/env python3
+import os
+import json
+import re
+from pathlib import Path
+
+# First, let's create the requirements.txt file as requested
+requirements_content = """APScheduler==3.10.1
+psycopg2-binary==2.9.6
+celery==5.2.7
+python-dateutil==2.8.2
+pytz==2023.3
+pyyaml==6.0
+python-dotenv==1.0.0
+requests==2.31.0
+redis==4.5.5
+sqlalchemy==2.0.15
+kombu==5.2.4
+prometheus-client==0.17.0
+structlog==23.1.0
+click==8.1.3
+tenacity==8.2.2
+"""
+
+# Create the directory and file
+os.makedirs('/tmp/project/services/scheduler', exist_ok=True)
+with open('/tmp/project/services/scheduler/requirements.txt', 'w') as f:
+    f.write(requirements_content)
+
+# Now let's create realistic Dockerfiles with common cache invalidation issues
+# to simulate the problem described
+
+# Web service Dockerfile with cache issues
+web_dockerfile = """FROM python:3.11-slim as base
+
+# Set working directory
+WORKDIR /app
+
+# Copy everything first (ISSUE: invalidates cache on any code change)
+COPY . .
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \\
+    gcc \\
+    postgresql-client \\
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies (ISSUE: runs even when only code changes)
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Set environment variables (ISSUE: changes invalidate layers)
+ENV APP_ENV=production
+ENV DEBUG=false
+
+# Copy config files (ISSUE: already copied everything)
+COPY config/ /app/config/
+
+# Build argument that changes (ISSUE: invalidates downstream layers)
+ARG BUILD_DATE
+RUN echo "Built on ${BUILD_DATE}" > /app/build_info.txt
+
+# Expose port
+EXPOSE 8000
+
+# Run application
+CMD ["python", "app.py"]
+"""
+
+# Worker service Dockerfile with similar issues
+worker_dockerfile = """FROM python:3.11-slim
+
+WORKDIR /app
+
+# Build arguments at the top (ISSUE: invalidate cache frequently)
+ARG GIT_COMMIT
+ARG VERSION=1.0.0
+
+# Copy all files (ISSUE: early copy invalidates everything)
+COPY . /app/
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV WORKER_CONCURRENCY=4
+
+# Install dependencies all together (ISSUE: no separation of layers)
+RUN apt-get update && \\
+    apt-get install -y gcc g++ libpq-dev && \\
+    pip install --no-cache-dir -r requirements.txt && \\
+    pip install --no-cache-dir -r requirements-dev.txt && \\
+    apt-get clean
+
+# Copy multiple config files separately (ISSUE: multiple layers for configs)
+COPY logging.conf /app/
+COPY worker.conf /app/
+COPY celery.conf /app/
+
+# Create version file with build arg
+RUN echo "${VERSION}-${GIT_COMMIT}" > version.txt
+
+CMD ["celery", "-A", "tasks", "worker"]
+"""
+
+# Scheduler service Dockerfile
+scheduler_dockerfile = """FROM python:3.11-slim as builder
+
+# Copy everything upfront (ISSUE: cache invalidation)
+COPY . /app
+WORKDIR /app
+
+# Install build dependencies and app dependencies together
+RUN apt-get update && apt-get install -y gcc libpq-dev && \\
+    pip install --no-cache-dir -r requirements.txt
+
+FROM python:3.11-slim as runtime
+
+WORKDIR /app
+
+# Copy from builder (ISSUE: includes unnecessary files)
+COPY --from=builder /app /app
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+
+# Environment variables that change (ISSUE: in middle of Dockerfile)
+ARG SCHEDULER_INTERVAL=60
+ENV SCHEDULER_INTERVAL=${SCHEDULER_INTERVAL}
+
+# Copy config again (ISSUE: redundant copy)
+COPY config.yaml /app/
+
+# Install runtime dependencies (ISSUE: after copying everything)
+RUN apt-get update && apt-get install -y libpq5 && rm -rf /var/lib/apt/lists/*
+
+CMD ["python", "scheduler.py"]
+"""
+
+# Base Dockerfile (that others should use but don't)
+base_dockerfile = """FROM python:3.11-slim
+
+# Install common system dependencies
+RUN apt-get update && apt-get install -y \\
+    gcc \\
+    g++ \\
+    libpq-dev \\
+    curl \\
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy and install common requirements (ISSUE: no common requirements file used)
+COPY requirements-common.txt /tmp/
+RUN pip install --no-cache-dir -r /tmp/requirements-common.txt
+
+WORKDIR /app
+"""
+
+# Create directory structure
+os.makedirs('/tmp/project/services/web', exist_ok=True)
+os.makedirs('/tmp/project/services/worker', exist_ok=True)
+os.makedirs('/tmp/project/base', exist_ok=True)
+os.makedirs('/tmp/solution', exist_ok=True)
+
+# Write Dockerfiles
+with open('/tmp/project/services/web/Dockerfile', 'w') as f:
+    f.write(web_dockerfile)
+
+with open('/tmp/project/services/worker/Dockerfile', 'w') as f:
+    f.write(worker_dockerfile)
+
+with open('/tmp/project/services/scheduler/Dockerfile', 'w') as f:
+    f.write(scheduler_dockerfile)
+
+with open('/tmp/project/base/Dockerfile', 'w') as f:
+    f.write(base_dockerfile)
+
+# Create requirements files for other services
+web_requirements = """Django==4.2.1
+djangorestframework==3.14.0
+psycopg2-binary==2.9.6
+gunicorn==20.1.0
+redis==4.5.5
+celery==5.2.7
+requests==2.31.0
+python-dotenv==1.0.0
+pyyaml==6.0
+prometheus-client==0.17.0
+"""
+
+worker_requirements = """celery==5.2.7
+redis==4.5.5
+psycopg2-binary==2.9.6
+requests==2.31.0
+kombu==5.2.4
+billiard==3.6.4.0
+python-dateutil==2.8.2
+pytz==2023.3
+"""
+
+with open('/tmp/project/services/web/requirements.txt', 'w') as f:
+    f.write(web_requirements)
+
+with open('/tmp/project/services/worker/requirements.txt', 'w') as f:
+    f.write(worker_requirements)
+
+# Now analyze the Dockerfiles for cache invalidation issues
+def analyze_dockerfiles():
+    issues = []
+    dockerfiles = []
+    
+    project_root = Path('/tmp/project')
+    
+    # Find all Dockerfiles
+    for dockerfile_path in project_root.rglob('Dockerfile*'):
+        dockerfiles.append(str(dockerfile_path))
+        
+        with open(dockerfile_path, 'r') as f:
+            lines = f.readlines()
+        
+        rel_path = str(dockerfile_path.relative_to(project_root))
+        
+        for i, line in enumerate(lines, 1):
+            line_stripped = line.strip()
+            
+            # Issue 1: COPY . before requirements
+            if line_stripped.startswith('COPY . '):
+                # Check if requirements installation comes after
+                for j in range(i, len(lines)):
+                    if 'requirements.txt' in lines[j] and 'pip install' in lines[j]:
+                        issues.append({
+                            'file': rel_path,
+                            'line': i,
+                            'type': 'copy_before_deps',
+                            'description': 'COPY entire context before installing dependencies - invalidates cache on any code change',
+                            'severity': 'critical'
+                        })
+                        break
+            
+            # Issue 2: ARG at top level used in RUN
+            if line_stripped.startswith('ARG ') and i < 5:
+                arg_name = line_stripped.split()[1].split('=')[0]
+                for j in range(i, len(lines)):
+                    if f'${{{arg_name}}}' in lines[j] or f'${arg_name}' in lines[j]:
+                        issues.append({
+                            'file': rel_path,
+                            'line': i,
+                            'type': 'early_build_arg',
+                            'description': f'Build ARG {arg_name} defined early and used later - invalidates downstream cache',
+                            'severity': 'high'
+                        })
+                        break
+            
+            # Issue 3: Multiple RUN commands for package installation
+            if 'apt-get install' in line_stripped and 'pip install' in line_stripped:
+                issues.append({
+                    'file': rel_path,
+                    'line': i,
+                    'type': 'combined_install',
+                    'description': 'System and Python packages in same RUN - reduces cache reusability',
+                    'severity': 'medium'
+                })
+            
+            # Issue 4: ENV variables that might change
+            if line_stripped.startswith('ENV ') and any(x in line_stripped for x in ['DEBUG', 'VERSION', 'CONCURRENCY']):
+                issues.append({
+                    'file': rel_path,
+                    'line': i,
+                    'type': 'volatile_env',
+                    'description': 'Environment variable that may change frequently - should be set at runtime',
+                    'severity': 'medium'
+                })
+            
+            # Issue 5: Multiple COPY commands for config files
+            if line_stripped.startswith('COPY ') and any(x in line_stripped for x in ['.conf', '.yaml', '.yml', 'config']):
+                # Count other COPY commands nearby
+                copy_count = sum(1 for l in lines[max(0, i-3):min(len(lines), i+3)] if l.strip().startswith('COPY '))
+                if copy_count > 2:
+                    issues.append({
+                        'file': rel_path,
+                        'line': i,
+                        'type': 'multiple_copy',
+                        'description': 'Multiple COPY commands for config files - consolidate into single COPY',
+                        'severity': 'low'
+                    })
+            
+            # Issue 6: Requirements not copied separately
+            if 'pip install' in line_stripped and '-r requirements.txt' in line_stripped:
+                # Check if requirements.txt was copied separately before
+                found_separate_copy = False
+                for j in range(max(0, i-10), i):
+                    if 'COPY requirements.txt' in lines[j] and 'COPY . ' not in lines[j]:
+                        found_separate_copy = True
+                        break
+                
+                if not found_separate_copy:
+                    issues.append({
+                        'file': rel_path,
+                        'line': i,
+                        'type': 'no_separate_requirements',
+                        'description': 'Requirements not copied separately before installation - cache invalidates on any file change',
+                        'severity': 'critical'
+                    })
+            
+            # Issue 7: COPY --from in multi-stage copying entire app
+            if 'COPY --from=' in line_stripped and '/app /app' in line_stripped:
+                issues.append({
+                    'file': rel_path,
+                    'line': i,
+                    'type': 'full_stage_copy',
+                    'description': 'Copying entire /app directory from build stage - includes unnecessary files',
+                    'severity': 'medium'
+                })
+            
+            # Issue 8: Build dependencies not separated
+            if 'apt-get install' in line_stripped and 'gcc' in line_stripped and 'runtime' not in dockerfile_path.name:
+                if not any('FROM' in lines[j] and 'as builder' in lines[j] for j in range(max(0, i-15), i)):
+                    issues.append({
+                        'file': rel_path,
+                        'line': i,
+                        'type': 'build_deps_not_separated',
+                        'description': 'Build dependencies in final image - increases image size and not using multi-stage properly',
+                        'severity': 'medium'
+                    })
+    
+    # Generate critical fixes (top 5-10 most impactful)
+    critical_fixes = []
+    
+    # Prioritize critical and high severity issues
+    critical_issues = [i for i in issues if i['severity'] == 'critical']
+    high_issues = [i for i in issues if i['severity'] == 'high']
+    medium_issues = [i for i in issues if i['severity'] == 'medium']
+    
+    # Format fixes
+    for issue in critical_issues[:5]:
+        critical_fixes.append(f"{issue['file']}:{issue['line']}:{issue['description']}")
+    
+    for issue in high_issues[:3]:
+        critical_fixes.append(f"{issue['file']}:{issue['line']}:{issue['description']}")
+    
+    for issue in medium_issues[:2]:
+        critical_fixes.append(f"{issue['file']}:{issue['line']}:{issue['description']}")
+    
+    # Calculate estimated improvement
+    # Critical issues: 20% each, High: 10% each, Medium: 5% each
+    critical_count = len([i for i in issues if i['severity'] == 'critical'])
+    high_count = len([i for i in issues if i['severity'] == 'high'])
+    medium_count = len([i for i in issues if i['severity'] == 'medium'])
+    
+    estimated_improvement = min(85, critical_count * 15 + high_count * 8 + medium_count * 3)
+    
+    return {
+        'total_issues_found': len(issues),
+        'dockerfiles_analyzed': len(dockerfiles),
+        'critical_fixes': critical_fixes[:10],  # Top 10 fixes
+        'estimated_improvement_percent': estimated_improvement
+    }
+
+# Run analysis
+result = analyze_dockerfiles()
+
+# Save to JSON
+with open('/tmp/solution/docker_optimization.json', 'w') as f:
+    json.dump(result, f, indent=2)
+
+print("Analysis complete. Results saved to /tmp/solution/docker_optimization.json")
+print(json.dumps(result, indent=2))

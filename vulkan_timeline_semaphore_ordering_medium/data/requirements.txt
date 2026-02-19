@@ -1,0 +1,81 @@
+VULKAN TIMELINE SEMAPHORE SYNCHRONIZATION REQUIREMENTS
+================================================================
+
+Project: GPU Pipeline Synchronization
+Version: 1.0
+Date: 2024
+
+OVERVIEW
+--------
+This document specifies the synchronization requirements for a Vulkan graphics
+application using timeline semaphores to coordinate three dependent GPU operations.
+The operations must execute in a strict order to ensure correct rendering results.
+
+OPERATIONS
+----------
+The application performs three GPU operations:
+
+A) COMPUTE OPERATION
+   - Executes a compute shader to process vertex data
+   - Must complete before graphics rendering begins
+
+B) GRAPHICS OPERATION
+   - Renders the processed vertices using a graphics pipeline
+   - Requires compute operation to be complete
+
+C) TRANSFER OPERATION
+   - Copies the final rendered image to a staging buffer
+   - Requires graphics operation to be complete
+
+ORDERING CONSTRAINTS
+--------------------
+The following ordering MUST be enforced:
+   * Operation A (compute) MUST complete before Operation B (graphics) starts
+   * Operation B (graphics) MUST complete before Operation C (transfer) starts
+   * Execution order: Compute → Graphics → Transfer
+
+TIMELINE SEMAPHORE RULES
+-------------------------
+   * The timeline semaphore is initialized to value 0
+   * Each operation has two associated values:
+     - WAIT VALUE: The semaphore value that must be reached before the operation can start
+     - SIGNAL VALUE: The semaphore value that will be set when the operation completes
+   
+   * Wait operation behavior:
+     - An operation will block until the semaphore reaches or exceeds its wait value
+     - Wait value must be <= current semaphore value for immediate execution
+   
+   * Signal operation behavior:
+     - When an operation completes, it advances the semaphore to its signal value
+     - Signal values MUST be greater than the operation's own wait value
+   
+   * Monotonicity requirement:
+     - Semaphore values must progress monotonically (always increasing)
+     - It is invalid to signal a value less than the current semaphore value
+
+SPECIFIC CONSTRAINTS
+--------------------
+   1. Compute operation:
+      - Can start immediately (no prerequisites)
+      - compute_wait must be <= 0 (initial semaphore value)
+      - compute_signal must be > compute_wait
+
+   2. Graphics operation:
+      - Must wait for compute completion
+      - graphics_wait must be >= compute_signal
+      - graphics_signal must be > graphics_wait
+
+   3. Transfer operation:
+      - Must wait for graphics completion
+      - transfer_wait must be >= graphics_signal
+      - transfer_signal must be > transfer_wait
+
+   4. Optimization:
+      - Use minimum valid values to reduce latency
+      - Avoid unnecessary gaps between values
+
+   5. Value constraints:
+      - All values must be non-negative integers
+      - No deadlocks permitted (wait values must be achievable)
+
+END OF REQUIREMENTS

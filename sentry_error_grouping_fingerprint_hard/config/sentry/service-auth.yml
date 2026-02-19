@@ -1,0 +1,89 @@
+fingerprinting_rules:
+  - matchers:
+      - - logger
+        - auth.login
+    fingerprint:
+      - auth
+      - login
+      - "{{ logger }}"
+  
+  - matchers:
+      - - platform
+        - python
+    fingerprint:
+      - python
+      - backend
+      - "{{ type }}"
+  
+  - matchers:
+      - - exception.value
+        - "*Authentication*failed*"
+    fingerprint:
+      - auth
+      - failed
+      - "{{ exception.type }}"
+  
+  - matchers:
+      - - level
+        - error
+    fingerprint:
+      - error
+      - "{{ transaction }}"
+  
+  - matchers:
+      - - path
+        - "*/auth/*"
+    fingerprint:
+      - authentication
+      - "{{ path }}"
+  
+  - matchers:
+      - - exception.type
+        - TokenExpiredError
+    fingerprint:
+      - token
+      - expired
+      - "{{ logger }}"
+  
+  - matchers:
+      - - default
+      - - logger
+        - auth.validator
+    fingerprint:
+      - validation
+      - "{{ logger }}"
+  
+  - matchers:
+      - - context
+        - auth_module
+    fingerprint:
+      - context
+      - auth
+  
+  - matchers:
+      - - logger
+        - auth.session
+    fingerprint:
+      - session
+      - "{{ user }}"
+      - "{{ logger }}"
+  
+  - match: old_syntax_pattern
+    matchers:
+      - - type
+        - ValueError
+    fingerprint:
+      - mixed
+      - syntax
+  
+  - matchers: []
+    fingerprint:
+      - empty
+      - matchers
+  
+  - matchers:
+    - - logger
+      - auth.oauth
+  fingerprint:
+    - oauth
+    - misaligned

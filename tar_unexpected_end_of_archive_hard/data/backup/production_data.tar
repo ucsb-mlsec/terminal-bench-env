@@ -1,0 +1,1010 @@
+I'll create the corrupted tar archive and the manifest file. Let me generate the necessary files and structure.
+
+First, I'll create the directory structure and files, then create a tar archive that's deliberately corrupted.
+
+---DIRECTORY_STRUCTURE---
+/opt/appserver/config/app.yaml
+/opt/appserver/config/database.json
+/opt/appserver/config/security.conf
+/opt/appserver/migrations/001_init.sql
+/opt/appserver/migrations/002_users.sql
+/opt/appserver/migrations/003_products.sql
+/opt/appserver/static/logo.png
+/opt/appserver/static/styles.css
+/opt/appserver/static/script.js
+/opt/appserver/logs/policies/rotation.conf
+/opt/appserver/logs/policies/retention.yaml
+/opt/appserver/logs/policies/archive.policy
+
+---FILE_CONTENT_START---
+
+FILE: opt/appserver/config/app.yaml
+server:
+  host: 0.0.0.0
+  port: 8080
+  workers: 4
+  timeout: 30
+  
+application:
+  name: ProductionApp
+  version: 2.3.1
+  environment: production
+  debug: false
+  
+features:
+  authentication: true
+  rate_limiting: true
+  caching: true
+  compression: true
+  
+cache:
+  type: redis
+  host: redis-prod.internal
+  port: 6379
+  ttl: 3600
+  
+session:
+  secret_key: prod_secret_key_change_me
+  cookie_name: app_session
+  max_age: 86400
+
+FILE: opt/appserver/config/database.json
+{
+  "database": {
+    "driver": "postgresql",
+    "host": "db-primary.prod.internal",
+    "port": 5432,
+    "name": "production_db",
+    "username": "appuser",
+    "password": "encrypted_password_placeholder",
+    "pool": {
+      "min": 5,
+      "max": 20,
+      "idle_timeout": 10000
+    },
+    "ssl": {
+      "enabled": true,
+      "ca_cert": "/etc/ssl/certs/ca-bundle.crt"
+    },
+    "replicas": [
+      {
+        "host": "db-replica-1.prod.internal",
+        "port": 5432,
+        "weight": 1
+      },
+      {
+        "host": "db-replica-2.prod.internal",
+        "port": 5432,
+        "weight": 1
+      }
+    ]
+  },
+  "migrations": {
+    "auto_migrate": false,
+    "table_name": "schema_migrations"
+  }
+}
+
+FILE: opt/appserver/config/security.conf
+# Security Configuration
+# Production Environment
+
+# CORS Settings
+cors.enabled=true
+cors.origins=https://app.example.com,https://api.example.com
+cors.methods=GET,POST,PUT,DELETE
+cors.credentials=true
+
+# Authentication
+auth.jwt.enabled=true
+auth.jwt.algorithm=RS256
+auth.jwt.expiry=3600
+auth.session.timeout=1800
+
+# Rate Limiting
+ratelimit.enabled=true
+ratelimit.requests=100
+ratelimit.window=60
+
+# Security Headers
+headers.xss_protection=1; mode=block
+headers.content_type_options=nosniff
+headers.frame_options=DENY
+headers.hsts=max-age=31536000; includeSubDomains
+
+FILE: opt/appserver/migrations/001_init.sql
+-- Initial Database Schema
+-- Migration: 001_init
+-- Created: 2024-01-15
+
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(255) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_login TIMESTAMP,
+    is_active BOOLEAN DEFAULT true,
+    is_verified BOOLEAN DEFAULT false
+);
+
+CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_username ON users(username);
+CREATE INDEX idx_users_active ON users(is_active);
+
+CREATE TABLE IF NOT EXISTS sessions (
+    id VARCHAR(255) PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    data TEXT,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_sessions_user ON sessions(user_id);
+CREATE INDEX idx_sessions_expires ON sessions(expires_at);
+
+FILE: opt/appserver/migrations/002_users.sql
+-- User Profile Enhancement
+-- Migration: 002_users
+-- Created: 2024-02-20
+
+ALTER TABLE users ADD COLUMN first_name VARCHAR(100);
+ALTER TABLE users ADD COLUMN last_name VARCHAR(100);
+ALTER TABLE users ADD COLUMN phone VARCHAR(20);
+ALTER TABLE users ADD COLUMN avatar_url VARCHAR(500);
+ALTER TABLE users ADD COLUMN bio TEXT;
+ALTER TABLE users ADD COLUMN timezone VARCHAR(50) DEFAULT 'UTC';
+ALTER TABLE users ADD COLUMN locale VARCHAR(10) DEFAULT 'en_US';
+
+CREATE TABLE user_preferences (
+    user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    theme VARCHAR(20) DEFAULT 'light',
+    notifications_enabled BOOLEAN DEFAULT true,
+    email_notifications BOOLEAN DEFAULT true,
+    sms_notifications BOOLEAN DEFAULT false,
+    preferences JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE user_roles (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    role_name VARCHAR(50) NOT NULL,
+    granted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    granted_by INTEGER REFERENCES users(id),
+    UNIQUE(user_id, role_name)
+);
+
+CREATE INDEX idx_user_roles_user ON user_roles(user_id);
+CREATE INDEX idx_user_roles_role ON user_roles(role_name);
+
+-- Insert default roles
+INSERT INTO user_roles (user_id, role_name) 
+SELECT id, 'user' FROM users WHERE NOT EXISTS (
+    SELECT 1 FROM user_roles WHERE user_roles.user_id = users.id
+);
+
+FILE: opt/appserver/migrations/003_products.sql
+-- Product Catalog Schema
+-- Migration: 003_products
+-- Created: 2024-03-10
+
+CREATE TABLE categories (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    slug VARCHAR(255) UNIQUE NOT NULL,
+    description TEXT,
+    parent_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
+    sort_order INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_categories_slug ON categories(slug);
+CREATE INDEX idx_categories_parent ON categories(parent_id);
+CREATE INDEX idx_categories_active ON categories(is_active);
+
+CREATE TABLE products (
+    id SERIAL PRIMARY KEY,
+    sku VARCHAR(100) UNIQUE NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    slug VARCHAR(255) UNIQUE NOT NULL,
+    description TEXT,
+    short_description VARCHAR(500),
+    price DECIMAL(10,2) NOT NULL,
+    compare_price DECIMAL(10,2),
+    cost DECIMAL(10,2),
+    category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
+    brand VARCHAR(100),
+    weight DECIMAL(10,2),
+    dimensions JSONB,
+    inventory_quantity INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT true,
+    is_featured BOOLEAN DEFAULT false,
+    meta_title VARCHAR(255),
+    meta_description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_products_sku ON products(sku);
+CREATE INDEX idx_products_slug ON products(slug);
+CREATE INDEX idx_products_category ON products(category_id);
+CREATE INDEX idx_products_active ON products(is_active);
+CREATE INDEX idx_products_featured ON products(is_featured);
+
+FILE: opt/appserver/static/logo.png
+‰PNG
+
+   
+IHDR         žw=   sRGB ®Îé   gAMA  ±üa   	pHYs  Ã  ÃÇo¨d  IDAT8Ë•"M +AÆ÷[d±Øb<$dP_Èÿw'±ØØðKúb×Î9×S.ô-õÓÛT»w±¯(n¤ÅÍ ¶¤¡Ð®±¡'òîCžâÑõÌñQïËW÷G´×~(ôb¦y;NÁýqÁ¸0W@Äƒ}ßùEðÇF-Þ'†òÒÍ–¯,äc‚o<š!Ð5–¸eÝà_øó¹}sƒ:®ïû>ØY°"R|zðõŸÎiÄ~ÈÓÙÌÕÁ±    IEND®B`‚
+
+FILE: opt/appserver/static/styles.css
+/* Production Stylesheet */
+/* Version: 2.3.1 */
+
+:root {
+  --primary-color: #2563eb;
+  --secondary-color: #7c3aed;
+  --success-color: #10b981;
+  --danger-color: #ef4444;
+  --warning-color: #f59e0b;
+  --info-color: #3b82f6;
+  --light-bg: #f9fafb;
+  --dark-bg: #111827;
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+  --border-color: #e5e7eb;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  background-color: var(--light-bg);
+}
+
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.header {
+  background: white;
+  border-bottom: 1px solid var(--border-color);
+  padding: 1rem 0;
+  box-shadow: var(--shadow-sm);
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nav-brand {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+.nav-menu {
+  display: flex;
+  list-style: none;
+  gap: 2rem;
+}
+
+.nav-link {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.nav-link:hover {
+  color: var(--primary-color);
+}
+
+.btn {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+  text-align: center;
+  text-decoration: none;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #1d4ed8;
+  box-shadow: var(--shadow-md);
+}
+
+.btn-secondary {
+  background-color: var(--secondary-color);
+  color: white;
+}
+
+.btn-secondary:hover {
+  background-color: #6d28d9;
+}
+
+.card {
+  background: white;
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+}
+
+.card-header {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+}
+
+.card-body {
+  color: var(--text-secondary);
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.form-control {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.alert {
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  margin-bottom: 1rem;
+}
+
+.alert-success {
+  background-color: #d1fae5;
+  color: #065f46;
+  border: 1px solid #6ee7b7;
+}
+
+.alert-danger {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+.alert-warning {
+  background-color: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+.grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.grid-cols-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.grid-cols-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.grid-cols-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 768px) {
+  .grid-cols-2,
+  .grid-cols-3,
+  .grid-cols-4 {
+    grid-template-columns: 1fr;
+  }
+  
+  .nav-menu {
+    flex-direction: column;
+    gap: 1rem;
+  }
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.table th {
+  font-weight: 600;
+  color: var(--text-primary);
+  background-color: var(--light-bg);
+}
+
+.table tr:hover {
+  background-color: var(--light-bg);
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+}
+
+.badge-primary {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.badge-success {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.badge-danger {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal.active {
+  display: flex;
+}
+
+.modal-content {
+  background: white;
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: var(--shadow-lg);
+}
+
+.spinner {
+  border: 3px solid var(--border-color);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  width: 2rem;
+  height: 2rem;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.mt-1 { margin-top: 0.25rem; }
+.mt-2 { margin-top: 0.5rem; }
+.mt-3 { margin-top: 1rem; }
+.mt-4 { margin-top: 1.5rem; }
+.mt-5 { margin-top: 3rem; }
+
+.mb-1 { margin-bottom: 0.25rem; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-3 { margin-bottom: 1rem; }
+.mb-4 { margin-bottom: 1.5rem; }
+.mb-5 { margin-bottom: 3rem; }
+
+.p-1 { padding: 0.25rem; }
+.p-2 { padding: 0.5rem; }
+.p-3 { padding: 1rem; }
+.p-4 { padding: 1.5rem; }
+.p-5 { padding: 3rem; }
+
+FILE: opt/appserver/static/script.js
+// Production Application JavaScript
+// Version: 2.3.1
+
+(function() {
+  'use strict';
+
+  // Application Configuration
+  const APP_CONFIG = {
+    apiBaseUrl: '/api/v1',
+    timeout: 30000,
+    retryAttempts: 3,
+    debounceDelay: 300
+  };
+
+  // Utility Functions
+  const utils = {
+    debounce: function(func, wait) {
+      let timeout;
+      return function executedFunction(...args) {
+        const later = () => {
+          clearTimeout(timeout);
+          func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+      };
+    },
+
+    throttle: function(func, limit) {
+      let inThrottle;
+      return function(...args) {
+        if (!inThrottle) {
+          func.apply(this, args);
+          inThrottle = true;
+          setTimeout(() => inThrottle = false, limit);
+        }
+      };
+    },
+
+    formatDate: function(date) {
+      return new Date(date).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    },
+
+    formatCurrency: function(amount) {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD'
+      }).format(amount);
+    },
+
+    escapeHtml: function(text) {
+      const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+      };
+      return text.replace(/[&<>"']/g, m => map[m]);
+    }
+  };
+
+  // HTTP Client
+  const httpClient = {
+    request: async function(method, endpoint, data = null, options = {}) {
+      const config = {
+        method: method,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          ...options.headers
+        },
+        credentials: 'same-origin'
+      };
+
+      if (data) {
+        config.body = JSON.stringify(data);
+      }
+
+      try {
+        const response = await fetch(APP_CONFIG.apiBaseUrl + endpoint, config);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP Error: ${response.status}`);
+        }
+
+        return await response.json();
+      } catch (error) {
+        console.error('Request failed:', error);
+        throw error;
+      }
+    },
+
+    get: function(endpoint, options) {
+      return this.request('GET', endpoint, null, options);
+    },
+
+    post: function(endpoint, data, options) {
+      return this.request('POST', endpoint, data, options);
+    },
+
+    put: function(endpoint, data, options) {
+      return this.request('PUT', endpoint, data, options);
+    },
+
+    delete: function(endpoint, options) {
+      return this.request('DELETE', endpoint, null, options);
+    }
+  };
+
+  // Form Validation
+  const formValidator = {
+    rules: {
+      required: (value) => value.trim() !== '',
+      email: (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value),
+      minLength: (value, length) => value.length >= length,
+      maxLength: (value, length) => value.length <= length,
+      numeric: (value) => /^\d+$/.test(value),
+      alphanumeric: (value) => /^[a-zA-Z0-9]+$/.test(value)
+    },
+
+    validate: function(form) {
+      const errors = {};
+      const inputs = form.querySelectorAll('[data-validate]');
+
+      inputs.forEach(input => {
+        const rules = input.dataset.validate.split('|');
+        const fieldErrors = [];
+
+        rules.forEach(rule => {
+          const [ruleName, ruleValue] = rule.split(':');
+          const validator = this.rules[ruleName];
+
+          if (validator && !validator(input.value, ruleValue)) {
+            fieldErrors.push(this.getErrorMessage(ruleName, input.name, ruleValue));
+          }
+        });
+
+        if (fieldErrors.length > 0) {
+          errors[input.name] = fieldErrors;
+        }
+      });
+
+      return {
+        isValid: Object.keys(errors).length === 0,
+        errors: errors
+      };
+    },
+
+    getErrorMessage: function(rule, fieldName, value) {
+      const messages = {
+        required: `${fieldName} is required`,
+        email: `${fieldName} must be a valid email`,
+        minLength: `${fieldName} must be at least ${value} characters`,
+        maxLength: `${fieldName} must not exceed ${value} characters`,
+        numeric: `${fieldName} must contain only numbers`,
+        alphanumeric: `${fieldName} must contain only letters and numbers`
+      };
+      return messages[rule] || 'Validation failed';
+    },
+
+    displayErrors: function(form, errors) {
+      // Clear previous errors
+      form.querySelectorAll('.error-message').forEach(el => el.remove());
+
+      Object.keys(errors).forEach(fieldName => {
+        const input = form.querySelector(`[name="${fieldName}"]`);
+        if (input) {
+          const errorDiv = document.createElement('div');
+          errorDiv.className = 'error-message text-danger mt-1';
+          errorDiv.textContent = errors[fieldName][0];
+          input.parentNode.appendChild(errorDiv);
+          input.classList.add('is-invalid');
+        }
+      });
+    }
+  };
+
+  // Modal Manager
+  const modalManager = {
+    show: function(modalId) {
+      const modal = document.getElementById(modalId);
+      if (modal) {
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      }
+    },
+
+    hide: function(modalId) {
+      const modal = document.getElementById(modalId);
+      if (modal) {
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+      }
+    },
+
+    init: function() {
+      document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('modal')) {
+          this.hide(e.target.id);
+        }
+      });
+    }
+  };
+
+  // Notification System
+  const notifications = {
+    show: function(message, type = 'info', duration = 5000) {
+      const notification = document.createElement('div');
+      notification.className = `alert alert-${type} notification-toast`;
+      notification.textContent = message;
+      notification.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;min-width:300px;';
+
+      document.body.appendChild(notification);
+
+      setTimeout(() => {
+        notification.style.opacity = '0';
+        setTimeout(() => notification.remove(), 300);
+      }, duration);
+    },
+
+    success: function(message) {
+      this.show(message, 'success');
+    },
+
+    error: function(message) {
+      this.show(message, 'danger');
+    },
+
+    warning: function(message) {
+      this.show(message, 'warning');
+    },
+
+    info: function(message) {
+      this.show(message, 'info');
+    }
+  };
+
+  // Data Table Handler
+  const dataTable = {
+    init: function(tableId, options = {}) {
+      const table = document.getElementById(tableId);
+      if (!table) return;
+
+      this.addSorting(table);
+      if (options.pagination) {
+        this.addPagination(table, options.pageSize || 10);
+      }
+      if (options.search) {
+        this.addSearch(table, options.searchInput);
+      }
+    },
+
+    addSorting: function(table) {
+      const headers = table.querySelectorAll('th[data-sortable]');
+      headers.forEach(header => {
+        header.style.cursor = 'pointer';
+        header.addEventListener('click', () => {
+          const column = header.cellIndex;
+          const rows = Array.from(table.querySelectorAll('tbody tr'));
+          const direction = header.dataset.sortDir === 'asc' ? 'desc' : 'asc';
+
+          rows.sort((a, b) => {
+            const aValue = a.cells[column].textContent.trim();
+            const bValue = b.cells[column].textContent.trim();
+            return direction === 'asc' 
+              ? aValue.localeCompare(bValue)
+              : bValue.localeCompare(aValue);
+          });
+
+          const tbody = table.querySelector('tbody');
+          rows.forEach(row => tbody.appendChild(row));
+
+          // Update sort direction
+          headers.forEach(h => delete h.dataset.sortDir);
+          header.dataset.sortDir = direction;
+        });
+      });
+    },
+
+    addSearch: function(table, searchInputId) {
+      const searchInput = document.getElementById(searchInputId);
+      if (!searchInput) return;
+
+      searchInput.addEventListener('input', utils.debounce((e) => {
+        const searchTerm = e.target.value.toLowerCase();
+        const rows = table.querySelectorAll('tbody tr');
+
+        rows.forEach(row => {
+          const text = row.textContent.toLowerCase();
+          row.style.display = text.includes(searchTerm) ? '' : 'none';
+        });
+      }, 300));
+    }
+  };
+
+  // Initialize application
+  function initApp() {
+    console.log('Application initialized');
+
+    // Initialize modal system
+    modalManager.init();
+
+    // Form submission handling
+    document.querySelectorAll('form[data-ajax]').forEach(form => {
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const validation = formValidator.validate(form);
+        if (!validation.isValid) {
+          formValidator.displayErrors(form, validation.errors);
+          return;
+        }
+
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+        const endpoint = form.action.replace(window.location.origin + APP_CONFIG.apiBaseUrl, '');
+
+        try {
+          const result = await httpClient.post(endpoint, data);
+          notifications.success('Form submitted successfully');
+          form.reset();
+        } catch (error) {
+          notifications.error('Form submission failed');
+        }
+      });
+    });
+
+    // Initialize data tables
+    document.querySelectorAll('[data-table]').forEach(table => {
+      dataTable.init(table.id, {
+        pagination: table.dataset.pagination === 'true',
+        search: table.dataset.searchInput
+      });
+    });
+  }
+
+  // DOM Ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initApp);
+  } else {
+    initApp();
+  }
+
+  // Export to global scope
+  window.App = {
+    utils,
+    http: httpClient,
+    validator: formValidator,
+    modal: modalManager,
+    notify: notifications,
+    table: dataTable
+  };
+
+})();
+
+FILE: opt/appserver/logs/policies/rotation.conf
+# Log Rotation Configuration
+# Production Environment
+
+# Application Logs
+/var/log/appserver/application.log {
+    daily
+    rotate 30
+    missingok
+    notifempty
+    compress
+    delaycompress
+    sharedscripts
+    postrotate
+        systemctl reload appserver > /dev/null 2>&1 || true
+    endscript
+}
+
+# Access Logs
+/var/log/appserver/access.log {
+    daily
+    rotate 14
+    missingok
+    notifempty
+    compress
+    delaycompress
+    sharedscripts
+    dateext
+    dateformat -%Y%m%d
+    postrotate
+        systemctl reload appserver > /dev/null 2>&1 || true
+    endscript
+}
+
+# Error Logs
+/var/log/appserver/error.log {
+    daily
+    rotate 30
+    missingok
+    notifempty
+    compress
+    delaycompress
+    sharedscripts
+    maxsize 100M
+    postrotate
+        systemctl reload appserver > /dev/null 2>&1 || true
+    endscript
+}
+
+# Database Query Logs
+/var/log/appserver/queries.log {
+    daily
+    rotate 7
+    missingok
+    notifempty
+    compress
+    delaycompress
+    size 50M
+}
+
+# Security Audit Logs
+/var/log/appserver/audit.log {
+    daily
+    rotate 90
+    missingok
+    notifempty
+    compress
+    delaycompress
+    sharedscripts
+    create 0600 appserver appserver
+}
+
+FILE: data/backup/manifest.txt
+opt/appserver/config/app.

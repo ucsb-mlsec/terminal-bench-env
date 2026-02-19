@@ -1,0 +1,83 @@
+import marshal
+import struct
+import sys
+import time
+
+# Python 3.8+ .pyc file structure:
+# - Magic number (4 bytes)
+# - Bit field (4 bytes, Python 3.7+)
+# - Modification timestamp (4 bytes)
+# - File size (4 bytes)
+# - Code object (marshaled)
+
+# Magic number for Python 3.8
+magic = b'\x55\x0d\x0d\x0a'
+
+# Bit field (0 for regular pyc)
+bit_field = b'\x00\x00\x00\x00'
+
+# Timestamp (current time)
+timestamp = struct.pack('<I', int(time.time()))
+
+# File size (dummy value)
+file_size = b'\x00\x00\x00\x00'
+
+# Create the source code as a string
+source_code = '''"""Module for data processing and validation"""
+import sys
+import os
+
+def calculate_sum(a, b):
+    """Calculate sum of two numbers"""
+    return a + b
+
+def multiply_values(x, y):
+    """Multiply two values"""
+    return x * y
+
+def process_data(data):
+    """Process input data"""
+    return [x * 2 for x in data]
+
+class DataProcessor:
+    """Class for processing data"""
+    
+    def __init__(self, name):
+        """Initialize processor"""
+        self.name = name
+    
+    def transform(self, data):
+        """Transform data"""
+        return data.upper()
+    
+    def save(self, filename):
+        """Save to file"""
+        pass
+
+def validate_input(value):
+    """Validate input value"""
+    return value is not None
+
+def format_output(result):
+    """Format output result"""
+    return str(result)
+
+def helper_function():
+    """Helper function with nested function"""
+    def nested_helper(x):
+        return x + 1
+    return nested_helper(5)
+'''
+
+# Compile the source code
+code_object = compile(source_code, 'app.py', 'exec')
+
+# Marshal the code object
+marshaled_code = marshal.dumps(code_object)
+
+# Combine all parts
+pyc_content = magic + bit_field + timestamp + file_size + marshaled_code
+
+# Write to file
+with open('/workspace/app.pyc', 'wb') as f:
+    f.write(pyc_content)

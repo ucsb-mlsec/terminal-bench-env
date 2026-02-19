@@ -1,0 +1,157 @@
+#!/usr/bin/env python3
+
+import frida
+import sys
+import time
+
+def on_message(message, data):
+    if message['type'] == 'send':
+        print(f"[*] {message['payload']}")
+    elif message['type'] == 'error':
+        print(f"[!] {message['stack']}")
+
+def main():
+    print("[*] Starting Frida instrumentation of guess_game")
+    
+    # Spawn the process
+    device = frida.get_local_device()
+    pid = device.spawn(["/usr/local/bin/guess_game"])
+    session = device.attach(pid)
+    
+    # Frida script to hook and manipulate the game
+    script_code = """
+    var target_number = -1;
+    var attempt_count = 0;
+    var game_won = false;
+    
+    // Find and hook the calculate_score function
+    var calculate_score_addr = null;
+    var module = Process.enumerateModules()[0];
+    
+    // Search for calculate_score function
+    var exports = Module.enumerateExports(module.name);
+    for (var i = 0; i < exports.length; i++) {
+        if (exports[i].name.indexOf('calculate_score') !== -1 || 
+            exports[i].name.indexOf('update_score') !== -1 ||
+            exports[i].name.indexOf('score') !== -1) {
+            calculate_score_addr = exports[i].address;
+            send("Found score function: " + exports[i].name + " at " + calculate_score_addr);
+            break;
+        }
+    }
+    
+    // If not found in exports, scan for it
+    if (calculate_score_addr == null) {
+        var symbols = Module.enumerateSymbols(module.name);
+        for (var i = 0; i < symbols.length; i++) {
+            if (symbols[i].name.indexOf('score') !== -1) {
+                calculate_score_addr = symbols[i].address;
+                send("Found score function via symbols: " + symbols[i].name);
+                break;
+            }
+        }
+    }
+    
+    // Hook the score calculation function to return 1000
+    if (calculate_score_addr != null) {
+        Interceptor.attach(calculate_score_addr, {
+            onEnter: function(args) {
+                send("calculate_score called with args: " + args[0]);
+            },
+            onLeave: function(retval) {
+                send("Original score: " + retval);
+                retval.replace(1000);
+                send("Modified score to: 1000");
+            }
+        });
+    }
+    
+    // Hook scanf/read to find target number
+    var scanf_ptr = Module.findExportByName(null, '__isoc99_scanf');
+    if (scanf_ptr == null) {
+        scanf_ptr = Module.findExportByName(null, 'scanf');
+    }
+    
+    // Hook random number generation
+    var rand_ptr = Module.findExportByName(null, 'rand');
+    if (rand_ptr != null) {
+        Interceptor.attach(rand_ptr, {
+            onLeave: function(retval) {
+                var val = retval.toInt32();
+                if (val > 0 && val < 200) {
+                    target_number = (val % 100) + 1;
+                    send("Target number detected: " + target_number);
+                }
+            }
+        });
+    }
+    
+    // Hook printf to detect prompts and inject responses
+    var printf_ptr = Module.findExportByName(null, 'printf');
+    var fgets_ptr = Module.findExportByName(null, 'fgets');
+    var read_ptr = Module.findExportByName(null, 'read');
+    
+    // Hook fgets to provide our guesses
+    if (fgets_ptr != null) {
+        Interceptor.attach(fgets_ptr, {
+            onEnter: function(args) {
+                this.buffer = args[0];
+                this.size = args[1].toInt32();
+            },
+            onLeave: function(retval) {
+                if (target_number > 0 && !game_won) {
+                    attempt_count++;
+                    var guess = target_number.toString() + "\\n";
+                    Memory.writeUtf8String(this.buffer, guess);
+                    send("Auto-guessing: " + target_number);
+                    game_won = true;
+                }
+            }
+        });
+    }
+    
+    // Also hook read as backup
+    if (read_ptr != null) {
+        Interceptor.attach(read_ptr, {
+            onEnter: function(args) {
+                this.fd = args[0].toInt32();
+                this.buf = args[1];
+                this.count = args[2].toInt32();
+            },
+            onLeave: function(retval) {
+                if (this.fd == 0 && target_number > 0 && !game_won) {
+                    attempt_count++;
+                    var guess = target_number.toString() + "\\n";
+                    Memory.writeUtf8String(this.buf, guess);
+                    retval.replace(guess.length);
+                    send("Auto-guessing via read: " + target_number);
+                    game_won = true;
+                }
+            }
+        });
+    }
+    
+    send("Instrumentation ready");
+    """
+    
+    script = session.create_script(script_code)
+    script.on('message', on_message)
+    script.load()
+    
+    # Resume the process
+    device.resume(pid)
+    
+    print("[*] Game process started with PID:", pid)
+    print("[*] Waiting for game to complete...")
+    
+    # Wait for the game to complete
+    try:
+        time.sleep(3)
+    except KeyboardInterrupt:
+        print("\n[*] Interrupted")
+    
+    session.detach()
+    print("[*] Script completed")
+
+if __name__ == '__main__':
+    main()

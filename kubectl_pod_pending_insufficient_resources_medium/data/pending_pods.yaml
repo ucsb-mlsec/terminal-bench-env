@@ -1,0 +1,113 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: web-app
+  labels:
+    app: web
+    tier: frontend
+spec:
+  containers:
+  - name: nginx
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+    resources:
+      requests:
+        cpu: '5000m'
+        memory: '10Gi'
+    env:
+    - name: NGINX_PORT
+      value: "80"
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: database-server
+  labels:
+    app: postgres
+    tier: backend
+spec:
+  containers:
+  - name: postgres
+    image: postgres:14
+    ports:
+    - containerPort: 5432
+    resources:
+      requests:
+        cpu: '3500m'
+        memory: '6Gi'
+    env:
+    - name: POSTGRES_PASSWORD
+      value: "secretpassword"
+    - name: POSTGRES_DB
+      value: "appdb"
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: cache-service
+  labels:
+    app: redis
+    tier: cache
+spec:
+  containers:
+  - name: redis
+    image: redis:7
+    ports:
+    - containerPort: 6379
+    resources:
+      requests:
+        cpu: '2500m'
+        memory: '4Gi'
+    command: ["redis-server"]
+    args: ["--maxmemory", "3gb"]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: multi-tier-app
+  labels:
+    app: fullstack
+    environment: production
+spec:
+  containers:
+  - name: app-server
+    image: node:18
+    ports:
+    - containerPort: 3000
+    resources:
+      requests:
+        cpu: '2000m'
+        memory: '3Gi'
+    env:
+    - name: NODE_ENV
+      value: "production"
+  - name: sidecar-proxy
+    image: envoyproxy/envoy:v1.24
+    ports:
+    - containerPort: 8080
+    resources:
+      requests:
+        cpu: '1500m'
+        memory: '2Gi'
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: analytics-worker
+  labels:
+    app: analytics
+    component: worker
+spec:
+  containers:
+  - name: spark-worker
+    image: bitnami/spark:3.3
+    resources:
+      requests:
+        cpu: '4000m'
+        memory: '8Gi'
+    env:
+    - name: SPARK_MODE
+      value: "worker"
+    - name: SPARK_WORKER_MEMORY
+      value: "7g"

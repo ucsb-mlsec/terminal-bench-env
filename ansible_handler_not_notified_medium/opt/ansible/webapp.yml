@@ -1,0 +1,28 @@
+---
+- name: Manage webapp configuration
+  hosts: localhost
+  connection: local
+  become: yes
+  
+  tasks:
+    - name: Update webapp configuration
+      copy:
+        content: |
+          debug_mode: true
+          log_level: info
+          port: 8080
+        dest: /etc/webapp/app.conf
+        owner: root
+        group: root
+        mode: '0644'
+        notify: restart webapp
+    
+    - name: Ensure webapp directory exists
+      file:
+        path: /etc/webapp
+        state: directory
+        mode: '0755'
+
+  handlers:
+    - name: restart webapp
+      command: /usr/local/bin/webapp-control restart

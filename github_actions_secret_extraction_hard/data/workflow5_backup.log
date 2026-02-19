@@ -1,0 +1,69 @@
+2024-01-15T08:30:12.4523Z ##[section]Starting: backup_service workflow
+2024-01-15T08:30:12.5671Z ==============================================================================
+2024-01-15T08:30:12.5673Z Workflow: backup_service
+2024-01-15T08:30:12.5674Z Runner: ubuntu-latest-16core
+2024-01-15T08:30:12.5675Z ==============================================================================
+2024-01-15T08:30:13.1234Z ##[group]Initializing backup environment
+2024-01-15T08:30:13.2456Z [INFO] Loading backup configuration...
+2024-01-15T08:30:13.3567Z [INFO] Backup target: production-database-01
+2024-01-15T08:30:13.4678Z [INFO] Backup destination: s3://company-backups/daily/
+2024-01-15T08:30:13.5789Z [INFO] Retention policy: 30 days
+2024-01-15T08:30:13.6890Z ##[endgroup]
+2024-01-15T08:30:14.1234Z ##[group]Authenticating service account
+2024-01-15T08:30:14.2345Z [INFO] Service account: backup-service@company.iam
+2024-01-15T08:30:14.3456Z [DEBUG] Loading credentials from environment
+2024-01-15T08:30:14.4567Z [DEBUG] Environment configuration:
+2024-01-15T08:30:14.5678Z   SERVICE_ACCOUNT_USER=backup-service
+2024-01-15T08:30:14.6789Z   SERVICE_ACCOUNT_PASS=Vhuylfh678Sdvv!
+2024-01-15T08:30:14.7890Z   BACKUP_BUCKET=company-backups
+2024-01-15T08:30:14.8901Z   ENCRYPTION_ENABLED=true
+2024-01-15T08:30:15.0012Z [INFO] Authentication successful
+2024-01-15T08:30:15.1123Z ##[endgroup]
+2024-01-15T08:30:15.5234Z ##[group]Creating database snapshot
+2024-01-15T08:30:15.6345Z [INFO] Connecting to database cluster...
+2024-01-15T08:30:16.2456Z [INFO] Connection established: prod-db-master-01.internal
+2024-01-15T08:30:16.3567Z [INFO] Starting snapshot creation...
+2024-01-15T08:30:16.4678Z [INFO] Snapshot ID: snap-2024011508-prod-db
+2024-01-15T08:30:22.5789Z [INFO] Snapshot progress: 25% complete
+2024-01-15T08:30:28.6890Z [INFO] Snapshot progress: 50% complete
+2024-01-15T08:30:34.7901Z [INFO] Snapshot progress: 75% complete
+2024-01-15T08:30:40.8012Z [INFO] Snapshot progress: 100% complete
+2024-01-15T08:30:41.0123Z [INFO] Database snapshot created successfully
+2024-01-15T08:30:41.1234Z [INFO] Snapshot size: 47.3 GB
+2024-01-15T08:30:41.2345Z ##[endgroup]
+2024-01-15T08:30:41.6456Z ##[group]Compressing backup files
+2024-01-15T08:30:41.7567Z [INFO] Compression algorithm: gzip -9
+2024-01-15T08:30:42.8678Z [INFO] Compressing snapshot data...
+2024-01-15T08:30:55.9789Z [INFO] Compression complete
+2024-01-15T08:30:56.0890Z [INFO] Compressed size: 12.1 GB (74% reduction)
+2024-01-15T08:30:56.1901Z ##[endgroup]
+2024-01-15T08:30:56.6012Z ##[group]Encrypting backup
+2024-01-15T08:30:56.7123Z [INFO] Encryption method: AES-256-GCM
+2024-01-15T08:30:57.8234Z [INFO] Encrypting backup archive...
+2024-01-15T08:31:08.9345Z [INFO] Encryption complete
+2024-01-15T08:31:09.0456Z ##[endgroup]
+2024-01-15T08:31:09.4567Z ##[group]Transferring to remote storage
+2024-01-15T08:31:09.5678Z [INFO] Upload destination: s3://company-backups/daily/2024-01-15/
+2024-01-15T08:31:09.6789Z [INFO] Starting multipart upload...
+2024-01-15T08:31:15.7890Z [INFO] Upload progress: 15% (1.8 GB / 12.1 GB)
+2024-01-15T08:31:25.8901Z [INFO] Upload progress: 35% (4.2 GB / 12.1 GB)
+2024-01-15T08:31:38.9012Z [INFO] Upload progress: 58% (7.0 GB / 12.1 GB)
+2024-01-15T08:31:52.0123Z [INFO] Upload progress: 82% (9.9 GB / 12.1 GB)
+2024-01-15T08:32:01.1234Z [INFO] Upload progress: 100% (12.1 GB / 12.1 GB)
+2024-01-15T08:32:01.2345Z [INFO] Upload complete
+2024-01-15T08:32:01.3456Z ##[endgroup]
+2024-01-15T08:32:01.7567Z ##[group]Verifying backup integrity
+2024-01-15T08:32:01.8678Z [INFO] Computing checksums...
+2024-01-15T08:32:03.9789Z [INFO] Local checksum (SHA256): a7f3c8e2b9d4f1a6e8c5b2d9f7a3e1c8
+2024-01-15T08:32:04.0890Z [INFO] Remote checksum (SHA256): a7f3c8e2b9d4f1a6e8c5b2d9f7a3e1c8
+2024-01-15T08:32:04.1901Z [SUCCESS] Checksums match - backup verified
+2024-01-15T08:32:04.2012Z ##[endgroup]
+2024-01-15T08:32:04.6123Z ##[group]Cleanup operations
+2024-01-15T08:32:04.7234Z [INFO] Removing temporary files...
+2024-01-15T08:32:05.8345Z [INFO] Cleanup complete
+2024-01-15T08:32:05.9456Z ##[endgroup]
+2024-01-15T08:32:06.3567Z ##[section]Finishing: backup_service workflow
+2024-01-15T08:32:06.4678Z [SUCCESS] Backup workflow completed successfully
+2024-01-15T08:32:06.5789Z [INFO] Total execution time: 1m 54s
+2024-01-15T08:32:06.6890Z [INFO] Backup location: s3://company-backups/daily/2024-01-15/prod-db-backup.enc
+2024-01-15T08:32:06.7901Z ==============================================================================

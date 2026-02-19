@@ -1,0 +1,195 @@
+type Query {
+  adminDashboard(filters: DashboardFilters): AdminData
+  adminListUsers(limit: Int, offset: Int): [User!]!
+  getAdminStats: AdminStats
+  getApiKey(userId: ID!): ApiKey
+  getCredentials(serviceId: ID!): Credentials
+  getSecretConfig(environment: String!): SecretConfig
+  getUser(id: ID!): User
+  getUserPassword(userId: ID!): PasswordData
+  getUserToken(userId: ID!): Token
+  listProducts(category: String, limit: Int): [Product!]!
+  listUsers(filters: UserFilters): [User!]!
+  searchItems(query: String!, type: ItemType): [SearchResult!]!
+  viewProfile(userId: ID!): Profile
+  __schema: __Schema!
+  __type(name: String!): __Type
+}
+
+type Mutation {
+  adminCreateUser(input: AdminUserInput!): User
+  adminDeleteAll(confirm: Boolean!): Boolean
+  adminUpdateRole(userId: ID!, role: Role!): User
+  createProduct(input: ProductInput!): Product
+  createUser(input: UserInput!): User
+  deleteAccount(userId: ID!, reason: String): Boolean
+  deleteProduct(id: ID!): Boolean
+  deleteUser(id: ID!): Boolean
+  destroySession(sessionId: ID!): Boolean
+  purgeCache(category: String!): Boolean
+  purgeData(dataType: String!, olderThan: String): Boolean
+  removeAccount(userId: ID!): Boolean
+  removeProduct(productId: ID!): Boolean
+  resetPassword(email: String!, newPassword: String!): Boolean
+  revokeAccess(userId: ID!, resourceId: ID!): Boolean
+  revokeApiKey(keyId: ID!): Boolean
+  revokeToken(tokenId: ID!): Boolean
+  updatePassword(userId: ID!, oldPassword: String!, newPassword: String!): Boolean
+  updateProfile(userId: ID!, input: ProfileInput!): Profile
+  updateToken(tokenId: ID!, input: TokenInput!): Token
+}
+
+type User {
+  id: ID!
+  username: String!
+  email: String!
+  role: Role!
+  profile: Profile
+  createdAt: String!
+  updatedAt: String!
+}
+
+type Profile {
+  id: ID!
+  firstName: String
+  lastName: String
+  bio: String
+  avatarUrl: String
+}
+
+type Product {
+  id: ID!
+  name: String!
+  description: String
+  price: Float!
+  category: String
+  inStock: Boolean!
+  createdAt: String!
+}
+
+type AdminData {
+  totalUsers: Int!
+  totalProducts: Int!
+  systemHealth: String!
+  recentActivity: [Activity!]!
+}
+
+type AdminStats {
+  activeUsers: Int!
+  totalRevenue: Float!
+  systemLoad: Float!
+}
+
+type Token {
+  id: ID!
+  userId: ID!
+  token: String!
+  expiresAt: String!
+  scopes: [String!]!
+}
+
+type ApiKey {
+  id: ID!
+  key: String!
+  userId: ID!
+  permissions: [String!]!
+  createdAt: String!
+}
+
+type Credentials {
+  id: ID!
+  serviceId: ID!
+  username: String!
+  encryptedPassword: String!
+}
+
+type SecretConfig {
+  id: ID!
+  environment: String!
+  secrets: [Secret!]!
+}
+
+type Secret {
+  key: String!
+  value: String!
+}
+
+type PasswordData {
+  userId: ID!
+  hashedPassword: String!
+  lastChanged: String!
+}
+
+type Activity {
+  id: ID!
+  userId: ID!
+  action: String!
+  timestamp: String!
+}
+
+type SearchResult {
+  id: ID!
+  type: ItemType!
+  title: String!
+  description: String
+}
+
+input UserInput {
+  username: String!
+  email: String!
+  password: String!
+  role: Role
+}
+
+input AdminUserInput {
+  username: String!
+  email: String!
+  password: String!
+  role: Role!
+  permissions: [String!]
+}
+
+input ProductInput {
+  name: String!
+  description: String
+  price: Float!
+  category: String
+  inStock: Boolean
+}
+
+input ProfileInput {
+  firstName: String
+  lastName: String
+  bio: String
+  avatarUrl: String
+}
+
+input TokenInput {
+  expiresAt: String
+  scopes: [String!]
+}
+
+input UserFilters {
+  role: Role
+  createdAfter: String
+  createdBefore: String
+}
+
+input DashboardFilters {
+  dateFrom: String
+  dateTo: String
+  category: String
+}
+
+enum Role {
+  USER
+  ADMIN
+  MODERATOR
+  GUEST
+}
+
+enum ItemType {
+  PRODUCT
+  USER
+  ARTICLE
+}

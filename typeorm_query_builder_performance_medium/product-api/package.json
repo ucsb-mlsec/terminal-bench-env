@@ -1,0 +1,515 @@
+[
+  {
+    "{":"  \"scripts\": {"
+  },
+  {
+    "{":"    \"start\": \"node server.js\""
+  },
+  {
+    "{":"  \"dependencies\": {"
+  },
+  {
+    "{":"    \"sqlite3\": \"^5.1.6\""
+  },
+  {
+    "{":"  }"
+  },
+  {
+    "{":"}"
+  },
+  {
+    "{":"```"
+  },
+  {
+    "{":"File: product-api\/entities\/Category.js"
+  },
+  {
+    "{":"```javascript"
+  },
+  {
+    "{":"const { EntitySchema } = require(\"typeorm\");"
+  },
+  {
+    "{":"module.exports = new EntitySchema({"
+  },
+  {
+    "{":"  columns: {"
+  },
+  {
+    "{":"    id: {"
+  },
+  {
+    "{":"      generated: true"
+  },
+  {
+    "{":"    name: {"
+  },
+  {
+    "{":"      type: \"varchar\""
+  },
+  {
+    "{":"    }"
+  },
+  {
+    "{":"  relations: {"
+  },
+  {
+    "{":"    products: {"
+  },
+  {
+    "{":"      inverseSide: \"category\""
+  },
+  {
+    "{":"    }"
+  },
+  {
+    "{":"  }"
+  },
+  {
+    "{":"});"
+  },
+  {
+    "{":"```"
+  },
+  {
+    "{":"File: product-api\/entities\/Product.js"
+  },
+  {
+    "{":"```javascript"
+  },
+  {
+    "{":"const { EntitySchema } = require(\"typeorm\");"
+  },
+  {
+    "{":"module.exports = new EntitySchema({"
+  },
+  {
+    "{":"  columns: {"
+  },
+  {
+    "{":"    id: {"
+  },
+  {
+    "{":"      generated: true"
+  },
+  {
+    "{":"    name: {"
+  },
+  {
+    "{":"      type: \"varchar\""
+  },
+  {
+    "{":"    price: {"
+  },
+  {
+    "{":"      type: \"decimal\""
+  },
+  {
+    "{":"    categoryId: {"
+  },
+  {
+    "{":"      name: \"category_id\""
+  },
+  {
+    "{":"    }"
+  },
+  {
+    "{":"  relations: {"
+  },
+  {
+    "{":"    category: {"
+  },
+  {
+    "{":"      joinColumn: {"
+  },
+  {
+    "{":"        name: \"category_id\""
+  },
+  {
+    "{":"      }"
+  },
+  {
+    "{":"    }"
+  },
+  {
+    "{":"  }"
+  },
+  {
+    "{":"});"
+  },
+  {
+    "{":"```"
+  },
+  {
+    "{":"File: product-api\/server.js"
+  },
+  {
+    "{":"```javascript"
+  },
+  {
+    "{":"require(\"reflect-metadata\");"
+  },
+  {
+    "{":"const express = require(\"express\");"
+  },
+  {
+    "{":"const { DataSource } = require(\"typeorm\");"
+  },
+  {
+    "{":"const Product = require(\".\/entities\/Product\");"
+  },
+  {
+    "{":"const Category = require(\".\/entities\/Category\");"
+  },
+  {
+    "{":"const AppDataSource = new DataSource({"
+  },
+  {
+    "{":"});"
+  },
+  {
+    "{":"const app = express();"
+  },
+  {
+    "{":"let queryCount = 0;"
+  },
+  {
+    "{":"  try {"
+  },
+  {
+    "{":"    const productRepository = AppDataSource.getRepository(\"Product\");"
+  },
+  {
+    "{":"    \/\/ FIX: Use relations option to eager load categories in a single query"
+  },
+  {
+    "{":"    const products = await productRepository.find({"
+  },
+  {
+    "{":"      relations: [\"category\"]"
+  },
+  {
+    "{":"    });"
+  },
+  {
+    "{":"    res.json(products);"
+  },
+  {
+    "{":"  } catch (error) {"
+  },
+  {
+    "{":"    res.status(500).json({ error: error.message });"
+  },
+  {
+    "{":"  }"
+  },
+  {
+    "{":"});"
+  },
+  {
+    "{":"  res.json({ count: queryCount });"
+  },
+  {
+    "{":"});"
+  },
+  {
+    "{":"  queryCount = 0;"
+  },
+  {
+    "{":"  res.json({ success: true });"
+  },
+  {
+    "{":"});"
+  },
+  {
+    "{":"let server;"
+  },
+  {
+    "{":"async function startServer() {"
+  },
+  {
+    "{":"  await AppDataSource.initialize();"
+  },
+  {
+    "{":"  \/\/ Wrap query runner to count queries"
+  },
+  {
+    "{":"  const originalQuery = AppDataSource.driver.connection.all.bind(AppDataSource.driver.connection);"
+  },
+  {
+    "{":"    if (sql && !sql.includes('PRAGMA')) {"
+  },
+  {
+    "{":"      queryCount++;"
+  },
+  {
+    "{":"    }"
+  },
+  {
+    "{":"  };"
+  },
+  {
+    "{":"  return new Promise((resolve) => {"
+  },
+  {
+    "{":"      console.log(\"Server running on port 3000\");"
+  },
+  {
+    "{":"      resolve();"
+  },
+  {
+    "{":"    });"
+  },
+  {
+    "{":"  });"
+  },
+  {
+    "{":"}"
+  },
+  {
+    "{":"async function stopServer() {"
+  },
+  {
+    "{":"  return new Promise((resolve) => {"
+  },
+  {
+    "{":"    if (server) {"
+  },
+  {
+    "{":"      server.close(() => {"
+  },
+  {
+    "{":"        AppDataSource.destroy().then(resolve);"
+  },
+  {
+    "{":"      });"
+  },
+  {
+    "{":"    } else {"
+  },
+  {
+    "{":"      resolve();"
+  },
+  {
+    "{":"    }"
+  },
+  {
+    "{":"  });"
+  },
+  {
+    "{":"}"
+  },
+  {
+    "{":"if (require.main === module) {"
+  },
+  {
+    "{":"  startServer();"
+  },
+  {
+    "{":"}"
+  },
+  {
+    "{":"```"
+  },
+  {
+    "{":"File: product-api\/test-performance.js"
+  },
+  {
+    "{":"```javascript"
+  },
+  {
+    "{":"const fs = require(\"fs\");"
+  },
+  {
+    "{":"async function testPerformance() {"
+  },
+  {
+    "{":"  console.log(\"Starting performance test...\");"
+  },
+  {
+    "{":"  await startServer();"
+  },
+  {
+    "{":"  \/\/ Wait for server to be ready"
+  },
+  {
+    "{":"  try {"
+  },
+  {
+    "{":"    \/\/ Reset query count"
+  },
+  {
+    "{":"    \/\/ Measure response time"
+  },
+  {
+    "{":"    const startTime = Date.now();"
+  },
+  {
+    "{":"    const response = await fetch(\"http:\/\/localhost:3000\/api\/products\");"
+  },
+  {
+    "{":"    const endTime = Date.now();"
+  },
+  {
+    "{":"    const responseTime = endTime - startTime;"
+  },
+  {
+    "{":"    const data = await response.json();"
+  },
+  {
+    "{":"    \/\/ Get query count"
+  },
+  {
+    "{":"    const queryCountResponse = await fetch(\"http:\/\/localhost:3000\/api\/query-count\");"
+  },
+  {
+    "{":"    const { count: queryCount } = await queryCountResponse.json();"
+  },
+  {
+    "{":"    console.log(`Response time: ${responseTime}ms`);"
+  },
+  {
+    "{":"    console.log(`Query count: ${queryCount}`);"
+  },
+  {
+    "{":"    console.log(`Products returned: ${data.length}`);"
+  },
+  {
+    "{":"    const passed = responseTime < 500 && queryCount <= 2;"
+  },
+  {
+    "{":"    const result = {"
+  },
+  {
+    "{":"      passed: passed"
+  },
+  {
+    "{":"    };"
+  },
+  {
+    "{":"    console.log(passed ? \"\u2713 Performance test PASSED\" : \"\u2717 Performance test FAILED\");"
+  },
+  {
+    "{":"  } catch (error) {"
+  },
+  {
+    "{":"      passed: false"
+  },
+  {
+    "{":"  } finally {"
+  },
+  {
+    "{":"    await stopServer();"
+  },
+  {
+    "{":"    process.exit(0);"
+  },
+  {
+    "{":"  }"
+  },
+  {
+    "{":"}"
+  },
+  {
+    "{":"testPerformance();"
+  },
+  {
+    "{":"```"
+  },
+  {
+    "{":"File: product-api\/init-db.js"
+  },
+  {
+    "{":"```javascript"
+  },
+  {
+    "{":"require(\"reflect-metadata\");"
+  },
+  {
+    "{":"const { DataSource } = require(\"typeorm\");"
+  },
+  {
+    "{":"const Product = require(\".\/entities\/Product\");"
+  },
+  {
+    "{":"const Category = require(\".\/entities\/Category\");"
+  },
+  {
+    "{":"const AppDataSource = new DataSource({"
+  },
+  {
+    "{":"});"
+  },
+  {
+    "{":"async function initDatabase() {"
+  },
+  {
+    "{":"  await AppDataSource.initialize();"
+  },
+  {
+    "{":"  const categoryRepo = AppDataSource.getRepository(\"Category\");"
+  },
+  {
+    "{":"  const productRepo = AppDataSource.getRepository(\"Product\");"
+  },
+  {
+    "{":"  \/\/ Clear existing data"
+  },
+  {
+    "{":"  await productRepo.delete({});"
+  },
+  {
+    "{":"  await categoryRepo.delete({});"
+  },
+  {
+    "{":"  \/\/ Create categories"
+  },
+  {
+    "{":"  const categories = ["
+  },
+  {
+    "{":"    { name: \"Sports\" }"
+  },
+  {
+    "{":"  ];"
+  },
+  {
+    "{":"  const savedCategories = await categoryRepo.save(categories);"
+  },
+  {
+    "{":"  \/\/ Create 30 products"
+  },
+  {
+    "{":"  const products = [];"
+  },
+  {
+    "{":"  for (let i = 1; i <= 30; i++) {"
+  },
+  {
+    "{":"    products.push({"
+  },
+  {
+    "{":"      categoryId: savedCategories[i % savedCategories.length].id"
+  },
+  {
+    "{":"    });"
+  },
+  {
+    "{":"  }"
+  },
+  {
+    "{":"  await productRepo.save(products);"
+  },
+  {
+    "{":"  console.log(\"Database initialized with 30 products and 5 categories\");"
+  },
+  {
+    "{":"  await AppDataSource.destroy();"
+  },
+  {
+    "{":"}"
+  },
+  {
+    "{":"initDatabase().catch(console.error);"
+  }
+]

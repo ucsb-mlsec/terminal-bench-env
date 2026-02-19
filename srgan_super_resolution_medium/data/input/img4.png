@@ -1,0 +1,44 @@
+from PIL import Image
+import numpy as np
+from pathlib import Path
+
+# Create directories if they don't exist
+Path("/workspace/output").mkdir(parents=True, exist_ok=True)
+
+# Create a 128x128 RGB test image with a recognizable pattern
+img_size = 128
+img_array = np.zeros((img_size, img_size, 3), dtype=np.uint8)
+
+# Create a colorful gradient pattern with geometric shapes
+for y in range(img_size):
+    for x in range(img_size):
+        # Create a radial gradient pattern
+        center_x, center_y = img_size // 2, img_size // 2
+        dx = x - center_x
+        dy = y - center_y
+        distance = np.sqrt(dx**2 + dy**2)
+        
+        # Red channel - radial gradient
+        img_array[y, x, 0] = int(255 * (distance / (img_size / np.sqrt(2))))
+        
+        # Green channel - checkerboard pattern
+        if (x // 16 + y // 16) % 2 == 0:
+            img_array[y, x, 1] = 200
+        else:
+            img_array[y, x, 1] = 50
+        
+        # Blue channel - vertical gradient
+        img_array[y, x, 2] = int(255 * (y / img_size))
+
+# Add some circular patterns for better visibility
+for angle in range(0, 360, 30):
+    rad = np.radians(angle)
+    for r in range(20, 60, 5):
+        cx = int(center_x + r * np.cos(rad))
+        cy = int(center_y + r * np.sin(rad))
+        if 0 <= cx < img_size and 0 <= cy < img_size:
+            img_array[max(0, cy-2):min(img_size, cy+3), max(0, cx-2):min(img_size, cx+3)] = [255, 255, 0]
+
+# Create and save the image
+img = Image.fromarray(img_array, 'RGB')
+img.save('/workspace/input/img4.png', 'PNG')

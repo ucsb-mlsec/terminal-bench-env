@@ -1,0 +1,55 @@
+import numpy as np
+import os
+
+# Set random seed for reproducibility
+np.random.seed(42)
+
+# Create output directory if it doesn't exist
+os.makedirs('/data', exist_ok=True)
+
+# Parameters
+n_samples = 5000
+n_features = 100
+n_clusters = 7
+
+# Generate cluster centers in 100D space
+cluster_centers = np.random.randn(n_clusters, n_features) * 2.0
+
+# Assign samples to clusters (save for labels file)
+cluster_assignments = np.random.randint(0, n_clusters, size=n_samples)
+
+# Generate features by adding noise to cluster centers
+features = np.zeros((n_samples, n_features), dtype=np.float64)
+
+for i in range(n_samples):
+    cluster_id = cluster_assignments[i]
+    # Add Gaussian noise to the cluster center
+    features[i] = cluster_centers[cluster_id] + np.random.randn(n_features) * 0.3
+
+# Add some exactly zero values (1% of all values)
+n_zeros = int(n_samples * n_features * 0.01)
+zero_indices = np.random.choice(n_samples * n_features, size=n_zeros, replace=False)
+for idx in zero_indices:
+    row = idx // n_features
+    col = idx % n_features
+    features[row, col] = 0.0
+
+# Add NaN values to 2-3 samples to test data quality handling
+nan_samples = np.random.choice(n_samples, size=3, replace=False)
+for sample_idx in nan_samples:
+    nan_feature = np.random.randint(0, n_features)
+    features[sample_idx, nan_feature] = np.nan
+
+# Save features
+np.save('/data/features.npy', features)
+
+# Save labels
+with open('/data/labels.txt', 'w') as f:
+    for label in cluster_assignments:
+        f.write(f"{label}\n")
+
+print("Generated features.npy with shape:", features.shape)
+print("Generated labels.txt with", len(cluster_assignments), "labels")
+print(f"Number of NaN values: {np.isnan(features).sum()}")
+print(f"Number of zero values: {np.sum(features == 0.0)}")
+print(f"Value range: [{features[~np.isnan(features)].min():.2f}, {features[~np.isnan(features)].max():.2f}]")

@@ -1,0 +1,34 @@
+# /etc/inittab - init daemon configuration for embedded IoT device
+# BusyBox init configuration
+# Format: <id>::<action>:<process>
+
+# System initialization - run startup scripts
+::sysinit:/etc/init.d/rcS
+
+# Set hostname
+::sysinit:/bin/hostname -F /etc/hostname
+
+# Start system logging
+::respawn:/sbin/syslogd -n -O /var/log/messages
+
+# Start kernel logging
+::respawn:/sbin/klogd -n
+
+# Serial console on ttyS0 - primary debug interface
+# Using autologin script for development convenience
+ttyS0::respawn:/sbin/getty -n -l /bin/autologin 115200 ttyS0
+
+# Alternate console on ttyAMA0 (if available)
+ttyAMA0::respawn:/sbin/getty -L ttyAMA0 115200 vt100
+
+# Virtual terminals (disabled for embedded system)
+# tty1::respawn:/sbin/getty 38400 tty1
+
+# Restart init on SIGHUP
+::restart:/sbin/init
+
+# Shutdown/reboot actions
+::shutdown:/bin/umount -a -r
+::shutdown:/sbin/swapoff -a
+::ctrlaltdel:/sbin/reboot
+::restart:/sbin/init

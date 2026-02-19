@@ -1,0 +1,54 @@
+rabbitmq:
+  # RabbitMQ cluster connection details
+  host: 'rabbitmq.prod.local'
+  port: 5672
+  vhost: '/production'
+  username: 'payment_user'
+  password: 'pmt_s3cr3t_2023'
+  # Connection timeout in seconds
+  connection_timeout: 30
+  # Heartbeat interval for connection health checks
+  heartbeat: 60
+
+consumer:
+  # Queue name to consume messages from
+  # NOTE: This should match the queue created in RabbitMQ
+  queue_name: 'payments_processing'
+  
+  # Number of messages to prefetch per consumer
+  # Helps with load balancing across multiple workers
+  prefetch_count: 10
+  
+  # Auto-acknowledgment setting
+  # false = manual ack (safer, messages requeued on failure)
+  # true = auto ack (faster but risks message loss)
+  auto_ack: false
+  
+  # Retry policy for failed message processing
+  retry_policy:
+    max_retries: 3
+    retry_delay_seconds: 5
+    exponential_backoff: true
+  
+  # Consumer tag for identification in management UI
+  consumer_tag: 'payment-service-consumer'
+
+application:
+  # Service identification
+  service_name: 'payment-processing-service'
+  
+  # Logging configuration
+  log_level: 'INFO'
+  log_format: 'json'
+  
+  # Number of worker threads for message processing
+  workers: 5
+  
+  # Graceful shutdown timeout
+  shutdown_timeout_seconds: 30
+  
+  # Health check settings
+  health_check:
+    enabled: true
+    port: 8080
+    endpoint: '/health'

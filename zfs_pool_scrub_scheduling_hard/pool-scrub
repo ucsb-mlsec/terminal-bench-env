@@ -1,0 +1,57 @@
+#!/bin/bash
+
+# Pool scrubbing script
+# Simulates a storage pool scrub operation
+
+POOL_NAME="$1"
+LOG_FILE="/var/log/pool-scrubs.log"
+REGISTRY_FILE="/var/lib/pool-registry/pools.json"
+
+# Check if pool name was provided
+if [ -z "$POOL_NAME" ]; then
+    echo "Error: Pool name required" >&2
+    echo "Usage: $0 <pool-name>" >&2
+    exit 1
+fi
+
+# Create log directory if it doesn't exist
+mkdir -p "$(dirname "$LOG_FILE")"
+
+# Log the scrub operation
+TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
+echo "$TIMESTAMP - Scrubbing pool: $POOL_NAME" >> "$LOG_FILE"
+
+# Update the last_scrub date in the registry
+if [ -f "$REGISTRY_FILE" ]; then
+    CURRENT_DATE=$(date '+%Y-%m-%d')
+    
+    # Create backup
+    cp "$REGISTRY_FILE" "${REGISTRY_FILE}.bak"
+    
+    # Update the JSON file using jq
+    if command -v jq >/dev/null 2>&1; then
+        jq --arg pool "$POOL_NAME" --arg date "$CURRENT_DATE" \
+            '(.pools[] | select(.name == $pool) | .last_scrub) = $date' \
+            "$REGISTRY_FILE" > "${REGISTRY_FILE}.tmp" && \
+            mv "${REGISTRY_FILE}.tmp" "$REGISTRY_FILE"
+        
+        if [ $? -eq 0 ]; then
+            echo "$TIMESTAMP - Updated last_scrub for $POOL_NAME to $CURRENT_DATE" >> "$LOG_FILE"
+        else
+            echo "$TIMESTAMP - Error updating registry for $POOL_NAME" >> "$LOG_FILE"
+            mv "${REGISTRY_FILE}.bak" "$REGISTRY_FILE"
+            exit 1
+        fi
+    else
+        echo "$TIMESTAMP - Warning: jq not found, registry not updated" >> "$LOG_FILE"
+    fi
+else
+    echo "$TIMESTAMP - Warning: Registry file not found at $REGISTRY_FILE" >> "$LOG_FILE"
+fi
+
+# Simulate scrub operation taking some time
+sleep 2
+
+echo "$TIMESTAMP - Completed scrubbing pool: $POOL_NAME" >> "$LOG_FILE"
+
+exit 0

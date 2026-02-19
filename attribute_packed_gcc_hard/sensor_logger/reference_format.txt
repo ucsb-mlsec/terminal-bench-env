@@ -1,0 +1,99 @@
+SENSOR DATA BINARY FORMAT SPECIFICATION
+==============================================
+
+VERSION: 1.0
+DATE: 2024-01-15
+
+RECORD FORMAT SPECIFICATION
+----------------------------
+
+Total record size: 24 bytes (MUST be exact - no padding allowed)
+
+FIELD LAYOUT (byte offsets from start of record):
+
+Offset 0-3 (4 bytes): sensor_id (uint32_t)
+  - Unsigned 32-bit integer
+  - Unique identifier for the sensor
+  - Range: 0 to 4,294,967,295
+
+Offset 4-11 (8 bytes): timestamp (uint64_t)
+  - Unsigned 64-bit integer
+  - Unix timestamp in milliseconds
+  - Range: 0 to 18,446,744,073,709,551,615
+
+Offset 12-15 (4 bytes): temperature (float)
+  - IEEE 754 single-precision floating point
+  - Temperature reading in degrees Celsius
+  - Typical range: -50.0 to 150.0
+
+Offset 16-19 (4 bytes): humidity (float)
+  - IEEE 754 single-precision floating point
+  - Relative humidity percentage
+  - Range: 0.0 to 100.0
+
+Offset 20-23 (4 bytes): pressure (float)
+  - IEEE 754 single-precision floating point
+  - Atmospheric pressure in kPa
+  - Typical range: 80.0 to 120.0
+
+
+CRITICAL REQUIREMENTS
+---------------------
+
+1. NO PADDING BYTES: The structure must be tightly packed with no padding
+   between fields or at the end of the structure.
+
+2. EXACT SIZE: Each record must be exactly 24 bytes. The compiler must not
+   add any alignment padding.
+
+3. BYTE ORDER: All multi-byte values use the native byte order of the system.
+
+4. ALIGNMENT: The structure must use compiler directives to prevent automatic
+   alignment/padding. For GCC/Clang, use: __attribute__((packed))
+   For MSVC, use: #pragma pack(1)
+
+5. PORTABILITY: The format must work consistently on both 32-bit and 64-bit
+   systems.
+
+
+EXAMPLE BINARY LAYOUT
+----------------------
+
+Visual representation of a single record (24 bytes total):
+
+[sensor_id][  timestamp  ][temperature][humidity][pressure]
+[4 bytes  ][   8 bytes   ][ 4 bytes  ][4 bytes ][4 bytes]
+     ↓           ↓              ↓          ↓         ↓
+  Offset 0    Offset 4    Offset 12  Offset 16  Offset 20
+
+
+SAMPLE RECORD (hexadecimal byte representation):
+
+sensor_id = 1001 (0x000003E9)
+timestamp = 1705334400000 (0x0000018D2E8E7C00)
+temperature = 23.5°C (0x41BC0000)
+humidity = 65.0% (0x42820000)
+pressure = 101.3 kPa (0x42CA6666)
+
+Byte sequence (24 bytes):
+E9 03 00 00 00 7C 8E 2E 8D 01 00 00 00 00 BC 41 00 00 82 42 66 66 CA 42
+
+
+FILE FORMAT
+-----------
+
+The binary output file consists of:
+- Multiple consecutive records
+- Each record is exactly 24 bytes
+- No header, footer, or separator bytes
+- File size = (number of records) × 24 bytes
+
+
+VALIDATION
+----------
+
+To verify correct binary format:
+1. Check file size is a multiple of 24
+2. Verify each field appears at the documented offset
+3. Confirm no padding bytes exist between fields
+4. Test reading the binary data with the documented structure

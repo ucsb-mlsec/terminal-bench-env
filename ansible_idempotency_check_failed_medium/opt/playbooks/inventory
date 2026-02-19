@@ -1,0 +1,77 @@
+---
+- name: Application Configuration Setup
+  hosts: local
+  become: yes
+  gather_facts: yes
+  
+  vars:
+    app_config_dir: /var/app/config
+    app_name: myapp
+    deploy_timestamp: "2024-01-01 00:00:00"
+    
+  tasks:
+    - name: Ensure configuration directory exists
+      file:
+        path: "{{ app_config_dir }}"
+        state: directory
+        mode: '0755'
+        owner: root
+        group: root
+        
+    - name: Deploy application configuration file
+      copy:
+        dest: "{{ app_config_dir }}/app.conf"
+        mode: '0644'
+        owner: root
+        group: root
+        content: |
+          # Application Configuration
+          APP_NAME={{ app_name }}
+          APP_ENV=production
+          DEPLOY_DATE={{ deploy_timestamp }}
+          LOG_LEVEL=info
+          MAX_CONNECTIONS=100
+          
+    - name: Deploy database configuration
+      copy:
+        dest: "{{ app_config_dir }}/database.yml"
+        mode: '0640'
+        owner: root
+        group: root
+        content: |
+          production:
+            adapter: postgresql
+            database: {{ app_name }}_db
+            host: localhost
+            port: 5432
+            pool: 5
+            timeout: 5000
+            
+    - name: Create application properties file
+      copy:
+        dest: "{{ app_config_dir }}/application.properties"
+        mode: '0644'
+        owner: root
+        group: root
+        content: |
+          server.port=8080
+          server.address=0.0.0.0
+          application.name={{ app_name }}
+          logging.level.root=INFO
+          
+    - name: Ensure log directory exists
+      file:
+        path: /var/log/{{ app_name }}
+        state: directory
+        mode: '0755'
+        owner: root
+        group: root
+        
+    - name: Create empty log file if not exists
+      copy:
+        dest: /var/log/{{ app_name }}/application.log
+        content: ""
+        mode: '0644'
+        owner: root
+        group: root
+        force: no

@@ -1,0 +1,53 @@
+# CUDA Graph Pipeline Configuration
+# This configuration defines the intended workflow for CUDA graph operations
+# to optimize streaming data processing performance
+
+workflow:
+  # Graph lifecycle stages - MUST follow this order
+  initialization:
+    description: "Setup phase - allocate resources and prepare graph"
+    actions:
+      - allocate_device_memory
+      - initialize_stream
+      - prepare_kernel_parameters
+  
+  graph_capture:
+    description: "Capture graph ONCE at startup - expensive operation"
+    timing: "once_at_init"
+    # Graph capture records all operations on the stream into a graph object
+    # This is a costly operation and should NEVER be repeated during processing
+    actions:
+      - begin_capture_on_stream
+      - execute_kernel_operations
+      - end_capture_to_graph
+  
+  processing:
+    description: "Main loop - lightweight updates per batch"
+    repeat: "for_each_batch"
+    actions:
+      - update_graph_parameters  # Fast parameter update only
+      - execute_graph           # Launch updated graph
+      # NOTE: Do NOT recapture graph during processing phase
+
+performance_settings:
+  batch_size: 1024
+  stream_priority: high
+  graph_capture_mode: once_at_init
+  update_frequency: per_batch
+  # Graph capture overhead: ~100ms
+  # Graph update overhead: ~0.1ms
+  # Graph execute overhead: minimal (near kernel launch time)
+
+graph_lifecycle:
+  capture_timing: "initialization_only"
+  capture_rationale: "Graph capture freezes the operation sequence but allows parameter updates"
+  
+  update_timing: "every_batch"
+  update_rationale: "Lightweight operation to modify kernel parameters without recapturing"
+  
+  execute_timing: "after_each_update"
+  execute_rationale: "Launch the graph with updated parameters"
+  
+  # CRITICAL: The sequence MUST be: capture -> (update -> execute)*
+  # Where * indicates repetition for each batch
+  # Capturing during the processing loop defeats the purpose of CUDA graphs

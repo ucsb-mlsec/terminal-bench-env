@@ -1,0 +1,27 @@
+FROM ghcr.io/laude-institute/t-bench/ubuntu-24-04:20250624
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install python3-pip and create python symlink
+RUN apt-get update && \
+    apt-get install -y python3-pip && \
+    ln -s /usr/bin/python3 /usr/bin/python && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install test dependencies
+RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
+
+RUN apt-get update && \
+    apt-get install -y jq && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /workspace/shaders /workspace/cache /workspace/solution
+
+COPY shaders/vertex_basic.glsl /workspace/shaders/vertex_basic.glsl
+COPY shaders/fragment_basic.glsl /workspace/shaders/fragment_basic.glsl
+COPY shaders/vertex_lighting.glsl /workspace/shaders/vertex_lighting.glsl
+COPY shaders/fragment_lighting.glsl /workspace/shaders/fragment_lighting.glsl
+COPY shaders/vertex_post.glsl /workspace/shaders/vertex_post.glsl
+COPY shaders/fragment_post.glsl /workspace/shaders/fragment_post.glsl
+
+WORKDIR /workspace

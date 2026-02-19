@@ -1,0 +1,115 @@
+#!/usr/bin/env python3
+import struct
+import json
+
+# Read the OpenGL spec documentation
+with open('/workspace/OPENGL_SPEC.txt', 'r') as f:
+    spec_content = f.read()
+
+# Read the geometry metadata
+with open('/workspace/geometry_metadata.json', 'r') as f:
+    metadata = json.load(f)
+
+# Extract buffer capacities from metadata
+vertex_buffer_capacity = metadata['vertex_buffer_capacity']
+index_buffer_capacity = metadata['index_buffer_capacity']
+
+print(f"Vertex buffer capacity: {vertex_buffer_capacity}")
+print(f"Index buffer capacity: {index_buffer_capacity}")
+
+# Read the binary draw commands
+with open('/workspace/draw_commands.bin', 'rb') as f:
+    commands_data = f.read()
+
+# Each command is 20 bytes (5 uint32 values)
+command_size = 20
+num_commands = len(commands_data) // command_size
+
+print(f"Total commands to validate: {num_commands}")
+
+# Parse and validate each command
+invalid_commands = []
+first_error_index = -1
+
+for i in range(num_commands):
+    offset = i * command_size
+    command_bytes = commands_data[offset:offset + command_size]
+    
+    # Unpack the command structure (5 uint32 values, little-endian)
+    count, instanceCount, firstIndex, baseVertex, baseInstance = struct.unpack('<5I', command_bytes)
+    
+    print(f"\nCommand {i}:")
+    print(f"  count: {count}")
+    print(f"  instanceCount: {instanceCount}")
+    print(f"  firstIndex: {firstIndex}")
+    print(f"  baseVertex: {baseVertex}")
+    print(f"  baseInstance: {baseInstance}")
+    
+    is_invalid = False
+    errors = []
+    
+    # Validation Rule 1: count must be > 0
+    if count == 0:
+        errors.append("count is zero")
+        is_invalid = True
+    
+    # Validation Rule 2: firstIndex + count must not exceed index buffer capacity
+    if firstIndex + count > index_buffer_capacity:
+        errors.append(f"index buffer overflow: firstIndex({firstIndex}) + count({count}) = {firstIndex + count} > capacity({index_buffer_capacity})")
+        is_invalid = True
+    
+    # Validation Rule 3: firstIndex must be within bounds
+    if firstIndex >= index_buffer_capacity:
+        errors.append(f"firstIndex({firstIndex}) >= index_buffer_capacity({index_buffer_capacity})")
+        is_invalid = True
+    
+    # Validation Rule 4: baseVertex must not cause vertex buffer overflow
+    # We need to check if any index value + baseVertex would exceed vertex capacity
+    # According to spec, we should assume maximum index value could be close to the range being used
+    # For safety, check if the maximum possible index in the range + baseVertex is valid
+    
+    # Get the actual indices being referenced if available in metadata
+    if 'meshes' in metadata and i < len(metadata['meshes']):
+        mesh = metadata['meshes'][i]
+        if 'max_index' in mesh:
+            max_index = mesh['max_index']
+            if max_index + baseVertex >= vertex_buffer_capacity:
+                errors.append(f"vertex buffer overflow: max_index({max_index}) + baseVertex({baseVertex}) = {max_index + baseVertex} >= vertex_capacity({vertex_buffer_capacity})")
+                is_invalid = True
+    else:
+        # Conservative check: baseVertex alone shouldn't exceed capacity
+        if baseVertex >= vertex_buffer_capacity:
+            errors.append(f"baseVertex({baseVertex}) >= vertex_buffer_capacity({vertex_buffer_capacity})")
+            is_invalid = True
+    
+    # Validation Rule 5: instanceCount should be > 0 (though spec says this doesn't invalidate the command structure itself)
+    # We'll note it but not fail on it as it's more of a performance issue
+    
+    if is_invalid:
+        print(f"  INVALID: {', '.join(errors)}")
+        invalid_commands.append(i)
+        if first_error_index == -1:
+            first_error_index = i
+    else:
+        print(f"  VALID")
+
+# Generate the validation report
+report = {
+    "valid": len(invalid_commands) == 0,
+    "error_count": len(invalid_commands),
+    "first_error_index": first_error_index
+}
+
+# Save the report
+with open('/tmp/validation_report.json', 'w') as f:
+    json.dump(report, f, indent=2)
+
+print(f"\n{'='*60}")
+print(f"Validation Report:")
+print(f"  Valid: {report['valid']}")
+print(f"  Error Count: {report['error_count']}")
+print(f"  First Error Index: {report['first_error_index']}")
+print(f"{'='*60}")
+
+if invalid_commands:
+    print(f"\nInvalid command indices: {invalid_commands}")

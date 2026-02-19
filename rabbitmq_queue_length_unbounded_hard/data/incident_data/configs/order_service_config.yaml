@@ -1,0 +1,40 @@
+rabbitmq:
+  host: rabbitmq.prod.local
+  port: 5672
+  vhost: /production
+  username: order_user
+  password: ${RABBITMQ_PASSWORD}
+  connection_timeout: 30
+  heartbeat: 60
+  ssl_enabled: false
+
+consumer:
+  queue_name: order_fulfillment
+  prefetch_count: 20
+  auto_ack: false
+  retry_policy:
+    max_retries: 3
+    retry_delay_seconds: 5
+    exponential_backoff: true
+    dead_letter_exchange: order_dlx
+  message_ttl: 86400000
+  consumer_timeout: 300000
+
+application:
+  service_name: order-fulfillment-service
+  log_level: INFO
+  workers: 4
+  graceful_shutdown_timeout: 30
+  health_check_port: 8080
+  metrics_enabled: true
+  metrics_port: 9090
+
+processing:
+  batch_size: 1
+  processing_timeout: 120
+  max_concurrent_messages: 20
+  
+monitoring:
+  enable_tracing: true
+  report_interval_seconds: 60
+  alert_on_failure: true

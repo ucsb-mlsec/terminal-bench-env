@@ -1,0 +1,48 @@
+Dataset Specifications for Spark Job
+=====================================
+
+Dataset A:
+- Size: 2.5 GB (uncompressed in memory)
+- Access Count: 6 times during job execution
+- Usage Pattern: Used in iterative computations (aggregations, joins)
+- Current Storage Level: MEMORY_ONLY
+- Notes: Critical for performance, accessed frequently in main pipeline
+- Performance Impact: High - accessed in hot path of execution
+- Serialized Size Estimate: 1.0 GB (60% reduction from 2.5 GB)
+
+Dataset B:
+- Size: 1.8 GB (uncompressed in memory)
+- Access Count: 3 times during job execution
+- Usage Pattern: Used in join operations with Dataset A
+- Current Storage Level: MEMORY_ONLY
+- Notes: Moderate access frequency, used in secondary processing
+- Performance Impact: Medium - important but not critical path
+- Serialized Size Estimate: 0.72 GB (60% reduction from 1.8 GB)
+
+Dataset C:
+- Size: 3.2 GB (uncompressed in memory)
+- Access Count: 1 time during job execution
+- Usage Pattern: Single pass transformation and write
+- Current Storage Level: MEMORY_ONLY
+- Notes: Large dataset but only accessed once, write-only operation
+- Performance Impact: Low - single access means no benefit from caching
+- Serialized Size Estimate: 1.28 GB (60% reduction from 3.2 GB)
+
+Memory Consumption Analysis:
+=============================
+Total Current Memory Footprint: 7.5 GB (Dataset A + B + C)
+Available Executor Memory: 4.0 GB
+Safe Memory Limit (80%): 3.2 GB
+Current Overhead: 4.3 GB over limit
+
+Problem Summary:
+- All datasets currently using MEMORY_ONLY causing OOM errors
+- Total memory requirement (7.5 GB) far exceeds available memory (4.0 GB)
+- Dataset C accounts for 3.2 GB but only accessed once (poor cache ROI)
+- Datasets A and B together (4.3 GB) still exceed memory limit
+
+Recommendations Needed:
+- Optimize storage levels based on access patterns
+- Consider serialization for frequently accessed data
+- Avoid caching single-access datasets
+- Balance memory usage with deserialization overhead

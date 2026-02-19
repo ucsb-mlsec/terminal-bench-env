@@ -1,0 +1,41 @@
+# Elasticsearch Node 2 Configuration
+# Production Cluster - MISCONFIGURED (DO NOT USE IN PRODUCTION)
+
+# ======================== Cluster Configuration ========================
+cluster.name: production-cluster
+
+# ======================== Node Configuration ========================
+node.name: node-2
+node.master: true
+node.data: true
+
+# ======================== Network Configuration ========================
+network.host: 10.0.1.2
+http.port: 9200
+transport.tcp.port: 9300
+
+# ======================== Discovery Configuration ========================
+discovery.zen.ping.unicast.hosts: 
+  - 10.0.1.1
+  - 10.0.1.2
+  - 10.0.1.3
+  - 10.0.1.4
+  - 10.0.1.5
+
+# MISCONFIGURATION: minimum_master_nodes is set to 2, which is INCORRECT for a 5-node cluster
+# This should be 3 (majority quorum: (5/2)+1 = 3) to prevent split-brain
+# With minimum_master_nodes: 2, a network partition can create two separate clusters
+# each with 2+ nodes that can elect their own master independently
+discovery.zen.minimum_master_nodes: 2
+
+# ======================== Path Configuration ========================
+path.data: /var/lib/elasticsearch/node2
+path.logs: /var/log/elasticsearch/node2
+
+# ======================== Memory Configuration ========================
+bootstrap.memory_lock: true
+
+# ======================== Gateway Configuration ========================
+gateway.recover_after_nodes: 3
+gateway.expected_nodes: 5
+gateway.recover_after_time: 5m

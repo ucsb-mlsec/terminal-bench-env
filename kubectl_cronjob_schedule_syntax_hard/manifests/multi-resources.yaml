@@ -1,0 +1,41 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: report-generator
+spec:
+  schedule: '0 8 * * 1-5'
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: reporter
+            image: reports:v2
+          restartPolicy: OnFailure
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  config.properties: |
+    app.name=microservices-app
+    app.environment=production
+    log.level=INFO
+    cache.ttl=3600
+    database.pool.size=20
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: weekly-report
+spec:
+  schedule: '0 9 * * 8'
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: weekly
+            image: reports:weekly
+          restartPolicy: OnFailure

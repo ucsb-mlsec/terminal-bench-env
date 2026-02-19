@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebGL Data Visualization</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #1a1a1a;
+            font-family: Arial, sans-serif;
+        }
+        #glCanvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="glCanvas"></canvas>
+    <div id="info">WebGL Data Visualization - FPS: <span id="fps">0</span></div>
+
+    <script>
+        // Global WebGL variables
+        let gl;
+        let shaderProgram;
+        let vertexBuffer;
+        let colorBuffer;
+        let textureCoordBuffer;
+        let particleTexture;
+        let positionAttribLocation;
+        let colorAttribLocation;
+        let texCoordAttribLocation;
+        let modelViewMatrixLocation;
+        let projectionMatrixLocation;
+        let textureLocation;
+        
+        // Animation state
+        let rotation = 0;
+        let particles = [];
+        let lastFrameTime = Date.now();
+        let frameCount = 0;
+
+        // Vertex shader source - handles vertex transformations
+        const vertexShaderSource = `
+            attribute vec3 aPosition;
+            attribute vec4 aColor;
+            attribute vec2 aTexCoord;
+            
+            uniform mat4 uModelViewMatrix;
+            uniform mat4 uProjectionMatrix;
+            
+            varying vec4 vColor;
+            varying vec2 vTexCoord;
+            
+            void main() {
+                gl_Position = uProjectionMatrix * uModelViewMatrix * vec4(aPosition, 1.0);
+                gl_PointSize = 10.0;
+                vColor = aColor;
+                vTexCoord = aTexCoord;
+            }
+        `;
+
+        // Fragment shader source - handles pixel colors
+        const fragmentShaderSource = `
+            precision mediump float;
+            
+            varying vec4 vColor;
+            varying vec2 vTexCoord;
+            
+            uniform sampler2D uTexture;
+            
+            void main() {
+                vec4 texColor = texture2D(uTexture, vTexCoord);
+                gl_FragColor = vColor * texColor;
+            }
+        `;
+
+        // Initialize WebGL context and start the application
+        function initGL() {
+            const canvas = document.getElementById('glCanvas');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            // Get WebGL context
+            gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+            
+            if (!gl) {
+                alert('Unable to initialize WebGL. Your browser may not support it.');
+                return;
+            }
+
+            // Set clear color and enable depth testing
+            gl.clearColor(0.1, 0.1, 0.15, 1.0);
+            gl.enable(gl.DEPTH_TEST);
+            gl.depthFunc(gl.LEQUAL);
+            gl.enable(gl.BLEND);
+            gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+            // Initialize shaders and buffers
+            shaderProgram = createShaderProgram();
+            createBuffers();
+            createTexture();
+            initParticles();
+            
+            // Start render loop
+            requestAnimationFrame(render);
+        }
+
+        // Compile individual shader
+        function compileShader(source, type) {
+            const shader = gl.createShader(type);
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+
+            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                console.error('Shader compilation error:', gl.getShaderInfoLog(shader));
+                gl.deleteShader(shader);
+                return null;
+            }
+
+            return shader;
+        }
+
+        // Create and link shader program
+        function createShaderProgram() {
+            const vertexShader = compileShader(vertexShaderSource, gl.VERTEX_SHADER);
+            const fragmentShader = compileShader(fragmentShaderSource, gl.FRAGMENT_SHADER);
+
+            const program = gl.createProgram();
+            gl.attachShader(program, vertexShader);
+            gl.attachShader(program, fragmentShader);
+            gl.linkProgram(program);
+
+            if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+                console.error('Program linking error:', gl.getProgramInfoLog(program));
+                return null;
+            }
+
+            gl.useProgram(program);
+
+            // Get attribute and uniform locations
+            positionAttribLocation = gl.getAttribLocation(program, 'aPosition');
+            colorAttribLocation = gl.getAttribLocation(program, 'aColor');
+            texCoordAttribLocation = gl.getAttribLocation(program, 'aTexCoord');
+            modelViewMatrixLocation = gl.getUniformLocation(program, 'uModelViewMatrix');
+            projectionMatrixLocation = gl.getUniformLocation(program, 'uProjectionMatrix');
+            textureLocation = gl.getUniformLocation(program, 'uTexture');
+
+            return program;
+        }
+
+        // Create vertex buffers for rendering
+        function createBuffers() {
+            // Vertex position buffer
+            const vertices = new Float32Array([
+                -0.5, -0.5, 0.0,
+                 0.5, -0.5, 0.0,
+                 0.0,  0.5, 0.0,
+                -0.3, -0.3, 0.5,
+                 0.3, -0.3, 0.5,
+                 0.0,  0.3, 0.5
+            ]);
+
+            vertexBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+
+            // Color buffer
+            const colors = new Float32Array([
+                1.0, 0.0, 0.0, 1.0,
+                0.0, 1.0, 0.0, 1.0,
+                0.0, 0.0, 1.0, 1.0,
+                1.0, 1.0, 0.0, 1.0,
+                1.0, 0.0, 1.0, 1.0,
+                0.0, 1.0, 1.0, 1.0
+            ]);
+
+            colorBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, colors, gl.STATIC_DRAW);
+
+            // Texture coordinate buffer
+            const texCoords = new Float32Array([
+                0.0, 0.0,
+                1.0, 0.0,
+                0.5, 1.0,
+                0.0, 0.0,
+                1.0, 0.0,
+                0.5, 1.0
+            ]);
+
+            textureCoordBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, texCoords, gl.STATIC_DRAW);
+        }
+
+        // Create a simple procedural texture
+        function createTexture() {
+            particleTexture = gl.createTexture();
+            gl.bindTexture(gl.TEXTURE_2D, particleTexture);
+
+            // Create a 64x64 gradient texture
+            const size = 64;
+            const data = new Uint8Array(size * size * 4);
+            
+            for (let i = 0; i < size; i++) {
+                for (let j = 0; j < size; j++) {
+                    const index = (i * size + j) * 4;
+                    const dx = (j - size / 2) / (size / 2);
+                    const dy = (i - size / 2) / (size / 2);
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    const intensity = Math.max(0, 1 - dist);
+                    
+                    data[index] = 255;
+                    data[index + 1] = 255;
+                    data[index + 2] = 255;
+                    data[index + 3] = intensity * 255;
+                }
+            }
+
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, size, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        }
+
+        // Initialize particle data for animation
+        function initParticles() {
+            particles = [];
+            for (let i = 0; i < 50; i++) {
+                particles.push({
+                    x: (Math.random() - 0.5) * 2,
+                    y: (Math.random() - 0.5) * 2,
+                    z: Math.random() - 0.5,
+                    vx: (Math.random() - 0.5) * 0.02,
+                    vy: (Math.random() - 0.5) * 0.02,
+                    vz: (Math.random() - 0.5) * 0.01
+                });
+            }
+        }
+
+        // Create a 4x4 identity matrix
+        function createIdentityMatrix() {
+            return new Float32Array([
+                1, 0, 0, 0,
+                0, 1, 0, 0,
+                0, 0, 1, 0,
+                0, 0, 0, 1
+            ]);
+        }
+
+        // Create a perspective projection matrix
+        function createPerspectiveMatrix(fov, aspect, near, far) {
+            const f = 1.0 / Math.tan(fov / 2);
+            const nf = 1 / (near - far);
+            
+            return new Float32Array([
+                f / aspect, 0, 0, 0,
+                0, f, 0, 0,
+                0, 0, (far + near) * nf, -1,
+                0, 0, 2 * far * near * nf, 0
+            ]);
+        }
+
+        // Apply rotation to model-view matrix
+        function createRotationMatrix(angle) {
+            const c = Math.cos(angle);
+            const s = Math.sin(angle);
+            
+            return new Float32Array([
+                c, 0, s, 0,
+                0, 1, 0, 0,
+                -s, 0, c, 0,
+                0, 0, -3, 1
+            ]);
+        }
+
+        // Main render function
+        function render() {
+            // Clear the canvas
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+            // Update rotation
+            rotation += 0.01;
+
+            // Set up matrices
+            const projectionMatrix = createPerspectiveMatrix(
+                Math.PI / 4,
+                gl.canvas.width / gl.canvas.height,
+                0.1,
+                100.0
+            );
+            const modelViewMatrix = createRotationMatrix(rotation);
+
+            gl.uniformMatrix4fv(projectionMatrixLocation, false, projectionMatrix);
+            gl.uniformMatrix4fv(modelViewMatrixLocation, false, modelViewMatrix);
+
+            // Bind texture
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, particleTexture);
+            gl.uniform1i(textureLocation, 0);
+
+            // Bind and draw vertices
+            gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+            gl.enableVertexAttribArray(positionAttribLocation);
+            gl.vertexAttribPointer(positionAttribLocation, 3, gl.FLOAT, false, 0, 0);
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+            gl.enableVertexAttribArray(colorAttribLocation);
+            gl.vertexAttribPointer(colorAttribLocation, 4, gl.FLOAT, false, 0, 0);
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
+            gl.enableVertexAttribArray(texCoordAttribLocation);
+            gl.vertexAttribPointer(texCoordAttribLocation, 2, gl.FLOAT, false, 0, 0);
+
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+            // Update FPS counter
+            frameCount++;
+            const currentTime = Date.now();
+            if (currentTime - lastFrameTime >= 1000) {
+                document.getElementById('fps').textContent = frameCount;
+                frameCount = 0;
+                lastFrameTime = currentTime;
+            }
+
+            // Continue animation loop
+            requestAnimationFrame(render);
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            const canvas = document.getElementById('glCanvas');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            gl.viewport(0, 0, canvas.width, canvas.height);
+        });
+
+        // Start the application when page loads
+        window.addEventListener('load', initGL);
+    </script>
+</body>
+</html>

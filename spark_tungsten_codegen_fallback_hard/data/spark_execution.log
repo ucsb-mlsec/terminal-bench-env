@@ -1,0 +1,44 @@
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- HashAggregate(keys=[customer_id#123, product_category#124, region#125], functions=[sum(total_sales#456), avg(discount#457), max(order_date#458), min(order_date#459), count(order_id#460)])
+   +- Exchange hashpartitioning(customer_id#123, product_category#124, region#125, 200), ENSURE_REQUIREMENTS, [id=#789]
+      +- HashAggregate(keys=[customer_id#123, product_category#124, region#125], functions=[partial_sum(total_sales#456), partial_avg(discount#457), partial_max(order_date#458), partial_min(order_date#459), partial_count(order_id#460)])
+         +- Project [customer_id#123, product_category#124, region#125, total_sales#456, discount#457, order_date#458, order_id#460]
+            +- Filter ((isnotnull(customer_id#123) AND isnotnull(total_sales#456)) AND (total_sales#456 > 0.0))
+               +- FileScan parquet [customer_id#123,product_category#124,region#125,total_sales#456,discount#457,order_date#458,order_id#460] Batched: true, DataFilters: [isnotnull(customer_id#123), isnotnull(total_sales#456), (total_sales#456 > 0.0)], Format: Parquet, Location: InMemoryFileIndex[file:/data/sales], PartitionFilters: [], PushedFilters: [IsNotNull(customer_id), IsNotNull(total_sales), GreaterThan(total_sales,0.0)], ReadSchema: struct<customer_id:bigint,product_category:string,region:string,total_sales:double,discount:double...
+
+2024-01-15 14:32:45 INFO TaskSetManager: Starting task 0.0 in stage 3.0 (TID 45, 192.168.1.101, executor 2, partition 0, PROCESS_LOCAL, 7842 bytes)
+2024-01-15 14:32:45 INFO TaskSetManager: Starting task 1.0 in stage 3.0 (TID 46, 192.168.1.102, executor 3, partition 1, PROCESS_LOCAL, 7842 bytes)
+
+== Analyzed Logical Plan ==
+customer_id: bigint, product_category: string, region: string, total_sales_sum: double, avg_discount: double, max_order_date: date, min_order_date: date, order_count: bigint
+Aggregate [customer_id#123, product_category#124, region#125], [customer_id#123, product_category#124, region#125, sum(total_sales#456) AS total_sales_sum#567, avg(discount#457) AS avg_discount#568, max(order_date#458) AS max_order_date#569, min(order_date#459) AS min_order_date#570, count(order_id#460) AS order_count#571]
++- Project [customer_id#123, product_category#124, region#125, total_sales#456, discount#457, order_date#458, order_date#459, order_id#460]
+   +- Filter ((isnotnull(customer_id#123) AND isnotnull(total_sales#456)) AND (total_sales#456 > 0.0))
+      +- Relation[customer_id#123,product_category#124,region#125,total_sales#456,discount#457,order_date#458,order_id#460] parquet
+
+2024-01-15 14:32:45 WARN WholeStageCodegen: Codegen disabled for HashAggregate: bytecode size limit exceeded (68742 bytes > 65535 bytes limit)
+
+2024-01-15 14:32:46 INFO CodeGenerator: Code generated in 342.156 ms
+2024-01-15 14:32:46 INFO TaskSetManager: Finished task 0.0 in stage 3.0 (TID 45) in 1245 ms on 192.168.1.101 (executor 2) (1/200)
+
+== Optimized Logical Plan ==
+Aggregate [customer_id#123, product_category#124, region#125], [customer_id#123, product_category#124, region#125, sum(total_sales#456) AS total_sales_sum#567, avg(discount#457) AS avg_discount#568, max(order_date#458) AS max_order_date#569, min(order_date#459) AS min_order_date#570, count(order_id#460) AS order_count#571]
++- Project [customer_id#123, product_category#124, region#125, total_sales#456, discount#457, order_date#458, order_date#459, order_id#460]
+   +- Filter (isnotnull(customer_id#123) AND isnotnull(total_sales#456) AND (total_sales#456 > 0.0))
+      +- Relation[customer_id#123,product_category#124,region#125,total_sales#456,discount#457,order_date#458,order_id#460] parquet
+
+2024-01-15 14:32:47 INFO TaskSetManager: Finished task 1.0 in stage 3.0 (TID 46) in 2156 ms on 192.168.1.102 (executor 3) (2/200)
+2024-01-15 14:32:47 INFO DAGScheduler: ResultStage 3 (collect at SparkPlan.scala:289) finished in 3.456 s
+
+== Physical Plan ==
+*(3) Sort [customer_id#123 ASC NULLS FIRST, product_category#124 ASC NULLS FIRST], true, 0
++- Exchange rangepartitioning(customer_id#123 ASC NULLS FIRST, product_category#124 ASC NULLS FIRST, 200), ENSURE_REQUIREMENTS, [id=#890]
+   +- *(2) Project [customer_id#123, product_category#124, region#125, total_sales_sum#567, avg_discount#568]
+      +- *(2) Filter (total_sales_sum#567 > 1000.0)
+         +- HashAggregate(keys=[customer_id#123, product_category#124, region#125], functions=[sum(total_sales#456), avg(discount#457), max(order_date#458), min(order_date#459), count(order_id#460)])
+            +- Exchange hashpartitioning(customer_id#123, product_category#124, region#125, 200), ENSURE_REQUIREMENTS, [id=#789]
+               +- HashAggregate(keys=[customer_id#123, product_category#124, region#125], functions=[partial_sum(total_sales#456), partial_avg(discount#457), partial_max(order_date#458), partial_min(order_date#459), partial_count(order_id#460)])
+
+2024-01-15 14:32:48 INFO SparkContext: Successfully stopped SparkContext
+2024-01-15 14:32:48 INFO ShutdownHookManager: Shutdown hook called

@@ -1,0 +1,312 @@
+I'll help you create a comprehensive ELF binary analysis script and generate the corrupted test file. Let me start by creating the corrupted ELF file and then the analysis script.
+
+First, let me create the corrupted ELF file at `data/corrupted_invalid_machine`:
+
+```python
+#!/usr/bin/env python3
+import os
+import struct
+
+os.makedirs('data', exist_ok=True)
+
+# Create ELF64 header with corrupted machine type
+elf_header = bytearray(64)
+
+# ELF Magic number
+elf_header[0:4] = b'\x7fELF'
+
+# e_ident fields
+elf_header[4] = 2  # EI_CLASS: 64-bit
+elf_header[5] = 1  # EI_DATA: little-endian
+elf_header[6] = 1  # EI_VERSION: current
+elf_header[7] = 0  # EI_OSABI: UNIX System V
+elf_header[8] = 0  # EI_ABIVERSION
+
+# e_type (offset 16): 2 = ET_EXEC
+struct.pack_into('<H', elf_header, 16, 2)
+
+# e_machine (offset 18): 0xFFFF = invalid
+struct.pack_into('<H', elf_header, 18, 0xFFFF)
+
+# e_version (offset 20): 1
+struct.pack_into('<I', elf_header, 20, 1)
+
+# e_entry (offset 24): 0x401000
+struct.pack_into('<Q', elf_header, 24, 0x401000)
+
+# e_phoff (offset 32): program header offset
+struct.pack_into('<Q', elf_header, 32, 64)
+
+# e_shoff (offset 40): section header offset
+struct.pack_into('<Q', elf_header, 40, 0)
+
+# e_flags (offset 48)
+struct.pack_into('<I', elf_header, 48, 0)
+
+# e_ehsize (offset 52): ELF header size
+struct.pack_into('<H', elf_header, 52, 64)
+
+# e_phentsize (offset 54): program header entry size
+struct.pack_into('<H', elf_header, 54, 56)
+
+# e_phnum (offset 56): number of program headers
+struct.pack_into('<H', elf_header, 56, 0)
+
+# e_shentsize (offset 58): section header entry size
+struct.pack_into('<H', elf_header, 58, 64)
+
+# e_shnum (offset 60): number of section headers
+struct.pack_into('<H', elf_header, 60, 0)
+
+# e_shstrndx (offset 62): section header string table index
+struct.pack_into('<H', elf_header, 62, 0)
+
+with open('data/corrupted_invalid_machine', 'wb') as f:
+    f.write(elf_header)
+
+print("Corrupted ELF file created at data/corrupted_invalid_machine")
+```
+
+Now, let me create the comprehensive ELF analysis script:
+
+```python
+#!/usr/bin/env python3
+
+import os
+import json
+import struct
+from pathlib import Path
+
+# ELF header constants
+ELF_MAGIC = b'\x7fELF'
+EI_CLASS = 4
+EI_DATA = 5
+EI_VERSION = 6
+
+ELFCLASS32 = 1
+ELFCLASS64 = 2
+
+ELFDATA2LSB = 1
+ELFDATA2MSB = 2
+
+# Machine types mapping
+MACHINE_TYPES = {
+    0x00: "None",
+    0x02: "SPARC",
+    0x03: "x86",
+    0x08: "MIPS",
+    0x14: "PowerPC",
+    0x16: "S390",
+    0x28: "ARM",
+    0x2A: "SuperH",
+    0x32: "IA-64",
+    0x3E: "x86-64",
+    0xB7: "AArch64",
+    0xF3: "RISC-V",
+}
+
+def read_elf_header(filepath):
+    """Read and parse ELF header from a file."""
+    try:
+        with open(filepath, 'rb') as f:
+            header = f.read(64)
+            
+            if len(header) < 64:
+                return None
+            
+            # Check ELF magic
+            if header[0:4] != ELF_MAGIC:
+                return None
+            
+            elf_class = header[EI_CLASS]
+            elf_data = header[EI_DATA]
+            elf_version = header[EI_VERSION]
+            
+            if elf_class not in [ELFCLASS32, ELFCLASS64]:
+                return {"corrupted": True, "reason": "Invalid ELF class"}
+            
+            if elf_data not in [ELFDATA2LSB, ELFDATA2MSB]:
+                return {"corrupted": True, "reason": "Invalid data encoding"}
+            
+            endian = '<' if elf_data == ELFDATA2LSB else '>'
+            
+            # Parse machine type (2 bytes at offset 18)
+            e_machine = struct.unpack_from(f'{endian}H', header, 18)[0]
+            
+            # Parse entry point
+            if elf_class == ELFCLASS32:
+                e_entry = struct.unpack_from(f'{endian}I', header, 24)[0]
+                bits = 32
+            else:
+                e_entry = struct.unpack_from(f'{endian}Q', header, 24)[0]
+                bits = 64
+            
+            return {
+                "corrupted": False,
+                "class": elf_class,
+                "bits": bits,
+                "machine": e_machine,
+                "entry_point": e_entry,
+                "data_encoding": elf_data,
+                "version": elf_version
+            }
+            
+    except Exception as e:
+        return {"corrupted": True, "reason": str(e)}
+
+def analyze_elf_binary(filepath):
+    """Analyze a single binary file."""
+    result = {
+        "path": str(filepath),
+        "status": "NOT_ELF",
+        "architecture": "N/A",
+        "bits": 0,
+        "entry_point": "N/A"
+    }
+    
+    header_info = read_elf_header(filepath)
+    
+    if header_info is None:
+        # Not an ELF file
+        return result
+    
+    if header_info.get("corrupted"):
+        # Corrupted ELF
+        result["status"] = "CORRUPTED"
+        result["architecture"] = "unknown"
+        result["entry_point"] = "0x0"
+        return result
+    
+    # Valid ELF magic and basic structure
+    machine = header_info["machine"]
+    bits = header_info["bits"]
+    entry_point = header_info["entry_point"]
+    
+    # Get architecture name
+    arch_name = MACHINE_TYPES.get(machine, "unknown")
+    
+    result["bits"] = bits
+    result["architecture"] = arch_name
+    result["entry_point"] = f"0x{entry_point:x}"
+    
+    # Determine status based on various checks
+    suspicious = False
+    corrupted = False
+    
+    # Check for invalid machine type
+    if machine not in MACHINE_TYPES or machine == 0x00:
+        if machine > 0x1000:  # Clearly invalid
+            corrupted = True
+        else:
+            suspicious = True
+    
+    # Check for suspicious entry points
+    if entry_point == 0:
+        suspicious = True
+    elif entry_point < 0x1000 and entry_point != 0:
+        # Very low address, likely corrupted
+        corrupted = True
+    elif bits == 32 and entry_point > 0xFFFFFFFF:
+        # 32-bit binary with impossible entry point
+        corrupted = True
+    
+    # Check version
+    if header_info.get("version") != 1:
+        suspicious = True
+    
+    # Set final status
+    if corrupted:
+        result["status"] = "CORRUPTED"
+        if result["architecture"] == "unknown":
+            result["architecture"] = "unknown"
+    elif suspicious:
+        result["status"] = "SUSPICIOUS"
+    else:
+        result["status"] = "VALID"
+    
+    return result
+
+def scan_directory(directory):
+    """Scan directory recursively for all files."""
+    binaries = []
+    
+    try:
+        for root, dirs, files in os.walk(directory):
+            for filename in files:
+                filepath = Path(root) / filename
+                if filepath.is_file():
+                    result = analyze_elf_binary(filepath)
+                    binaries.append(result)
+    except FileNotFoundError:
+        print(f"Warning: Directory {directory} not found. Creating empty report.")
+        return []
+    except PermissionError:
+        print(f"Warning: Permission denied accessing {directory}")
+        return []
+    
+    return binaries
+
+def generate_report(binaries):
+    """Generate analysis report with summary."""
+    # Sort binaries by path
+    binaries.sort(key=lambda x: x["path"])
+    
+    # Calculate summary
+    summary = {
+        "total": len(binaries),
+        "valid": sum(1 for b in binaries if b["status"] == "VALID"),
+        "suspicious": sum(1 for b in binaries if b["status"] == "SUSPICIOUS"),
+        "corrupted": sum(1 for b in binaries if b["status"] == "CORRUPTED"),
+        "not_elf": sum(1 for b in binaries if b["status"] == "NOT_ELF")
+    }
+    
+    report = {
+        "binaries": binaries,
+        "summary": summary
+    }
+    
+    return report
+
+def main():
+    target_directory = "/opt/production/bin/"
+    output_file = "/tmp/elf_analysis_report.json"
+    
+    print(f"Scanning {target_directory} for ELF binaries...")
+    binaries = scan_directory(target_directory)
+    
+    print(f"Found {len(binaries)} files. Generating report...")
+    report = generate_report(binaries)
+    
+    # Write report to file
+    with open(output_file, 'w') as f:
+        json.dump(report, f, indent=2)
+    
+    print(f"Analysis complete. Report saved to {output_file}")
+    print(f"\nSummary:")
+    print(f"  Total files: {report['summary']['total']}")
+    print(f"  Valid: {report['summary']['valid']}")
+    print(f"  Suspicious: {report['summary']['suspicious']}")
+    print(f"  Corrupted: {report['summary']['corrupted']}")
+    print(f"  Not ELF: {report['summary']['not_elf']}")
+
+if __name__ == "__main__":
+    main()
+```
+
+This solution provides:
+
+1. **Corrupted ELF file generation**: Creates a valid ELF64 header structure but with an invalid machine type (0xFFFF) that doesn't correspond to any known architecture.
+
+2. **Comprehensive ELF analysis script** that:
+   - Recursively scans `/opt/production/bin/`
+   - Validates ELF magic numbers
+   - Extracts architecture, bit-width, and entry points
+   - Detects corruption through multiple heuristics:
+     - Invalid machine types
+     - Suspicious entry points (NULL or very low addresses)
+     - Invalid ELF class or data encoding
+     - Version mismatches
+   - Categorizes binaries as VALID, SUSPICIOUS, CORRUPTED, or NOT_ELF
+   - Generates a properly formatted JSON report with accurate summary counts
+
+The script handles edge cases like missing directories, permission errors, and partial file reads gracefully.

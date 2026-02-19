@@ -1,0 +1,223 @@
+#!/bin/bash
+
+# Create necessary directories
+mkdir -p /var/db/production
+mkdir -p /var/backups/remote
+mkdir -p /var/log
+
+# Generate SQLite database with orders
+cat > /tmp/generate_db.sql << 'EOF'
+CREATE TABLE IF NOT EXISTS orders (
+    order_id INTEGER PRIMARY KEY,
+    customer_id INTEGER,
+    product TEXT,
+    amount REAL,
+    order_date TIMESTAMP
+);
+
+INSERT INTO orders (order_id, customer_id, product, amount, order_date) VALUES
+(1, 5, 'Widget A', 29.99, '2024-01-12 10:00:00'),
+(2, 12, 'Gadget B', 149.95, '2024-01-12 11:30:00'),
+(3, 8, 'Tool Kit Pro', 89.50, '2024-01-12 12:15:00'),
+(4, 23, 'Device X', 199.99, '2024-01-12 13:45:00'),
+(5, 15, 'Component Y', 45.00, '2024-01-12 14:20:00'),
+(6, 31, 'Accessory Pack', 24.95, '2024-01-12 15:10:00'),
+(7, 7, 'Premium Widget', 75.50, '2024-01-12 16:30:00'),
+(8, 19, 'Smart Sensor', 129.99, '2024-01-12 17:00:00'),
+(9, 42, 'Cable Set', 15.99, '2024-01-13 09:15:00'),
+(10, 11, 'Power Supply', 59.99, '2024-01-13 10:30:00'),
+(11, 28, 'Display Unit', 299.00, '2024-01-13 11:45:00'),
+(12, 33, 'Keyboard Pro', 119.95, '2024-01-13 12:20:00'),
+(13, 6, 'Mouse Elite', 69.99, '2024-01-13 13:00:00'),
+(14, 14, 'Webcam HD', 89.95, '2024-01-13 14:15:00'),
+(15, 25, 'Microphone', 149.00, '2024-01-13 15:30:00'),
+(16, 39, 'Headset Wireless', 179.99, '2024-01-13 16:45:00'),
+(17, 9, 'Speaker System', 249.95, '2024-01-14 09:00:00'),
+(18, 21, 'Router Mesh', 199.99, '2024-01-14 10:15:00'),
+(19, 17, 'Switch Gigabit', 79.99, '2024-01-14 11:30:00'),
+(20, 30, 'USB Hub', 34.95, '2024-01-14 12:45:00'),
+(21, 4, 'External SSD 1TB', 149.99, '2024-01-14 13:20:00'),
+(22, 36, 'Memory Card 256GB', 45.00, '2024-01-14 14:00:00'),
+(23, 13, 'Backup Drive 2TB', 89.95, '2024-01-14 15:15:00'),
+(24, 27, 'Docking Station', 169.99, '2024-01-14 16:30:00'),
+(25, 41, 'Monitor Stand', 54.95, '2024-01-15 09:45:00'),
+(26, 10, 'Laptop Sleeve', 29.99, '2024-01-15 10:20:00'),
+(27, 22, 'Tablet Case', 39.95, '2024-01-15 11:00:00'),
+(28, 18, 'Phone Mount', 19.99, '2024-01-15 12:15:00'),
+(29, 35, 'Charging Station', 49.95, '2024-01-15 13:30:00'),
+(30, 3, 'LED Light Strip', 34.99, '2024-01-15 14:45:00'),
+(31, 26, 'Desk Organizer', 24.95, '2024-01-15 15:20:00'),
+(32, 40, 'Cable Manager', 15.99, '2024-01-15 16:00:00'),
+(33, 16, 'Ergonomic Pad', 29.99, '2024-01-16 09:30:00'),
+(34, 32, 'Screen Cleaner Kit', 12.95, '2024-01-16 10:45:00'),
+(35, 8, 'Anti-Glare Filter', 44.99, '2024-01-16 11:20:00'),
+(36, 24, 'Privacy Screen', 54.95, '2024-01-16 12:00:00'),
+(37, 37, 'Laptop Cooler', 39.99, '2024-01-16 13:15:00'),
+(38, 12, 'Webcam Cover', 8.99, '2024-01-16 14:30:00'),
+(39, 29, 'Adapter HDMI', 19.95, '2024-01-16 15:45:00'),
+(40, 2, 'Converter USB-C', 24.99, '2024-01-16 16:20:00'),
+(41, 34, 'Extension Cable', 14.95, '2024-01-17 09:10:00'),
+(42, 20, 'Splitter Audio', 11.99, '2024-01-17 10:25:00'),
+(43, 38, 'Surge Protector', 34.95, '2024-01-17 11:40:00'),
+(44, 7, 'UPS Battery', 129.99, '2024-01-17 12:55:00'),
+(45, 43, 'Smart Plug', 24.99, '2024-01-17 13:30:00'),
+(46, 15, 'Timer Outlet', 18.95, '2024-01-17 14:10:00'),
+(47, 28, 'Motion Sensor', 39.99, '2024-01-17 15:25:00'),
+(48, 11, 'Door Sensor', 29.95, '2024-01-17 16:40:00'),
+(49, 23, 'Camera Indoor', 79.99, '2024-01-18 09:20:00'),
+(50, 44, 'Camera Outdoor', 119.99, '2024-01-18 10:35:00'),
+(51, 19, 'Video Doorbell', 149.95, '2024-01-18 11:50:00'),
+(52, 31, 'Smart Lock', 199.99, '2024-01-18 12:30:00'),
+(53, 5, 'Thermostat Smart', 179.95, '2024-01-18 13:15:00'),
+(54, 25, 'Light Bulb Smart', 14.99, '2024-01-18 14:00:00'),
+(55, 39, 'Light Switch', 34.95, '2024-01-18 15:45:00'),
+(56, 14, 'Dimmer Switch', 44.99, '2024-01-18 16:30:00'),
+(57, 33, 'Fan Controller', 54.95, '2024-01-19 09:00:00'),
+(58, 9, 'Garage Opener', 89.99, '2024-01-19 10:15:00'),
+(59, 27, 'Window Blind Motor', 129.99, '2024-01-19 11:30:00'),
+(60, 42, 'Valve Water', 79.95, '2024-01-19 12:45:00'),
+(61, 17, 'Detector Smoke', 39.99, '2024-01-19 13:20:00'),
+(62, 36, 'Detector CO', 44.95, '2024-01-19 14:05:00'),
+(63, 6, 'Alarm System', 299.99, '2024-01-19 15:20:00'),
+(64, 30, 'Siren Alarm', 49.95, '2024-01-19 16:35:00'),
+(65, 21, 'Hub Controller', 69.99, '2024-01-20 09:50:00'),
+(66, 41, 'Remote Universal', 39.95, '2024-01-20 10:30:00'),
+(67, 13, 'Voice Assistant', 99.99, '2024-01-20 11:15:00'),
+(68, 35, 'Display Smart', 149.99, '2024-01-20 12:00:00'),
+(69, 4, 'Clock Alarm Smart', 59.95, '2024-01-20 13:45:00'),
+(70, 26, 'Weather Station', 89.99, '2024-01-20 14:30:00'),
+(71, 40, 'Air Purifier', 179.95, '2024-01-20 15:15:00'),
+(72, 10, 'Humidifier', 69.99, '2024-01-20 16:00:00'),
+(73, 32, 'Dehumidifier', 149.99, '2024-01-21 09:25:00'),
+(74, 22, 'Fan Tower', 79.95, '2024-01-21 10:40:00'),
+(75, 37, 'Heater Space', 89.99, '2024-01-21 11:55:00'),
+(76, 16, 'Blanket Electric', 54.95, '2024-01-21 12:35:00'),
+(77, 29, 'Kettle Electric', 44.99, '2024-01-21 13:20:00'),
+(78, 43, 'Coffee Maker', 129.99, '2024-01-21 14:05:00'),
+(79, 8, 'Blender Smart', 99.95, '2024-01-21 15:50:00'),
+(80, 24, 'Toaster Oven', 79.99, '2024-01-21 16:35:00'),
+(81, 38, 'Air Fryer', 119.95, '2024-01-22 09:10:00'),
+(82, 12, 'Pressure Cooker', 89.99, '2024-01-22 10:25:00'),
+(83, 34, 'Slow Cooker', 59.95, '2024-01-22 11:40:00'),
+(84, 7, 'Rice Cooker', 49.99, '2024-01-22 12:55:00'),
+(85, 28, 'Food Processor', 149.99, '2024-01-22 13:30:00'),
+(86, 44, 'Mixer Stand', 199.95, '2024-01-22 14:15:00'),
+(87, 20, 'Scale Kitchen', 29.99, '2024-01-22 15:00:00'),
+(88, 31, 'Thermometer Meat', 24.95, '2024-01-22 15:45:00'),
+(89, 15, 'Timer Kitchen', 14.99, '2024-01-22 16:30:00'),
+(90, 39, 'Knife Set', 79.99, '2024-01-23 09:20:00'),
+(91, 5, 'Cutting Board', 34.95, '2024-01-23 10:05:00'),
+(92, 25, 'Pan Set', 99.99, '2024-01-23 10:50:00'),
+(93, 42, 'Pot Set', 129.99, '2024-01-23 11:35:00'),
+(94, 18, 'Bakeware Set', 54.95, '2024-01-23 12:20:00'),
+(95, 33, 'Utensil Set', 39.99, '2024-01-23 13:05:00'),
+(96, 11, 'Storage Container Set', 44.95, '2024-01-23 13:50:00'),
+(97, 27, 'Vacuum Sealer', 69.99, '2024-01-23 14:35:00'),
+(98, 41, 'Bag Vacuum 100pk', 19.95, '2024-01-23 15:20:00'),
+(99, 9, 'Wrap Dispenser', 24.99, '2024-01-23 16:05:00'),
+(100, 35, 'Organizer Drawer', 29.95, '2024-01-23 16:50:00'),
+(101, 14, 'Rack Spice', 34.99, '2024-01-24 09:30:00'),
+(102, 30, 'Holder Paper Towel', 18.95, '2024-01-24 10:15:00'),
+(103, 4, 'Dispenser Soap', 22.99, '2024-01-24 11:00:00'),
+(104, 36, 'Trash Can Auto', 79.99, '2024-01-24 11:45:00'),
+(105, 21, 'Compost Bin', 44.95, '2024-01-24 12:30:00'),
+(106, 40, 'Recycling Station', 69.99, '2024-01-24 13:15:00'),
+(107, 13, 'Bag Holder', 16.99, '2024-01-24 14:00:00'),
+(108, 32, 'Mat Floor Kitchen', 39.95, '2024-01-24 14:45:00'),
+(109, 26, 'Rug Runner', 54.99, '2024-01-24 15:30:00'),
+(110, 43, 'Curtain Shower', 29.95, '2024-01-24 16:15:00');
+EOF
+
+# Create the SQLite database
+sqlite3 /var/db/production/orders.db < /tmp/generate_db.sql
+
+# Create the backup script
+cat > /usr/local/bin/db_backup.sh << 'SCRIPT_EOF'
+#!/bin/bash
+
+# Configuration
+SOURCE_DIR="/var/db/production"
+BACKUP_DIR="/var/backups/remote"
+STATE_FILE="/var/backups/.backup_state"
+LOG_FILE="/var/log/backup_report.json"
+
+# Generate backup ID with timestamp
+BACKUP_ID="backup-$(date +%Y%m%d-%H%M%S)"
+
+# Initialize counters
+FILES_COPIED=0
+BACKUP_TYPE="full"
+STATUS="success"
+
+# Create backup directory if it doesn't exist
+mkdir -p "$BACKUP_DIR"
+mkdir -p "$(dirname "$STATE_FILE")"
+
+# Determine backup type
+if [ -f "$STATE_FILE" ]; then
+    BACKUP_TYPE="incremental"
+    LAST_BACKUP_TIME=$(cat "$STATE_FILE")
+else
+    BACKUP_TYPE="full"
+    LAST_BACKUP_TIME=""
+fi
+
+# Perform backup
+if [ "$BACKUP_TYPE" = "full" ]; then
+    # Full backup: copy all files
+    for file in "$SOURCE_DIR"/*; do
+        if [ -f "$file" ]; then
+            cp "$file" "$BACKUP_DIR/" 2>/dev/null
+            if [ $? -eq 0 ]; then
+                FILES_COPIED=$((FILES_COPIED + 1))
+            else
+                STATUS="failed"
+            fi
+        fi
+    done
+else
+    # Incremental backup: copy only modified files
+    for file in "$SOURCE_DIR"/*; do
+        if [ -f "$file" ]; then
+            filename=$(basename "$file")
+            backup_file="$BACKUP_DIR/$filename"
+            
+            # Check if file is newer than last backup or doesn't exist in backup
+            if [ ! -f "$backup_file" ] || [ "$file" -nt "$backup_file" ]; then
+                cp "$file" "$BACKUP_DIR/" 2>/dev/null
+                if [ $? -eq 0 ]; then
+                    FILES_COPIED=$((FILES_COPIED + 1))
+                else
+                    STATUS="failed"
+                fi
+            fi
+        fi
+    done
+fi
+
+# Update state file with current timestamp
+date +%s > "$STATE_FILE"
+
+# Generate JSON report
+cat > "$LOG_FILE" << JSON_EOF
+{
+  "backup_id": "$BACKUP_ID",
+  "type": "$BACKUP_TYPE",
+  "files_copied": $FILES_COPIED,
+  "status": "$STATUS"
+}
+JSON_EOF
+
+# Exit with appropriate code
+if [ "$STATUS" = "success" ]; then
+    exit 0
+else
+    exit 1
+fi
+SCRIPT_EOF
+
+# Make the script executable
+chmod +x /usr/local/bin/db_backup.sh
+
+# Run the backup script
+/usr/local/bin/db_backup.sh

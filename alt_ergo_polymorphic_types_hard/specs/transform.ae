@@ -1,0 +1,70 @@
+module Transform where
+
+import Point
+import Vector
+
+-- Type definitions for transformation matrices
+type Matrix2x2 = { m11: Real, m12: Real, m21: Real, m22: Real }
+type Matrix3x3 = { m11: Real, m12: Real, m13: Real,
+                   m21: Real, m22: Real, m23: Real,
+                   m31: Real, m32: Real, m33: Real }
+
+-- Identity matrix for 2D transformations
+function identity2() : Matrix2x2 =
+  { m11 = 1, m12 = 0, m21 = 0, m22 = 1 }
+
+-- Identity matrix for 3D transformations
+function identity3() : Matrix3x3 =
+  { m11 = 1, m12 = 0, m13 = 0,
+    m21 = 0, m22 = 1, m23 = 0,
+    m31 = 0, m32 = 0, m33 = 1 }
+
+-- Rotation transformation in 2D
+function rotation2D(angle) : Matrix2x2 =
+  { m11 = cos(angle),
+    m12 = -sin(angle),
+    m21 = sin(angle),
+    m22 = cos(angle) }
+
+-- Scaling transformation in 2D
+function scale2D(sx: Real, sy: Real) : Matrix2x2 =
+  { m11 = sx, m12 = 0, m21 = 0, m22 = sy }
+
+-- Uniform scaling in 2D
+function uniformScale2D(s) : Matrix2x2 =
+  { m11 = s, m12 = 0, m21 = 0, m22 = s }
+
+-- Matrix multiplication for 2x2 matrices
+function multiply2x2(a: Matrix2x2, b: Matrix2x2) : Matrix2x2 =
+  { m11 = a.m11 * b.m11 + a.m12 * b.m21,
+    m12 = a.m11 * b.m12 + a.m12 * b.m22,
+    m21 = a.m21 * b.m11 + a.m22 * b.m21,
+    m22 = a.m21 * b.m12 + a.m22 * b.m22 }
+
+-- Determinant of 2x2 matrix
+function determinant2x2(m: Matrix2x2) : Real =
+  m.m11 * m.m22 - m.m12 * m.m21
+
+-- Check if matrix is invertible
+function isInvertible(m: Matrix2x2) : Bool =
+  abs(determinant2x2(m)) > 0.000001
+
+-- Compose two transformations
+function compose(t1: Matrix2x2, t2: Matrix2x2) : Matrix2x2 =
+  multiply2x2(t1, t2)
+
+-- Axiom: Identity is left neutral for composition
+axiom identityLeft(m: Matrix2x2) : Bool =
+  multiply2x2(identity2(), m) = m
+
+-- Axiom: Identity is right neutral for composition
+axiom identityRight(m: Matrix2x2) : Bool =
+  multiply2x2(m, identity2()) = m
+
+-- Axiom: Matrix multiplication is associative
+axiom associativity(a: Matrix2x2, b: Matrix2x2, c: Matrix2x2) : Bool =
+  multiply2x2(multiply2x2(a, b), c) = multiply2x2(a, multiply2x2(b, c))
+
+-- Property: Determinant of identity matrix is 1
+axiom detIdentity : Bool =
+  determinant2x2(identity2()) = 1

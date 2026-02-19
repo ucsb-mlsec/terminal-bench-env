@@ -1,0 +1,156 @@
+I'll complete this task step by step. First, let me examine the schema file to understand the structure, then process the binary files to extract the required metrics.
+
+```python
+import os
+import json
+import struct
+import glob
+
+# First, let's read and understand the Thrift schema
+schema_path = '/workspace/schema/metrics.thrift'
+if os.path.exists(schema_path):
+    with open(schema_path, 'r') as f:
+        print("Schema content:")
+        print(f.read())
+
+# Thrift binary protocol constants
+TTYPE_STOP = 0
+TTYPE_VOID = 1
+TTYPE_BOOL = 2
+TTYPE_BYTE = 3
+TTYPE_DOUBLE = 4
+TTYPE_I16 = 6
+TTYPE_I32 = 8
+TTYPE_I64 = 10
+TTYPE_STRING = 11
+TTYPE_STRUCT = 12
+TTYPE_MAP = 13
+TTYPE_SET = 14
+TTYPE_LIST = 15
+
+def read_thrift_i32(data, offset):
+    """Read a 32-bit integer in big-endian format"""
+    value = struct.unpack('>i', data[offset:offset+4])[0]
+    return value, offset + 4
+
+def read_thrift_i64(data, offset):
+    """Read a 64-bit integer in big-endian format"""
+    value = struct.unpack('>q', data[offset:offset+8])[0]
+    return value, offset + 8
+
+def read_thrift_double(data, offset):
+    """Read a double in big-endian format"""
+    value = struct.unpack('>d', data[offset:offset+8])[0]
+    return value, offset + 8
+
+def read_thrift_string(data, offset):
+    """Read a string (length prefixed)"""
+    length, offset = read_thrift_i32(data, offset)
+    value = data[offset:offset+length].decode('utf-8')
+    return value, offset + length
+
+def read_thrift_field_header(data, offset):
+    """Read field type and field ID"""
+    if offset >= len(data):
+        return None, None, offset
+    
+    field_type = struct.unpack('B', data[offset:offset+1])[0]
+    offset += 1
+    
+    if field_type == TTYPE_STOP:
+        return TTYPE_STOP, None, offset
+    
+    field_id = struct.unpack('>h', data[offset:offset+2])[0]
+    offset += 2
+    
+    return field_type, field_id, offset
+
+def deserialize_server_metrics(data):
+    """Deserialize a ServerMetrics struct from Thrift binary format"""
+    metrics = {}
+    offset = 0
+    
+    while offset < len(data):
+        field_type, field_id, offset = read_thrift_field_header(data, offset)
+        
+        if field_type == TTYPE_STOP or field_type is None:
+            break
+        
+        # Field 1: server_id (i32)
+        if field_id == 1 and field_type == TTYPE_I32:
+            metrics['server_id'], offset = read_thrift_i32(data, offset)
+        
+        # Field 2: hostname (string)
+        elif field_id == 2 and field_type == TTYPE_STRING:
+            metrics['hostname'], offset = read_thrift_string(data, offset)
+        
+        # Field 3: timestamp (i64)
+        elif field_id == 3 and field_type == TTYPE_I64:
+            metrics['timestamp'], offset = read_thrift_i64(data, offset)
+        
+        # Field 4: cpu_percent (double)
+        elif field_id == 4 and field_type == TTYPE_DOUBLE:
+            metrics['cpu_percent'], offset = read_thrift_double(data, offset)
+        
+        # Field 5: memory_bytes (i64)
+        elif field_id == 5 and field_type == TTYPE_I64:
+            metrics['memory_bytes'], offset = read_thrift_i64(data, offset)
+        
+        # Field 6: error_count (i32)
+        elif field_id == 6 and field_type == TTYPE_I32:
+            metrics['error_count'], offset = read_thrift_i32(data, offset)
+        
+        # Field 7: status (string)
+        elif field_id == 7 and field_type == TTYPE_STRING:
+            metrics['status'], offset = read_thrift_string(data, offset)
+        
+        else:
+            # Skip unknown field
+            break
+    
+    return metrics
+
+# Process all .bin files
+logs_dir = '/workspace/logs'
+bin_files = glob.glob(os.path.join(logs_dir, '*.bin'))
+
+servers_processed = 0
+peak_cpu_percent = 0.0
+total_errors = 0
+
+for bin_file in sorted(bin_files):
+    try:
+        with open(bin_file, 'rb') as f:
+            binary_data = f.read()
+        
+        metrics = deserialize_server_metrics(binary_data)
+        
+        if metrics:
+            servers_processed += 1
+            
+            if 'cpu_percent' in metrics:
+                peak_cpu_percent = max(peak_cpu_percent, metrics['cpu_percent'])
+            
+            if 'error_count' in metrics:
+                total_errors += metrics['error_count']
+            
+            print(f"Processed {os.path.basename(bin_file)}: CPU={metrics.get('cpu_percent', 'N/A')}%, Errors={metrics.get('error_count', 'N/A')}")
+    
+    except Exception as e:
+        print(f"Error processing {bin_file}: {e}")
+
+# Save results
+summary = {
+    "servers_processed": servers_processed,
+    "peak_cpu_percent": peak_cpu_percent,
+    "total_errors": total_errors
+}
+
+output_path = '/workspace/summary.json'
+with open(output_path, 'w') as f:
+    json.dump(summary, f, indent=2)
+
+print(f"\nSummary saved to {output_path}")
+print(f"Servers processed: {servers_processed}")
+print(f"Peak CPU: {peak_cpu_percent}%")
+print(f"Total errors: {total_errors}")

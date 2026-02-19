@@ -1,0 +1,41 @@
+I'll analyze the problem and provide the solution.
+
+The issue is that C compilers insert padding between structure fields for alignment optimization. To match the exact binary protocol specification, we need to use compiler directives to pack the structure with no padding.
+
+First, let me create the binary test file and then provide the solution.
+
+**Binary File Content (test_packet.bin):**
+The file should contain these exact 15 bytes in hexadecimal:
+02 45 78 56 34 12 00 01 0F CD AB 00 00 00 00
+
+**Analysis:**
+The packet parser structure needs to be packed using compiler attributes. In GCC, this is done with `__attribute__((packed))` or `#pragma pack`. The structure must match the exact byte layout:
+- Byte 0: version (1 byte) = 0x02
+- Byte 1: type (1 byte) = 0x45
+- Bytes 2-5: sequence (4 bytes, little-endian) = 0x12345678 = 305419896 decimal
+- Bytes 6-7: payload_length (2 bytes, little-endian) = 0x0100 = 256 decimal
+- Byte 8: flags (1 byte) = 0x0F
+- Bytes 9-10: checksum (2 bytes, little-endian) = 0xABCD
+- Bytes 11-14: reserved (4 bytes) = 0x00000000
+
+The corrected C code should use:
+```c
+struct __attribute__((packed)) packet {
+    uint8_t version;
+    uint8_t type;
+    uint32_t sequence;
+    uint16_t payload_length;
+    uint8_t flags;
+    uint16_t checksum;
+    uint32_t reserved;
+};
+```
+
+When this packed structure is used to read the binary file, it will correctly extract:
+- Sequence number: 305419896 (0x12345678)
+- Payload length: 256 (0x0100)
+- Checksum: 0xABCD
+
+SEQUENCE_NUMBER=305419896
+PAYLOAD_LENGTH=256
+CHECKSUM=0xABCD

@@ -1,0 +1,20 @@
+apiVersion: v2
+kind: Pod
+metadata:
+  name: kaniko-build
+spec:
+  replicas: 1
+  containers:
+  - name: kaniko
+    image: gcr.io/kaniko-project/executor:latest
+    args:
+    - "--dockerfile=/workspace/Dockerfile"
+    - "--destination=myrepo/myapp:latest"
+    volumeMounts:
+    - name: docker-cfg
+      mountPath: /kaniko/.docker/
+  restartPolicy: Never
+  volumes:
+  - name: docker-config
+    configMap:
+      name: docker-config

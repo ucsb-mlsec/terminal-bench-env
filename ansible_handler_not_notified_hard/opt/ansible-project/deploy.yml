@@ -1,0 +1,209 @@
+---
+- name: Deploy web application
+  hosts: webservers
+  become: yes
+  vars:
+    app_path: /opt/myapp
+    nginx_config_path: /etc/nginx/sites-available
+    cache_path: /var/cache/myapp
+    worker_config: /etc/myapp/workers.conf
+    
+  tasks:
+    - name: Create application directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: '0755'
+      loop:
+        - "{{ app_path }}"
+        - "{{ app_path }}/releases"
+        - "{{ cache_path }}"
+        - /var/log/myapp
+
+    - name: Install application dependencies
+      apt:
+        name:
+          - python3-pip
+          - python3-venv
+          - redis-server
+          - postgresql-client
+        state: present
+        update_cache: yes
+
+    - name: Deploy application configuration file
+      template:
+        src: templates/app_config.yml.j2
+        dest: "{{ app_path }}/config/application.yml"
+        owner: www-data
+        group: www-data
+        mode: '0640'
+
+    - name: Copy application secrets
+      copy:
+        src: files/secrets.env
+        dest: "{{ app_path }}/config/secrets.env"
+        owner: www-data
+        group: www-data
+        mode: '0600'
+      no_log: yes
+
+    - name: Deploy application code from git
+      git:
+        repo: 'https://github.com/company/webapp.git'
+        dest: "{{ app_path }}/current"
+        version: main
+        force: yes
+      notify: restart application
+
+    - name: Update nginx virtual host configuration
+      template:
+        src: templates/nginx_vhost.conf.j2
+        dest: "{{ nginx_config_path }}/myapp.conf"
+        owner: root
+        group: root
+        mode: '0644'
+      notify: reload nginx
+
+    - name: Copy SSL certificates
+      copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        owner: root
+        group: root
+        mode: '0600'
+      loop:
+        - { src: 'files/ssl/myapp.crt', dest: '/etc/ssl/certs/myapp.crt' }
+        - { src: 'files/ssl/myapp.key', dest: '/etc/ssl/private/myapp.key' }
+      notify: reload nginx
+
+    - name: Deploy systemd service files
+      template:
+        src: "{{ item }}.service.j2"
+        dest: "/etc/systemd/system/{{ item }}.service"
+        owner: root
+        group: root
+        mode: '0644'
+      loop:
+        - myapp
+        - myapp-worker
+      notify: reload systemd
+
+    - name: Update cache settings file
+      template:
+        src: templates/cache_config.yml.j2
+        dest: "{{ app_path }}/config/cache.yml"
+        owner: www-data
+        group: www-data
+        mode: '0644'
+      changed_when: false
+      notify: clear application cache
+
+    - name: Install Python application requirements
+      pip:
+        requirements: "{{ app_path }}/current/requirements.txt"
+        virtualenv: "{{ app_path }}/venv"
+        virtualenv_python: python3
+
+    - name: Run database migrations
+      command: "{{ app_path }}/venv/bin/python {{ app_path }}/current/manage.py migrate"
+      when: run_migrations | default(false) | bool
+      register: migration_result
+      changed_when: "'No migrations to apply' not in migration_result.stdout"
+
+    - name: Update environment variables
+      template:
+        src: templates/environment.j2
+        dest: /etc/myapp/environment
+        owner: root
+        group: root
+        mode: '0644'
+      notify: restart application
+
+    - name: Set application file permissions
+      file:
+        path: "{{ app_path }}/current"
+        owner: www-data
+        group: www-data
+        recurse: yes
+        mode: '0755'
+
+    - name: Update worker configuration
+      template:
+        src: templates/workers.conf.j2
+        dest: "{{ worker_config }}"
+        owner: root
+        group: root
+        mode: '0644'
+      notify: restart worker
+
+    - name: Deploy monitoring configuration
+      template:
+        src: templates/monitoring.yml.j2
+        dest: /etc/myapp/monitoring.yml
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Create log rotation configuration
+      template:
+        src: templates/logrotate.j2
+        dest: /etc/logrotate.d/myapp
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Enable and start application service
+      service:
+        name: myapp
+        enabled: yes
+        state: started
+
+    - name: Enable and start worker service
+      service:
+        name: myapp-worker
+        enabled: yes
+        state: started
+
+    - name: Deploy health check script
+      copy:
+        src: files/healthcheck.sh
+        dest: /usr/local/bin/myapp-healthcheck
+        owner: root
+        group: root
+        mode: '0755'
+
+  handlers:
+    - name: reload nginx
+      service:
+        name: nginx
+        state: reloaded
+
+    - name: restart application
+      service:
+        name: myapp
+        state: restarted
+
+    - name: clear application cache
+      file:
+        path: "{{ cache_path }}"
+        state: absent
+      notify: recreate cache directory
+
+    - name: recreate cache directory
+      file:
+        path: "{{ cache_path }}"
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: '0755'
+
+    - name: restart workers
+      service:
+        name: myapp-worker
+        state: restarted
+
+    - name: reload systemd
+      systemd:
+        daemon_reload: yes

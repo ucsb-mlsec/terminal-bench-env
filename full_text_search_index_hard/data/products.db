@@ -1,0 +1,76 @@
+-- Full-Text Search Solution for E-commerce Product Search
+-- This script implements SQLite FTS5 (Full-Text Search) to enable relevance-ranked search
+
+-- Step 1: Create FTS5 virtual table for full-text search
+-- FTS5 provides fast full-text searching with built-in ranking
+-- We create separate columns for title and description to allow weighted ranking
+CREATE VIRTUAL TABLE IF NOT EXISTS products_fts USING fts5(
+    title, 
+    description,
+    content='products',
+    content_rowid='id'
+);
+
+-- Step 2: Populate the FTS index with existing product data
+-- This is idempotent - we first clear any existing data to avoid duplicates
+DELETE FROM products_fts;
+INSERT INTO products_fts(rowid, title, description)
+SELECT id, title, description FROM products;
+
+-- Step 3: Create triggers to keep FTS index synchronized with products table
+-- These triggers ensure that any changes to products are reflected in the search index
+
+-- Trigger for INSERT operations
+DROP TRIGGER IF EXISTS products_fts_insert;
+CREATE TRIGGER products_fts_insert AFTER INSERT ON products BEGIN
+    INSERT INTO products_fts(rowid, title, description)
+    VALUES (new.id, new.title, new.description);
+END;
+
+-- Trigger for DELETE operations
+DROP TRIGGER IF EXISTS products_fts_delete;
+CREATE TRIGGER products_fts_delete AFTER DELETE ON products BEGIN
+    INSERT INTO products_fts(products_fts, rowid, title, description)
+    VALUES ('delete', old.id, old.title, old.description);
+END;
+
+-- Trigger for UPDATE operations
+DROP TRIGGER IF EXISTS products_fts_update;
+CREATE TRIGGER products_fts_update AFTER UPDATE ON products BEGIN
+    INSERT INTO products_fts(products_fts, rowid, title, description)
+    VALUES ('delete', old.id, old.title, old.description);
+    INSERT INTO products_fts(rowid, title, description)
+    VALUES (new.id, new.title, new.description);
+END;
+
+-- Step 4: Create a view for easy search queries with relevance ranking
+-- This view joins the FTS results back to the original products table
+-- Usage: SELECT * FROM product_search WHERE product_search MATCH 'search terms' ORDER BY rank;
+DROP VIEW IF EXISTS product_search;
+CREATE VIEW product_search AS
+SELECT 
+    p.id,
+    p.title,
+    p.description,
+    p.category,
+    p.price,
+    products_fts.rank
+FROM products p
+JOIN products_fts ON p.id = products_fts.rowid;
+
+-- Notes on usage:
+-- To search products, use queries like:
+-- SELECT * FROM product_search WHERE product_search MATCH 'wireless bluetooth' ORDER BY rank LIMIT 20;
+-- 
+-- The MATCH operator supports:
+-- - Multiple words: 'wireless bluetooth' (finds products with either or both terms)
+-- - Phrase search: '"wireless headphones"' (exact phrase)
+-- - AND operator: 'wireless AND bluetooth' (must have both)
+-- - OR operator: 'wireless OR bluetooth' (has either)
+-- - Column-specific: 'title:wireless' (search only in title)
+--
+-- Ranking (rank column):
+-- - Lower rank values = better matches
+-- - Exact matches score better than partial matches
+-- - Title matches naturally rank higher due to shorter text
+-- - ORDER BY rank ensures best results appear first

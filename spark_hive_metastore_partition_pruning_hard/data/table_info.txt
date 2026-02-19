@@ -1,0 +1,111 @@
+TABLE OVERVIEW
+=============
+
+Table Name: sales_data
+Location: /data/sales/
+Format: Parquet
+Size: Approximately 2.5 TB
+Total Records: ~50 million rows
+
+Description:
+The sales_data table contains transactional sales records from multiple regions across several years. The table is stored in Parquet format for optimal compression and query performance. Each record represents a single sales transaction with customer, product, and pricing information.
+
+
+PARTITION STRUCTURE
+===================
+
+Partitioning Strategy: Hierarchical partitioning by year, month, and region
+
+Partition Columns (in order):
+  1. year (INTEGER)
+     - Values: 2020, 2021, 2022, 2023, 2024
+     - 5 distinct values
+  
+  2. month (INTEGER)
+     - Values: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12
+     - 12 distinct values
+  
+  3. region (STRING)
+     - Values: NORTH, SOUTH, EAST, WEST, CENTRAL
+     - 5 distinct values
+
+Total Partition Count: 5 years × 12 months × 5 regions = 300 partitions
+
+Directory Structure:
+/data/sales/year=2020/month=1/region=NORTH/
+/data/sales/year=2020/month=1/region=SOUTH/
+/data/sales/year=2020/month=1/region=EAST/
+...
+/data/sales/year=2024/month=12/region=CENTRAL/
+
+Average Partition Size: ~8.3 GB per partition
+Average Records per Partition: ~166,667 rows
+
+
+TABLE SCHEMA
+============
+
+Non-Partition Columns:
+  - transaction_id (STRING) - Unique identifier for each transaction
+  - customer_id (LONG) - Customer identifier
+  - product_id (STRING) - Product SKU or identifier
+  - quantity (INTEGER) - Number of units sold
+  - price (DECIMAL(10,2)) - Transaction amount in dollars
+  - transaction_date (DATE) - Actual date of transaction
+
+Partition Columns:
+  - year (INTEGER) - Year extracted from transaction_date
+  - month (INTEGER) - Month extracted from transaction_date
+  - region (STRING) - Geographic region of sale
+
+
+COMMON QUERY PATTERNS
+======================
+
+Typical Query Pattern 1: Monthly Regional Analysis
+Query: SELECT * FROM sales_data WHERE year=2023 AND month=12 AND region='WEST'
+Expected Partitions Scanned: 1 partition
+Expected Data Scanned: ~8.3 GB
+
+Typical Query Pattern 2: Quarterly Regional Analysis
+Query: SELECT * FROM sales_data WHERE year=2023 AND month IN (10,11,12) AND region='WEST'
+Expected Partitions Scanned: 3 partitions
+Expected Data Scanned: ~25 GB
+
+Typical Query Pattern 3: Annual Regional Analysis
+Query: SELECT * FROM sales_data WHERE year=2023 AND region='WEST'
+Expected Partitions Scanned: 12 partitions
+Expected Data Scanned: ~100 GB
+
+Typical Query Pattern 4: Multi-Region Monthly Analysis
+Query: SELECT * FROM sales_data WHERE year=2023 AND month=12 AND region IN ('WEST', 'EAST')
+Expected Partitions Scanned: 2 partitions
+Expected Data Scanned: ~16.6 GB
+
+
+PERFORMANCE EXPECTATIONS
+=========================
+
+With Proper Partition Pruning:
+  - Single partition query: 30-60 seconds
+  - Quarterly query (3 partitions): 2-3 minutes
+  - Annual regional query (12 partitions): 5-8 minutes
+  - Data scanned: Only matching partitions
+
+Current Observed Behavior (BROKEN):
+  - Single partition query: 15-20 minutes
+  - All queries scanning: 300 partitions (2.5 TB)
+  - Data scanned: Entire table regardless of filter predicates
+  - Performance degradation: 20-30x slower than expected
+
+Issue Description:
+Partition pruning is not functioning correctly. When queries include filter predicates on partition columns (year, month, region), Spark is not eliminating non-matching partitions during query planning. Instead, all 300 partitions are being scanned, resulting in massive performance degradation.
+
+Root Cause Suspected:
+The Spark configuration contains incorrect or missing settings that prevent the optimizer from performing partition pruning. Settings related to:
+  - Dynamic partition pruning
+  - Partition filtering during query planning
+  - Metastore partition discovery
+  - Predicate pushdown for partitioned data
+
+These configuration issues must be corrected to enable proper partition elimination and restore expected query performance.

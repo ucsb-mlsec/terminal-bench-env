@@ -1,0 +1,35 @@
+apiVersion: "litmuschaos.io/v1alpha1"
+kind: "ChaosExperiment"
+metadata:
+  name: "pod-autoscaler
+  labels:
+    app.kubernetes.io/name: litmus
+    	app.kubernetes.io/component: chaosexperiment
+spec:
+  definition:
+    scope: Namespaced
+    permissions:
+      - apiGroups: [""]
+        resources: ["pods"]
+        verbs: ["create","delete","get","list"
+    image: litmuschaos/go-runner:latest
+    args:
+    - -c
+    - ./experiments -name pod-autoscaler
+    command:
+      - /bin/bash
+    env:
+      - name: TOTAL_CHAOS_DURATION
+        value: '60'
+      - name: CHAOS_INTERVAL
+        value: 10
+    - name: PODS_AFFECTED_PERC
+      value: "50"
+      - name: TARGET_CONTAINER
+        value: ''
+    labels:
+      name: pod-autoscaler
+      app.kubernetes.io/part-of: litmus
+    [configMaps:
+      - name: chaos-config
+        mountPath: /tmp/

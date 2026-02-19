@@ -1,0 +1,152 @@
+File: cuda_specs/random_pattern.txt
+
+PATTERN NAME: Random Write Pattern
+
+====================
+MEMORY ACCESS SEQUENCE
+====================
+
+Buffer Configuration:
+- Buffer size: 16 MB (16,777,216 bytes)
+- Element size: 4 bytes (32-bit integers/floats)
+- Total capacity: 4,194,304 elements
+
+Access Pattern Details:
+- Access pattern type: Pseudo-random writes based on hash function
+- Address computation: hash(index) % buffer_size formula
+- Write order: Non-sequential, uniformly distributed
+- Write size: 4-byte (32-bit) writes per operation
+- Total number of writes: 4,194,304 writes (complete buffer fill with random order)
+
+Address Distribution:
+- Distribution type: Uniform across entire 16 MB buffer
+- No locality patterns or clustering
+- Addresses span entire address range randomly
+- Sequential indices map to scattered physical addresses
+
+Read-Modify-Write Characteristics:
+- Read-modify-write operations: Approximately 40% of total operations
+- Operation sequence: Read existing value → Compute → Write back
+- Dependency: New values often depend on existing buffer contents
+- Read-back requirement: Critical for algorithmic correctness
+
+Example Access Sequence (first 10 operations):
+  Operation 0: Write to offset 8,234,512 (address 0x7DB010)
+  Operation 1: Write to offset 2,891,776 (address 0x2C2000)
+  Operation 2: Read-modify-write at offset 12,456,128 (address 0xBE3840)
+  Operation 3: Write to offset 456,832 (address 0x6F800)
+  Operation 4: Read-modify-write at offset 15,223,808 (address 0xE86000)
+  Operation 5: Write to offset 5,678,912 (address 0x56A440)
+  Operation 6: Write to offset 9,123,456 (address 0x8B3000)
+  Operation 7: Read-modify-write at offset 3,456,789 (address 0x34BE15)
+  Operation 8: Write to offset 11,234,567 (address 0xAB7007)
+  Operation 9: Write to offset 7,890,123 (address 0x7872BB)
+
+====================
+BUFFER ALIGNMENT
+====================
+
+Allocation Alignment:
+- Primary alignment: 64-byte boundary alignment
+- Starting address: Guaranteed to be aligned on 64-byte boundary
+- Alignment guarantee: cudaHostAlloc provides proper alignment
+
+Cache Line Considerations:
+- CPU cache line size: 64 bytes (typical x86-64 architecture)
+- Elements per cache line: 16 elements (4 bytes each)
+- Random access pattern: Writes frequently cross cache line boundaries
+- Cache line alignment: Individual writes do NOT align with cache line boundaries due to random addressing
+- Cache line utilization: Poor (typically only 1-2 elements per cache line loaded)
+
+Address Alignment Distribution:
+- 64-byte aligned writes: ~1.5% of writes
+- 32-byte aligned writes: ~3.1% of writes
+- 16-byte aligned writes: ~6.25% of writes
+- 4-byte aligned writes: 100% (guaranteed by element size)
+
+====================
+CURRENT MEMORY ALLOCATION
+====================
+
+Allocation Method:
+- API call: cudaHostAlloc()
+- Flags: cudaHostAllocDefault
+- Memory type: Standard pinned memory
+- Cacheability: Cacheable by CPU caches
+
+Memory Properties:
+- Pinned: Yes (page-locked, no swapping)
+- Cacheable: Yes (CPU caches can cache this memory)
+- Write-combining: No (standard write-through or write-back caching)
+- DMA capability: Direct GPU access for transfers
+
+Cache Behavior:
+- L1 cache: Active, attempts to cache recent accesses
+- L2 cache: Active, provides secondary caching layer
+- L3 cache: Active on multi-core systems
+- Cache coherency: Fully maintained across all cache levels
+- Cache policy: Write-allocate on cache misses
+
+====================
+OBSERVED PERFORMANCE CHARACTERISTICS
+====================
+
+Throughput Metrics:
+- Current write bandwidth: 0.9 GB/s
+- Effective bandwidth utilization: ~14% of theoretical peak
+- Memory latency: High due to cache misses
+- Transfer time for full buffer: ~18.6 milliseconds
+
+Cache Performance:
+- L1 cache hit rate: Approximately 25%
+- L2 cache hit rate: Approximately 15% (after L1 miss)
+- L3 cache hit rate: Approximately 10% (after L1/L2 miss)
+- Overall cache miss rate: ~50% require main memory access
+- Spatial locality: Very poor (random addressing breaks prefetch)
+- Temporal locality: Poor (limited reuse before eviction)
+
+Performance Bottlenecks:
+- High cache miss penalty: Random access causes frequent main memory accesses
+- Cache pollution: Random pattern evicts useful cache lines
+- Coherency overhead: Cache coherency protocol overhead for scattered writes
+- Read-modify-write stalls: CPU must wait for read completion before write
+- Poor prefetch efficiency: Hardware prefetchers cannot predict random pattern
+
+Observed Overhead:
+- Cache miss penalty: ~100-200 CPU cycles per miss
+- Read-modify-write latency: Additional 50-150 cycles for read completion
+- Cache coherency traffic: Moderate overhead on multi-core systems
+- Memory controller contention: Random access stresses memory controller
+
+====================
+USE CASE
+====================
+
+Application Context:
+- Primary use: Sparse matrix construction
+- Matrix format: Compressed Sparse Row (CSR) format
+- Data structure: Building row pointers, column indices, and values arrays
+
+Algorithm Characteristics:
+- Insertion order: Non-deterministic, based on data dependencies
+- Access pattern: Driven by input data characteristics, not predictable
+- Dependencies: New values depend on existing accumulated values
+- Correctness requirement: Must read existing values to compute updates
+
+Typical Operations:
+1. Read existing value at computed sparse index
+2. Compute new value (accumulation, merging, or update)
+3. Write updated value back to buffer
+4. Repeat for all input elements with data-dependent addressing
+
+Read-back Requirements:
+- Read-modify-write necessity: Critical for algorithmic correctness
+- Atomic requirements: Not required (single-threaded host code)
+- Consistency requirements: Reads must reflect most recent writes
+- Cache coherency: Must be maintained for correctness
+
+Workload Pattern:
+- Write distribution: Uniform random across entire buffer
+- Read frequency: 40% of operations involve read-before-write
+- Buffer reuse: Multiple passes may access same locations
+- No spatial locality exploitation possible due to random nature

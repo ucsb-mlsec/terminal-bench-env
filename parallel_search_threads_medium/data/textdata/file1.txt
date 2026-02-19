@@ -1,0 +1,124 @@
+I'll help you create a parallel word search system. Let me start by creating the necessary files and the solution.
+
+First, let me create the Python script for parallel search:
+
+```python
+#!/usr/bin/env python3
+import json
+import time
+import os
+from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from collections import defaultdict
+import re
+
+def search_file(file_path, search_terms_lower):
+    """
+    Search a single file for all search terms and return counts.
+    
+    Args:
+        file_path: Path to the file to search
+        search_terms_lower: Set of lowercase search terms
+    
+    Returns:
+        Dictionary mapping search terms to their counts in this file
+    """
+    counts = defaultdict(int)
+    
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                line_lower = line.lower()
+                # Use word boundaries to match whole words only
+                for term in search_terms_lower:
+                    # Count occurrences of the term as whole words (case-insensitive)
+                    pattern = r'\b' + re.escape(term) + r'\b'
+                    matches = re.findall(pattern, line_lower)
+                    counts[term] += len(matches)
+    except Exception as e:
+        print(f"Error reading {file_path}: {e}")
+    
+    return counts
+
+def parallel_word_search():
+    """
+    Main function to perform parallel word search across multiple files.
+    """
+    start_time = time.time()
+    
+    # Define paths
+    textdata_dir = Path('/workspace/textdata')
+    search_terms_file = Path('/workspace/search_terms.txt')
+    output_file = Path('/workspace/search_results.json')
+    
+    # Read search terms
+    search_terms = []
+    try:
+        with open(search_terms_file, 'r', encoding='utf-8') as f:
+            search_terms = [line.strip() for line in f if line.strip()]
+    except FileNotFoundError:
+        print(f"Search terms file not found: {search_terms_file}")
+        return
+    
+    # Convert search terms to lowercase for case-insensitive matching
+    search_terms_lower = set(term.lower() for term in search_terms)
+    
+    # Get all text files in the directory
+    text_files = sorted(textdata_dir.glob('*.txt'))
+    
+    if not text_files:
+        print(f"No text files found in {textdata_dir}")
+        return
+    
+    # Initialize total counts
+    total_counts = defaultdict(int)
+    
+    # Use ThreadPoolExecutor for parallel processing
+    max_workers = min(len(text_files), os.cpu_count() or 4)
+    
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # Submit all file search tasks
+        future_to_file = {
+            executor.submit(search_file, file_path, search_terms_lower): file_path 
+            for file_path in text_files
+        }
+        
+        # Collect results as they complete
+        for future in as_completed(future_to_file):
+            file_path = future_to_file[future]
+            try:
+                file_counts = future.result()
+                # Aggregate counts
+                for term, count in file_counts.items():
+                    total_counts[term] += count
+            except Exception as e:
+                print(f"Error processing {file_path}: {e}")
+    
+    # Ensure all search terms are in results (even if count is 0)
+    results = {}
+    for term in search_terms:
+        term_lower = term.lower()
+        results[term] = total_counts.get(term_lower, 0)
+    
+    end_time = time.time()
+    execution_time = end_time - start_time
+    
+    # Prepare output
+    output_data = {
+        "execution_time_seconds": round(execution_time, 6),
+        "results": results
+    }
+    
+    # Write results to JSON file
+    with open(output_file, 'w', encoding='utf-8') as f:
+        json.dump(output_data, f, indent=2)
+    
+    print(f"Search completed in {execution_time:.4f} seconds")
+    print(f"Results saved to {output_file}")
+    print(f"Searched {len(text_files)} files for {len(search_terms)} terms")
+
+if __name__ == "__main__":
+    parallel_word_search()
+```
+
+Now let me save this to the correct location:

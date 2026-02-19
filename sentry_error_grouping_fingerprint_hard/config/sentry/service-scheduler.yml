@@ -1,0 +1,82 @@
+fingerprinting_rules:
+  # Valid rule - message matcher for scheduled task failures
+  - type: fingerprint
+    matchers:
+      - [message, "*scheduled task failed*"]
+    fingerprint:
+      - scheduler
+      - task-failure
+      - "{{ message }}"
+
+  # Valid rule - type matcher for SchedulerError
+  - type: fingerprint
+    matchers:
+      - [type, "SchedulerError"]
+    fingerprint:
+      - scheduler-error
+      - "{{ type }}"
+
+  # Valid rule - using module in fingerprint
+  - type: fingerprint
+    matchers:
+      - [message, "*cron job error*"]
+    fingerprint:
+      - "{{ module }}"
+      - cron-job-error
+
+  # Valid rule - value matcher with pattern
+  - type: fingerprint
+    matchers:
+      - [value, "*timeout in task execution*"]
+    fingerprint:
+      - scheduler
+      - timeout
+      - "{{ value }}"
+
+  # Valid rule - path matcher
+  - type: fingerprint
+    matchers:
+      - [path, "*/schedulers/tasks.py"]
+    fingerprint:
+      - scheduler
+      - tasks-module
+      - "{{ path }}"
+
+  # Invalid rule - schedule as matcher type (not supported)
+  - type: fingerprint
+    matchers:
+      - [schedule, "*/5 * * * *"]
+    fingerprint:
+      - scheduled-task
+
+  # Invalid rule - app attribute (deprecated)
+  - type: fingerprint
+    app: scheduler
+    matchers:
+      - [message, "*job failed*"]
+    fingerprint:
+      - job-failure
+
+  # Invalid rule - schedule_time variable (not valid)
+  - type: fingerprint
+    matchers:
+      - [type, "TaskError"]
+    fingerprint:
+      - "{{ schedule_time }}"
+      - task-error
+
+  # Invalid rule - fingerprint as dict instead of list
+  - type: fingerprint
+    matchers:
+      - [message, "*retry exceeded*"]
+    fingerprint:
+      task: retry-exceeded
+      module: scheduler
+
+  # Invalid rule - default combined with message matcher
+  - type: fingerprint
+    matchers:
+      - [message, "*database locked*"]
+    fingerprint:
+      - default
+      - database-lock

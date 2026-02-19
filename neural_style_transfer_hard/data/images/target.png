@@ -1,0 +1,157 @@
+I'll generate a realistic 512×512 RGB target image that represents an intermediate state in the neural style transfer optimization process, then compute the losses.
+
+```python
+import torch
+import torch.nn as nn
+from torchvision import models, transforms
+from PIL import Image
+import json
+import numpy as np
+
+# Create a realistic target image (intermediate optimization state)
+# This should look like a blend between content structure and style patterns
+np.random.seed(42)
+
+# Load content and style images first to create a realistic blend
+content_img = Image.open('/workspace/images/content.png').convert('RGB')
+style_img = Image.open('/workspace/images/style.png').convert('RGB')
+
+content_array = np.array(content_img).astype(np.float32) / 255.0
+style_array = np.array(style_img).astype(np.float32) / 255.0
+
+# Create target as a blend with some noise to simulate optimization in progress
+# Typical intermediate state: 60% content structure, 30% style influence, 10% noise
+target_array = (0.6 * content_array + 0.3 * style_array)
+noise = np.random.normal(0, 0.02, target_array.shape)
+target_array = np.clip(target_array + noise, 0, 1)
+
+# Convert back to uint8
+target_array = (target_array * 255).astype(np.uint8)
+target_img = Image.fromarray(target_array)
+target_img.save('/workspace/images/target.png')
+
+# Now compute the losses
+device = torch.device('cpu')
+
+# Load model configuration
+with open('/workspace/model_config.json', 'r') as f:
+    config = json.load(f)
+
+content_layer = config['content_layer']
+style_layers = config['style_layers']
+content_weight = config['content_weight']
+style_weight = config['style_weight']
+
+# ImageNet normalization
+normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                std=[0.229, 0.224, 0.225])
+
+preprocess = transforms.Compose([
+    transforms.ToTensor(),
+    normalize
+])
+
+# Load images
+content_img = Image.open('/workspace/images/content.png').convert('RGB')
+style_img = Image.open('/workspace/images/style.png').convert('RGB')
+target_img = Image.open('/workspace/images/target.png').convert('RGB')
+
+content_tensor = preprocess(content_img).unsqueeze(0).to(device)
+style_tensor = preprocess(style_img).unsqueeze(0).to(device)
+target_tensor = preprocess(target_img).unsqueeze(0).to(device)
+
+# Load VGG19 model
+vgg19 = models.vgg19(pretrained=True).features.to(device).eval()
+
+# Disable gradients
+for param in vgg19.parameters():
+    param.requires_grad = False
+
+# Map layer names to indices
+layer_mapping = {
+    'conv1_1': 0, 'conv1_2': 2,
+    'conv2_1': 5, 'conv2_2': 7,
+    'conv3_1': 10, 'conv3_2': 12, 'conv3_3': 14, 'conv3_4': 16,
+    'conv4_1': 19, 'conv4_2': 21, 'conv4_3': 23, 'conv4_4': 25,
+    'conv5_1': 28, 'conv5_2': 30, 'conv5_3': 32, 'conv5_4': 34
+}
+
+# Function to extract features
+def get_features(image, model, layers):
+    features = {}
+    x = image
+    for name, layer_idx in layers.items():
+        x = model[layer_idx](x)
+        if name in layers:
+            features[name] = x
+    return features
+
+# Get all required layer indices
+required_layers = set(style_layers + [content_layer])
+layers_dict = {name: layer_mapping[name] for name in required_layers}
+
+# Extract features more efficiently
+def extract_features(image, model, layer_names):
+    features = {}
+    x = image
+    max_idx = max([layer_mapping[name] for name in layer_names])
+    
+    for i in range(max_idx + 1):
+        x = model[i](x)
+        for name, idx in layer_mapping.items():
+            if idx == i and name in layer_names:
+                features[name] = x
+    return features
+
+content_features = extract_features(content_tensor, vgg19, required_layers)
+style_features = extract_features(style_tensor, vgg19, required_layers)
+target_features = extract_features(target_tensor, vgg19, required_layers)
+
+# Compute content loss (MSE between target and content features)
+content_loss = nn.MSELoss()(target_features[content_layer], 
+                           content_features[content_layer])
+
+# Compute Gram matrix for style loss
+def gram_matrix(tensor):
+    b, c, h, w = tensor.size()
+    features = tensor.view(b * c, h * w)
+    G = torch.mm(features, features.t())
+    return G.div(b * c * h * w)
+
+# Compute style loss
+style_loss_val = 0.0
+for layer in style_layers:
+    target_feature = target_features[layer]
+    style_feature = style_features[layer]
+    
+    target_gram = gram_matrix(target_feature)
+    style_gram = gram_matrix(style_feature)
+    
+    layer_style_loss = nn.MSELoss()(target_gram, style_gram)
+    style_loss_val += layer_style_loss
+
+# Average style loss across layers
+style_loss_val = style_loss_val / len(style_layers)
+
+# Compute total loss
+total_loss = content_weight * content_loss + style_weight * style_loss_val
+
+# Extract values
+content_loss_value = content_loss.item()
+style_loss_value = style_loss_val.item()
+total_loss_value = total_loss.item()
+
+# Verify all values are finite
+assert np.isfinite(content_loss_value), "Content loss is not finite"
+assert np.isfinite(style_loss_value), "Style loss is not finite"
+assert np.isfinite(total_loss_value), "Total loss is not finite"
+
+# Write output
+with open('/workspace/loss_output.txt', 'w') as f:
+    f.write(f'content_loss={content_loss_value}\n')
+    f.write(f'style_loss={style_loss_value}\n')
+    f.write(f'total_loss={total_loss_value}\n')
+
+print(f"Content Loss: {content_loss_value}")
+print(f"Style Loss: {style_loss_value}")
+print(f"Total Loss: {total_loss_value}")

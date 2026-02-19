@@ -1,0 +1,69 @@
+Algorithm C: Optimized Shared Memory Reduction
+
+Input: array A of size N on host memory
+Output: reduced result R
+
+// Single transfer: host to device
+COPY array A to device memory → device_A
+
+// Calculate optimal configuration
+blocks = (N + BLOCK_SIZE - 1) / BLOCK_SIZE
+ALLOCATE device array partial_results of size blocks
+
+// Phase 1: Local reduction per block using shared memory
+LAUNCH_KERNEL(blocks, BLOCK_SIZE):
+    SHARED_MEMORY sdata[BLOCK_SIZE]
+    
+    tid = threadIdx.x
+    global_id = blockIdx.x * BLOCK_SIZE + tid
+    
+    // Cooperative loading with coalesced memory access
+    // Each thread processes multiple elements for work efficiency
+    local_sum = 0
+    FOR i = global_id TO N STEP (blocks * BLOCK_SIZE):
+        local_sum += device_A[i]
+    END FOR
+    
+    sdata[tid] = local_sum
+    SYNCHRONIZE_BLOCK()  // Only local synchronization needed
+    
+    // Parallel reduction in shared memory
+    FOR stride = BLOCK_SIZE/2 DOWN TO 32 STEP stride/2:
+        IF tid < stride:
+            sdata[tid] += sdata[tid + stride]
+        SYNCHRONIZE_BLOCK()
+    END FOR
+    
+    // Unrolled warp-level reduction (no sync needed within warp)
+    IF tid < 32:
+        sdata[tid] += sdata[tid + 16]
+        sdata[tid] += sdata[tid + 8]
+        sdata[tid] += sdata[tid + 4]
+        sdata[tid] += sdata[tid + 2]
+        sdata[tid] += sdata[tid + 1]
+    END IF
+    
+    // Write block result to global memory
+    IF tid == 0:
+        partial_results[blockIdx.x] = sdata[0]
+
+// Phase 2: Final reduction of partial results (single block)
+IF blocks > 1:
+    LAUNCH_KERNEL(1, BLOCK_SIZE):
+        // Repeat reduction on partial_results array
+        // Uses same shared memory reduction pattern
+        REDUCE partial_results → final_result
+
+// Single transfer: device to host
+COPY final_result back to host → R
+
+RETURN R
+
+// Key optimizations:
+// - Only 2 data transfers (input and output)
+// - Coalesced memory access patterns
+// - Shared memory for fast intermediate storage
+// - Work-efficient: multiple elements per thread
+// - Minimal synchronization (block-level only)
+// - Warp-level operations exploit implicit synchrony
+// - Two-phase approach keeps all threads productive

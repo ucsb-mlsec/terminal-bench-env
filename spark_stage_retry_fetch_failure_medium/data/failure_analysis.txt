@@ -1,0 +1,54 @@
+OBSERVED FAILURES
+==================
+
+The following failure patterns have been detected across multiple job runs over the past week:
+
+- Shuffle fetch failures: 237 occurrences across 15 job runs
+- Network timeout exceptions during shuffle read operations
+- Executor heartbeat timeout warnings appearing in driver logs
+- Stage retry attempts: Average 3.2 retries per failed stage
+- Fetch failure exceptions during shuffle read phase
+- Intermittent loss of executor communication during large shuffles
+- TaskSetManager reporting FetchFailed exceptions repeatedly
+- Stages eventually succeeding after 3-4 retry attempts
+- Total retry overhead: 15-20 minutes added per job execution
+
+
+CLUSTER CHARACTERISTICS
+========================
+
+Current cluster configuration and observed behavior:
+
+- Network latency: 80-120ms average between executor nodes
+- Executor memory allocation: 4GB per executor
+- Shuffle data volume: 50-80GB per job on average
+- Cluster size: 20 executors distributed across availability zones
+- Storage: Network-attached storage with moderate I/O performance
+- Job type: Daily batch processing with heavy shuffle operations
+- Data skew: Moderate skew observed in some partitions
+
+
+PROBLEMATIC CONFIGURATION
+==========================
+
+Analysis has identified the following configuration parameters as root causes:
+
+- spark.network.timeout=120s (insufficient for observed network latency)
+- spark.shuffle.io.maxRetries=3 (too few retries for failure rate)
+- spark.executor.heartbeatInterval=10s (creates excessive overhead)
+- spark.shuffle.io.retryWait=5s (insufficient delay between retries)
+- spark.executor.memoryOverhead=384m (too small for shuffle buffer requirements)
+- spark.shuffle.service.enabled=false (causing shuffle instability on executor failure)
+
+
+CORRECTION RULES
+=================
+
+Apply the following configuration changes to resolve identified issues:
+
+- spark.network.timeout must be set to 600s (accommodate high latency network conditions)
+- spark.shuffle.io.maxRetries must be set to 10 (provide sufficient retry attempts for transient failures)
+- spark.executor.heartbeatInterval must be set to 60s (reduce heartbeat overhead and false timeouts)
+- spark.shuffle.io.retryWait must be set to 30s (allow adequate recovery time between retry attempts)
+- spark.executor.memoryOverhead must be set to 1024m (provide sufficient overhead for large shuffle operations)
+- spark.shuffle.service.enabled must be set to true (enable external shuffle service for improved stability)

@@ -1,0 +1,266 @@
+[
+  {
+    "#!\/bin\/bash":"# Incremental backup script with hard-linking"
+  },
+  {
+    "#!\/bin\/bash":"# Backs up \/var\/projects to \/backup\/storage"
+  },
+  {
+    "#!\/bin\/bash":"SOURCE_DIR=\"\/var\/projects\""
+  },
+  {
+    "#!\/bin\/bash":"BACKUP_BASE=\"\/backup\/storage\""
+  },
+  {
+    "#!\/bin\/bash":"RETENTION_DAYS=7"
+  },
+  {
+    "#!\/bin\/bash":"# Create backup base directory if it doesn't exist"
+  },
+  {
+    "#!\/bin\/bash":"mkdir -p \"$BACKUP_BASE\""
+  },
+  {
+    "#!\/bin\/bash":"# Generate timestamp for current backup"
+  },
+  {
+    "#!\/bin\/bash":"TIMESTAMP=$(date +%Y-%m-%d-%H%M%S)"
+  },
+  {
+    "#!\/bin\/bash":"CURRENT_BACKUP=\"$BACKUP_BASE\/backup-$TIMESTAMP\""
+  },
+  {
+    "#!\/bin\/bash":"# Find the most recent backup for hard-linking"
+  },
+  {
+    "#!\/bin\/bash":"LATEST_BACKUP=$(find \"$BACKUP_BASE\" -maxdepth 1 -type d -name \"backup-*\" | sort | tail -n 1)"
+  },
+  {
+    "#!\/bin\/bash":"# Create the current backup directory"
+  },
+  {
+    "#!\/bin\/bash":"mkdir -p \"$CURRENT_BACKUP\""
+  },
+  {
+    "#!\/bin\/bash":"# Perform the backup using rsync with hard-linking"
+  },
+  {
+    "#!\/bin\/bash":"if [ -n \"$LATEST_BACKUP\" ] && [ -d \"$LATEST_BACKUP\" ]; then"
+  },
+  {
+    "#!\/bin\/bash":"    # Incremental backup with hard links to previous backup"
+  },
+  {
+    "#!\/bin\/bash":"    rsync -a --delete --link-dest=\"$LATEST_BACKUP\" \"$SOURCE_DIR\/\" \"$CURRENT_BACKUP\/\""
+  },
+  {
+    "#!\/bin\/bash":"else"
+  },
+  {
+    "#!\/bin\/bash":"    # First full backup"
+  },
+  {
+    "#!\/bin\/bash":"    rsync -a --delete \"$SOURCE_DIR\/\" \"$CURRENT_BACKUP\/\""
+  },
+  {
+    "#!\/bin\/bash":"fi"
+  },
+  {
+    "#!\/bin\/bash":"# Remove backups older than RETENTION_DAYS"
+  },
+  {
+    "#!\/bin\/bash":"find \"$BACKUP_BASE\" -maxdepth 1 -type d -name \"backup-*\" -mtime +$RETENTION_DAYS -exec rm -rf {} \\;"
+  },
+  {
+    "#!\/bin\/bash":"# Alternative method to keep only the last 7 backups"
+  },
+  {
+    "#!\/bin\/bash":"BACKUP_COUNT=$(find \"$BACKUP_BASE\" -maxdepth 1 -type d -name \"backup-*\" | wc -l)"
+  },
+  {
+    "#!\/bin\/bash":"if [ \"$BACKUP_COUNT\" -gt 7 ]; then"
+  },
+  {
+    "#!\/bin\/bash":"    find \"$BACKUP_BASE\" -maxdepth 1 -type d -name \"backup-*\" | sort | head -n -7 | xargs rm -rf"
+  },
+  {
+    "#!\/bin\/bash":"fi"
+  },
+  {
+    "#!\/bin\/bash":"echo \"Backup completed: $CURRENT_BACKUP\""
+  },
+  {
+    "#!\/bin\/bash":"exit 0"
+  },
+  {
+    "#!\/bin\/bash":"```"
+  },
+  {
+    "#!\/bin\/bash":"Now I'll create the backup_solution.sh file and backup_info.txt file:"
+  },
+  {
+    "#!\/bin\/bash":"```bash"
+  },
+  {
+    "#!\/bin\/bash":"cat > \/root\/backup_solution.sh << 'EOF'"
+  },
+  {
+    "#!\/bin\/bash":"#!\/bin\/bash"
+  },
+  {
+    "#!\/bin\/bash":"# Incremental backup script with hard-linking"
+  },
+  {
+    "#!\/bin\/bash":"# Backs up \/var\/projects to \/backup\/storage"
+  },
+  {
+    "#!\/bin\/bash":"SOURCE_DIR=\"\/var\/projects\""
+  },
+  {
+    "#!\/bin\/bash":"BACKUP_BASE=\"\/backup\/storage\""
+  },
+  {
+    "#!\/bin\/bash":"RETENTION_DAYS=7"
+  },
+  {
+    "#!\/bin\/bash":"# Create backup base directory if it doesn't exist"
+  },
+  {
+    "#!\/bin\/bash":"mkdir -p \"$BACKUP_BASE\""
+  },
+  {
+    "#!\/bin\/bash":"# Generate timestamp for current backup"
+  },
+  {
+    "#!\/bin\/bash":"TIMESTAMP=$(date +%Y-%m-%d-%H%M%S)"
+  },
+  {
+    "#!\/bin\/bash":"CURRENT_BACKUP=\"$BACKUP_BASE\/backup-$TIMESTAMP\""
+  },
+  {
+    "#!\/bin\/bash":"# Find the most recent backup for hard-linking"
+  },
+  {
+    "#!\/bin\/bash":"LATEST_BACKUP=$(find \"$BACKUP_BASE\" -maxdepth 1 -type d -name \"backup-*\" | sort | tail -n 1)"
+  },
+  {
+    "#!\/bin\/bash":"# Create the current backup directory"
+  },
+  {
+    "#!\/bin\/bash":"mkdir -p \"$CURRENT_BACKUP\""
+  },
+  {
+    "#!\/bin\/bash":"# Perform the backup using rsync with hard-linking"
+  },
+  {
+    "#!\/bin\/bash":"if [ -n \"$LATEST_BACKUP\" ] && [ -d \"$LATEST_BACKUP\" ]; then"
+  },
+  {
+    "#!\/bin\/bash":"    # Incremental backup with hard links to previous backup"
+  },
+  {
+    "#!\/bin\/bash":"    rsync -a --delete --link-dest=\"$LATEST_BACKUP\" \"$SOURCE_DIR\/\" \"$CURRENT_BACKUP\/\""
+  },
+  {
+    "#!\/bin\/bash":"else"
+  },
+  {
+    "#!\/bin\/bash":"    # First full backup"
+  },
+  {
+    "#!\/bin\/bash":"    rsync -a --delete \"$SOURCE_DIR\/\" \"$CURRENT_BACKUP\/\""
+  },
+  {
+    "#!\/bin\/bash":"fi"
+  },
+  {
+    "#!\/bin\/bash":"# Remove backups older than RETENTION_DAYS"
+  },
+  {
+    "#!\/bin\/bash":"find \"$BACKUP_BASE\" -maxdepth 1 -type d -name \"backup-*\" -mtime +$RETENTION_DAYS -exec rm -rf {} \\;"
+  },
+  {
+    "#!\/bin\/bash":"# Alternative method to keep only the last 7 backups"
+  },
+  {
+    "#!\/bin\/bash":"BACKUP_COUNT=$(find \"$BACKUP_BASE\" -maxdepth 1 -type d -name \"backup-*\" | wc -l)"
+  },
+  {
+    "#!\/bin\/bash":"if [ \"$BACKUP_COUNT\" -gt 7 ]; then"
+  },
+  {
+    "#!\/bin\/bash":"    find \"$BACKUP_BASE\" -maxdepth 1 -type d -name \"backup-*\" | sort | head -n -7 | xargs rm -rf"
+  },
+  {
+    "#!\/bin\/bash":"fi"
+  },
+  {
+    "#!\/bin\/bash":"echo \"Backup completed: $CURRENT_BACKUP\""
+  },
+  {
+    "#!\/bin\/bash":"exit 0"
+  },
+  {
+    "#!\/bin\/bash":"EOF"
+  },
+  {
+    "#!\/bin\/bash":"chmod +x \/root\/backup_solution.sh"
+  },
+  {
+    "#!\/bin\/bash":"cat > \/root\/backup_info.txt << 'EOF'"
+  },
+  {
+    "#!\/bin\/bash":"SCRIPT_PATH=\/root\/backup_solution.sh"
+  },
+  {
+    "#!\/bin\/bash":"BACKUP_DESTINATION=\/backup\/storage"
+  },
+  {
+    "#!\/bin\/bash":"RETENTION_DAYS=7"
+  },
+  {
+    "#!\/bin\/bash":"EOF"
+  },
+  {
+    "#!\/bin\/bash":"mkdir -p \/var\/projects\/project1"
+  },
+  {
+    "#!\/bin\/bash":"cat > \/var\/projects\/project1\/config.json << 'EOF'"
+  },
+  {
+    "#!\/bin\/bash":"{"
+  },
+  {
+    "#!\/bin\/bash":"  \"database\": {"
+  },
+  {
+    "#!\/bin\/bash":"    \"database_name\": \"project1_dev\""
+  },
+  {
+    "#!\/bin\/bash":"  \"application\": {"
+  },
+  {
+    "#!\/bin\/bash":"    \"max_connections\": 100"
+  },
+  {
+    "#!\/bin\/bash":"  \"features\": {"
+  },
+  {
+    "#!\/bin\/bash":"    \"enable_notifications\": true"
+  },
+  {
+    "#!\/bin\/bash":"  \"paths\": {"
+  },
+  {
+    "#!\/bin\/bash":"    \"log_dir\": \"\/var\/log\/project1\""
+  },
+  {
+    "#!\/bin\/bash":"  }"
+  },
+  {
+    "#!\/bin\/bash":"}"
+  },
+  {
+    "#!\/bin\/bash":"EOF"
+  }
+]

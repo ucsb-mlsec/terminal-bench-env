@@ -1,0 +1,129 @@
+I'll help you complete this task. Let me create the solution step by step.
+
+First, let me create the interrupted backup scenario and then provide the resume script.
+
+#!/bin/bash
+# Creating the test environment with source data
+
+mkdir -p /home/project/data/archives
+mkdir -p /home/project/data/documents
+mkdir -p /home/project/data/scripts
+mkdir -p /home/project/data/configs
+mkdir -p /backup/project_backup
+
+# Generate the binary TAR archive file (300KB)
+dd if=/dev/urandom of=/home/project/data/archives/backup_old.tar bs=1024 count=300 2>/dev/null
+
+# Create various other test files
+echo "Project Documentation - Main README" > /home/project/data/documents/README.md
+echo "#!/bin/bash" > /home/project/data/scripts/deploy.sh
+echo "server_config=production" > /home/project/data/configs/app.conf
+dd if=/dev/urandom of=/home/project/data/archives/data.bin bs=1024 count=500 2>/dev/null
+echo "Large log file content" > /home/project/data/documents/large.log
+for i in {1..1000}; do echo "Log entry $i: System operational" >> /home/project/data/documents/large.log; done
+
+# Simulate partial backup (60% transferred)
+cp -r /home/project/data/documents /backup/project_backup/
+cp -r /home/project/data/scripts /backup/project_backup/
+mkdir -p /backup/project_backup/archives
+dd if=/home/project/data/archives/backup_old.tar of=/backup/project_backup/archives/backup_old.tar bs=1024 count=180 2>/dev/null
+
+# Now create the backup resume script
+cat > /home/backup_resume.sh << 'SCRIPT_END'
+#!/bin/bash
+
+# Backup Resume Script
+# Resumes interrupted backup operation with verification
+
+SOURCE_DIR="/home/project/data"
+BACKUP_DIR="/backup/project_backup"
+REPORT_FILE="/home/backup_report.txt"
+
+START_TIME=$(date +%s)
+
+echo "Starting backup resume operation..."
+echo "Source: $SOURCE_DIR"
+echo "Destination: $BACKUP_DIR"
+
+# Ensure backup directory exists
+mkdir -p "$BACKUP_DIR"
+
+# Use rsync to resume the backup
+# --archive: preserve permissions, timestamps, symlinks, etc.
+# --partial: keep partially transferred files
+# --progress: show progress
+# --itemize-changes: show what's being transferred
+rsync -a --partial --info=progress2 "$SOURCE_DIR/" "$BACKUP_DIR/"
+
+RSYNC_EXIT=$?
+
+END_TIME=$(date +%s)
+TRANSFER_TIME=$((END_TIME - START_TIME))
+
+echo "Backup transfer completed. Verifying..."
+
+# Count files and calculate total size
+TOTAL_FILES=$(find "$BACKUP_DIR" -type f | wc -l)
+TOTAL_SIZE_BYTES=$(du -sb "$BACKUP_DIR" | cut -f1)
+TOTAL_SIZE_MB=$((TOTAL_SIZE_BYTES / 1024 / 1024))
+
+# Verify backup integrity
+VERIFICATION_FAILED=0
+
+# Compare file counts
+SOURCE_FILES=$(find "$SOURCE_DIR" -type f | wc -l)
+BACKUP_FILES=$(find "$BACKUP_DIR" -type f | wc -l)
+
+if [ "$SOURCE_FILES" -ne "$BACKUP_FILES" ]; then
+    echo "WARNING: File count mismatch!"
+    VERIFICATION_FAILED=1
+fi
+
+# Verify each file exists and has correct size
+while IFS= read -r source_file; do
+    relative_path="${source_file#$SOURCE_DIR/}"
+    backup_file="$BACKUP_DIR/$relative_path"
+    
+    if [ ! -f "$backup_file" ]; then
+        echo "ERROR: Missing file: $relative_path"
+        VERIFICATION_FAILED=1
+        continue
+    fi
+    
+    source_size=$(stat -c%s "$source_file" 2>/dev/null || stat -f%z "$source_file" 2>/dev/null)
+    backup_size=$(stat -c%s "$backup_file" 2>/dev/null || stat -f%z "$backup_file" 2>/dev/null)
+    
+    if [ "$source_size" != "$backup_size" ]; then
+        echo "ERROR: Size mismatch for: $relative_path"
+        VERIFICATION_FAILED=1
+    fi
+done < <(find "$SOURCE_DIR" -type f)
+
+# Determine final status
+if [ $RSYNC_EXIT -eq 0 ] && [ $VERIFICATION_FAILED -eq 0 ]; then
+    STATUS="COMPLETE"
+    echo "Backup completed successfully!"
+else
+    STATUS="INCOMPLETE"
+    echo "Backup completed with errors."
+fi
+
+# Generate report
+cat > "$REPORT_FILE" << EOF
+STATUS=$STATUS
+TOTAL_FILES=$TOTAL_FILES
+TOTAL_SIZE_MB=$TOTAL_SIZE_MB
+TRANSFER_TIME_SECONDS=$TRANSFER_TIME
+EOF
+
+echo "Report generated at: $REPORT_FILE"
+cat "$REPORT_FILE"
+
+exit $VERIFICATION_FAILED
+SCRIPT_END
+
+# Make the script executable
+chmod +x /home/backup_resume.sh
+
+# Execute the backup resume script
+/home/backup_resume.sh

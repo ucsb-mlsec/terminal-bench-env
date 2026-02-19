@@ -1,0 +1,152 @@
+I need to analyze the file management system and create a comprehensive audit of symbolic link chmod behavior. Let me start by exploring the directory structure and then conducting the tests.
+
+First, let me create the necessary directory structure and begin the investigation:
+
+#!/bin/bash
+
+# Create the directory structure
+mkdir -p /opt/filemanager/nested/deep
+
+# Create base configuration files
+echo "Main configuration file" > /opt/filemanager/config.txt
+echo "Secondary configuration" > /opt/filemanager/config2.txt
+echo "Backup configuration" > /opt/filemanager/backup.conf
+chmod 644 /opt/filemanager/config.txt
+chmod 600 /opt/filemanager/config2.txt
+chmod 755 /opt/filemanager/backup.conf
+
+# Create the required upward link
+cd /opt/filemanager/nested/deep/
+ln -s ../../config2.txt upward_link.txt
+
+# Create additional test symlinks for comprehensive testing
+cd /opt/filemanager/
+
+# Absolute path symlink
+ln -s /opt/filemanager/config.txt abs_link.txt
+
+# Relative path symlink
+ln -s config.txt rel_link.txt
+
+# Symlink chain (link to link)
+ln -s rel_link.txt chain1.txt
+ln -s chain1.txt chain2.txt
+ln -s chain2.txt chain3.txt
+
+# Broken symlink
+ln -s nonexistent.txt broken_link.txt
+
+# Nested symlinks
+mkdir -p /opt/filemanager/subdir
+echo "Subdir file content" > /opt/filemanager/subdir/file.txt
+chmod 640 /opt/filemanager/subdir/file.txt
+ln -s ../config.txt /opt/filemanager/subdir/parent_link.txt
+ln -s subdir/file.txt /opt/filemanager/nested_link.txt
+
+# Create circular reference (if possible)
+cd /opt/filemanager/nested/
+ln -s ../nested circular_link
+
+cd /opt/filemanager/
+
+# Now perform comprehensive chmod testing and analysis
+
+total_symlinks=0
+symlinks_follow_target=0
+broken_symlinks=0
+declare -A chain_lengths
+
+# Function to get chain length
+get_chain_length() {
+    local link="$1"
+    local depth=0
+    local current="$link"
+    local max_depth=100
+    
+    while [ $depth -lt $max_depth ]; do
+        if [ -L "$current" ]; then
+            depth=$((depth + 1))
+            local target=$(readlink "$current")
+            if [[ "$target" != /* ]]; then
+                current="$(dirname "$current")/$target"
+            else
+                current="$target"
+            fi
+        else
+            break
+        fi
+    done
+    echo $depth
+}
+
+# Find all symlinks
+while IFS= read -r -d '' symlink; do
+    total_symlinks=$((total_symlinks + 1))
+    
+    # Check if broken
+    if [ ! -e "$symlink" ] && [ -L "$symlink" ]; then
+        broken_symlinks=$((broken_symlinks + 1))
+        continue
+    fi
+    
+    # Test chmod behavior on this symlink
+    if [ -L "$symlink" ] && [ -e "$symlink" ]; then
+        # Get target file
+        target=$(readlink -f "$symlink" 2>/dev/null)
+        
+        if [ -n "$target" ] && [ -e "$target" ]; then
+            # Record original permissions
+            orig_link_perms=$(stat -c %a "$symlink" 2>/dev/null || echo "777")
+            orig_target_perms=$(stat -c %a "$target" 2>/dev/null)
+            
+            # Try chmod on symlink
+            chmod 751 "$symlink" 2>/dev/null
+            
+            # Check if target permissions changed
+            new_target_perms=$(stat -c %a "$target" 2>/dev/null)
+            
+            if [ "$new_target_perms" = "751" ]; then
+                symlinks_follow_target=$((symlinks_follow_target + 1))
+            fi
+            
+            # Restore original permissions
+            if [ -n "$orig_target_perms" ]; then
+                chmod "$orig_target_perms" "$target" 2>/dev/null
+            fi
+        fi
+        
+        # Calculate chain length
+        chain_len=$(get_chain_length "$symlink")
+        if [ $chain_len -gt 0 ]; then
+            chain_lengths[$symlink]=$chain_len
+        fi
+    fi
+done < <(find /opt/filemanager -type l -print0 2>/dev/null)
+
+# Find deepest chain
+deepest_chain_length=0
+for length in "${chain_lengths[@]}"; do
+    if [ $length -gt $deepest_chain_length ]; then
+        deepest_chain_length=$length
+    fi
+done
+
+# Additional tests for recursive chmod
+test_dir="/opt/filemanager/subdir"
+if [ -d "$test_dir" ]; then
+    chmod -R 755 "$test_dir" 2>/dev/null
+fi
+
+# Create JSON output
+cat > /tmp/symlink_chmod_audit.json << EOF
+{
+  "total_symlinks": $total_symlinks,
+  "symlinks_follow_target": $symlinks_follow_target,
+  "broken_symlinks": $broken_symlinks,
+  "deepest_chain_length": $deepest_chain_length
+}
+EOF
+
+# Verify JSON was created
+if [ -f /tmp/symlink_chmod_audit.json ]; then
+    cat /tmp/symlink_chmod_audit.json

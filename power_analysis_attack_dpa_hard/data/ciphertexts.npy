@@ -1,0 +1,21 @@
+import numpy as np
+from Crypto.Cipher import AES
+
+# Set the secret AES-128 key that will be used for all encryptions
+secret_key = bytes.fromhex('000102030405060708090a0b0c0d0e0f')
+
+# Load the plaintexts
+plaintexts = np.load('/data/plaintexts.npy')
+
+# Initialize array for ciphertexts
+ciphertexts = np.zeros((5000, 16), dtype=np.uint8)
+
+# Encrypt each plaintext using AES-128 ECB mode
+for i in range(5000):
+    plaintext = plaintexts[i].tobytes()
+    cipher = AES.new(secret_key, AES.MODE_ECB)
+    ciphertext = cipher.encrypt(plaintext)
+    ciphertexts[i] = np.frombuffer(ciphertext, dtype=np.uint8)
+
+# Save the ciphertexts
+np.save('/data/ciphertexts.npy', ciphertexts)

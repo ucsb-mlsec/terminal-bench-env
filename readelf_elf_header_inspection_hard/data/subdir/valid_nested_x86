@@ -1,0 +1,293 @@
+I'll create a valid ELF32 binary file for x86 (32-bit) architecture with proper header structure.
+
+<solution>
+<binary_file path="data/subdir/valid_nested_x86">
+7f454c46010101000000000000000000020003000100000000840408340000000000000000000000340020000100000000000000
+</binary_file>
+
+<bash_script path="analyze_elf_binaries.sh">
+#!/bin/bash
+
+OUTPUT_FILE="/tmp/elf_analysis_report.json"
+SEARCH_DIR="/opt/production/bin"
+
+# Initialize counters
+total=0
+valid=0
+suspicious=0
+corrupted=0
+not_elf=0
+
+# Temporary file to store binary entries
+tmp_binaries=$(mktemp)
+
+# Known valid machine types and their names
+declare -A machine_names=(
+    [0]="No machine"
+    [1]="AT&T WE 32100"
+    [2]="SPARC"
+    [3]="x86"
+    [4]="Motorola 68000"
+    [5]="Motorola 88000"
+    [7]="Intel 80860"
+    [8]="MIPS"
+    [9]="IBM System/370"
+    [10]="MIPS RS3000"
+    [15]="HP PA-RISC"
+    [20]="PowerPC"
+    [21]="PowerPC 64-bit"
+    [22]="S390"
+    [40]="ARM"
+    [42]="SuperH"
+    [43]="SPARC v9"
+    [50]="IA-64"
+    [62]="x86-64"
+    [183]="AArch64"
+    [243]="RISC-V"
+)
+
+analyze_elf() {
+    local filepath="$1"
+    local status="NOT_ELF"
+    local architecture="N/A"
+    local bits=0
+    local entry_point="N/A"
+    
+    # Check if file is readable
+    if [[ ! -r "$filepath" ]]; then
+        echo "    {\"path\": \"$filepath\", \"status\": \"NOT_ELF\", \"architecture\": \"N/A\", \"bits\": 0, \"entry_point\": \"N/A\"}," >> "$tmp_binaries"
+        ((not_elf++))
+        return
+    fi
+    
+    # Check file size (minimum ELF header is 52 bytes for 32-bit)
+    local filesize=$(stat -f%z "$filepath" 2>/dev/null || stat -c%s "$filepath" 2>/dev/null)
+    if [[ $filesize -lt 52 ]]; then
+        echo "    {\"path\": \"$filepath\", \"status\": \"NOT_ELF\", \"architecture\": \"N/A\", \"bits\": 0, \"entry_point\": \"N/A\"}," >> "$tmp_binaries"
+        ((not_elf++))
+        return
+    fi
+    
+    # Read first 64 bytes (covers both 32-bit and 64-bit ELF headers)
+    local header=$(xxd -l 64 -p "$filepath" 2>/dev/null | tr -d '\n')
+    
+    # Check ELF magic number (7f 45 4c 46)
+    local magic="${header:0:8}"
+    if [[ "$magic" != "7f454c46" ]]; then
+        echo "    {\"path\": \"$filepath\", \"status\": \"NOT_ELF\", \"architecture\": \"N/A\", \"bits\": 0, \"entry_point\": \"N/A\"}," >> "$tmp_binaries"
+        ((not_elf++))
+        return
+    fi
+    
+    # Extract ELF class (32-bit or 64-bit)
+    local ei_class=$((16#${header:8:2}))
+    if [[ $ei_class -eq 1 ]]; then
+        bits=32
+    elif [[ $ei_class -eq 2 ]]; then
+        bits=64
+    else
+        status="CORRUPTED"
+        architecture="unknown"
+        entry_point="0x0"
+        echo "    {\"path\": \"$filepath\", \"status\": \"$status\", \"architecture\": \"$architecture\", \"bits\": $bits, \"entry_point\": \"$entry_point\"}," >> "$tmp_binaries"
+        ((corrupted++))
+        return
+    fi
+    
+    # Extract endianness
+    local ei_data=$((16#${header:10:2}))
+    if [[ $ei_data -ne 1 ]] && [[ $ei_data -ne 2 ]]; then
+        status="CORRUPTED"
+        architecture="unknown"
+        entry_point="0x0"
+        echo "    {\"path\": \"$filepath\", \"status\": \"$status\", \"architecture\": \"$architecture\", \"bits\": $bits, \"entry_point\": \"$entry_point\"}," >> "$tmp_binaries"
+        ((corrupted++))
+        return
+    fi
+    
+    # Extract version
+    local ei_version=$((16#${header:12:2}))
+    if [[ $ei_version -ne 1 ]]; then
+        status="CORRUPTED"
+        architecture="unknown"
+        entry_point="0x0"
+        echo "    {\"path\": \"$filepath\", \"status\": \"$status\", \"architecture\": \"$architecture\", \"bits\": $bits, \"entry_point\": \"$entry_point\"}," >> "$tmp_binaries"
+        ((corrupted++))
+        return
+    fi
+    
+    # Extract machine type (e_machine) - offset 18 (0x12), 2 bytes
+    local machine_bytes
+    if [[ $ei_data -eq 1 ]]; then
+        # Little-endian
+        machine_bytes="${header:38:2}${header:36:2}"
+    else
+        # Big-endian
+        machine_bytes="${header:36:4}"
+    fi
+    local machine=$((16#$machine_bytes))
+    
+    # Map machine type to name
+    if [[ -n "${machine_names[$machine]}" ]]; then
+        architecture="${machine_names[$machine]}"
+    else
+        architecture="unknown (code: $machine)"
+    fi
+    
+    # Extract entry point address
+    if [[ $bits -eq 32 ]]; then
+        # 32-bit: entry point at offset 24 (0x18), 4 bytes
+        if [[ $ei_data -eq 1 ]]; then
+            # Little-endian
+            entry_point="0x${header:54:2}${header:52:2}${header:50:2}${header:48:2}"
+        else
+            # Big-endian
+            entry_point="0x${header:48:8}"
+        fi
+    else
+        # 64-bit: entry point at offset 24 (0x18), 8 bytes
+        if [[ $ei_data -eq 1 ]]; then
+            # Little-endian
+            entry_point="0x${header:62:2}${header:60:2}${header:58:2}${header:56:2}${header:54:2}${header:52:2}${header:50:2}${header:48:2}"
+        else
+            # Big-endian
+            entry_point="0x${header:48:16}"
+        fi
+    fi
+    
+    # Validate entry point (check for suspicious values)
+    local entry_val=$((16#${entry_point:2}))
+    
+    # Check for NULL or very low entry points (typically invalid)
+    if [[ $entry_val -eq 0 ]] || [[ $entry_val -lt 4096 ]]; then
+        status="SUSPICIOUS"
+        ((suspicious++))
+    # Check for unreasonably high entry points
+    elif [[ $bits -eq 32 ]] && [[ $entry_val -gt 4294967295 ]]; then
+        status="CORRUPTED"
+        ((corrupted++))
+    # Check for common invalid patterns
+    elif [[ "$entry_point" == "0xffffffff"* ]]; then
+        status="SUSPICIOUS"
+        ((suspicious++))
+    # Validate machine type is known
+    elif [[ "$architecture" == "unknown"* ]]; then
+        status="SUSPICIOUS"
+        ((suspicious++))
+    # Check for No machine type
+    elif [[ $machine -eq 0 ]]; then
+        status="SUSPICIOUS"
+        ((suspicious++))
+    else
+        status="VALID"
+        ((valid++))
+    fi
+    
+    echo "    {\"path\": \"$filepath\", \"status\": \"$status\", \"architecture\": \"$architecture\", \"bits\": $bits, \"entry_point\": \"$entry_point\"}," >> "$tmp_binaries"
+}
+
+# Create output directory if needed
+mkdir -p "$(dirname "$OUTPUT_FILE")"
+
+# Check if search directory exists
+if [[ ! -d "$SEARCH_DIR" ]]; then
+    echo "{\"error\": \"Directory $SEARCH_DIR does not exist\"}" > "$OUTPUT_FILE"
+    exit 1
+fi
+
+# Find all files and analyze them
+while IFS= read -r -d '' file; do
+    analyze_elf "$file"
+    ((total++))
+done < <(find "$SEARCH_DIR" -type f -print0 | sort -z)
+
+# Build JSON output
+{
+    echo "{"
+    echo "  \"binaries\": ["
+    
+    # Output all binaries (remove trailing comma from last entry)
+    if [[ -s "$tmp_binaries" ]]; then
+        sed '$ s/,$//' "$tmp_binaries"
+    fi
+    
+    echo "  ],"
+    echo "  \"summary\": {"
+    echo "    \"total\": $total,"
+    echo "    \"valid\": $valid,"
+    echo "    \"suspicious\": $suspicious,"
+    echo "    \"corrupted\": $corrupted,"
+    echo "    \"not_elf\": $not_elf"
+    echo "  }"
+    echo "}"
+} > "$OUTPUT_FILE"
+
+# Cleanup
+rm -f "$tmp_binaries"
+
+echo "Analysis complete. Report saved to $OUTPUT_FILE"
+</bash_script>
+
+<bash_script path="create_test_environment.sh">
+#!/bin/bash
+
+# Create the production bin directory structure
+mkdir -p /opt/production/bin/subdir
+
+# Create valid nested x86 binary in subdirectory
+mkdir -p data/subdir
+echo -n "7f454c46010101000000000000000000020003000100000000840408340000000000000000000000340020000100000000000000" | xxd -r -p > data/subdir/valid_nested_x86
+cp data/subdir/valid_nested_x86 /opt/production/bin/subdir/
+
+# Create additional test binaries
+
+# Valid x86-64 binary
+echo -n "7f454c4602010100000000000000000002003e00010000004010400000000000400000000000000000000000000000004000380001000000000000000000" | xxd -r -p > /opt/production/bin/valid_x86_64
+
+# Valid ARM binary
+echo -n "7f454c46010101000000000000000000020028000100000000800408340000000000000000000000340020000100000000000000" | xxd -r -p > /opt/production/bin/valid_arm
+
+# Corrupted binary - wrong magic number
+echo -n "7f454c4601010100000000000000000002000300010000000084040834000000" > /opt/production/bin/corrupted_magic
+sed -i '1s/^7f454c46/7f4c4546/' /opt/production/bin/corrupted_magic 2>/dev/null || true
+
+# Corrupted binary - invalid class
+echo -n "7f454c46050101000000000000000000020003000100000000840408340000000000000000000000340020000100000000000000" | xxd -r -p > /opt/production/bin/corrupted_class
+
+# Suspicious binary - NULL entry point
+echo -n "7f454c46010101000000000000000000020003000100000000000000340000000000000000000000340020000100000000000000" | xxd -r -p > /opt/production/bin/suspicious_null_entry
+
+# Not an ELF file - text file
+echo "This is not an ELF binary" > /opt/production/bin/not_elf.txt
+
+# Set executable permissions
+chmod +x /opt/production/bin/* 2>/dev/null || true
+chmod +x /opt/production/bin/subdir/* 2>/dev/null || true
+
+echo "Test environment created"
+</bash_script>
+
+<bash_script path="run_analysis.sh">
+#!/bin/bash
+
+# Create test environment
+bash create_test_environment.sh
+
+# Run the analysis
+bash analyze_elf_binaries.sh
+
+# Display results
+echo ""
+echo "=== Analysis Report ==="
+cat /tmp/elf_analysis_report.json
+
+# Validate JSON
+if python3 -m json.tool /tmp/elf_analysis_report.json > /dev/null 2>&1; then
+    echo ""
+    echo "JSON validation: PASSED"
+else
+    echo ""
+    echo "JSON validation: FAILED"
+fi
+</bash_script>
+</solution>

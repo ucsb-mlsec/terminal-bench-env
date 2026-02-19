@@ -1,0 +1,69 @@
+#!/bin/bash
+
+# Create the cache data file with appropriate size and modification time
+TARGET_FILE="/tmp/data_cache_temp.bin"
+FINAL_FILE="data/workspace7/cache/data.cache"
+
+# Create directory structure
+mkdir -p "$(dirname "$FINAL_FILE")"
+
+# Generate approximately 950MB of data
+# Using dd to create binary data more efficiently
+dd if=/dev/zero of="$TARGET_FILE" bs=1M count=950 2>/dev/null
+
+# Add some realistic cache-like header content
+cat > "$FINAL_FILE" << 'EOF'
+JENKINS_CACHE_V2_FORMAT
+============================================
+Cache Generated: 2024-01-15 08:23:45 UTC
+Job: data-processing-pipeline
+Build: #847
+Cache Type: Dependency Resolution Cache
+Compression: GZIP
+Checksum: SHA256
+============================================
+
+[DEPENDENCY_METADATA]
+total_dependencies=2847
+resolved_packages=2847
+cache_format_version=2.1.0
+artifact_repository=https://nexus.internal.company.com/repository/maven-public/
+
+[CACHED_ARTIFACTS]
+org.springframework:spring-core:5.3.20:jar
+org.springframework:spring-context:5.3.20:jar
+org.springframework:spring-web:5.3.20:jar
+org.apache.commons:commons-lang3:3.12.0:jar
+com.google.guava:guava:31.1-jre:jar
+org.slf4j:slf4j-api:1.7.36:jar
+ch.qos.logback:logback-classic:1.2.11:jar
+com.fasterxml.jackson.core:jackson-databind:2.13.3:jar
+org.hibernate:hibernate-core:5.6.9.Final:jar
+org.postgresql:postgresql:42.3.6:jar
+
+[BINARY_CACHE_DATA_SECTION]
+EOF
+
+# Append the large binary data
+cat "$TARGET_FILE" >> "$FINAL_FILE"
+
+# Add footer
+cat >> "$FINAL_FILE" << 'EOF'
+
+[CACHE_FOOTER]
+============================================
+Total Cached Items: 2847
+Total Cache Size: 950 MB
+Cache Efficiency: 98.7%
+Last Validated: 2024-01-15 08:23:45 UTC
+Cache Integrity: VERIFIED
+============================================
+EOF
+
+# Clean up temp file
+rm -f "$TARGET_FILE"
+
+# Set the modification time to 50 days ago
+touch -d "50 days ago" "$FINAL_FILE"
+
+echo "Cache file created at $FINAL_FILE with size ~950MB and mtime set to 50 days ago"

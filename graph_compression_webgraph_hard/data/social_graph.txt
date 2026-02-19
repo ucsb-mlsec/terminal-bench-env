@@ -1,0 +1,210 @@
+I'll generate the social graph data with the specified properties and then implement the compression solution.
+
+First, let me create the social graph data:
+
+```python
+import random
+import json
+import os
+
+# Create data directory
+os.makedirs('/data', exist_ok=True)
+os.makedirs('/solution', exist_ok=True)
+
+# Generate social graph with realistic properties
+random.seed(42)
+edges = []
+
+# Total nodes and target edges
+num_nodes = 50000
+target_edges = 200000
+
+# Categorize nodes by degree
+hub_nodes = int(0.075 * num_nodes)  # 7.5% are hubs (50+ edges)
+medium_nodes = int(0.25 * num_nodes)  # 25% have medium degree (10-50 edges)
+# Rest are low degree (1-10 edges)
+
+node_degrees = {}
+
+# Assign degrees to hubs
+for i in range(hub_nodes):
+    node_id = random.randint(0, num_nodes - 1)
+    while node_id in node_degrees:
+        node_id = random.randint(0, num_nodes - 1)
+    node_degrees[node_id] = random.randint(50, 150)
+
+# Assign degrees to medium nodes
+for i in range(medium_nodes):
+    node_id = random.randint(0, num_nodes - 1)
+    while node_id in node_degrees:
+        node_id = random.randint(0, num_nodes - 1)
+    node_degrees[node_id] = random.randint(10, 50)
+
+# Calculate remaining edges needed
+assigned_edges = sum(node_degrees.values())
+remaining_edges = target_edges - assigned_edges
+
+# Distribute remaining edges among low-degree nodes
+low_degree_count = num_nodes - len(node_degrees)
+avg_low_degree = max(1, remaining_edges // low_degree_count)
+
+for i in range(num_nodes):
+    if i not in node_degrees:
+        node_degrees[i] = min(random.randint(1, 10), 10)
+
+# Adjust to match target
+current_total = sum(node_degrees.values())
+if current_total > target_edges:
+    # Reduce some degrees
+    nodes_list = list(node_degrees.keys())
+    while current_total > target_edges:
+        node = random.choice(nodes_list)
+        if node_degrees[node] > 1:
+            node_degrees[node] -= 1
+            current_total -= 1
+
+# Generate edges with locality property
+with open('/data/social_graph.txt', 'w') as f:
+    for source_id in sorted(node_degrees.keys()):
+        degree = node_degrees[source_id]
+        targets = set()
+        
+        # Generate targets with locality bias
+        for _ in range(degree):
+            if random.random() < 0.7:  # 70% chance of local connection
+                # Local connection (within +/- 500 of source)
+                offset = random.randint(-500, 500)
+                target = (source_id + offset) % num_nodes
+            else:
+                # Random connection
+                target = random.randint(0, num_nodes - 1)
+            
+            # Avoid self-loops and duplicates
+            if target != source_id and target not in targets:
+                targets.add(target)
+        
+        # Write edges
+        for target in targets:
+            f.write(f"{source_id} {target}\n")
+
+print("Social graph generated at /data/social_graph.txt")
+```
+
+Now let me implement the compression solution:
+
+```python
+import struct
+import math
+from collections import defaultdict
+
+# Read and build adjacency list
+adjacency_list = defaultdict(list)
+edge_count = 0
+
+with open('/data/social_graph.txt', 'r') as f:
+    for line in f:
+        parts = line.strip().split()
+        if len(parts) == 2:
+            source = int(parts[0])
+            target = int(parts[1])
+            adjacency_list[source].append(target)
+            edge_count += 1
+
+# Sort adjacency lists to maximize locality
+for node in adjacency_list:
+    adjacency_list[node].sort()
+
+# Variable-length integer encoding (similar to VByte encoding)
+def encode_varint(value):
+    """Encode integer using variable-length encoding"""
+    bytes_list = []
+    while value > 127:
+        bytes_list.append((value & 0x7F) | 0x80)
+        value >>= 7
+    bytes_list.append(value & 0x7F)
+    return bytes(bytes_list)
+
+def decode_varint(data, offset):
+    """Decode variable-length integer"""
+    result = 0
+    shift = 0
+    while offset < len(data):
+        byte = data[offset]
+        result |= (byte & 0x7F) << shift
+        offset += 1
+        if (byte & 0x80) == 0:
+            break
+        shift += 7
+    return result, offset
+
+# Compress the graph using gap encoding
+compressed_data = bytearray()
+
+# Store number of nodes with edges
+nodes_with_edges = sorted(adjacency_list.keys())
+compressed_data.extend(encode_varint(len(nodes_with_edges)))
+
+# For each node, store: node_id, num_targets, gap-encoded targets
+for node_id in nodes_with_edges:
+    targets = adjacency_list[node_id]
+    
+    # Encode node ID
+    compressed_data.extend(encode_varint(node_id))
+    
+    # Encode number of targets
+    compressed_data.extend(encode_varint(len(targets)))
+    
+    # Encode targets using gap encoding
+    prev_target = 0
+    for target in targets:
+        gap = target - prev_target
+        compressed_data.extend(encode_varint(gap))
+        prev_target = target
+
+compressed_size = len(compressed_data)
+
+# Calculate metrics
+original_size = edge_count * 8  # 2 integers × 4 bytes each
+compression_ratio = original_size / compressed_size if compressed_size > 0 else 0
+
+# Verify compression is lossless by decoding
+decoded_edges = set()
+offset = 0
+num_nodes_encoded, offset = decode_varint(compressed_data, offset)
+
+for _ in range(num_nodes_encoded):
+    node_id, offset = decode_varint(compressed_data, offset)
+    num_targets, offset = decode_varint(compressed_data, offset)
+    
+    prev_target = 0
+    for _ in range(num_targets):
+        gap, offset = decode_varint(compressed_data, offset)
+        target = prev_target + gap
+        decoded_edges.add((node_id, target))
+        prev_target = target
+
+# Verify all edges are recovered
+original_edges = set()
+for node in adjacency_list:
+    for target in adjacency_list[node]:
+        original_edges.add((node, target))
+
+assert decoded_edges == original_edges, "Compression is not lossless!"
+
+# Save results
+result = {
+    "original_edges": edge_count,
+    "compressed_size_bytes": compressed_size,
+    "compression_ratio": round(compression_ratio, 2),
+    "encoding_method": "gap_encoding_variable_length"
+}
+
+with open('/solution/compression_result.json', 'w') as f:
+    json.dump(result, f, indent=2)
+
+print(f"Compression complete!")
+print(f"Original edges: {edge_count}")
+print(f"Original size: {original_size} bytes")
+print(f"Compressed size: {compressed_size} bytes")
+print(f"Compression ratio: {compression_ratio:.2f}x")
+print(f"Verification: {'PASSED' if decoded_edges == original_edges else 'FAILED'}")

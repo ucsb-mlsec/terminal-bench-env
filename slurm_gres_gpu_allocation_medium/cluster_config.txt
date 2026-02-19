@@ -1,0 +1,71 @@
+GPU Cluster Configuration
+=====================================
+
+Last Updated: 2024-01-15
+Cluster Administrator: research-admin@university.edu
+
+Available GPU Types
+-------------------
+The cluster supports the following GPU accelerators:
+
+1. NVIDIA V100 (32GB VRAM)
+   - High compute capability
+   - Excellent for deep learning training
+   
+2. NVIDIA A100 (40GB VRAM)
+   - Latest generation architecture
+   - Superior performance for large models
+   
+3. NVIDIA RTX3090 (24GB VRAM)
+   - Good price/performance ratio
+   - Suitable for medium-scale workloads
+
+Node Configurations
+-------------------
+The cluster consists of several node types:
+
+* Standard GPU Nodes (node[01-20])
+  - 4 GPUs per node (mixed types: V100, RTX3090)
+  - Shared across general workloads
+  
+* V100 Dedicated Nodes (v100-node[01-08])
+  - 2-4 V100 GPUs per node
+  - Reserved for V100-specific jobs
+  
+* A100 Dedicated Nodes (a100-node[01-04])
+  - 1-2 A100 GPUs per node
+  - Premium tier for large model training
+  
+* High-Memory GPU Nodes (hgpu-node[01-02])
+  - 8 GPUs per node (mixed V100/A100)
+  - For single-node multi-GPU jobs
+
+GRES Naming Convention
+----------------------
+GPU resources are requested using the Generic Resource Scheduling (GRES) system:
+
+Format: --gres=gpu:type:count
+
+Where:
+- type: v100, a100, rtx3090 (omit for any available GPU type)
+- count: number of GPUs requested (1-8 depending on node)
+
+Examples:
+  --gres=gpu:1              (any single GPU)
+  --gres=gpu:v100:2         (2 V100 GPUs specifically)
+  --gres=gpu:a100:1         (1 A100 GPU specifically)
+  --gres=gpu:4              (4 GPUs of any type)
+
+Multi-Node Job Notes
+--------------------
+- For multi-node GPU jobs, specify --gres per node
+- Use --nodes and --ntasks-per-node appropriately
+- GPUs are allocated per node based on --gres specification
+- Ensure MPI/distributed framework supports multi-node GPU jobs
+
+Resource Limits
+---------------
+- Maximum 8 GPUs per single node job
+- Maximum 32 GPUs total per user across all jobs
+- A100 GPUs limited to 4 per job without special approval
+- Priority scheduling for type-specific requests

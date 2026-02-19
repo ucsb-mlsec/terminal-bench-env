@@ -1,0 +1,92 @@
+---
+- name: Deploy Web Application Configuration
+  hosts: webservers
+  gather_facts: yes
+  
+  vars:
+    environments:
+      - dev
+      - staging
+      - prod
+    config_files:
+      - name: app.conf
+        dest: /etc/myapp/app.conf
+      - name: database.conf
+        dest: /etc/myapp/database.conf
+      - name: cache.conf
+        dest: /etc/myapp/cache.conf
+    app_ports:
+      - port: 8080
+        protocol: http
+      - port: 8443
+        protocol: https
+      - port: 9090
+        protocol: admin
+    service_users:
+      - username: appuser
+        group: appgroup
+      - username: dbuser
+        group: dbgroup
+    deploy_paths:
+      - /var/www/app
+      - /var/www/static
+      - /var/log/myapp
+
+  tasks:
+    - name: Create deployment directories
+      file:
+        path: "{{ items }}"
+        state: directory
+        mode: '0755'
+      loop: "{{ deploy_paths }}"
+
+    - name: Display environment configuration
+      debug:
+        msg: "Configuring environment: {{ env }}"
+      loop: "{{ environments }}"
+      loop_control:
+        loop_var: environment
+
+    - name: Copy configuration files to servers
+      copy:
+        src: "/opt/configs/{{ config.name }}"
+        dest: "{{ config.dest }}"
+        mode: '0644'
+      loop: "{{ config_files }}"
+      loop_control:
+        loop_var: config_item
+
+    - name: Configure application ports
+      debug:
+        msg: "Setting up {{ item.protocol }} on port {{ item.port }}"
+      loop: "{{ app_ports }}"
+
+    - name: Create service user accounts
+      user:
+        name: "{{ user.username }}"
+        group: "{{ user.group }}"
+        state: present
+      loop: "{{ service_users }}"
+      loop_control:
+        loop_var: user
+
+    - name: Set up environment-specific variables
+      lineinfile:
+        path: /etc/myapp/environment
+        line: "ENV={{ item }}"
+        create: yes
+      loop: "{{ environments }}"
+      loop_control:
+        loop_var: env_name
+
+    - name: Verify port configurations
+      debug:
+        msg: "Port {{ port_config.port }} configured for {{ port_config.protocol }}"
+      loop: "{{ app_ports }}"
+      loop_control:
+        loop_var: port_item
+
+    - name: Display deployment summary
+      debug:
+        msg: "Deployed configuration file {{ item.name }} to {{ item.dest }}"
+      loop: "{{ config_files }}"

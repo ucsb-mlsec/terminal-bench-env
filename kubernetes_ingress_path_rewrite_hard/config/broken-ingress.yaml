@@ -1,0 +1,73 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: legacy-app-ingress
+  namespace: production
+  annotations:
+    # Legacy ingress configuration - has known issues
+    # TODO: Fix rewrite rules for microservices migration
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  # TLS configuration - incomplete/broken
+  tls:
+  - hosts:
+    - legacy-app.example.com
+    # Missing secretName!
+  rules:
+  - host: legacy-app.example.com
+    http:
+      paths:
+      # User service - missing rewrite annotation, will send /app/v1/users/* to service
+      - path: /app/v1/users
+        pathType: Prefix
+        backend:
+          service:
+            name: user-service
+            port:
+              number: 8080
+      
+      # Products service - wrong service name and incorrect rewrite target
+      - path: /app/v1/products
+        pathType: Prefix
+        backend:
+          service:
+            name: products-svc  # Wrong service name!
+            port:
+              number: 8080
+      
+      # Orders service - wrong port and missing rewrite annotation
+      - path: /app/v2/orders
+        pathType: Prefix
+        backend:
+          service:
+            name: order-service
+            port:
+              number: 80  # Should be 8080!
+      
+      # Analytics service - wrong rewrite target
+      - path: /app/analytics
+        pathType: Prefix
+        backend:
+          service:
+            name: analytics-service
+            port:
+              number: 8080
+      
+      # Admin service - completely missing rewrite annotation
+      - path: /admin/dashboard
+        pathType: Prefix
+        backend:
+          service:
+            name: admin-service
+            port:
+              number: 8080
+      
+      # Frontend service - this one is mostly correct
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend-service
+            port:
+              number: 8080

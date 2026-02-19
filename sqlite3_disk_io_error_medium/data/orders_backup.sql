@@ -1,0 +1,111 @@
+-- SQLite database dump
+-- Database: orders.db
+-- Backup date: 2024-01-20
+
+CREATE TABLE orders (
+    order_id INTEGER PRIMARY KEY,
+    customer_email TEXT,
+    total_amount REAL,
+    order_date TEXT
+);
+
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1001, 'john.doe@example.com', 299.99, '2024-01-15');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1002, 'sarah.wilson@company.org', 150.50, '2024-01-16');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1003, NULL, 75.25, '2024-01-16');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1004, 'mike.johnson@mail.com', 425.00, '2024-01-17');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1005, 'emily.brown@shop.net', -50.00, '2024-01-17');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1006, 'david.lee@example.com', 199.99, '2024-01-18');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1007, 'customerexample.com', 320.00, '2024-01-18');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1008, 'lisa.garcia@email.com', 89.99, '2024-01-19');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1009, 'robert.miller@domain.org', NULL, '2024-01-19');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1010, 'jennifer.davis@company.com', 567.89, '2024-01-20');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1011, 'william.anderson@example.net', 124.50, '2024-01-20');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1012, NULL, 245.00, '2024-01-21');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1013, 'mary.taylor@shop.com', 399.99, '2024-01-21');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1014, 'james.thomas@mail.org', -125.75, '2024-01-22');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1015, 'patricia.jackson@example.com', 678.45, '2024-01-22');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1016, 'user.domain.com', 155.00, '2024-01-23');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1017, 'charles.white@email.net', 299.00, '2024-01-23');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1018, 'barbara.harris@company.com', 88.88, '2024-01-24');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1019, 'daniel.martin@example.org', '', '2024-01-24');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1020, 'susan.thompson@shop.net', 445.50, '2024-01-25');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1021, 'matthew.garcia@mail.com', 212.99, '2024-01-25');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1022, NULL, -89.50, '2024-01-26');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1023, 'nancy.martinez@example.com', 333.33, '2024-01-26');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1024, 'anthony.robinson@domain.org', 156.75, '2024-01-27');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1025, 'karen.clark@email.com', 499.99, '2024-01-27');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1026, 'invalidemailaddress.net', 225.00, '2024-01-28');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1027, 'mark.rodriguez@company.com', 789.12, '2024-01-28');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1028, 'betty.lewis@shop.org', NULL, '2024-01-29');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1029, 'donald.walker@example.net', 167.50, '2024-01-29');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1030, 'helen.hall@mail.com', -234.00, '2024-01-30');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1031, 'steven.allen@email.org', 555.55, '2024-01-30');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1032, 'ashley.young@company.net', 98.76, '2024-01-31');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1033, NULL, 432.10, '2024-01-31');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1034, 'kevin.hernandez@example.com', 276.45, '2024-02-01');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1035, 'dorothy.king@shop.com', 812.99, '2024-02-01');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1036, 'wrongformat.domain.org', 144.00, '2024-02-02');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1037, 'jason.wright@mail.net', 367.89, '2024-02-02');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1038, 'sandra.lopez@example.org', -45.99, '2024-02-03');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1039, 'brian.hill@email.com', 523.45, '2024-02-03');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1040, 'carol.scott@company.com', 189.99, '2024-02-04');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1041, 'ryan.green@shop.net', NULL, '2024-02-04');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1042, 'michelle.adams@example.com', 645.00, '2024-02-05');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1043, 'jacob.baker@domain.org', 97.50, '2024-02-05');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1044, NULL, 301.25, '2024-02-06');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1045, 'laura.gonzalez@mail.com', 456.78, '2024-02-06');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1046, 'eric.nelson@email.net', 234.56, '2024-02-07');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1047, 'noatsign.example.com', 178.90, '2024-02-07');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1048, 'nicholas.carter@company.org', 890.12, '2024-02-08');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1049, 'deborah.mitchell@shop.com', -156.00, '2024-02-08');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1050, 'gregory.perez@example.net', 423.99, '2024-02-09');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1051, 'rebecca.roberts@mail.org', 567.00, '2024-02-09');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1052, NULL, NULL, '2024-02-10');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1053, 'frank.turner@email.com', 198.75, '2024-02-10');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1054, 'carolyn.phillips@company.com', 734.50, '2024-02-11');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1055, 'jonathan.campbell@example.org', 289.99, '2024-02-11');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1056, 'christine.parker@shop.net', '', '2024-02-12');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1057, 'scott.evans@domain.com', 412.45, '2024-02-12');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1058, 'invaliduser.company.org', 267.80, '2024-02-13');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1059, 'catherine.edwards@mail.net', 598.99, '2024-02-13');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1060, 'stephen.collins@example.com', -78.25, '2024-02-14');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1061, 'virginia.stewart@email.org', 345.67, '2024-02-14');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1062, 'raymond.sanchez@company.net', 876.54, '2024-02-15');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1063, NULL, 123.45, '2024-02-15');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1064, 'janet.morris@shop.com', 456.12, '2024-02-16');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1065, 'jack.rogers@example.net', 234.00, '2024-02-16');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1066, 'pamela.reed@mail.com', NULL, '2024-02-17');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1067, 'gary.cook@domain.org', 678.90, '2024-02-17');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1068, 'martha.morgan@email.com', 321.45, '2024-02-18');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1069, 'baduserformat.shop.net', 190.00, '2024-02-18');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1070, 'terry.bell@company.com', 543.21, '2024-02-19');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1071, 'kathryn.murphy@example.org', -99.99, '2024-02-19');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1072, 'jeremy.bailey@mail.net', 765.43, '2024-02-20');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1073, 'joyce.rivera@shop.com', 432.10, '2024-02-20');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1074, NULL, -67.50, '2024-02-21');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1075, 'jesse.cooper@example.com', 289.75, '2024-02-21');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1076, 'marie.richardson@email.org', 567.89, '2024-02-22');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1077, 'carl.cox@company.net', 198.50, '2024-02-22');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1078, 'missingat.domain.com', 345.00, '2024-02-23');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1079, 'arthur.howard@shop.org', 623.45, '2024-02-23');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1080, 'julie.ward@example.net', NULL, '2024-02-24');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1081, 'russell.torres@mail.com', 456.78, '2024-02-24');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1082, 'gloria.peterson@email.com', 789.99, '2024-02-25');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1083, 'roy.gray@company.com', -145.60, '2024-02-25');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1084, 'teresa.ramirez@shop.net', 234.56, '2024-02-26');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1085, NULL, 567.00, '2024-02-26');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1086, 'eugene.james@example.org', 890.12, '2024-02-27');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1087, 'ann.watson@domain.com', 123.45, '2024-02-27');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1088, 'noemail.symbol.net', 456.00, '2024-02-28');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1089, 'albert.brooks@mail.org', 678.90, '2024-02-28');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1090, 'theresa.kelly@example.com', 345.67, '2024-02-29');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1091, 'alan.sanders@email.net', '', '2024-02-29');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1092, 'sara.price@company.org', 912.34, '2024-03-01');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1093, 'harold.bennett@shop.com', 267.89, '2024-03-01');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1094, NULL, 189.00, '2024-03-02');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1095, 'joan.wood@example.net', 534.21, '2024-03-02');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1096, 'bruce.barnes@mail.com', -201.50, '2024-03-03');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1097, 'diana.ross@email.org', 423.45, '2024-03-03');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1098, 'willie.henderson@company.com', 678.12, '2024-03-04');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1099, 'badformat.shop.org', 234.00, '2024-03-04');
+INSERT INTO orders (order_id, customer_email, total_amount, order_date) VALUES (1100, 'ralph.coleman@example.com', 567.89, '2024-03-05');

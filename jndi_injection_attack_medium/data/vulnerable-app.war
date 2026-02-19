@@ -1,0 +1,170 @@
+=== web.xml ===
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee
+         http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd"
+         version="3.1">
+    
+    <display-name>UserProfile Application</display-name>
+    
+    <servlet>
+        <servlet-name>UserProfileServlet</servlet-name>
+        <servlet-class>com.webapp.profile.UserProfileServlet</servlet-class>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+    
+    <servlet-mapping>
+        <servlet-name>UserProfileServlet</servlet-name>
+        <url-pattern>/api/profile</url-pattern>
+    </servlet-mapping>
+    
+    <context-param>
+        <param-name>jndiLookupEnabled</param-name>
+        <param-value>true</param-value>
+    </context-param>
+    
+    <welcome-file-list>
+        <welcome-file>index.jsp</welcome-file>
+    </welcome-file-list>
+    
+</web-app>
+
+=== VulnerableServlet.java ===
+package com.webapp.profile;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.naming.Context;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
+import java.io.IOException;
+import java.io.PrintWriter;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+public class UserProfileServlet extends HttpServlet {
+    
+    private static final Logger logger = LogManager.getLogger(UserProfileServlet.class);
+    
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) 
+            throws ServletException, IOException {
+        
+        response.setContentType("application/json");
+        PrintWriter out = response.getWriter();
+        
+        try {
+            // Get user identifier from User-Agent header for tracking
+            String userAgent = request.getHeader("User-Agent");
+            
+            // Log user agent for analytics - VULNERABLE to Log4Shell
+            logger.info("Profile request from user agent: " + userAgent);
+            
+            // Get username parameter
+            String username = request.getParameter("username");
+            
+            if (username == null || username.isEmpty()) {
+                out.println("{\"error\": \"Username required\"}");
+                return;
+            }
+            
+            // Perform JNDI lookup to get user profile from directory
+            // VULNERABLE: No input validation on username parameter
+            Context ctx = new InitialContext();
+            String jndiPath = "java:comp/env/users/" + username;
+            
+            try {
+                Object userProfile = ctx.lookup(jndiPath);
+                out.println("{\"status\": \"success\", \"profile\": \"" + userProfile.toString() + "\"}");
+            } catch (NamingException e) {
+                // Fallback: try direct JNDI lookup if local context fails
+                // EXTREMELY VULNERABLE: Allows arbitrary JNDI strings
+                logger.warn("Local lookup failed, attempting direct JNDI: " + username);
+                Object result = ctx.lookup(username);
+                out.println("{\"status\": \"success\", \"data\": \"" + result.toString() + "\"}");
+            }
+            
+        } catch (NamingException e) {
+            logger.error("JNDI lookup failed: " + e.getMessage());
+            out.println("{\"error\": \"Profile lookup failed\"}");
+        } catch (Exception e) {
+            logger.error("Unexpected error: " + e.getMessage());
+            out.println("{\"error\": \"Internal server error\"}");
+        }
+    }
+    
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) 
+            throws ServletException, IOException {
+        doGet(request, response);
+    }
+}
+
+=== Dependencies (pom.xml) ===
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    
+    <groupId>com.webapp</groupId>
+    <artifactId>userprofile-app</artifactId>
+    <version>1.2.0</version>
+    <packaging>war</packaging>
+    
+    <name>User Profile Web Application</name>
+    
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>2.14.1</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
+            <version>2.14.1</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>javax.servlet-api</artifactId>
+            <version>3.1.0</version>
+            <scope>provided</scope>
+        </dependency>
+        
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.12.3</version>
+        </dependency>
+    </dependencies>
+    
+    <build>
+        <finalName>vulnerable-app</finalName>
+    </build>
+</project>
+
+=== log4j2.xml ===
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+    <Appenders>
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+        </Console>
+        <File name="FileLogger" fileName="/var/log/webapp/application.log">
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n"/>
+        </File>
+    </Appenders>
+    <Loggers>
+        <Root level="info">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="FileLogger"/>
+        </Root>
+    </Loggers>
+</Configuration>

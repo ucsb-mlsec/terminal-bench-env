@@ -1,0 +1,73 @@
+#!/bin/sh
+exec tail -n +3 $0
+# This file probes for other operating systems
+
+set -e
+
+# Skip if disabled
+if [ "x${GRUB_DISABLE_OS_PROBER}" = "xtrue" ]; then
+  exit 0
+fi
+
+# Check if os-prober is available
+if ! test -f /usr/bin/os-prober || ! test -x /usr/bin/os-prober ; then
+  exit 0
+fi
+
+# Load GRUB environment
+. "$pkgdatadir/grub-mkconfig_lib"
+
+# Check for other operating systems
+OSPROBED="`os-prober | tr ' ' '^' | paste -s -d ' '`"
+if [ -z "${OSPROBED}" ] ; then
+  exit 0
+fi
+
+# Process each detected OS
+osx_entry() {
+    cat << EOF
+menuentry '$(echo "$1" | tr '^' ' ')' --class osx --class darwin {
+	insmod part_gpt
+	insmod hfsplus
+	search --no-floppy --fs-uuid --set=root $2
+	chainloader /System/Library/CoreServices/boot.efi
+}
+EOF
+}
+
+for OS in ${OSPROBED} ; do
+  DEVICE="`echo ${OS} | cut -d ':' -f 1`"
+  LONGNAME="`echo ${OS} | cut -d ':' -f 2 | tr '^' ' '`"
+  LABEL="`echo ${OS} | cut -d ':' -f 3 | tr '^' ' '`"
+  BOOT="`echo ${OS} | cut -d ':' -f 4`"
+
+  if [ -z "${LONGNAME}" ] ; then
+    LONGNAME="${LABEL}"
+  fi
+
+  echo "Found ${LONGNAME} on ${DEVICE}" >&2
+
+  case ${BOOT} in
+    chain)
+      cat << EOF
+menuentry '${LONGNAME} (${DEVICE})' --class windows --class os {
+	insmod part_msdos
+	insmod ntfs
+	set root='${DEVICE}'
+	chainloader +1
+}
+EOF
+    ;;
+    linux)
+      cat << EOF
+menuentry '${LONGNAME} (${DEVICE})' --class gnu-linux --class gnu --class os {
+	insmod part_msdos
+	insmod ext2
+	set root='${DEVICE}'
+	linux /boot/vmlinuz root=${DEVICE}
+	initrd /boot/initrd.img
+}
+EOF
+    ;;
+  esac
+done

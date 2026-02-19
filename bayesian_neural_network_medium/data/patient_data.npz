@@ -1,0 +1,67 @@
+import numpy as np
+
+# Set random seed for reproducibility
+np.random.seed(42)
+
+# Generate training data (100 samples, 5 features)
+n_train = 100
+n_features = 5
+
+# Create two clusters with some overlap to simulate realistic medical data
+# Class 0: centered around negative values
+X_train_class0 = np.random.randn(45, n_features) - 0.8
+y_train_class0 = np.zeros(45, dtype=np.int64)
+
+# Class 1: centered around positive values
+X_train_class1 = np.random.randn(55, n_features) + 0.8
+y_train_class1 = np.ones(55, dtype=np.int64)
+
+# Combine and shuffle training data
+X_train = np.vstack([X_train_class0, X_train_class1]).astype(np.float32)
+y_train = np.hstack([y_train_class0, y_train_class1])
+
+shuffle_idx = np.random.permutation(n_train)
+X_train = X_train[shuffle_idx]
+y_train = y_train[shuffle_idx]
+
+# Add some feature-specific patterns
+X_train[:, 0] *= 1.2  # First feature more important
+X_train[:, 1] *= 0.8  # Second feature less variable
+X_train[:, 3] *= 1.5  # Fourth feature has more spread
+
+# Clip to reasonable range
+X_train = np.clip(X_train, -3, 3)
+
+# Generate test data (30 samples, 5 features)
+n_test = 30
+
+# Class 0: 14 samples
+X_test_class0 = np.random.randn(14, n_features) - 0.8
+y_test_class0 = np.zeros(14, dtype=np.int64)
+
+# Class 1: 16 samples
+X_test_class1 = np.random.randn(16, n_features) + 0.8
+y_test_class1 = np.ones(16, dtype=np.int64)
+
+# Combine and shuffle test data
+X_test = np.vstack([X_test_class0, X_test_class1]).astype(np.float32)
+y_test = np.hstack([y_test_class0, y_test_class1])
+
+shuffle_idx_test = np.random.permutation(n_test)
+X_test = X_test[shuffle_idx_test]
+y_test = y_test[shuffle_idx_test]
+
+# Add same feature-specific patterns
+X_test[:, 0] *= 1.2
+X_test[:, 1] *= 0.8
+X_test[:, 3] *= 1.5
+
+# Clip to reasonable range
+X_test = np.clip(X_test, -3, 3)
+
+# Save to npz file
+np.savez('/workspace/patient_data.npz',
+         X_train=X_train,
+         y_train=y_train,
+         X_test=X_test,
+         y_test=y_test)

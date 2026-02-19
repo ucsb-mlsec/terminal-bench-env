@@ -1,0 +1,101 @@
+version: '3.8'
+
+services:
+  webapp:
+    image: nginx:1.21..3
+    ports:
+      - "80:80"
+    restart: always
+
+  database:
+    image: postgres@sha256:abc123xyz
+    environment:
+      POSTGRES_PASSWORD: secret
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+  cache:
+    image: redis@6.2.5
+    ports:
+      - "6379:6379"
+    restart: always
+
+  api:
+    image: node:14-alpine:latest
+    working_dir: /app
+    volumes:
+      - ./api:/app
+    command: npm start
+
+  worker:
+    image: python3.9-slim
+    volumes:
+      - ./worker:/app
+    command: python worker.py
+
+  frontend:
+    image: node:16-alpine
+    working_dir: /app
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+
+  backend:
+    image: mysql:8.0 latest
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: appdb
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+  message_queue:
+    image: rabbitmq:3.9-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    restart: always
+
+  search:
+    image: elasticsearch:7.15..2
+    environment:
+      - discovery.type=single-node
+    ports:
+      - "9200:9200"
+
+  monitor:
+    image: @grafana:8.3.0
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+
+  storage:
+    image: minio:latest:stable
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: password123
+
+  logger:
+    image: alpine:3.14:
+    command: tail -f /dev/null
+    volumes:
+      - ./logs:/logs
+
+  scheduler:
+    image: busybox@@sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef
+    command: sh -c "while true; do date; sleep 60; done"
+
+  backup:
+    image: ubuntu::20.04
+    volumes:
+      - ./backups:/backups
+    command: /bin/bash
+
+volumes:
+  db-data:
+  mysql-data:
+  grafana-data:

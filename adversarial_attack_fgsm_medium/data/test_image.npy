@@ -1,0 +1,32 @@
+import numpy as np
+
+# Create a 28x28 image with a circle
+image = np.zeros((28, 28), dtype=np.float32)
+
+# Circle parameters
+center_x, center_y = 14, 14
+radius = 8
+
+# Generate circle with anti-aliasing
+for i in range(28):
+    for j in range(28):
+        # Calculate distance from center
+        distance = np.sqrt((i - center_x)**2 + (j - center_y)**2)
+        
+        if distance <= radius - 1:
+            # Interior of circle
+            image[i, j] = 1.0
+        elif distance <= radius + 1:
+            # Edge with anti-aliasing
+            image[i, j] = 1.0 - (distance - (radius - 1)) / 2.0
+        else:
+            # Background
+            image[i, j] = 0.0
+
+# Add slight noise for realism
+np.random.seed(42)
+noise = np.random.normal(0, 0.02, (28, 28))
+image = np.clip(image + noise, 0.0, 1.0).astype(np.float32)
+
+# Save the image
+np.save('/workspace/test_image.npy', image)

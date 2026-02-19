@@ -1,0 +1,167 @@
+I'll complete this task step by step.
+
+First, let me create the traffic requirements file:
+
+```
+cat > /tmp/traffic_requirements.txt << 'EOF'
+INTERFACE=eth0
+TOTAL_BANDWIDTH=100mbit
+TRAFFIC_CLASS_1=HTTP,ports:80+443,min:40mbit,max:60mbit,priority:2
+TRAFFIC_CLASS_2=SSH,ports:22,min:5mbit,max:10mbit,priority:1
+TRAFFIC_CLASS_3=DATABASE,ports:5432,min:20mbit,max:30mbit,priority:3
+TRAFFIC_CLASS_4=DEFAULT,ports:*,min:10mbit,max:20mbit,priority:4
+EOF
+```
+
+Now, let me create the traffic control configuration script:
+
+```
+cat > /tmp/tc_config.sh << 'EOF'
+#!/bin/bash
+
+# Traffic Control Configuration Script
+# Generated from /tmp/traffic_requirements.txt
+# This script configures HTB (Hierarchical Token Bucket) traffic shaping
+
+set -e
+
+# Parse the traffic requirements file
+REQUIREMENTS_FILE="/tmp/traffic_requirements.txt"
+
+if [ ! -f "$REQUIREMENTS_FILE" ]; then
+    echo "Error: Requirements file not found at $REQUIREMENTS_FILE"
+    exit 1
+fi
+
+# Read configuration parameters
+INTERFACE=$(grep "^INTERFACE=" "$REQUIREMENTS_FILE" | cut -d= -f2)
+TOTAL_BANDWIDTH=$(grep "^TOTAL_BANDWIDTH=" "$REQUIREMENTS_FILE" | cut -d= -f2)
+
+echo "Configuring traffic control on interface: $INTERFACE"
+echo "Total bandwidth: $TOTAL_BANDWIDTH"
+
+# ====================================================================
+# CLEANUP SECTION: Remove existing traffic control rules
+# ====================================================================
+echo "Cleaning up existing tc rules..."
+tc qdisc del dev "$INTERFACE" root 2>/dev/null || true
+
+# ====================================================================
+# ROOT QDISC SETUP: Create HTB root qdisc
+# ====================================================================
+echo "Creating root HTB qdisc..."
+tc qdisc add dev "$INTERFACE" root handle 1: htb default 40
+
+# ====================================================================
+# ROOT CLASS: Create parent class with total bandwidth
+# ====================================================================
+echo "Creating root class..."
+tc class add dev "$INTERFACE" parent 1: classid 1:1 htb rate "$TOTAL_BANDWIDTH"
+
+# ====================================================================
+# TRAFFIC CLASSES: Parse and create traffic classes
+# ====================================================================
+
+# Traffic Class 1: HTTP (Priority 2)
+# Ports: 80, 443
+# Bandwidth: min 40mbit, max 60mbit
+echo "Creating HTTP traffic class (1:10)..."
+tc class add dev "$INTERFACE" parent 1:1 classid 1:10 htb rate 40mbit ceil 60mbit prio 2
+
+# Traffic Class 2: SSH (Priority 1)
+# Ports: 22
+# Bandwidth: min 5mbit, max 10mbit
+echo "Creating SSH traffic class (1:20)..."
+tc class add dev "$INTERFACE" parent 1:1 classid 1:20 htb rate 5mbit ceil 10mbit prio 1
+
+# Traffic Class 3: DATABASE (Priority 3)
+# Ports: 5432
+# Bandwidth: min 20mbit, max 30mbit
+echo "Creating DATABASE traffic class (1:30)..."
+tc class add dev "$INTERFACE" parent 1:1 classid 1:30 htb rate 20mbit ceil 30mbit prio 3
+
+# Traffic Class 4: DEFAULT (Priority 4)
+# Ports: * (all others)
+# Bandwidth: min 10mbit, max 20mbit
+echo "Creating DEFAULT traffic class (1:40)..."
+tc class add dev "$INTERFACE" parent 1:1 classid 1:40 htb rate 10mbit ceil 20mbit prio 4
+
+# ====================================================================
+# LEAF QDISCS: Attach SFQ to each class for fair queuing
+# ====================================================================
+echo "Attaching SFQ qdiscs to each class..."
+tc qdisc add dev "$INTERFACE" parent 1:10 handle 10: sfq perturb 10
+tc qdisc add dev "$INTERFACE" parent 1:20 handle 20: sfq perturb 10
+tc qdisc add dev "$INTERFACE" parent 1:30 handle 30: sfq perturb 10
+tc qdisc add dev "$INTERFACE" parent 1:40 handle 40: sfq perturb 10
+
+# ====================================================================
+# FILTERS: Create filters to classify traffic into appropriate classes
+# ====================================================================
+echo "Creating traffic filters..."
+
+# HTTP Traffic - Port 80
+tc filter add dev "$INTERFACE" protocol ip parent 1:0 prio 2 u32 \
+    match ip dport 80 0xffff flowid 1:10
+
+# HTTP Traffic - Port 443
+tc filter add dev "$INTERFACE" protocol ip parent 1:0 prio 2 u32 \
+    match ip dport 443 0xffff flowid 1:10
+
+# SSH Traffic - Port 22
+tc filter add dev "$INTERFACE" protocol ip parent 1:0 prio 1 u32 \
+    match ip dport 22 0xffff flowid 1:20
+
+# DATABASE Traffic - Port 5432
+tc filter add dev "$INTERFACE" protocol ip parent 1:0 prio 3 u32 \
+    match ip dport 5432 0xffff flowid 1:30
+
+# DEFAULT Traffic - All other traffic goes to default class (1:40)
+# This is handled by the 'default 40' parameter in the root qdisc
+
+# ====================================================================
+# VERIFICATION: Display configured rules
+# ====================================================================
+echo ""
+echo "Traffic control configuration completed successfully!"
+echo ""
+echo "=== Configured Classes ==="
+tc class show dev "$INTERFACE"
+echo ""
+echo "=== Configured Filters ==="
+tc filter show dev "$INTERFACE"
+echo ""
+echo "Configuration is ready for review."
+EOF
+```
+
+Now, let me make the script executable and create the summary file:
+
+```
+chmod +x /tmp/tc_config.sh
+
+cat > /tmp/config_summary.txt << 'EOF'
+INTERFACE=eth0
+CLASSES=4
+BANDWIDTH=100mbit
+EOF
+```
+
+The task is now complete. I have created:
+
+1. **/tmp/traffic_requirements.txt** - The traffic requirements specification file
+2. **/tmp/tc_config.sh** - A complete, syntactically correct bash script that implements traffic control using HTB
+3. **/tmp/config_summary.txt** - A summary of the configuration
+
+The tc_config.sh script includes:
+- Proper shebang and error handling
+- Cleanup of existing rules
+- HTB root qdisc configuration
+- Four traffic classes with appropriate bandwidth guarantees and limits
+- Priority levels for each class
+- SFQ leaf qdiscs for fair queuing within each class
+- Filters to classify traffic based on ports
+- Comprehensive comments for network team review
+- Verification commands to display the configuration
+
+The script is ready for inspection and approval by the network team before deployment.

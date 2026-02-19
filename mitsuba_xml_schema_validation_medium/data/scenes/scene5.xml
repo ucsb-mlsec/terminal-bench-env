@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<scene version="3.0.0">
+    <!-- VIOLATION 1: BSDF element placed directly under scene instead of inside a shape -->
+    <bsdf type="diffuse" id="mymat">
+        <rgb name="reflectance" value="0.8, 0.8, 0.8"/>
+    </bsdf>
+
+    <!-- VIOLATION 2: Shape element containing a sampler child (samplers should only be in sensors) -->
+    <shape type="sphere">
+        <transform name="to_world">
+            <scale value="2"/>
+            <translate x="0" y="0" z="0"/>
+        </transform>
+        <sampler type="independent">
+            <integer name="sample_count" value="64"/>
+        </sampler>
+        <ref id="mymat"/>
+    </shape>
+
+    <!-- VIOLATION 4: Transform element placed outside sensor/shape context -->
+    <transform name="to_world">
+        <rotate x="1" angle="45"/>
+    </transform>
+
+    <!-- Properly formed sensor element (but contains VIOLATION 3) -->
+    <sensor type="perspective">
+        <string name="fov_axis" value="x"/>
+        <float name="fov" value="45"/>
+        <transform name="to_world">
+            <lookat origin="0, 5, 10"
+                    target="0, 0, 0"
+                    up="0, 1, 0"/>
+        </transform>
+        
+        <!-- VIOLATION 3: Integrator element nested inside sensor instead of being direct child of scene -->
+        <integrator type="path">
+            <integer name="max_depth" value="8"/>
+        </integrator>
+
+        <sampler type="independent">
+            <integer name="sample_count" value="256"/>
+        </sampler>
+        
+        <film type="hdrfilm">
+            <integer name="width" value="1024"/>
+            <integer name="height" value="768"/>
+        </film>
+    </sensor>
+
+    <!-- This is where integrator should actually be -->
+    <emitter type="constant">
+        <rgb name="radiance" value="1.0, 1.0, 1.0"/>
+    </emitter>
+</scene>

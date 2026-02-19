@@ -1,0 +1,155 @@
+/* CTF 1.8 */
+
+trace {
+	major = 1;
+	minor = 8;
+	uuid = "a3f2d8c1-4e7b-4a9c-8d1f-2b3e4c5a6d7e";
+	byte_order = le;
+	packet.header := struct {
+		uint32_t magic;
+		uint8_t  uuid[16];
+		uint32_t stream_id;
+		uint64_t stream_instance_id;
+	};
+};
+
+env {
+	hostname = "db-prod-server-01";
+	domain = "ust";
+	tracer_name = "lttng-ust";
+	tracer_major = 2;
+	tracer_minor = 13;
+	tracer_patchlevel = 0;
+};
+
+clock {
+	name = monotonic;
+	uuid = "b7c8e9d2-3f4a-5b6c-7d8e-9f0a1b2c3d4e";
+	description = "Monotonic Clock";
+	freq = 1000000000;
+	offset = 1678901234000000000;
+};
+
+typealias integer { size = 8; align = 8; signed = false; } := uint8_t;
+typealias integer { size = 16; align = 8; signed = false; } := uint16_t;
+typealias integer { size = 32; align = 8; signed = false; } := uint32_t;
+typealias integer { size = 64; align = 8; signed = false; } := uint64_t;
+typealias integer { size = 64; align = 8; signed = false; map = clock.monotonic.value; } := uint64_clock_monotonic_t;
+typealias integer { size = 32; align = 8; signed = true; } := int32_t;
+typealias integer { size = 64; align = 8; signed = true; } := int64_t;
+
+struct packet_context {
+	uint64_clock_monotonic_t timestamp_begin;
+	uint64_clock_monotonic_t timestamp_end;
+	uint64_t content_size;
+	uint64_t packet_size;
+	uint64_t packet_seq_num;
+	unsigned long events_discarded;
+	uint32_t cpu_id;
+};
+
+struct event_header_compact {
+	enum : uint5_t { compact = 0 ... 30, extended = 31 } id;
+	variant <id> {
+		struct {
+			uint27_clock_monotonic_t timestamp;
+		} compact;
+		struct {
+			uint32_t id;
+			uint64_clock_monotonic_t timestamp;
+		} extended;
+	} v;
+};
+
+struct event_header_large {
+	enum : uint16_t { compact = 0 ... 65534, extended = 65535 } id;
+	variant <id> {
+		struct {
+			uint32_clock_monotonic_t timestamp;
+		} compact;
+		struct {
+			uint32_t id;
+			uint64_clock_monotonic_t timestamp;
+		} extended;
+	} v;
+};
+
+stream {
+	id = 0;
+	event.header := struct event_header_large;
+	packet.context := struct packet_context;
+};
+
+event {
+	name = "db_service:query_execute";
+	id = 0;
+	stream_id = 0;
+	loglevel = 13;
+	fields := struct {
+		int32_t vpid;
+		int32_t vtid;
+		string procname;
+		uint64_t query_id;
+		uint32_t duration_us;
+		string table_name;
+		string query_type;
+	};
+};
+
+event {
+	name = "db_service:cache_hit";
+	id = 1;
+	stream_id = 0;
+	loglevel = 13;
+	fields := struct {
+		int32_t vpid;
+		int32_t vtid;
+		string procname;
+		uint64_t cache_key;
+		string table_name;
+		uint32_t size_bytes;
+	};
+};
+
+event {
+	name = "db_service:cache_miss";
+	id = 2;
+	stream_id = 0;
+	loglevel = 13;
+	fields := struct {
+		int32_t vpid;
+		int32_t vtid;
+		string procname;
+		uint64_t cache_key;
+		string table_name;
+	};
+};
+
+event {
+	name = "db_service:transaction_commit";
+	id = 3;
+	stream_id = 0;
+	loglevel = 13;
+	fields := struct {
+		int32_t vpid;
+		int32_t vtid;
+		string procname;
+		uint64_t transaction_id;
+		uint32_t duration_us;
+		uint32_t rows_affected;
+	};
+};
+
+event {
+	name = "db_service:transaction_rollback";
+	id = 4;
+	stream_id = 0;
+	loglevel = 13;
+	fields := struct {
+		int32_t vpid;
+		int32_t vtid;
+		string procname;
+		uint64_t transaction_id;
+		string reason;
+	};
+};

@@ -1,0 +1,140 @@
+#!/usr/bin/env python3
+
+import sys
+
+class Room:
+    def __init__(self, name, description):
+        self.name = name
+        self.description = description
+        self.items = []
+        self.exits = {}
+    
+    def add_item(self, item):
+        self.items.append(item)
+    
+    def remove_item(self, item):
+        if item in self.items:
+            self.items.remove(item)
+            return True
+        return False
+    
+    def add_exit(self, direction, room):
+        self.exits[direction] = room
+
+class Game:
+    def __init__(self):
+        self.rooms = {}
+        self.current_room = None
+        self.inventory = []
+        self.setup_world()
+    
+    def setup_world(self):
+        # Create rooms
+        entrance = Room("Entrance Hall", "A dimly lit entrance with stone walls")
+        entrance.add_item("torch")
+        entrance.add_item("map")
+        
+        armory = Room("Armory", "A room filled with ancient weapons and armor")
+        armory.add_item("sword")
+        armory.add_item("shield")
+        
+        treasury = Room("Treasury", "A chamber glittering with precious treasures")
+        treasury.add_item("gold coin")
+        treasury.add_item("ruby")
+        
+        library = Room("Library", "Shelves of dusty books line the walls")
+        library.add_item("book")
+        library.add_item("scroll")
+        
+        tower = Room("Tower", "A high tower with windows overlooking the land")
+        tower.add_item("key")
+        
+        # Connect rooms
+        entrance.add_exit("north", armory)
+        entrance.add_exit("east", library)
+        
+        armory.add_exit("south", entrance)
+        armory.add_exit("east", treasury)
+        
+        treasury.add_exit("west", armory)
+        
+        library.add_exit("west", entrance)
+        library.add_exit("north", tower)
+        
+        tower.add_exit("south", library)
+        
+        # Set starting room
+        self.current_room = entrance
+    
+    def look(self):
+        print(f"{self.current_room.name}")
+        print(f"{self.current_room.description}")
+        if self.current_room.items:
+            print(f"Items here: {', '.join(self.current_room.items)}")
+        else:
+            print("No items here.")
+        exits = ', '.join(self.current_room.exits.keys())
+        if exits:
+            print(f"Exits: {exits}")
+        else:
+            print("No exits.")
+    
+    def go(self, direction):
+        if direction in self.current_room.exits:
+            self.current_room = self.current_room.exits[direction]
+            print(f"You move {direction} to the {self.current_room.name}")
+        else:
+            print("You cannot go that way.")
+    
+    def take(self, item):
+        if self.current_room.remove_item(item):
+            self.inventory.append(item)
+            print(f"You take the {item}")
+        else:
+            print("Item not found in this room.")
+    
+    def show_inventory(self):
+        if self.inventory:
+            print(f"Inventory: {', '.join(self.inventory)}")
+        else:
+            print("Inventory: empty")
+    
+    def show_status(self):
+        print(f"Location: {self.current_room.name}")
+        print(f"Items carried: {len(self.inventory)}")
+    
+    def process_command(self, command):
+        parts = command.strip().split()
+        if not parts:
+            return
+        
+        cmd = parts[0].lower()
+        
+        if cmd == "look":
+            self.look()
+        elif cmd == "go":
+            if len(parts) > 1:
+                self.go(parts[1].lower())
+            else:
+                print("Go where?")
+        elif cmd == "take":
+            if len(parts) > 1:
+                # Handle multi-word items
+                item = ' '.join(parts[1:])
+                self.take(item)
+            else:
+                print("Take what?")
+        elif cmd == "inventory":
+            self.show_inventory()
+        elif cmd == "status":
+            self.show_status()
+        else:
+            print("Unknown command.")
+    
+    def run(self):
+        for line in sys.stdin:
+            self.process_command(line)
+
+if __name__ == "__main__":
+    game = Game()
+    game.run()

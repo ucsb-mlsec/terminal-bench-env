@@ -1,0 +1,31 @@
+table inet filter {
+    chain input {
+        type filter hook input priority 0; policy drop;
+        
+        # Accept traffic on loopback interface
+        iifname "lo" accept
+        
+        # Accept established and related connections
+        ct state established,related accept
+        
+        # Accept incoming SSH
+        tcp dport 22 accept
+        
+        # Accept incoming HTTP
+        tcp dport 80 accept
+        
+        # Accept incoming HTTPS
+        tcp dport 443 accept
+        
+        # Drop traffic from specific IP
+        ip saddr 192.0.2.100 drop
+    }
+    
+    chain forward {
+        type filter hook forward priority 0; policy drop;
+    }
+    
+    chain output {
+        type filter hook output priority 0; policy accept;
+    }
+}

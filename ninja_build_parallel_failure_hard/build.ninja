@@ -1,0 +1,24 @@
+rule codegen
+  command = python3 /workspace/tools/generator.py $in $out
+  description = Generating header file $out
+
+rule compile
+  command = gcc -c $in -o $out -I.
+  description = Compiling $out
+
+rule link
+  command = gcc $in -o $out
+  description = Linking $out
+
+build config.h: codegen config.def
+build types.h: codegen types.def
+build constants.h: codegen constants.def
+
+build main.o: compile src/main.c
+build utils.o: compile src/utils.c
+build module.o: compile src/module.c
+build helper.o: compile src/helper.c
+
+build program: link main.o utils.o module.o helper.o
+
+default program

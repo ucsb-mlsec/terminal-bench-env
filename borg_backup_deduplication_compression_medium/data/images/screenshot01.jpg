@@ -1,0 +1,161 @@
+I'll complete this BorgBackup compression benchmark task step by step.
+
+First, let me create the sample data directory structure and generate the files:
+
+```bash
+# Create directory structure
+mkdir -p /opt/backup_test/sample_data/{logs,configs,images,archives}
+mkdir -p /opt/backup_test/repos
+
+# Generate application logs (40% - approximately 40MB)
+for i in {1..20}; do
+  cat > /opt/backup_test/sample_data/logs/app_$i.log << 'EOF'
+2024-01-15 10:23:45 INFO [main] Application started successfully
+2024-01-15 10:23:46 DEBUG [database] Connection pool initialized with 10 connections
+2024-01-15 10:23:47 INFO [auth] User authentication service started
+2024-01-15 10:23:48 WARN [cache] Cache size exceeding 80% threshold
+2024-01-15 10:23:49 ERROR [network] Timeout connecting to external API endpoint
+2024-01-15 10:23:50 INFO [scheduler] Background job scheduler initialized
+2024-01-15 10:23:51 DEBUG [metrics] Collecting performance metrics
+2024-01-15 10:23:52 INFO [handler] Request processed in 245ms
+EOF
+  # Repeat content to make files larger
+  for j in {1..1000}; do
+    cat /opt/backup_test/sample_data/logs/app_$i.log >> /opt/backup_test/sample_data/logs/app_$i.log.tmp
+  done
+  mv /opt/backup_test/sample_data/logs/app_$i.log.tmp /opt/backup_test/sample_data/logs/app_$i.log
+done
+
+# Generate configuration files (10% - approximately 10MB)
+for i in {1..50}; do
+  cat > /opt/backup_test/sample_data/configs/config_$i.xml << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <database>
+    <host>localhost</host>
+    <port>5432</port>
+    <name>production_db</name>
+    <pool_size>20</pool_size>
+  </database>
+  <cache>
+    <enabled>true</enabled>
+    <ttl>3600</ttl>
+    <max_size>1024</max_size>
+  </cache>
+  <logging>
+    <level>INFO</level>
+    <output>/var/log/application.log</output>
+  </logging>
+</configuration>
+EOF
+  for j in {1..200}; do
+    cat /opt/backup_test/sample_data/configs/config_$i.xml >> /opt/backup_test/sample_data/configs/config_$i.xml.tmp
+  done
+  mv /opt/backup_test/sample_data/configs/config_$i.xml.tmp /opt/backup_test/sample_data/configs/config_$i.xml
+done
+
+# Generate JPEG images (35% - approximately 35MB with screenshot-like JPEGs)
+cd /opt/backup_test/sample_data/images
+for i in {1..45}; do
+  python3 << 'PYSCRIPT'
+import sys
+import struct
+
+# Create a JPEG file approximately 800KB with some compressible patterns
+filename = f"screenshot{sys.argv[1]:02d}.jpg"
+
+with open(filename, 'wb') as f:
+    # JPEG header
+    f.write(bytes([0xFF, 0xD8, 0xFF, 0xE0]))
+    f.write(struct.pack('>H', 16))  # Length
+    f.write(b'JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00')
+    
+    # Quantization table
+    f.write(bytes([0xFF, 0xDB]))
+    f.write(struct.pack('>H', 67))
+    f.write(bytes([0]))
+    f.write(bytes([16, 11, 10, 16, 24, 40, 51, 61] * 8))
+    
+    # Start of Frame
+    f.write(bytes([0xFF, 0xC0]))
+    f.write(struct.pack('>H', 17))
+    f.write(bytes([8]))  # Precision
+    f.write(struct.pack('>H', 768))  # Height
+    f.write(struct.pack('>H', 1024))  # Width
+    f.write(bytes([3, 1, 0x22, 0, 2, 0x11, 1, 3, 0x11, 1]))
+    
+    # Huffman tables
+    f.write(bytes([0xFF, 0xC4]))
+    f.write(struct.pack('>H', 31))
+    f.write(bytes([0x00]))
+    f.write(bytes([0, 1, 5, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0]))
+    f.write(bytes(range(12)))
+    
+    # Start of Scan
+    f.write(bytes([0xFF, 0xDA]))
+    f.write(struct.pack('>H', 12))
+    f.write(bytes([3, 1, 0, 2, 0x11, 3, 0x11, 0, 0x3F, 0]))
+    
+    # Image data with patterns simulating screenshot content
+    # Screenshots have lots of solid colors and text which create patterns
+    block_pattern = bytes([
+        0xAA, 0xAA, 0xAA, 0xAA, 0x55, 0x55, 0x55, 0x55,
+        0xFF, 0xFF, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00
+    ]) * 64
+    
+    text_pattern = bytes([
+        0xFF, 0x00, 0xFF, 0x00, 0x7F, 0x7F, 0x7F, 0x7F,
+        0xE0, 0xE0, 0xE0, 0xE0, 0x1F, 0x1F, 0x1F, 0x1F
+    ]) * 64
+    
+    # Write approximately 800KB of data
+    for block in range(800):
+        if block % 5 == 0:
+            f.write(block_pattern)
+        elif block % 5 == 1:
+            f.write(text_pattern)
+        else:
+            # Add some variation but still compressible
+            f.write(bytes([(block + i) % 256 for i in range(1024)]))
+    
+    # End of Image marker
+    f.write(bytes([0xFF, 0xD9]))
+
+PYSCRIPT
+  python3 -c "import sys; sys.argv.append('$i'); exec(open('/dev/stdin').read())" < /dev/stdin
+done
+
+# Generate compressed archives (15% - approximately 15MB)
+cd /opt/backup_test/sample_data/archives
+for i in {1..15}; do
+  # Create some data and compress it
+  dd if=/dev/urandom of=random_$i.bin bs=1M count=1 2>/dev/null
+  gzip -c random_$i.bin > archive_$i.tar.gz
+  rm random_$i.bin
+done
+
+# Calculate original size
+ORIGINAL_SIZE=$(du -sm /opt/backup_test/sample_data | cut -f1)
+
+# Test Configuration A: No compression
+borg init --encryption=none /opt/backup_test/repos/repo_none
+borg create /opt/backup_test/repos/repo_none::test-backup /opt/backup_test/sample_data
+NO_COMP_SIZE=$(du -sm /opt/backup_test/repos/repo_none | cut -f1)
+
+# Test Configuration B: LZ4 compression
+borg init --encryption=none /opt/backup_test/repos/repo_lz4
+borg create --compression lz4 /opt/backup_test/repos/repo_lz4::test-backup /opt/backup_test/sample_data
+LZ4_SIZE=$(du -sm /opt/backup_test/repos/repo_lz4 | cut -f1)
+
+# Test Configuration C: ZSTD,6 compression
+borg init --encryption=none /opt/backup_test/repos/repo_zstd
+borg create --compression zstd,6 /opt/backup_test/repos/repo_zstd::test-backup /opt/backup_test/sample_data
+ZSTD_SIZE=$(du -sm /opt/backup_test/repos/repo_zstd | cut -f1)
+
+# Write results
+cat > /root/compression_benchmark.txt << EOF
+original_size_mb: $ORIGINAL_SIZE.00
+no_compression_mb: $NO_COMP_SIZE.00
+lz4_compression_mb: $LZ4_SIZE.00
+zstd_compression_mb: $ZSTD_SIZE.00
+EOF

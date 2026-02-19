@@ -1,0 +1,89 @@
+================================================================================
+BUILD ATTEMPT #2 - PyInstaller with Hidden Imports
+Date: 2024-01-15 14:22:33
+Developer: Sarah Chen
+================================================================================
+
+Attempt #2: Using PyInstaller with explicit hidden imports for numpy modules
+Previous attempt with basic PyInstaller failed. This time adding --hidden-import flags.
+
+Command executed:
+pyinstaller --onefile --hidden-import=numpy --name=calculator /workspace/app/calculator.py
+
+PyInstaller: 5.13.2
+Python: 3.8.10
+
+--- Build Output ---
+68 INFO: PyInstaller: 5.13.2
+68 INFO: Python: 3.8.10
+69 INFO: Platform: Linux-5.15.0-92-generic-x86_64-with-glibc2.29
+71 INFO: wrote /workspace/calculator.spec
+74 INFO: UPX is not available.
+76 INFO: Extending PYTHONPATH with paths
+['/workspace/app']
+231 INFO: checking Analysis
+232 INFO: Building Analysis because Analysis-00.toc is non existent
+232 INFO: Initializing module dependency graph...
+234 INFO: Caching module graph hooks...
+243 INFO: Analyzing base_library.zip ...
+2847 INFO: Caching module dependency graph...
+2956 INFO: running Analysis Analysis-00.toc
+2957 INFO: Adding Microsoft.Windows.Common-Controls to dependent assemblies of final executable
+  required by /usr/bin/python3.8
+3124 INFO: Analyzing /workspace/app/calculator.py
+3128 INFO: Processing pre-find module path hook distutils from '/usr/local/lib/python3.8/dist-packages/PyInstaller/hooks/pre_find_module_path/hook-distutils.py'.
+3245 INFO: Processing module hooks...
+3246 INFO: Loading module hook 'hook-numpy.py' from '/usr/local/lib/python3.8/dist-packages/PyInstaller/hooks'...
+3391 WARNING: Unable to find package for requirement numpy>=1.16.5 from /usr/local/lib/python3.8/dist-packages/numpy/__init__.py
+3392 INFO: Loading module hook 'hook-encodings.py' from '/usr/local/lib/python3.8/dist-packages/PyInstaller/hooks'...
+3456 INFO: Looking for ctypes DLLs
+3467 INFO: Analyzing run-time hooks ...
+3471 INFO: Including run-time hook '/usr/local/lib/python3.8/dist-packages/PyInstaller/hooks/rthooks/pyi_rth_inspect.py'
+3475 INFO: Looking for dynamic libraries
+4234 WARNING: lib not found: libopenblas.so.0 dependency of /usr/local/lib/python3.8/dist-packages/numpy/core/_multiarray_umath.cpython-38-x86_64-linux-gnu.so
+4456 WARNING: lib not found: libgfortran.so.5 dependency of /usr/local/lib/python3.8/dist-packages/numpy/.libs/libopenblasp-r0-ae94cfde.3.9.dev.so
+4789 INFO: Looking for eggs
+4789 INFO: Using Python library /usr/lib/x86_64-linux-gnu/libpython3.8.so.1.0
+4791 INFO: Found binding redirects: []
+4803 INFO: Warnings written to /workspace/build/calculator/warn-calculator.txt
+4842 INFO: Graph cross-reference written to /workspace/build/calculator/xref-calculator.html
+4856 INFO: checking PYZ
+4856 INFO: Building PYZ because PYZ-00.toc is non existent
+4856 INFO: Building PYZ (ZlibArchive) /workspace/build/calculator/PYZ-00.pyz
+5234 INFO: Building PYZ (ZlibArchive) /workspace/build/calculator/PYZ-00.pyz completed successfully.
+5267 INFO: checking PKG
+5267 INFO: Building PKG because PKG-00.toc is non existent
+5267 INFO: Building PKG (CArchive) calculator.pkg
+6891 INFO: Building PKG (CArchive) calculator.pkg completed successfully.
+6894 INFO: Bootloader /usr/local/lib/python3.8/dist-packages/PyInstaller/bootloader/Linux-64bit-intel/run
+6894 INFO: checking EXE
+6894 INFO: Building EXE because EXE-00.toc is non existent
+6895 INFO: Building EXE from EXE-00.toc
+6895 INFO: Copying bootloader EXE to /workspace/dist/calculator
+6896 INFO: Appending PKG archive to custom EXE /workspace/dist/calculator
+6923 INFO: Building EXE from EXE-00.toc completed successfully.
+
+Build completed. Testing executable...
+
+ERROR: Runtime test failed!
+./dist/calculator
+Traceback (most recent call last):
+  File "calculator.py", line 1, in <module>
+  File "<frozen importlib._bootstrap>", line 991, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 975, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 671, in _load_unlocked
+  File "PyInstaller/loader/pyimod03_importers.py", line 499, in exec_module
+  File "numpy/__init__.py", line 140, in <module>
+  File "numpy/core/__init__.py", line 48, in <module>
+ModuleNotFoundError: No module named 'numpy.core._multiarray_umath'
+
+ANALYSIS:
+The executable builds but fails at runtime. The numpy.core._multiarray_umath module is not being properly included.
+Missing shared libraries (libopenblas, libgfortran) also detected during build.
+Need to add more specific hidden imports for numpy internal modules.
+
+Recommendation: Try adding --hidden-import=numpy.core._multiarray_umath and other numpy.core submodules.
+Also investigate the --collect-all numpy option.
+
+Exit code: 1
+Status: FAILED

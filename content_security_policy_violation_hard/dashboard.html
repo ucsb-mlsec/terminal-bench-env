@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Dashboard - Analytics Portal</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: #f5f7fa;
+            padding: 20px;
+        }
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .metric-card {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        .metric-card:hover {
+            transform: translateY(-5px);
+        }
+        .metric-value {
+            font-size: 36px;
+            font-weight: bold;
+            color: #667eea;
+            margin: 10px 0;
+        }
+        .metric-label {
+            color: #666;
+            font-size: 14px;
+        }
+        .chart-container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        .btn:hover {
+            background: #5568d3;
+        }
+        select, input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+        .user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            vertical-align: middle;
+        }
+        .widget-area {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .widget {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="header">
+            <h1>Analytics Dashboard</h1>
+            <p>Welcome back, <img src="https://images.example.com/avatars/user-john.png" alt="User Avatar" class="user-avatar"> John Smith</p>
+        </div>
+
+        <div class="controls">
+            <label>Date Range:</label>
+            <select id="dateRange" onchange="updateDashboard(this.value)">
+                <option value="7">Last 7 Days</option>
+                <option value="30">Last 30 Days</option>
+                <option value="90">Last 90 Days</option>
+            </select>
+            
+            <label>Region:</label>
+            <select id="region" onchange="filterByRegion(this.value)">
+                <option value="all">All Regions</option>
+                <option value="us">United States</option>
+                <option value="eu">Europe</option>
+                <option value="asia">Asia</option>
+            </select>
+            
+            <button class="btn" onclick="refreshData()">Refresh Data</button>
+            <button class="btn" onclick="exportReport()">Export Report</button>
+            <input type="text" id="searchWidget" placeholder="Search widgets..." onkeyup="searchWidgets(this.value)">
+        </div>
+
+        <div class="metrics-grid">
+            <div class="metric-card" style="border-left: 4px solid #667eea;">
+                <div class="metric-label">Total Users</div>
+                <div class="metric-value" id="totalUsers">0</div>
+                <div class="metric-trend">↑ 12.5% from last week</div>
+            </div>
+            <div class="metric-card" style="border-left: 4px solid #f093fb;">
+                <div class="metric-label">Revenue</div>
+                <div class="metric-value" id="revenue">$0</div>
+                <div class="metric-trend">↑ 8.3% from last week</div>
+            </div>
+            <div class="metric-card" style="border-left: 4px solid #4facfe;">
+                <div class="metric-label">Conversion Rate</div>
+                <div class="metric-value" id="conversionRate">0%</div>
+                <div class="metric-trend">↓ 2.1% from last week</div>
+            </div>
+            <div class="metric-card" style="border-left: 4px solid #43e97b;">
+                <div class="metric-label">Active Sessions</div>
+                <div class="metric-value" id="activeSessions">0</div>
+                <div class="metric-trend">↑ 15.7% from last week</div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <h2>Performance Overview</h2>
+            <canvas id="performanceChart" width="400" height="100"></canvas>
+        </div>
+
+        <div class="chart-container">
+            <h2>User Engagement</h2>
+            <canvas id="engagementChart" width="400" height="100"></canvas>
+        </div>
+
+        <div class="widget-area" id="widgetContainer">
+            <div class="widget" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <h3>Quick Stats</h3>
+                <img src="https://images.example.com/icons/stats.png" alt="Stats Icon" style="width: 40px; height: 40px;">
+                <p>Page Views: <span id="pageViews">0</span></p>
+                <p>Bounce Rate: <span id="bounceRate">0%</span></p>
+            </div>
+            <div class="widget">
+                <h3>Recent Activity</h3>
+                <img src="https://images.example.com/icons/activity.png" alt="Activity Icon" style="width: 40px; height: 40px;">
+                <div id="activityLog"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Google Tag Manager -->
+    <script src="https://www.googletagmanager.com/gtm.js?id=GTM-XXXX"></script>
+    
+    <!-- Chart.js Library -->
+    <script src="https://cdn.cloudflare.com/ajax/libs/chart.js/3.9.1/chart.min.js"></script>
+
+    <script>
+        // Dashboard initialization
+        console.log('Initializing dashboard...');
+        
+        const API_BASE = 'https://api.example.com';
+        let dashboardData = {};
+        let charts = {};
+
+        // Initialize dashboard on load
+        function initializeDashboard() {
+            console.log('Dashboard loaded successfully');
+            loadUserData();
+            setupCharts();
+            connectWebSocket();
+            loadDynamicWidgets();
+        }
+
+        // Load user data from API
+        function loadUserData() {
+            fetch(API_BASE + '/user/data', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + localStorage.getItem('token')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                dashboardData = data;
+                updateMetrics(data);
+            })
+            .catch(error => console.error('Error loading user data:', error));
+        }
+
+        // Update metric cards
+        function updateMetrics(data) {
+            document.getElementById('totalUsers').textContent = data.totalUsers || 12547;
+            document.getElementById('revenue').textContent = '$' + (data.revenue || 458920);
+            document.getElementById('conversionRate').textContent = (data.conversionRate || 3.8) + '%';
+            document.getElementById('activeSessions').textContent = data.activeSessions || 1843;
+            document.getElementById('pageViews').textContent = data.pageViews || 45231;
+            document.getElementById('bounceRate').textContent = (data.bounceRate || 42.5) + '%';
+        }
+
+        // Setup charts using Chart.js
+        function setupCharts() {
+            const ctx1 = document.getElementById('performanceChart').getContext('2d');
+            charts.performance = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                    datasets: [{
+                        label: 'Daily Users',
+                        data: [1200, 1900, 3000, 5000, 2300, 3200, 4100],
+                        borderColor: '#667eea',
+                        tension: 0.4
+                    }]
+                }
+            });
+
+            const ctx2 = document.getElementById('engagementChart').getContext('2d');
+            charts.engagement = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'Engagement Score',
+                        data: [65, 78, 82, 88, 92, 95],
+                        backgroundColor: '#4facfe'
+                    }]
+                }
+            });
+        }
+
+        // WebSocket connection for real-time updates
+        function connectWebSocket() {
+            const ws = new WebSocket('wss://api.example.com/ws');
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                updateRealtimeMetrics(data);
+            };
+        }
+
+        function updateRealtimeMetrics(data) {
+            if (data.activeSessions) {
+                document.getElementById('activeSessions').textContent = data.activeSessions;
+            }
+        }
+    </script>
+
+    <script>
+        // Dynamic widget loading using eval for configuration
+        function loadDynamicWidgets() {
+            fetch(API_BASE + '/widgets/config')
+                .then(response => response.json())
+                .then(config => {
+                    // Use eval to execute widget configuration
+                    const widgetCode = config.initScript;
+                    eval('(function() { ' + widgetCode + ' })()');
+                })
+                .catch(error => console.error('Error loading widgets:', error));
+        }
+
+        // Dynamic script loading
+        function loadAnalyticsModule(moduleName) {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.cloudflare.com/ajax/libs/analytics/' + moduleName + '.js';
+            script.async = true;
+            document.head.appendChild(script);
+        }
+
+        // Function constructor for dynamic widget rendering
+        function renderCustomWidget(widgetConfig) {
+            const renderFunc = new Function('container', 'data', widgetConfig.renderCode);
+            renderFunc(document.getElementById('widgetContainer'), dashboardData);
+        }
+    </script>
+
+    <script>
+        // Dashboard control functions
+        function updateDashboard(days) {
+            console.log('Updating dashboard for last ' + days + ' days');
+            fetch(API_BASE + '/user/data?days=' + days)
+                .then(response => response.json())
+                .then(data => updateMetrics(data));
+        }
+
+        function filterByRegion(region) {
+            console.log('Filtering by region: ' + region);
+            fetch(API_BASE + '/user/data?region=' + region)
+                .then(response => response.json())
+                .then(data => {
+                    updateMetrics(data);
+                    charts.performance.data.datasets[0].data = data.dailyUsers;
+                    charts.performance.update();
+                });
+        }
+
+        function refreshData() {
+            console.log('Refreshing all data...');
+            loadUserData();
+            loadAnalyticsModule('realtime-v2');
+        }
+
+        function exportReport() {
+            console.log('Exporting report...');
+            window.open(API_BASE + '/reports/export?format=pdf', '_blank');
+        }
+
+        function searchWidgets(query) {
+            const widgets = document.querySelectorAll('.widget');
+            widgets.forEach(widget => {
+                const text = widget.textContent.toLowerCase();
+                widget.style.display = text.includes(query.toLowerCase()) ? 'block' : 'none';
+            });
+        }
+
+        // Initialize dashboard when page loads
+        window.onload = function() {
+            initializeDashboard();
+            loadAnalyticsModule('core-v1');
+        };
+    </script>
+
+    <!-- Google Tag Manager (noscript) -->
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-XXXX" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+</body>
+</html>

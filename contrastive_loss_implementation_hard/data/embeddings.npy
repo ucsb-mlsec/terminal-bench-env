@@ -1,0 +1,29 @@
+import numpy as np
+
+# Set random seed for reproducibility
+np.random.seed(42)
+
+# Generate 100 pairs of 64-dimensional embeddings
+embeddings = np.random.randn(100, 2, 64).astype(np.float32)
+
+# Normalize embeddings to unit length (common for image embeddings)
+# This makes them lie on a hypersphere, which is typical for many vision models
+for i in range(100):
+    for j in range(2):
+        norm = np.linalg.norm(embeddings[i, j])
+        if norm > 0:
+            embeddings[i, j] = embeddings[i, j] / norm
+
+# Add some structure: make some pairs more similar than others
+# For the first 50 pairs, make them somewhat similar by adding correlation
+for i in range(50):
+    # Add some of the first embedding to the second to create similarity
+    alpha = np.random.uniform(0.3, 0.7)
+    embeddings[i, 1] = alpha * embeddings[i, 0] + (1 - alpha) * embeddings[i, 1]
+    # Re-normalize
+    norm = np.linalg.norm(embeddings[i, 1])
+    if norm > 0:
+        embeddings[i, 1] = embeddings[i, 1] / norm
+
+# Save the embeddings
+np.save('/workspace/embeddings.npy', embeddings)

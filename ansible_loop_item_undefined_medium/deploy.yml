@@ -1,0 +1,104 @@
+---
+- name: Deploy Application Configurations
+  hosts: localhost
+  gather_facts: no
+  
+  vars:
+    app_instances:
+      - name: webapp1
+        port: 8080
+        environment: production
+        config_path: /etc/webapp1
+        enable_ssl: true
+      - name: webapp2
+        port: 8081
+        environment: staging
+        config_path: /etc/webapp2
+        enable_ssl: false
+      - name: api_service
+        port: 9000
+        environment: production
+        config_path: /etc/api_service
+        enable_ssl: true
+      - name: background_worker
+        port: 9001
+        environment: development
+        config_path: /etc/background_worker
+        enable_ssl: false
+    
+    base_config_dir: /opt/applications
+  
+  tasks:
+    # Task 1: Create base directories for each application instance
+    - name: Create application directories
+      file:
+        path: "{{ base_config_dir }}/{{ instance.name }}"
+        state: directory
+        mode: '0755'
+      loop: "{{ app_instances }}"
+      
+    # Task 2: Create configuration directories with environment-specific paths
+    - name: Create configuration directories
+      file:
+        path: "{{ item.config_path }}"
+        state: directory
+        mode: '0750'
+      with_items: "{{ app_instances }}"
+      
+    # Task 3: Display application information with wrong variable reference
+    - name: Display application deployment info
+      debug:
+        msg: "Deploying {{ app.name }} on port {{ item.port }} for {{ app.environment }} environment"
+      loop: "{{ app_instances }}"
+      
+    # Task 4: Create SSL certificate directories only for SSL-enabled apps
+    - name: Create SSL directories for enabled applications
+      file:
+        path: "{{ item.config_path }}/ssl"
+        state: directory
+        mode: '0700'
+      loop: "{{ app_instances }}"
+      when: instance.enable_ssl
+      
+    # Task 5: Generate application configuration files
+    - name: Create application config files
+      copy:
+        content: |
+          APP_NAME={{ name }}
+          APP_PORT={{ item.port }}
+          APP_ENV={{ environment }}
+          SSL_ENABLED={{ item.enable_ssl }}
+        dest: "{{ item.config_path }}/app.conf"
+        mode: '0644'
+      loop: "{{ app_instances }}"
+      
+    # Task 6: Create systemd service files for production applications
+    - name: Create systemd service files
+      copy:
+        content: |
+          [Unit]
+          Description={{ item.name }} Application Service
+          After=network.target
+          
+          [Service]
+          Type=simple
+          ExecStart=/usr/bin/{{ instance.name }} --port {{ item.port }}
+          Restart=always
+          
+          [Install]
+          WantedBy=multi-user.target
+        dest: "/etc/systemd/system/{{ item.name }}.service"
+        mode: '0644'
+      with_items: "{{ app_instances }}"
+      when: app.environment == "production"
+      
+    # Task 7: Create environment-specific configuration
+    - name: Setup environment variables file
+      copy:
+        content: |
+          ENVIRONMENT={{ item.environment }}
+          CONFIG_PATH={{ instance.config_path }}
+          PORT={{ item.port }}
+        dest: "{{ base_config_dir }}/{{ item.name }}/.env"
+        mode: '0600'
+      loop: "{{ app_instances }}"

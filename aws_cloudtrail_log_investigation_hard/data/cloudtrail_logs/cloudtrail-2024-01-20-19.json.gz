@@ -1,0 +1,395 @@
+import gzip
+import json
+from datetime import datetime
+
+# Create CloudTrail events
+events = {
+    "Records": [
+        # Normal activity before suspicious behavior
+        {
+            "eventVersion": "1.08",
+            "userIdentity": {
+                "type": "IAMUser",
+                "principalId": "AIDAI23456789EXAMPLE",
+                "arn": "arn:aws:iam::123456789012:user/admin-user",
+                "accountId": "123456789012",
+                "userName": "admin-user"
+            },
+            "eventTime": "2024-01-20T19:05:23Z",
+            "eventSource": "ec2.amazonaws.com",
+            "eventName": "DescribeInstances",
+            "awsRegion": "us-east-1",
+            "sourceIPAddress": "10.0.2.15",
+            "userAgent": "aws-cli/2.13.5 Python/3.11.4 Linux/5.10.0",
+            "requestParameters": {"instancesSet": {}},
+            "responseElements": None
+        },
+        {
+            "eventVersion": "1.08",
+            "userIdentity": {
+                "type": "IAMUser",
+                "principalId": "AIDAJ78901234EXAMPLE",
+                "arn": "arn:aws:iam::123456789012:user/developer-jenkins",
+                "accountId": "123456789012",
+                "userName": "developer-jenkins"
+            },
+            "eventTime": "2024-01-20T19:12:45Z",
+            "eventSource": "ec2.amazonaws.com",
+            "eventName": "RunInstances",
+            "awsRegion": "us-east-1",
+            "sourceIPAddress": "10.0.1.5",
+            "userAgent": "aws-sdk-java/1.12.429",
+            "requestParameters": {"instanceType": "t2.micro", "minCount": 1, "maxCount": 1},
+            "responseElements": {"instancesSet": {"items": [{"instanceId": "i-0abcd1234efgh5678"}]}}
+        },
+        {
+            "eventVersion": "1.08",
+            "userIdentity": {
+                "type": "IAMUser",
+                "principalId": "AIDAK34567890EXAMPLE",
+                "arn": "arn:aws:iam::123456789012:user/data-analyst",
+                "accountId": "123456789012",
+                "userName": "data-analyst"
+            },
+            "eventTime": "2024-01-20T19:18:12Z",
+            "eventSource": "s3.amazonaws.com",
+            "eventName": "ListBuckets",
+            "awsRegion": "us-east-1",
+            "sourceIPAddress": "10.0.3.20",
+            "userAgent": "aws-cli/2.13.5 Python/3.11.4 Darwin/22.5.0",
+            "requestParameters": None,
+            "responseElements": None
+        },
+        {
+            "eventVersion": "1.08",
+            "userIdentity": {
+                "type": "IAMUser",
+                "principalId": "AIDAJ78901234EXAMPLE",
+                "arn": "arn:aws:iam::123456789012:user/developer-jenkins",
+                "accountId": "123456789012",
+                "userName": "developer-jenkins"
+            },
+            "eventTime": "2024-01-20T19:23:56Z",
+            "eventSource": "s3.amazonaws.com",
+            "eventName": "PutObject",
+            "awsRegion": "us-east-1",
+            "sourceIPAddress": "10.0.1.5",
+            "userAgent": "aws-sdk-java/1.12.429",
+            "requestParameters": {"bucketName": "jenkins-artifacts", "key": "build-2024-01-20.zip"},
+            "responseElements": None
+        },
+        {
+            "eventVersion": "1.08",
+            "userIdentity": {
+                "type": "IAMUser",
+                "principalId": "AIDAI23456789EXAMPLE",
+                "arn": "arn:aws:iam::123456789012:user/admin-user",
+                "accountId": "123456789012",
+                "userName": "admin-user"
+            },
+            "eventTime": "2024-01-20T19:30:14Z",
+            "eventSource": "iam.amazonaws.com",
+            "eventName": "ListUsers",
+            "awsRegion": "us-east-1",
+            "sourceIPAddress": "10.0.2.15",
+            "userAgent": "aws-cli/2.13.5 Python/3.11.4 Linux/5.10.0",
+            "requestParameters": {},
+            "responseElements": None
+        },
+        {
+            "eventVersion": "1.08",
+            "userIdentity": {
+                "type": "IAMUser",
+                "principalId": "AIDAJ78901234EXAMPLE",
+                "arn": "arn:aws:iam::123456789012:user/developer-jenkins",
+                "accountId": "123456789012",
+                "userName": "developer-jenkins"
+            },
+            "eventTime": "2024-01-20T19:35:28Z",
+            "eventSource": "ec2.amazonaws.com",
+            "eventName": "DescribeInstances",
+            "awsRegion": "us-east-1",
+            "sourceIPAddress": "10.0.1.5",
+            "userAgent": "aws-sdk-java/1.12.429",
+            "requestParameters": {"instancesSet": {}},
+            "responseElements": None
+        },
+        {
+            "eventVersion": "1.08",
+            "userIdentity": {
+                "type": "IAMUser",
+                "principalId": "AIDAK34567890EXAMPLE",
+                "arn": "arn:aws:iam::123456789012:user/data-analyst",
+                "accountId": "123456789012",
+                "userName": "data-analyst"
+            },
+            "eventTime": "2024-01-20T19:40:05Z",
+            "eventSource": "s3.amazonaws.com",
+            "eventName": "GetObject",
+            "awsRegion": "us-east-1",
+            "sourceIPAddress": "10.0.3.20",
+            "userAgent": "aws-cli/2.13.5 Python/3.11.4 Darwin/22.5.0",
+            "requestParameters": {"bucketName": "data-warehouse", "key": "reports/2024-01.csv"},
+            "responseElements": None
+        },
+        # FIRST UNAUTHORIZED CALL - developer-jenkins at 19:45:32Z
+        {
+            "eventVersion": "1.08",
+            "userIdentity": {
+                "type": "IAMUser",
+                "principalId": "AIDAJ78901234EXAMPLE",
+                "arn": "arn:aws:iam::123456789012:user/developer-jenkins",
+                "accountId": "123456789012",
+                "userName": "developer-jenkins"
+            },
+            "eventTime": "2024-01-20T19:45:32Z",
+            "eventSource": "iam.amazonaws.com",
+            "eventName": "GetUser",
+            "awsRegion": "us-east-1",
+            "sourceIPAddress": "203.0.113.42",
+            "userAgent": "aws-cli/2.13.5 Python/3.11.4 Linux/5.10.0",
+            "requestParameters": {"userName": "admin-user"},
+            "responseElements": None
+        },
+        {
+            "eventVersion": "1.08",
+            "userIdentity": {
+                "type": "IAMUser",
+                "principalId": "AIDAJ78901234EXAMPLE",
+                "arn": "arn:aws:iam::123456789012:user/developer-jenkins",
+                "accountId": "123456789012",
+                "userName": "developer-jenkins"
+            },
+            "eventTime": "2024-01-20T19:46:15Z",
+            "eventSource": "iam.amazonaws.com",
+            "eventName": "ListRoles",
+            "awsRegion": "us-east-1",
+            "sourceIPAddress": "203.0.113.42",
+            "userAgent": "aws-cli/2.13.5 Python/3.11.4 Linux/5.10.0",
+            "requestParameters": {},
+            "responseElements": None
+        },
+        {
+            "eventVersion": "1.08",
+            "userIdentity": {
+                "type": "IAMUser",
+                "principalId": "AIDAI23456789EXAMPLE",
+                "arn": "arn:aws:iam::123456789012:user/admin-user",
+                "accountId": "123456789012",
+                "userName": "admin-user"
+            },
+            "eventTime": "2024-01-20T19:47:33Z",
+            "eventSource": "ec2.amazonaws.com",
+            "eventName": "DescribeSecurityGroups",
+            "awsRegion": "us-east-1",
+            "sourceIPAddress": "10.0.2.15",
+            "userAgent": "aws-cli/2.13.5 Python/3.11.4 Linux/5.10.0",
+            "requestParameters": {},
+            "responseElements": None
+        },
+        {
+            "eventVersion": "1.08",
+            "userIdentity": {
+                "type": "IAMUser",
+                "principalId": "AIDAJ78901234EXAMPLE",
+                "arn": "arn:aws:iam::123456789012:user/developer-jenkins",
+                "accountId": "123456789012",
+                "userName": "developer-jenkins"
+            },
+            "eventTime": "2024-01-20T19:48:22Z",
+            "eventSource": "lambda.amazonaws.com",
+            "eventName": "ListFunctions",
+            "awsRegion": "us-east-1",
+            "sourceIPAddress": "203.0.113.42",
+            "userAgent": "aws-cli/2.13.5 Python/3.11.4 Linux/5.10.0",
+            "requestParameters": {},
+            "responseElements": None
+        },
+        {
+            "eventVersion": "1.08",
+            "userIdentity": {
+                "type": "IAMUser",
+                "principalId": "AIDAJ78901234EXAMPLE",
+                "arn": "arn:aws:iam::123456789012:user/developer-jenkins",
+                "accountId": "123456789012",
+                "userName": "developer-jenkins"
+            },
+            "eventTime": "2024-01-20T19:49:08Z",
+            "eventSource": "iam.amazonaws.com",
+            "eventName": "GetRole",
+            "awsRegion": "us-east-1",
+            "sourceIPAddress": "203.0.113.42",
+            "userAgent": "aws-cli/2.13.5 Python/3.11.4 Linux/5.10.0",
+            "requestParameters": {"roleName": "lambda-execution-role"},
+            "responseElements": None
+        },
+        {
+            "eventVersion": "1.08",
+            "userIdentity": {
+                "type": "IAMUser",
+                "principalId": "AIDAK34567890EXAMPLE",
+                "arn": "arn:aws:iam::123456789012:user/data-analyst",
+                "accountId": "123456789012",
+                "userName": "data-analyst"
+            },
+            "eventTime": "2024-01-20T19:50:45Z",
+            "eventSource": "s3.amazonaws.com",
+            "eventName": "ListObjects",
+            "awsRegion": "us-east-1",
+            "sourceIPAddress": "10.0.3.20",
+            "userAgent": "aws-cli/2.13.5 Python/3.11.4 Darwin/22.5.0",
+            "requestParameters": {"bucketName": "data-warehouse"},
+            "responseElements": None
+        },
+        {
+            "eventVersion": "1.08",
+            "userIdentity": {
+                "type": "IAMUser",
+                "principalId": "AIDAJ78901234EXAMPLE",
+                "arn": "arn:aws:iam::123456789012:user/developer-jenkins",
+                "accountId": "123456789012",
+                "userName": "developer-jenkins"
+            },
+            "eventTime": "2024-01-20T19:51:17Z",
+            "eventSource": "lambda.amazonaws.com",
+            "eventName": "CreateFunction",
+            "awsRegion": "us-east-1",
+            "sourceIPAddress": "203.0.113.42",
+            "userAgent": "aws-cli/2.13.5 Python/3.11.4 Linux/5.10.0",
+            "requestParameters": {"functionName": "data-exfiltration", "runtime": "python3.9"},
+            "responseElements": None
+        },
+        {
+            "eventVersion": "1.08",
+            "userIdentity": {
+                "type": "IAMUser",
+                "principalId": "AIDAJ78901234EXAMPLE",
+                "arn": "arn:aws:iam::123456789012:user/developer-jenkins",
+                "accountId": "123456789012",
+                "userName": "developer-jenkins"
+            },
+            "eventTime": "2024-01-20T19:52:34Z",
+            "eventSource": "iam.amazonaws.com",
+            "eventName": "ListPolicies",
+            "awsRegion": "us-east-1",
+            "sourceIPAddress": "203.0.113.42",
+            "userAgent": "aws-cli/2.13.5 Python/3.11.4 Linux/5.10.0",
+            "requestParameters": {},
+            "responseElements": None
+        },
+        {
+            "eventVersion": "1.08",
+            "userIdentity": {
+                "type": "IAMUser",
+                "principalId": "AIDAI23456789EXAMPLE",
+                "arn": "arn:aws:iam::123456789012:user/admin-user",
+                "accountId": "123456789012",
+                "userName": "admin-user"
+            },
+            "eventTime": "2024-01-20T19:53:12Z",
+            "eventSource": "ec2.amazonaws.com",
+            "eventName": "DescribeVolumes",
+            "awsRegion": "us-east-1",
+            "sourceIPAddress": "10.0.2.15",
+            "userAgent": "aws-cli/2.13.5 Python/3.11.4 Linux/5.10.0",
+            "requestParameters": {},
+            "responseElements": None
+        },
+        {
+            "eventVersion": "1.08",
+            "userIdentity": {
+                "type": "IAMUser",
+                "principalId": "AIDAJ78901234EXAMPLE",
+                "arn": "arn:aws:iam::123456789012:user/developer-jenkins",
+                "accountId": "123456789012",
+                "userName": "developer-jenkins"
+            },
+            "eventTime": "2024-01-20T19:54:28Z",
+            "eventSource": "lambda.amazonaws.com",
+            "eventName": "InvokeFunction",
+            "awsRegion": "us-east-1",
+            "sourceIPAddress": "203.0.113.42",
+            "userAgent": "aws-cli/2.13.5 Python/3.11.4 Linux/5.10.0",
+            "requestParameters": {"functionName": "data-exfiltration"},
+            "responseElements": None
+        },
+        {
+            "eventVersion": "1.08",
+            "userIdentity": {
+                "type": "IAMUser",
+                "principalId": "AIDAJ78901234EXAMPLE",
+                "arn": "arn:aws:iam::123456789012:user/developer-jenkins",
+                "accountId": "123456789012",
+                "userName": "developer-jenkins"
+            },
+            "eventTime": "2024-01-20T19:55:41Z",
+            "eventSource": "iam.amazonaws.com",
+            "eventName": "ListAttachedRolePolicies",
+            "awsRegion": "us-east-1",
+            "sourceIPAddress": "203.0.113.42",
+            "userAgent": "aws-cli/2.13.5 Python/3.11.4 Linux/5.10.0",
+            "requestParameters": {"roleName": "lambda-execution-role"},
+            "responseElements": None
+        },
+        {
+            "eventVersion": "1.08",
+            "userIdentity": {
+                "type": "IAMUser",
+                "principalId": "AIDAK34567890EXAMPLE",
+                "arn": "arn:aws:iam::123456789012:user/data-analyst",
+                "accountId": "123456789012",
+                "userName": "data-analyst"
+            },
+            "eventTime": "2024-01-20T19:56:19Z",
+            "eventSource": "s3.amazonaws.com",
+            "eventName": "GetObject",
+            "awsRegion": "us-east-1",
+            "sourceIPAddress": "10.0.3.20",
+            "userAgent": "aws-cli/2.13.5 Python/3.11.4 Darwin/22.5.0",
+            "requestParameters": {"bucketName": "data-warehouse", "key": "reports/summary.csv"},
+            "responseElements": None
+        },
+        {
+            "eventVersion": "1.08",
+            "userIdentity": {
+                "type": "IAMUser",
+                "principalId": "AIDAJ78901234EXAMPLE",
+                "arn": "arn:aws:iam::123456789012:user/developer-jenkins",
+                "accountId": "123456789012",
+                "userName": "developer-jenkins"
+            },
+            "eventTime": "2024-01-20T19:57:03Z",
+            "eventSource": "lambda.amazonaws.com",
+            "eventName": "GetFunction",
+            "awsRegion": "us-east-1",
+            "sourceIPAddress": "203.0.113.42",
+            "userAgent": "aws-cli/2.13.5 Python/3.11.4 Linux/5.10.0",
+            "requestParameters": {"functionName": "data-exfiltration"},
+            "responseElements": None
+        },
+        {
+            "eventVersion": "1.08",
+            "userIdentity": {
+                "type": "IAMUser",
+                "principalId": "AIDAI23456789EXAMPLE",
+                "arn": "arn:aws:iam::123456789012:user/admin-user",
+                "accountId": "123456789012",
+                "userName": "admin-user"
+            },
+            "eventTime": "2024-01-20T19:58:27Z",
+            "eventSource": "ec2.amazonaws.com",
+            "eventName": "DescribeInstances",
+            "awsRegion": "us-east-1",
+            "sourceIPAddress": "10.0.2.15",
+            "userAgent": "aws-cli/2.13.5 Python/3.11.4 Linux/5.10.0",
+            "requestParameters": {"instancesSet": {}},
+            "responseElements": None
+        }
+    ]
+}
+
+# Write gzipped JSON file
+with gzip.open('/workspace/cloudtrail_logs/cloudtrail-2024-01-20-19.json.gz', 'wt', encoding='utf-8') as f:
+    json.dump(events, f, indent=2)
+
+print("CloudTrail log file created successfully")

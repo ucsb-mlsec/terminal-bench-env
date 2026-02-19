@@ -1,0 +1,43 @@
+stages:
+  - build
+  - test
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+cache:
+  key: "pip-cache"
+  paths:
+    - cache/
+    - .pip-cache/
+
+build:
+  stage: build
+  image: python:3.9
+  before_script:
+    - python --version
+    - pip install --upgrade pip
+    - pip install -r requirements.txt
+  script:
+    - echo "Building application"
+    - python -m compileall .
+  artifacts:
+    paths:
+      - .
+    expire_in: 1 hour
+
+test:
+  stage: test
+  image: python:3.9
+  cache:
+    key: "python-dependencies"
+    paths:
+      - vendor/python
+  before_script:
+    - pip install --upgrade pip
+    - pip install -r requirements.txt
+  script:
+    - echo "Running tests"
+    - python -m pytest tests/ || true
+  dependencies:
+    - build

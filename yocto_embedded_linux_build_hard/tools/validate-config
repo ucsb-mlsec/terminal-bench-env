@@ -1,0 +1,158 @@
+#!/bin/bash
+
+# Package configuration validator
+# Validates all .conf files in the config directory
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_DIR="$SCRIPT_DIR/../config"
+
+declare -A PACKAGES
+declare -A VERSIONS
+declare -A DEPENDENCIES
+declare -a ERRORS
+TOTAL_DEPS=0
+
+# Parse all configuration files
+parse_configs() {
+    local current_name=""
+    local current_version=""
+    local current_depends=""
+    
+    for conf_file in "$CONFIG_DIR"/*.conf; do
+        [ -f "$conf_file" ] || continue
+        
+        while IFS= read -r line; do
+            line=$(echo "$line" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            [ -z "$line" ] && continue
+            [[ "$line" =~ ^# ]] && continue
+            
+            if [[ "$line" =~ ^NAME=(.+)$ ]]; then
+                current_name="${BASH_REMATCH[1]}"
+            elif [[ "$line" =~ ^VERSION=(.+)$ ]]; then
+                current_version="${BASH_REMATCH[1]}"
+            elif [[ "$line" =~ ^DEPENDS=(.*)$ ]]; then
+                current_depends="${BASH_REMATCH[1]}"
+                
+                if [ -n "$current_name" ] && [ -n "$current_version" ]; then
+                    PACKAGES["$current_name"]=1
+                    VERSIONS["$current_name"]="$current_version"
+                    DEPENDENCIES["$current_name"]="$current_depends"
+                    
+                    current_name=""
+                    current_version=""
+                    current_depends=""
+                fi
+            fi
+        done < "$conf_file"
+    done
+}
+
+# Compare versions
+version_compare() {
+    local v1=$1
+    local op=$2
+    local v2=$3
+    
+    local IFS=.
+    local i ver1=($v1) ver2=($v2)
+    
+    for ((i=0; i<${#ver1[@]} || i<${#ver2[@]}; i++)); do
+        local num1=${ver1[i]:-0}
+        local num2=${ver2[i]:-0}
+        
+        if ((num1 > num2)); then
+            [[ "$op" == ">=" || "$op" == ">" ]] && return 0
+            [[ "$op" == "<=" || "$op" == "<" || "$op" == "==" ]] && return 1
+        elif ((num1 < num2)); then
+            [[ "$op" == "<=" || "$op" == "<" ]] && return 0
+            [[ "$op" == ">=" || "$op" == ">" || "$op" == "==" ]] && return 1
+        fi
+    done
+    
+    [[ "$op" == ">=" || "$op" == "<=" || "$op" == "==" ]] && return 0
+    return 1
+}
+
+# Check for circular dependencies
+check_circular() {
+    local pkg=$1
+    local path=$2
+    
+    if [[ "$path" == *"|$pkg|"* ]]; then
+        return 1
+    fi
+    
+    local deps="${DEPENDENCIES[$pkg]}"
+    [ -z "$deps" ] && return 0
+    
+    IFS=',' read -ra dep_array <<< "$deps"
+    for dep in "${dep_array[@]}"; do
+        local dep_name=$(echo "$dep" | sed 's/[><=].*//')
+        [ -z "$dep_name" ] && continue
+        
+        if ! check_circular "$dep_name" "$path|$pkg|"; then
+            return 1
+        fi
+    done
+    
+    return 0
+}
+
+# Validate dependencies
+validate_dependencies() {
+    for pkg in "${!PACKAGES[@]}"; do
+        local deps="${DEPENDENCIES[$pkg]}"
+        [ -z "$deps" ] && continue
+        
+        IFS=',' read -ra dep_array <<< "$deps"
+        for dep in "${dep_array[@]}"; do
+            ((TOTAL_DEPS++))
+            
+            local dep_name=""
+            local constraint=""
+            local version_required=""
+            
+            if [[ "$dep" =~ ^([a-zA-Z0-9_-]+)(>=|<=|==)(.+)$ ]]; then
+                dep_name="${BASH_REMATCH[1]}"
+                constraint="${BASH_REMATCH[2]}"
+                version_required="${BASH_REMATCH[3]}"
+            else
+                dep_name="$dep"
+            fi
+            
+            if [ -z "${PACKAGES[$dep_name]}" ]; then
+                ERRORS+=("Missing package: $pkg depends on $dep_name but $dep_name is not defined")
+                continue
+            fi
+            
+            if [ -n "$constraint" ] && [ -n "$version_required" ]; then
+                local available_version="${VERSIONS[$dep_name]}"
+                if ! version_compare "$available_version" "$constraint" "$version_required"; then
+                    ERRORS+=("Version conflict: $pkg requires $dep_name$constraint$version_required but version $available_version is available")
+                fi
+            fi
+        done
+        
+        if ! check_circular "$pkg" ""; then
+            ERRORS+=("Circular dependency detected involving package: $pkg")
+        fi
+    done
+}
+
+# Main execution
+parse_configs
+validate_dependencies
+
+# Output results
+PACKAGE_COUNT=${#PACKAGES[@]}
+ERROR_COUNT=${#ERRORS[@]}
+
+if [ $ERROR_COUNT -eq 0 ]; then
+    echo "STATUS=PASS"
+else
+    echo "STATUS=FAIL"
+fi
+
+echo "PACKAGES=$PACKAGE_COUNT"
+echo "DEPENDENCIES=$TOTAL_DEPS"
+echo "ERRORS=$ERROR_COUNT"

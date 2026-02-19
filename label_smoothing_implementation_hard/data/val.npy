@@ -1,0 +1,52 @@
+import numpy as np
+import os
+
+# Set random seed for reproducibility
+np.random.seed(42)
+
+# Create synthetic validation data
+# Shape: (50, 28, 28, 3) - 50 images, 28x28 pixels, 3 RGB channels
+# Values: float32, normalized between 0.0 and 1.0
+
+# Generate random normalized image data
+val_data = np.random.rand(50, 28, 28, 3).astype(np.float32)
+
+# Add some structure to make it more realistic (optional)
+# Create gradient patterns, shapes, etc.
+for i in range(50):
+    # Add some patterns to make images more structured
+    if i % 5 == 0:
+        # Vertical gradient
+        for x in range(28):
+            val_data[i, :, x, :] *= (x / 28.0)
+    elif i % 5 == 1:
+        # Horizontal gradient
+        for y in range(28):
+            val_data[i, y, :, :] *= (y / 28.0)
+    elif i % 5 == 2:
+        # Circular pattern
+        center_y, center_x = 14, 14
+        for y in range(28):
+            for x in range(28):
+                dist = np.sqrt((y - center_y)**2 + (x - center_x)**2)
+                val_data[i, y, x, :] *= (1.0 - min(dist / 20.0, 1.0))
+    elif i % 5 == 3:
+        # Checkerboard pattern
+        for y in range(28):
+            for x in range(28):
+                if (y // 4 + x // 4) % 2 == 0:
+                    val_data[i, y, x, :] *= 0.5
+    # else: keep random
+
+# Ensure all values are between 0.0 and 1.0
+val_data = np.clip(val_data, 0.0, 1.0)
+
+# Ensure the directory exists
+os.makedirs('/workspace/training/data', exist_ok=True)
+
+# Save as numpy binary file
+np.save('/workspace/training/data/val.npy', val_data)
+
+print(f"Created validation data with shape: {val_data.shape}")
+print(f"Data type: {val_data.dtype}")
+print(f"Value range: [{val_data.min():.4f}, {val_data.max():.4f}]")

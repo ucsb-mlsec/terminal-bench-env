@@ -1,0 +1,36 @@
+#!/bin/bash
+# Solution script to repair the corrupted static library
+
+# Navigate to workspace
+cd /workspace
+
+# Remove the corrupted library
+rm -f lib/libcalc.a
+
+# Rebuild the static library from the object files
+ar rcs lib/libcalc.a obj/add.o obj/subtract.o obj/multiply.o obj/divide.o
+
+# Regenerate the symbol index to ensure proper indexing
+ranlib lib/libcalc.a
+
+# Verify the library was created successfully
+if [ ! -f lib/libcalc.a ]; then
+    echo "Error: Failed to create library"
+    exit 1
+fi
+
+# Test compilation and linking
+gcc test_calc.c -L./lib -lcalc -o test_calc
+
+# Check if compilation succeeded
+if [ $? -eq 0 ]; then
+    echo "Library repair successful - test program compiled successfully"
+else
+    echo "Error: Compilation failed"
+    exit 1
+fi
+
+# Run the test program to verify functionality
+./test_calc
+
+exit 0

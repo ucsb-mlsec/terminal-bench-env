@@ -1,0 +1,42 @@
+Type-checking module liveness_property
+
+liveness_property: Theory
+  ... [Type-checking complete]
+
+Total TCCs generated: 5
+
+-------------------------------------------------------------------------------
+TCC #1: liveness_property.event_occurs_TCC1
+  Formula: FORALL (t: time): t >= 0 IMPLIES EXISTS (e: event): timestamp(e) > t
+  Status: proved
+  Proof: (grind)(assert)
+  
+TCC #2: liveness_property.termination_TCC1  
+  Formula: FORALL (p: process): eventually_terminates(p) IMPLIES is_finite(execution_steps(p))
+  Status: unproved
+  Proof attempt: (skolem!)(flatten)(assert)
+  Proof incomplete - subgoal remains unproven
+
+TCC #3: liveness_property.array_access_TCC1
+  Formula: FORALL (i: nat): i < length(process_queue) IMPLIES valid_index?(process_queue, i)
+  Status: proved
+  Proof: (measure-induct+ i)(grind)
+
+TCC #4: liveness_property.progress_condition_TCC2
+  Formula: enabled(s) IMPLIES EXISTS (s_next: state): transition(s, s_next) AND measure(s_next) < measure(s)
+  Status: undischarged
+  Proof attempt: (skosimp*)(measure "measure(s)")
+  Unable to establish termination measure decreases
+
+TCC #5: liveness_property.fairness_TCC1
+  Formula: FORALL (proc: process): infinitely_often_enabled(proc) IMPLIES infinitely_often_executed(proc)
+  Status: proved  
+  Proof: (induct "proc")(apply (repeat (grind)))(assert)
+
+-------------------------------------------------------------------------------
+Summary for liveness_property:
+  Total TCCs: 5
+  Proved: 3
+  Unproved: 2
+  
+Module liveness_property contains unproven TCCs and may not be type-safe.

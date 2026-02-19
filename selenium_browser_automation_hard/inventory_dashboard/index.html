@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Management Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 28px;
+        }
+
+        .loading-spinner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            margin-top: 20px;
+            color: #666;
+            font-size: 16px;
+        }
+
+        .table-container {
+            display: none;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid #e0e0e0;
+            transition: background-color 0.2s;
+        }
+
+        tbody tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        td {
+            padding: 15px;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+
+        .page-info {
+            font-weight: 600;
+            color: #555;
+            font-size: 14px;
+        }
+
+        .pagination-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.3s, transform 0.1s;
+            font-size: 14px;
+        }
+
+        button:hover:not(:disabled) {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .visible {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Inventory Management Dashboard</h1>
+        
+        <div id="loadingSpinner" class="loading-spinner">
+            <div class="spinner"></div>
+            <div class="loading-text">Loading inventory data...</div>
+        </div>
+
+        <div id="tableContainer" class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Product ID</th>
+                        <th>Product Name</th>
+                        <th>Stock Quantity</th>
+                        <th>Unit Price</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                </tbody>
+            </table>
+
+            <div class="pagination">
+                <div class="page-info" id="pageInfo">Page 1 of 3</div>
+                <div class="pagination-buttons">
+                    <button id="prevButton" onclick="previousPage()">Previous</button>
+                    <button id="nextButton" onclick="nextPage()">Next</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Generate deterministic product data
+        const allProducts = [];
+        const productNames = [
+            'Widget A', 'Gadget B', 'Tool C', 'Device D', 'Component E',
+            'Module F', 'Instrument G', 'Apparatus H', 'Mechanism I', 'System J',
+            'Widget K', 'Gadget L', 'Tool M', 'Device N', 'Component O',
+            'Module P', 'Instrument Q', 'Apparatus R', 'Mechanism S', 'System T',
+            'Widget U', 'Gadget V', 'Tool W', 'Device X', 'Component Y',
+            'Module Z', 'Instrument AA', 'Apparatus AB', 'Mechanism AC', 'System AD'
+        ];
+
+        for (let i = 0; i < 30; i++) {
+            const productId = `PROD-${String(10001 + i).padStart(5, '0')}`;
+            const productName = productNames[i];
+            const stock = 50 + (i * 7) % 150; // Deterministic pattern
+            const price = (10.00 + (i * 3.17) % 90).toFixed(2); // Deterministic pattern
+            
+            allProducts.push({
+                id: productId,
+                name: productName,
+                stock: stock,
+                price: parseFloat(price)
+            });
+        }
+
+        let currentPage = 1;
+        const itemsPerPage = 10;
+        const totalPages = 3;
+        let isLoading = false;
+
+        function displayPage(pageNumber) {
+            const startIndex = (pageNumber - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const pageProducts = allProducts.slice(startIndex, endIndex);
+
+            const tableBody = document.getElementById('tableBody');
+            tableBody.innerHTML = '';
+
+            pageProducts.forEach(product => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${product.id}</td>
+                    <td>${product.name}</td>
+                    <td>${product.stock}</td>
+                    <td>$${product.price.toFixed(2)}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+
+            updatePaginationControls();
+        }
+
+        function updatePaginationControls() {
+            document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages}`;
+            document.getElementById('prevButton').disabled = currentPage === 1;
+            document.getElementById('nextButton').disabled = currentPage === totalPages;
+        }
+
+        function showLoading() {
+            isLoading = true;
+            document.getElementById('tableContainer').style.display = 'none';
+            document.getElementById('loadingSpinner').style.display = 'flex';
+        }
+
+        function hideLoading() {
+            isLoading = false;
+            document.getElementById('loadingSpinner').style.display = 'none';
+            document.getElementById('tableContainer').style.display = 'block';
+        }
+
+        function nextPage() {
+            if (currentPage < totalPages && !isLoading) {
+                showLoading();
+                currentPage++;
+                
+                // Simulate loading delay (1-2 seconds)
+                const loadTime = 1000 + Math.random() * 1000;
+                setTimeout(() => {
+                    displayPage(currentPage);
+                    hideLoading();
+                }, loadTime);
+            }
+        }
+
+        function previousPage() {
+            if (currentPage > 1 && !isLoading) {
+                showLoading();
+                currentPage--;
+                
+                // Simulate loading delay (1-2 seconds)
+                const loadTime = 1000 + Math.random() * 1000;
+                setTimeout(() => {
+                    displayPage(currentPage);
+                    hideLoading();
+                }, loadTime);
+            }
+        }
+
+        // Initial load simulation (2-3 seconds)
+        window.addEventListener('load', () => {
+            const initialLoadTime = 2000 + Math.random() * 1000;
+            setTimeout(() => {
+                displayPage(1);
+                hideLoading();
+            }, initialLoadTime);
+        });
+    </script>
+</body>
+</html>

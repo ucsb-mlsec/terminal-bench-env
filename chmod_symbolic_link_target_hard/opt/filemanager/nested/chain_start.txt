@@ -1,0 +1,153 @@
+#!/bin/bash
+# This script sets up the file management system structure and performs the chmod audit
+
+set -e
+
+# Create the base directory structure
+mkdir -p /opt/filemanager/nested
+mkdir -p /opt/filemanager/configs
+mkdir -p /opt/filemanager/deep/level1/level2
+
+# Create target files with various permissions
+echo "main_config=enabled" > /opt/filemanager/configs/target.conf
+chmod 644 /opt/filemanager/configs/target.conf
+
+echo "database_config=active" > /opt/filemanager/configs/db.conf
+chmod 600 /opt/filemanager/configs/db.conf
+
+echo "system_settings=default" > /opt/filemanager/system.cfg
+chmod 755 /opt/filemanager/system.cfg
+
+echo "app_properties=loaded" > /opt/filemanager/app.properties
+chmod 640 /opt/filemanager/app.properties
+
+# Create symlink chains (chain_start -> chain_link1 -> chain_link2 -> target.conf)
+echo "target_data=production" > /opt/filemanager/configs/chain_target.conf
+chmod 644 /opt/filemanager/configs/chain_target.conf
+
+ln -sf configs/chain_target.conf /opt/filemanager/chain_link2.txt
+ln -sf chain_link2.txt /opt/filemanager/chain_link1.txt
+ln -sf ../chain_link1.txt /opt/filemanager/nested/chain_start.txt
+
+# Create direct symlinks
+ln -sf configs/target.conf /opt/filemanager/target_link.txt
+ln -sf /opt/filemanager/configs/db.conf /opt/filemanager/absolute_link.txt
+ln -sf system.cfg /opt/filemanager/nested/relative_link.txt
+
+# Create broken symlinks
+ln -sf nonexistent.txt /opt/filemanager/broken1.txt
+ln -sf /tmp/missing_file.conf /opt/filemanager/broken2.txt
+ln -sf ../nowhere.txt /opt/filemanager/nested/broken3.txt
+
+# Create nested structure with symlinks
+echo "deep_config=nested" > /opt/filemanager/deep/level1/level2/deep.conf
+chmod 664 /opt/filemanager/deep/level1/level2/deep.conf
+ln -sf level1/level2/deep.conf /opt/filemanager/deep/deep_link.txt
+ln -sf ../deep/deep_link.txt /opt/filemanager/nested/deep_relative.txt
+
+# Initialize audit data
+total_symlinks=0
+symlinks_follow_target=0
+broken_symlinks=0
+deepest_chain_length=0
+
+# Function to find chain length
+find_chain_length() {
+    local link="$1"
+    local count=0
+    local current="$link"
+    local max_depth=10
+    
+    while [ $count -lt $max_depth ]; do
+        if [ ! -L "$current" ]; then
+            echo $count
+            return
+        fi
+        count=$((count + 1))
+        local target=$(readlink "$current")
+        
+        # Handle relative paths
+        if [[ "$target" != /* ]]; then
+            current="$(dirname "$current")/$target"
+        else
+            current="$target"
+        fi
+        
+        # Normalize path
+        current=$(cd "$(dirname "$current")" 2>/dev/null && pwd)/$(basename "$current") 2>/dev/null || echo "$current"
+    done
+    
+    echo $count
+}
+
+# Function to test chmod behavior on a symlink
+test_chmod_follows() {
+    local link="$1"
+    
+    # Check if symlink is broken
+    if [ ! -e "$link" ]; then
+        return 1
+    fi
+    
+    # Get target file
+    local target=$(readlink -f "$link" 2>/dev/null || echo "")
+    if [ -z "$target" ] || [ ! -f "$target" ]; then
+        return 1
+    fi
+    
+    # Store original permissions
+    local orig_perm=$(stat -c %a "$target" 2>/dev/null || echo "")
+    if [ -z "$orig_perm" ]; then
+        return 1
+    fi
+    
+    # Try to change permissions via symlink
+    chmod 777 "$link" 2>/dev/null || true
+    
+    # Check if target permissions changed
+    local new_perm=$(stat -c %a "$target" 2>/dev/null || echo "")
+    
+    # Restore original permissions
+    chmod "$orig_perm" "$target" 2>/dev/null || true
+    
+    if [ "$new_perm" = "777" ]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Find all symlinks and analyze them
+while IFS= read -r -d '' symlink; do
+    total_symlinks=$((total_symlinks + 1))
+    
+    # Check if broken
+    if [ ! -e "$symlink" ]; then
+        broken_symlinks=$((broken_symlinks + 1))
+        continue
+    fi
+    
+    # Test chmod behavior
+    if test_chmod_follows "$symlink"; then
+        symlinks_follow_target=$((symlinks_follow_target + 1))
+    fi
+    
+    # Calculate chain length
+    chain_len=$(find_chain_length "$symlink")
+    if [ $chain_len -gt $deepest_chain_length ]; then
+        deepest_chain_length=$chain_len
+    fi
+    
+done < <(find /opt/filemanager -type l -print0 2>/dev/null)
+
+# Generate JSON output
+cat > /tmp/symlink_chmod_audit.json <<EOF
+{
+  "total_symlinks": $total_symlinks,
+  "symlinks_follow_target": $symlinks_follow_target,
+  "broken_symlinks": $broken_symlinks,
+  "deepest_chain_length": $deepest_chain_length
+}
+EOF
+
+chmod 644 /tmp/symlink_chmod_audit.json

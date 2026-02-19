@@ -1,0 +1,147 @@
+I'll generate a gzip-compressed file with database query log entries where corruption occurs around 40-50% through the file. Let me create this file with realistic database operation logs.
+
+<python>
+import gzip
+import random
+from datetime import datetime, timedelta
+
+# Generate log entries
+log_entries = []
+start_date = datetime(2024, 2, 1, 0, 0, 0)
+
+levels = ["INFO", "WARNING", "ERROR", "CRITICAL"]
+components = ["QueryExecutor", "ConnectionPool", "TransactionManager", "IndexOptimizer", "CacheManager"]
+
+messages = {
+    "QueryExecutor": [
+        "SELECT query executed in 45ms",
+        "UPDATE statement completed successfully",
+        "Complex JOIN operation finished in 234ms",
+        "INSERT batch operation processed 1000 records",
+        "DELETE query removed 15 rows",
+        "Query plan optimization applied",
+        "Prepared statement cached",
+        "Query timeout exceeded for slow SELECT",
+        "Subquery execution completed",
+        "Aggregate function computed in 89ms"
+    ],
+    "ConnectionPool": [
+        "New connection established to primary database",
+        "Connection returned to pool",
+        "Pool size adjusted to 50 connections",
+        "Stale connection removed from pool",
+        "Maximum pool size reached",
+        "Connection validation successful",
+        "Failed to acquire connection from pool",
+        "Idle connection timeout configured",
+        "Connection leak detected",
+        "Pool statistics: 45 active, 5 idle"
+    ],
+    "TransactionManager": [
+        "Transaction started with isolation level READ_COMMITTED",
+        "Transaction committed successfully",
+        "Transaction rolled back due to constraint violation",
+        "Deadlock detected, retrying transaction",
+        "Long-running transaction detected (5000ms)",
+        "Savepoint created: sp_checkpoint_1",
+        "Nested transaction initiated",
+        "Two-phase commit initiated",
+        "Transaction timeout set to 30000ms",
+        "Distributed transaction coordinated"
+    ],
+    "IndexOptimizer": [
+        "Index scan used for query optimization",
+        "Full table scan detected on large table",
+        "Composite index created on columns (user_id, timestamp)",
+        "Index statistics updated",
+        "Unused index identified: idx_legacy_column",
+        "Index fragmentation detected: 45%",
+        "B-tree index rebuilt successfully",
+        "Covering index suggestion generated",
+        "Index seek operation performed",
+        "Missing index recommendation created"
+    ],
+    "CacheManager": [
+        "Query result cached with TTL 300s",
+        "Cache hit ratio: 85%",
+        "Cache entry evicted due to memory pressure",
+        "Cache invalidated for table: users",
+        "Distributed cache synchronized",
+        "Cache warming completed",
+        "Cache size: 2.5GB / 4.0GB",
+        "Cache miss, fetching from database",
+        "Stale cache entry refreshed",
+        "Cache cluster node added"
+    ]
+}
+
+# Generate approximately 90 entries
+num_entries = random.randint(85, 100)
+current_time = start_date
+
+for i in range(num_entries):
+    # Increment time by random amount
+    current_time += timedelta(
+        hours=random.randint(0, 3),
+        minutes=random.randint(0, 59),
+        seconds=random.randint(0, 59)
+    )
+    
+    # Keep within February
+    if current_time.month > 2:
+        current_time = datetime(2024, 2, 28, 23, 59, 59)
+    
+    level = random.choice(levels)
+    # Weight toward INFO
+    if random.random() < 0.6:
+        level = "INFO"
+    elif random.random() < 0.3:
+        level = "WARNING"
+    
+    component = random.choice(components)
+    message = random.choice(messages[component])
+    
+    timestamp_str = current_time.strftime("%Y-%m-%d %H:%M:%S")
+    log_entry = f"{timestamp_str}|{level}|{component}|{message}\n"
+    log_entries.append(log_entry)
+
+# Sort by timestamp to ensure chronological order
+log_entries.sort()
+
+# Create the file content
+file_content = "".join(log_entries)
+
+# Calculate corruption point (40-50% through the file)
+corruption_point = int(len(file_content) * random.uniform(0.40, 0.50))
+
+# Get the recoverable portion (before corruption)
+recoverable_content = file_content[:corruption_point]
+
+# Make sure we end on a complete line
+last_newline = recoverable_content.rfind('\n')
+if last_newline > 0:
+    recoverable_content = recoverable_content[:last_newline + 1]
+
+# Create corrupted content after the recoverable part
+corrupted_bytes = b'\x1f\x8b\x08\x00' + bytes([random.randint(0, 255) for _ in range(200)])
+
+# Compress the recoverable portion
+compressed_data = gzip.compress(recoverable_content.encode('utf-8'))
+
+# Truncate the compressed data and add corruption
+# Find a point in the compressed data to corrupt (roughly corresponding to our corruption point)
+corruption_byte_point = int(len(compressed_data) * random.uniform(0.45, 0.55))
+
+# Create the final corrupted file
+final_data = compressed_data[:corruption_byte_point] + corrupted_bytes
+
+# Write to file
+output_path = "/data/corrupted_logs/database_queries_2024_02.log.gz"
+with open(output_path, 'wb') as f:
+    f.write(final_data)
+
+print(f"Generated corrupted gzip file with {len(log_entries)} total entries")
+print(f"Recoverable entries (estimated): {recoverable_content.count(chr(10))}")
+print(f"File size: {len(final_data)} bytes")
+print(f"Corruption introduced at byte {corruption_byte_point}")
+</python>

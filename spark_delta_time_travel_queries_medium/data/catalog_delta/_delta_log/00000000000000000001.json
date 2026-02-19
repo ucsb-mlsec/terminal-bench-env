@@ -1,0 +1,161 @@
+[
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"```python"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"import json"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"import os"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"from datetime import datetime"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"# Path to the Delta Lake table"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"delta_path = \"\/workspace\/catalog_delta\""
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"# Function to read a Delta log file"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"def read_delta_log(version):"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"    if not os.path.exists(log_file):"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"        return None"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"    actions = []"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"        for line in f:"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"            if line.strip():"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"                actions.append(json.loads(line))"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"    return actions"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"# Function to extract stats from add actions"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"def get_stats_from_version(version):"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"    actions = read_delta_log(version)"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"    if not actions:"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"        return None"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"    total_records = 0"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"    has_invalid_data = False"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"    for action in actions:"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"        if 'add' in action:"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"            stats_str = action['add'].get('stats')"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"            if stats_str:"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"                stats = json.loads(stats_str)"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"                # Check for invalid prices (<=0)"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"                if 'price' in min_values and min_values['price'] <= 0:"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"                    has_invalid_data = True"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"                # Check for negative stock"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"                if 'stock' in min_values and min_values['stock'] < 0:"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"                    has_invalid_data = True"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"    return {"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"        'is_valid': not has_invalid_data"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"    }"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"# Find the latest valid version"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"latest_valid_version = None"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"latest_valid_count = 0"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"version = 0"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"while True:"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"    stats = get_stats_from_version(version)"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"    if stats is None:"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"        break"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"    if stats['is_valid']:"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"        latest_valid_version = version"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"        latest_valid_count = stats['record_count']"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"    version += 1"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"# Write results"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"output_path = \"\/workspace\/recovery_info.txt\""
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"    f.write(f\"version={latest_valid_version}\\n\")"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"    f.write(f\"record_count={latest_valid_count}\\n\")"
+  },
+  {
+    "I'll help you solve this data quality incident investigation task. Let me analyze the Delta Lake table's version history and identify the last known good state.":"print(f\"Analysis complete. Last good version: {latest_valid_version} with {latest_valid_count} records\")"
+  }
+]

@@ -1,0 +1,38 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: snapshot-job
+  namespace: default
+  labels:
+    app: snapshot
+    component: backup
+spec:
+  schedule: '75 4 * * *'
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: snapshot
+            component: backup
+        spec:
+          containers:
+          - name: snapshot
+            image: snapshot:v3
+            imagePullPolicy: IfNotPresent
+            env:
+            - name: SNAPSHOT_TYPE
+              value: "full"
+            - name: RETENTION_DAYS
+              value: "30"
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "250m"
+              limits:
+                memory: "512Mi"
+                cpu: "500m"
+          restartPolicy: OnFailure

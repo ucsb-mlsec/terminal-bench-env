@@ -1,0 +1,82 @@
+#!/usr/bin/env python3
+
+import os
+import glob
+
+def parse_job_file(filepath):
+    """Parse a job definition file and return a dictionary of parameters."""
+    params = {}
+    try:
+        with open(filepath, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line and '=' in line:
+                    key, value = line.split('=', 1)
+                    params[key.strip()] = value.strip()
+    except Exception:
+        return None
+    return params
+
+def get_param_value(params, key, default):
+    """Get parameter value with default fallback."""
+    if params is None:
+        return default
+    return params.get(key, default)
+
+def validate_job(params):
+    """Validate a job against all policies. Returns True if valid, False otherwise."""
+    if params is None:
+        return False
+    
+    # Get parameters with defaults
+    cores = int(get_param_value(params, 'CORES', '1'))
+    memory_gb = int(get_param_value(params, 'MEMORY_GB', '4'))
+    runtime_hours = int(get_param_value(params, 'RUNTIME_HOURS', '-1'))
+    gpu_count = int(get_param_value(params, 'GPU_COUNT', '0'))
+    project_code = get_param_value(params, 'PROJECT_CODE', '')
+    email = get_param_value(params, 'EMAIL', '')
+    queue = get_param_value(params, 'QUEUE', 'normal')
+    
+    # Policy 1: Jobs requesting more than 16 cores must have a project code
+    if cores > 16 and not project_code:
+        return False
+    
+    # Policy 2: Jobs requesting more than 64GB memory must have runtime limit
+    if memory_gb > 64 and runtime_hours == -1:
+        return False
+    
+    # Policy 3: Jobs in "gpu" queue must request at least 1 GPU
+    if queue == 'gpu' and gpu_count < 1:
+        return False
+    
+    # Policy 4: All jobs must have an email address
+    if not email:
+        return False
+    
+    return True
+
+def main():
+    job_files = glob.glob('/workspace/job_definitions/*.job')
+    
+    total_jobs = len(job_files)
+    valid_jobs = 0
+    invalid_jobs = 0
+    
+    for job_file in job_files:
+        try:
+            params = parse_job_file(job_file)
+            if validate_job(params):
+                valid_jobs += 1
+            else:
+                invalid_jobs += 1
+        except Exception:
+            invalid_jobs += 1
+    
+    # Write summary report
+    with open('/workspace/validation_summary.txt', 'w') as f:
+        f.write(f'TOTAL_JOBS={total_jobs}\n')
+        f.write(f'VALID_JOBS={valid_jobs}\n')
+        f.write(f'INVALID_JOBS={invalid_jobs}\n')
+
+if __name__ == '__main__':
+    main()

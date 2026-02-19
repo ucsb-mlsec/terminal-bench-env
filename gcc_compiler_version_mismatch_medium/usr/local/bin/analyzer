@@ -1,0 +1,76 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <dlfcn.h>
+
+// Function pointers for library functions
+typedef double (*compute_mean_func)(double*, int);
+typedef double (*compute_variance_func)(double*, int);
+typedef double (*compute_stddev_func)(double*, int);
+
+int main(int argc, char *argv[]) {
+    if (argc != 2) {
+        fprintf(stderr, "Usage: %s <data_file>\n", argv[0]);
+        return 1;
+    }
+
+    const char *filename = argv[1];
+    
+    // Open the data file
+    FILE *fp = fopen(filename, "r");
+    if (!fp) {
+        fprintf(stderr, "Error: Cannot open file %s\n", filename);
+        return 1;
+    }
+
+    // Read numerical data
+    double data[1000];
+    int count = 0;
+    while (count < 1000 && fscanf(fp, "%lf", &data[count]) == 1) {
+        count++;
+    }
+    fclose(fp);
+
+    if (count == 0) {
+        fprintf(stderr, "Error: No data read from file\n");
+        return 1;
+    }
+
+    printf("Data Analysis Tool v2.0\n");
+    printf("========================\n");
+    printf("Processing %d data points from %s\n\n", count, filename);
+
+    // Load library symbols with version requirements
+    void *handle = dlopen("libmathcore.so.1", RTLD_LAZY);
+    if (!handle) {
+        fprintf(stderr, "Error loading library: %s\n", dlerror());
+        return 1;
+    }
+
+    // Try to load versioned symbols (new interface)
+    compute_mean_func compute_mean = (compute_mean_func)dlvsym(handle, "compute_mean", "MATHCORE_2.0");
+    compute_variance_func compute_variance = (compute_variance_func)dlvsym(handle, "compute_variance", "MATHCORE_2.0");
+    compute_stddev_func compute_stddev = (compute_stddev_func)dlvsym(handle, "compute_stddev", "MATHCORE_2.0");
+
+    if (!compute_mean || !compute_variance || !compute_stddev) {
+        fprintf(stderr, "Error: Symbol version mismatch. Required: MATHCORE_2.0\n");
+        fprintf(stderr, "Details: %s\n", dlerror());
+        dlclose(handle);
+        return 1;
+    }
+
+    // Perform calculations
+    double mean = compute_mean(data, count);
+    double variance = compute_variance(data, count);
+    double stddev = compute_stddev(data, count);
+
+    // Display results
+    printf("Results:\n");
+    printf("--------\n");
+    printf("Mean:              %.6f\n", mean);
+    printf("Variance:          %.6f\n", variance);
+    printf("Standard Deviation: %.6f\n", stddev);
+    printf("\nAnalysis completed successfully.\n");
+
+    dlclose(handle);
+    return 0;
+}

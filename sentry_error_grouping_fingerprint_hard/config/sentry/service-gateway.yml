@@ -1,0 +1,106 @@
+# Gateway Service Sentry Fingerprinting Configuration
+# Last modified: 2024-01-15
+# Owner: Gateway Team
+
+fingerprinting_rules:
+  # Valid rule - Gateway route matching
+  - matchers:
+      - - path
+        - "/api/gateway/*"
+    fingerprint:
+      - "gateway"
+      - "{{ default }}"
+    
+  # Valid rule - Gateway timeout exceptions
+  - matchers:
+      - - exception.type
+        - "GatewayTimeout"
+    fingerprint:
+      - "gateway-timeout"
+      - "{{ type }}"
+  
+  # Valid rule - HTTP status code tracking
+  - matchers:
+      - - tags.http_status
+        - "5*"
+    fingerprint:
+      - "server-error"
+      - "{{ tags.http_status }}"
+  
+  # Valid rule - Function-based fingerprinting
+  - matchers:
+      - - exception.type
+        - "ProxyError"
+    fingerprint:
+      - "proxy"
+      - "{{ function }}"
+  
+  # Valid rule - Critical level errors
+  - matchers:
+      - - level
+        - "fatal"
+    fingerprint:
+      - "critical"
+      - "{{ default }}"
+  
+  # Valid rule - Message wildcard matching
+  - matchers:
+      - - message
+        - "*upstream service unavailable*"
+    fingerprint:
+      - "upstream-failure"
+      - "{{ message }}"
+  
+  # Valid rule - Multiple matchers for rate limiting
+  - matchers:
+      - - type
+        - "RateLimitError"
+      - - tags.service
+        - "gateway"
+    fingerprint:
+      - "rate-limit"
+      - "{{ type }}"
+  
+  # INVALID - route is not a valid matcher type
+  - matchers:
+      - - route
+        - "/api/v2/*"
+    fingerprint:
+      - "api-v2-errors"
+  
+  # INVALID - old 'match' syntax is deprecated
+  - match:
+      - type
+      - "ConnectionError"
+    fingerprint:
+      - "connection-issue"
+  
+  # INVALID - endpoint variable is not supported
+  - matchers:
+      - - path
+        - "/health"
+    fingerprint:
+      - "health-check"
+      - "{{ endpoint }}"
+  
+  # INVALID - fingerprint must be a list, not integer
+  - matchers:
+      - - exception.type
+        - "TimeoutError"
+    fingerprint: 12345
+  
+  # INVALID - request_id is not a valid matcher
+  - matchers:
+      - - request_id
+        - "*"
+    fingerprint:
+      - "request-tracking"
+      - "{{ default }}"
+  
+  # INVALID - variable names cannot contain spaces
+  - matchers:
+      - - message
+        - "*service error*"
+    fingerprint:
+      - "service"
+      - "{{ variable with space }}"

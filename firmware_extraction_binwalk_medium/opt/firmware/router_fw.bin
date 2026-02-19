@@ -1,0 +1,80 @@
+SquashFS4.0_LE���f����A�ZqN*�����)L�x������etc����������������������������������bin����������������������������������sbin��������������������������������usr���������������������������������lib���������������������������������passwd�root:x:0:0:root:/root:/bin/sh
+daemon:x:1:1:daemon:/usr/sbin:/bin/false
+admin:x:1000:1000:Administrator:/home/admin:/bin/sh
+nobody:x:65534:65534:nobody:/var/empty:/bin/false
+����shadow�root:$1$abcd1234$xyz789abcdefghijk:18500:0:99999:7:::
+daemon:*:18500:0:99999:7:::
+admin:$1$efgh5678$lmnop123456789xyz:18500:0:99999:7:::
+nobody:*:18500:0:99999:7:::
+��������hosts�127.0.0.1	localhost
+192.168.1.1	router router.local
+255.255.255.255	broadcasthost
+::1	localhost ip6-localhost ip6-loopback
+��������inittab�::sysinit:/etc/init.d/rcS
+::respawn:/sbin/getty 115200 ttyS0
+::restart:/sbin/init
+::ctrlaltdel:/sbin/reboot
+::shutdown:/bin/umount -a -r
+������������network.conf�# Network Configuration
+LAN_IP=192.168.1.1
+LAN_NETMASK=255.255.255.0
+WAN_MODE=dhcp
+DHCP_ENABLED=1
+DHCP_START=192.168.1.100
+DHCP_END=192.168.1.200
+DNS_PRIMARY=8.8.8.8
+DNS_SECONDARY=8.8.4.4
+WIFI_ENABLED=1
+WIFI_SSID=RouterNetwork
+WIFI_CHANNEL=6
+WIFI_MODE=11bgn
+����������busybox�#!/bin/sh
+# BusyBox symlink handler
+exec /bin/busybox "$@"
+������������httpd�#!/bin/sh
+# Simple HTTP daemon
+PORT=80
+ROOT=/www
+exec /usr/sbin/httpd -p $PORT -h $ROOT -f
+����������������telnetd�#!/bin/sh
+# Telnet daemon startup
+exec /usr/sbin/telnetd -l /bin/login -F
+��������������init�#!/bin/sh
+# System initialization script
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys
+mount -t tmpfs tmpfs /tmp
+/sbin/ifconfig lo 127.0.0.1 up
+/etc/init.d/network start
+/etc/init.d/firewall start
+������������reboot�#!/bin/sh
+echo "System rebooting..."
+sync
+/sbin/reboot -f
+����������������halt�#!/bin/sh
+echo "System shutting down..."
+sync
+/sbin/halt -f
+������������libc.so.6�ELF���������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������libgcc_s.so.1�ELF������������������������������������������������������������������������������������������������������������libm.so.6�ELF����������������������������������������������������������������������������������������������ld-linux.so.2�ELF���������������������������������������������������������������������������������������������������������������������������������������������������������base-files.mk�# Base files configuration
+VERSION=1.2.3
+BUILD_DATE=2024-01-15
+DEVICE_MODEL=RT-AC1200
+MANUFACTURER=GenericRouter
+FIRMWARE_VERSION=3.0.1
+KERNEL_VERSION=4.14.98
+��������������utils.sh�#!/bin/sh
+# Utility functions
+log_msg() {
+    echo "[$(date)] $1" >> /var/log/system.log
+}
+get_mac() {
+    cat /sys/class/net/$1/address 2>/dev/null
+}
+����������������webui_config.xml�<?xml version="1.0"?>
+<config>
+  <interface>eth0</interface>
+  <admin_port>8080</admin_port>
+  <timeout>300</timeout>
+  <max_connections>50</max_connections>
+</config>
+����������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������

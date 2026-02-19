@@ -1,0 +1,49 @@
+#!/bin/bash
+
+# Backup Audit Script
+# This script audits backup files across multiple directories
+# and generates a report without failing when files are missing
+
+# Define backup directories and patterns
+BACKUP_BASE="/opt/backups"
+DIRECTORIES=("daily" "weekly" "monthly")
+PATTERNS=("db_backup_*.sql" "config_backup_*.tar.gz" "logs_backup_*.zip")
+PATTERN_NAMES=("db_backup" "config_backup" "logs_backup")
+REPORT_FILE="/home/user/backup_report.txt"
+
+# Clear or create the report file
+> "$REPORT_FILE"
+
+# Disable default bash behavior of leaving unmatched globs as literals
+# Set nullglob so unmatched patterns expand to nothing
+shopt -s nullglob
+
+# Iterate through each directory
+for dir in "${DIRECTORIES[@]}"; do
+    FULL_PATH="${BACKUP_BASE}/${dir}"
+    
+    # Iterate through each pattern
+    for i in "${!PATTERNS[@]}"; do
+        pattern="${PATTERNS[$i]}"
+        pattern_name="${PATTERN_NAMES[$i]}"
+        
+        # Count matching files
+        # If directory doesn't exist or pattern doesn't match, count will be 0
+        if [ -d "$FULL_PATH" ]; then
+            # Use array to capture matching files
+            files=("$FULL_PATH"/$pattern)
+            count=${#files[@]}
+        else
+            count=0
+        fi
+        
+        # Write to report
+        echo "${dir}/${pattern_name}=${count}" >> "$REPORT_FILE"
+    done
+done
+
+# Reset nullglob option
+shopt -u nullglob
+
+# Exit successfully
+exit 0

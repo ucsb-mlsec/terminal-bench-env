@@ -1,0 +1,30 @@
+easyconfig = 'EB_OpenMPI'
+name = 'OpenMPI'
+version = '4.0.3'
+
+homepage = 'https://www.open-mpi.org/'
+description = """The Open MPI Project is an open source MPI-3 implementation."""
+
+toolchain = 'GCC-8.3.0'
+
+source_urls = ['https://download.open-mpi.org/release/open-mpi/v%(version_major_minor)s']
+sources = [SOURCELOWER_TAR_GZ]
+checksums = ['1402ef54f598b4ea5cf7d65cd62a5167']
+
+configopts = '--enable-shared --enable-mpi-fortran=all --enable-mpirun-prefix-by-default '
+configopts += '--with-hwloc=internal --without-verbs '
+
+dependencies = [
+    ('zlib', '1.2.11'),
+    ('hwloc', '2.0.3'),
+]
+
+libs = ['mpi_mpifh', 'mpi', 'ompitrace']
+sanity_check_paths = {
+    'files': ['bin/%s' % x for x in ['ompi_info', 'opal_wrapper', 'orterun']] +
+             ['lib/lib%s.%s' % (x, SHLIB_EXT) for x in libs] +
+             ['include/%s.h' % x for x in ['mpi-ext', 'mpif-config', 'mpi', 'mpi_portable_platform']],
+    'dirs': ['include/openmpi/ompi/mpi/cxx'],
+}
+
+moduleclass = 'mpi'

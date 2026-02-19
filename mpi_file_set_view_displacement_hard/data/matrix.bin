@@ -1,0 +1,164 @@
+#include <mpi.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+
+#define MATRIX_SIZE 8192
+#define ELEMENT_SIZE sizeof(double)
+
+int main(int argc, char **argv) {
+    MPI_Init(&argc, &argv);
+    
+    int rank, size;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    
+    // Calculate row distribution
+    int rows_per_proc = MATRIX_SIZE / size;
+    int extra_rows = MATRIX_SIZE % size;
+    
+    int my_start_row = rank * rows_per_proc + (rank < extra_rows ? rank : extra_rows);
+    int my_num_rows = rows_per_proc + (rank < extra_rows ? 1 : 0);
+    
+    // Allocate local buffer for reading input rows
+    double *local_input = (double *)malloc(my_num_rows * MATRIX_SIZE * ELEMENT_SIZE);
+    if (local_input == NULL) {
+        fprintf(stderr, "Rank %d: Memory allocation failed for local_input\n", rank);
+        MPI_Abort(MPI_COMM_WORLD, 1);
+    }
+    
+    // Read input matrix using MPI-IO
+    MPI_File input_file;
+    MPI_Status status;
+    
+    int result = MPI_File_open(MPI_COMM_WORLD, "/workspace/data/matrix.bin",
+                               MPI_MODE_RDONLY, MPI_INFO_NULL, &input_file);
+    if (result != MPI_SUCCESS) {
+        fprintf(stderr, "Rank %d: Failed to open input file\n", rank);
+        MPI_Abort(MPI_COMM_WORLD, 1);
+    }
+    
+    // Set file view for reading contiguous rows
+    MPI_Offset read_offset = (MPI_Offset)my_start_row * MATRIX_SIZE * ELEMENT_SIZE;
+    MPI_File_seek(input_file, read_offset, MPI_SEEK_SET);
+    
+    int read_count = my_num_rows * MATRIX_SIZE;
+    MPI_File_read(input_file, local_input, read_count, MPI_DOUBLE, &status);
+    MPI_File_close(&input_file);
+    
+    // Allocate buffer for transposed data (column-wise from input perspective)
+    // Each process will write columns corresponding to the rows it read
+    double *local_output = (double *)malloc(my_num_rows * MATRIX_SIZE * ELEMENT_SIZE);
+    if (local_output == NULL) {
+        fprintf(stderr, "Rank %d: Memory allocation failed for local_output\n", rank);
+        MPI_Abort(MPI_COMM_WORLD, 1);
+    }
+    
+    // Transpose local data: input rows become output columns
+    // For input[i][j], it goes to output[j][i]
+    // Since we have rows [my_start_row, my_start_row + my_num_rows)
+    // These become columns [my_start_row, my_start_row + my_num_rows) in output
+    
+    // We need to reorganize data for writing
+    // The output file is also row-major, so output row j contains all columns
+    // Our data (originally row i) goes to column i of all rows
+    
+    // Create a buffer to store data organized by output rows
+    // Each rank will write to specific columns across all rows
+    double *write_buffer = (double *)malloc(my_num_rows * MATRIX_SIZE * ELEMENT_SIZE);
+    if (write_buffer == NULL) {
+        fprintf(stderr, "Rank %d: Memory allocation failed for write_buffer\n", rank);
+        MPI_Abort(MPI_COMM_WORLD, 1);
+    }
+    
+    // Open output file
+    MPI_File output_file;
+    result = MPI_File_open(MPI_COMM_WORLD, "/workspace/output/transposed.bin",
+                          MPI_MODE_CREATE | MPI_MODE_WRONLY, MPI_INFO_NULL, &output_file);
+    if (result != MPI_SUCCESS) {
+        fprintf(stderr, "Rank %d: Failed to open output file\n", rank);
+        MPI_Abort(MPI_COMM_WORLD, 1);
+    }
+    
+    // Set file size
+    if (rank == 0) {
+        MPI_File_set_size(output_file, (MPI_Offset)MATRIX_SIZE * MATRIX_SIZE * ELEMENT_SIZE);
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+    
+    // Write transposed data
+    // For each input row i (in range [my_start_row, my_start_row + my_num_rows))
+    // and each column j (in range [0, MATRIX_SIZE))
+    // input[i][j] goes to output[j][i]
+    
+    // We need to write to columns [my_start_row, my_start_row + my_num_rows) of each output row
+    // This requires strided writes
+    
+    // Create MPI datatype for strided writes
+    MPI_Datatype column_type;
+    MPI_Type_vector(MATRIX_SIZE, my_num_rows, MATRIX_SIZE, MPI_DOUBLE, &column_type);
+    MPI_Type_commit(&column_type);
+    
+    // Reorganize data for output
+    for (int local_row = 0; local_row < my_num_rows; local_row++) {
+        int global_row = my_start_row + local_row;
+        for (int col = 0; col < MATRIX_SIZE; col++) {
+            // input[global_row][col] goes to output[col][global_row]
+            // In write buffer, organize by output row
+            write_buffer[col * my_num_rows + local_row] = local_input[local_row * MATRIX_SIZE + col];
+        }
+    }
+    
+    // Write using file view with displacement
+    MPI_Offset write_offset = (MPI_Offset)my_start_row * ELEMENT_SIZE;
+    MPI_File_set_view(output_file, write_offset, MPI_DOUBLE, column_type, "native", MPI_INFO_NULL);
+    MPI_File_write_all(output_file, write_buffer, MATRIX_SIZE * my_num_rows, MPI_DOUBLE, &status);
+    
+    MPI_Type_free(&column_type);
+    MPI_File_close(&output_file);
+    
+    // Verification on rank 0
+    if (rank == 0) {
+        // Read first 100 elements from transposed matrix
+        MPI_File verify_file;
+        MPI_File_open(MPI_COMM_SELF, "/workspace/output/transposed.bin",
+                     MPI_MODE_RDONLY, MPI_INFO_NULL, &verify_file);
+        
+        double verify_data[100];
+        MPI_File_read(verify_file, verify_data, 100, MPI_DOUBLE, &status);
+        MPI_File_close(&verify_file);
+        
+        double checksum = 0.0;
+        for (int i = 0; i < 100; i++) {
+            checksum += verify_data[i];
+        }
+        
+        // Get file sizes
+        FILE *input_fp = fopen("/workspace/data/matrix.bin", "rb");
+        fseek(input_fp, 0, SEEK_END);
+        long input_size = ftell(input_fp);
+        fclose(input_fp);
+        
+        FILE *output_fp = fopen("/workspace/output/transposed.bin", "rb");
+        fseek(output_fp, 0, SEEK_END);
+        long output_size = ftell(output_fp);
+        fclose(output_fp);
+        
+        // Write verification report
+        FILE *report = fopen("/workspace/output/verification.txt", "w");
+        fprintf(report, "SUCCESS=%s\n", (output_size == input_size) ? "true" : "false");
+        fprintf(report, "PROCESSES_USED=%d\n", size);
+        fprintf(report, "INPUT_SIZE_BYTES=%ld\n", input_size);
+        fprintf(report, "OUTPUT_SIZE_BYTES=%ld\n", output_size);
+        fprintf(report, "CHECKSUM=%.6f\n", checksum);
+        fclose(report);
+    }
+    
+    free(local_input);
+    free(local_output);
+    free(write_buffer);
+    
+    MPI_Finalize();
+    return 0;
+}

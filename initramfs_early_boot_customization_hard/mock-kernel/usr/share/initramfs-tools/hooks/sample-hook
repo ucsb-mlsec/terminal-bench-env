@@ -1,0 +1,80 @@
+#!/bin/sh
+#
+# Sample initramfs-tools hook script
+# Purpose: Demonstrates proper structure and conventions for initramfs hooks
+# Location: /usr/share/initramfs-tools/hooks/sample-hook
+#
+# This hook runs during initramfs generation (update-initramfs)
+# to copy necessary files into the initramfs image.
+#
+# Available helper functions:
+#   copy_exec <binary> [destination] - Copies binary and all library dependencies
+#   manual_add_modules <module> - Adds kernel module to initramfs
+#   add_modules_from_file <file> - Adds modules listed in file
+#   force_load <module> - Ensures module loads at boot
+#
+# Standard variables:
+#   ${DESTDIR} - Root of initramfs being built (e.g., /tmp/mkinitramfs_XXXX)
+#   ${CONFDIR} - Config directory (/etc/initramfs-tools)
+#   ${verbose} - Verbose mode flag
+
+# PREREQ declares dependencies on other hooks (empty = no dependencies)
+PREREQ=""
+
+prereqs()
+{
+	echo "${PREREQ}"
+}
+
+case $1 in
+prereqs)
+	prereqs
+	exit 0
+	;;
+esac
+
+# Source hook functions if available
+. /usr/share/initramfs-tools/hook-functions
+
+#
+# Example 1: Copy essential shell for rescue scenarios
+# Check if binary exists before attempting copy
+#
+if [ -x /bin/busybox ]; then
+	copy_exec /bin/busybox /bin
+elif [ -x /usr/bin/busybox ]; then
+	copy_exec /usr/bin/busybox /bin
+fi
+
+#
+# Example 2: Copy network utilities with fallback paths
+# Handles different distribution layouts gracefully
+#
+for binary in /usr/sbin/ip /sbin/ip /bin/ip; do
+	if [ -x "${binary}" ]; then
+		copy_exec "${binary}" /sbin
+		break
+	fi
+done
+
+#
+# Example 3: Copy optional diagnostic tools
+# Uses || true to continue if binary doesn't exist
+#
+[ -x /bin/ping ] && copy_exec /bin/ping /bin || true
+[ -x /usr/bin/traceroute ] && copy_exec /usr/bin/traceroute /usr/bin || true
+
+#
+# Example 4: Create necessary directory structure in initramfs
+#
+mkdir -p "${DESTDIR}/etc/network"
+mkdir -p "${DESTDIR}/var/log"
+
+#
+# Example 5: Add kernel modules if needed
+# Uncomment to include network drivers
+#
+# manual_add_modules e1000e
+# manual_add_modules virtio_net
+
+exit 0

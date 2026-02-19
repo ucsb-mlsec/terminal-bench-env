@@ -1,0 +1,90 @@
+#!/bin/bash
+# Server-side update hook for policy enforcement
+# This hook is called once per ref being pushed
+
+set -e
+
+# Hook receives three arguments: refname, old-object-name, new-object-name
+refname="$1"
+oldrev="$2"
+newrev="$3"
+
+# Policy 4: Branch Protection - Check if pushing to production branch
+if [[ "$refname" == "refs/heads/production" ]]; then
+    echo "ERROR: Direct pushes to 'production' branch are prohibited."
+    echo "Production deployments require a different process."
+    exit 1
+fi
+
+# If this is a new branch, oldrev will be all zeros
+if [[ "$oldrev" == "0000000000000000000000000000000000000000" ]]; then
+    # For new branches, check from the beginning
+    revlist=$(git rev-list "$newrev")
+else
+    # For existing branches, check only new commits
+    revlist=$(git rev-list "$oldrev".."$newrev")
+fi
+
+# Exit if no commits to check
+if [[ -z "$revlist" ]]; then
+    exit 0
+fi
+
+# Iterate through each new commit
+while IFS= read -r commit; do
+    # Policy 1: Commit Message Format
+    commit_msg=$(git log -1 --format=%B "$commit")
+    first_line=$(echo "$commit_msg" | head -n1)
+    
+    # Check for [TICKET-###] pattern at the beginning
+    if ! echo "$first_line" | grep -qE '^\[TICKET-[0-9]{1,4}\]'; then
+        echo "ERROR: Commit $commit violates Policy 1 (Commit Message Format)"
+        echo "Commit message must begin with [TICKET-###] where ### is 1-4 digits."
+        echo "Commit message: $first_line"
+        exit 1
+    fi
+    
+    # Extract message after ticket reference and check length
+    message_after_ticket=$(echo "$first_line" | sed -E 's/^\[TICKET-[0-9]{1,4}\] *//')
+    if [[ ${#message_after_ticket} -lt 15 ]]; then
+        echo "ERROR: Commit $commit violates Policy 1 (Commit Message Format)"
+        echo "Message after ticket reference must be at least 15 characters long."
+        echo "Current length: ${#message_after_ticket}"
+        echo "Message: $message_after_ticket"
+        exit 1
+    fi
+    
+    # Get list of files in this commit
+    files=$(git diff-tree --no-commit-id --name-only -r "$commit")
+    
+    while IFS= read -r file; do
+        # Skip empty lines
+        [[ -z "$file" ]] && continue
+        
+        # Check if file exists in this commit (not deleted)
+        if git cat-file -e "$commit:$file" 2>/dev/null; then
+            # Policy 2: File Size Limit (2MB = 2097152 bytes)
+            filesize=$(git cat-file -s "$commit:$file")
+            if [[ $filesize -gt 2097152 ]]; then
+                echo "ERROR: Commit $commit violates Policy 2 (File Size Limit)"
+                echo "File '$file' exceeds 2MB limit (size: $filesize bytes)"
+                exit 1
+            fi
+            
+            # Policy 3: Prohibited Content in Python files
+            if [[ "$file" == *.py ]]; then
+                content=$(git cat-file -p "$commit:$file")
+                if echo "$content" | grep -qF 'TODO:'; then
+                    echo "ERROR: Commit $commit violates Policy 3 (Prohibited Content)"
+                    echo "Python file '$file' contains prohibited string 'TODO:'"
+                    echo "All development tasks must be tracked in the ticket system."
+                    exit 1
+                fi
+            fi
+        fi
+    done <<< "$files"
+    
+done <<< "$revlist"
+
+# All policies passed
+exit 0

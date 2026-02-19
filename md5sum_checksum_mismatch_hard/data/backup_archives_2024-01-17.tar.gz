@@ -1,0 +1,220 @@
+#!/bin/bash
+
+# Create directory structure
+mkdir -p /backup/archives/2024-01-15
+mkdir -p /backup/archives/2024-01-16
+mkdir -p /backup/archives/2024-01-17
+mkdir -p /backup/archives/2024-01-18
+mkdir -p /backup/archives/2024-01-20
+mkdir -p /backup/checksums/2024-01-15
+mkdir -p /backup/checksums/2024-01-16
+mkdir -p /backup/checksums/2024-01-17
+mkdir -p /backup/checksums/2024-01-18
+mkdir -p /backup/checksums/2024-01-20
+
+# Create temporary directory for building archives
+TMPDIR=$(mktemp -d)
+
+# Function to create a valid tar.gz archive
+create_archive() {
+    local archive_name=$1
+    local archive_path=$2
+    local size=$3
+    
+    local workdir="$TMPDIR/$archive_name"
+    mkdir -p "$workdir"
+    
+    # Create some files with random content
+    dd if=/dev/urandom of="$workdir/file1.dat" bs=1024 count=$((size / 3)) 2>/dev/null
+    dd if=/dev/urandom of="$workdir/file2.dat" bs=1024 count=$((size / 3)) 2>/dev/null
+    dd if=/dev/urandom of="$workdir/file3.log" bs=1024 count=$((size / 3)) 2>/dev/null
+    
+    tar -czf "$archive_path" -C "$TMPDIR" "$archive_name" 2>/dev/null
+    rm -rf "$workdir"
+}
+
+# 2024-01-15: 3 archives, all valid
+create_archive "backup_db_01" "/backup/archives/2024-01-15/backup_db_01.tar.gz" 5
+create_archive "backup_logs_01" "/backup/archives/2024-01-15/backup_logs_01.tar.gz" 4
+create_archive "backup_config_01" "/backup/archives/2024-01-15/backup_config_01.tar.gz" 3
+
+# 2024-01-16: 4 archives, 1 will be corrupted
+create_archive "backup_db_02" "/backup/archives/2024-01-16/backup_db_02.tar.gz" 8
+create_archive "backup_logs_02" "/backup/archives/2024-01-16/backup_logs_02.tar.gz" 6
+create_archive "backup_config_02" "/backup/archives/2024-01-16/backup_config_02.tar.gz" 4
+create_archive "backup_users_02" "/backup/archives/2024-01-16/backup_users_02.tar.gz" 5
+
+# 2024-01-17: 3 archives, 2 will be corrupted (including the one requested)
+create_archive "backup_db_03" "/backup/archives/2024-01-17/backup_db_03.tar.gz" 12
+create_archive "backup_logs_03" "/backup/archives/2024-01-17/backup_logs_03.tar.gz" 7
+create_archive "backup_config_03" "/backup/archives/2024-01-17/backup_config_03.tar.gz" 5
+
+# 2024-01-18: 4 archives, all valid but one has wrong checksum
+create_archive "backup_db_04" "/backup/archives/2024-01-18/backup_db_04.tar.gz" 9
+create_archive "backup_logs_04" "/backup/archives/2024-01-18/backup_logs_04.tar.gz" 6
+create_archive "backup_config_04" "/backup/archives/2024-01-18/backup_config_04.tar.gz" 4
+create_archive "backup_users_04" "/backup/archives/2024-01-18/backup_users_04.tar.gz" 7
+
+# 2024-01-20: 3 archives, all valid but checksums are wrong
+create_archive "backup_db_05" "/backup/archives/2024-01-20/backup_db_05.tar.gz" 10
+create_archive "backup_logs_05" "/backup/archives/2024-01-20/backup_logs_05.tar.gz" 8
+create_archive "backup_config_05" "/backup/archives/2024-01-20/backup_config_05.tar.gz" 6
+
+# Now corrupt specific archives
+
+# Corrupt backup_db_02.tar.gz (2024-01-16) - middle corruption
+SIZE=$(stat -f%z "/backup/archives/2024-01-16/backup_db_02.tar.gz" 2>/dev/null || stat -c%s "/backup/archives/2024-01-16/backup_db_02.tar.gz")
+OFFSET=$((SIZE / 2))
+dd if=/dev/zero of="/backup/archives/2024-01-16/backup_db_02.tar.gz" bs=1 count=512 seek=$OFFSET conv=notrunc 2>/dev/null
+
+# Corrupt backup_db_03.tar.gz (2024-01-17) - large corruption in middle
+SIZE=$(stat -f%z "/backup/archives/2024-01-17/backup_db_03.tar.gz" 2>/dev/null || stat -c%s "/backup/archives/2024-01-17/backup_db_03.tar.gz")
+OFFSET=$((SIZE / 3))
+dd if=/dev/urandom of="/backup/archives/2024-01-17/backup_db_03.tar.gz" bs=1 count=1024 seek=$OFFSET conv=notrunc 2>/dev/null
+
+# Corrupt backup_logs_03.tar.gz (2024-01-17) - corruption near end
+SIZE=$(stat -f%z "/backup/archives/2024-01-17/backup_logs_03.tar.gz" 2>/dev/null || stat -c%s "/backup/archives/2024-01-17/backup_logs_03.tar.gz")
+OFFSET=$((SIZE - 1500))
+dd if=/dev/zero of="/backup/archives/2024-01-17/backup_logs_03.tar.gz" bs=1 count=800 seek=$OFFSET conv=notrunc 2>/dev/null
+
+# Generate MD5 checksums
+
+# 2024-01-15: All correct checksums
+cd /backup/archives/2024-01-15
+for f in *.tar.gz; do
+    md5sum "$f" >> /backup/checksums/2024-01-15/checksums.md5
+done
+
+# 2024-01-16: Checksums generated AFTER corruption (will detect corruption)
+cd /backup/archives/2024-01-16
+for f in *.tar.gz; do
+    if [ "$f" = "backup_db_02.tar.gz" ]; then
+        # This one is corrupted, checksum will reflect corrupted state
+        md5sum "$f" >> /backup/checksums/2024-01-16/checksums.md5
+    else
+        md5sum "$f" >> /backup/checksums/2024-01-16/checksums.md5
+    fi
+done
+
+# 2024-01-17: Checksums generated BEFORE corruption (will show mismatch)
+cd /backup/archives/2024-01-17
+# Generate correct checksums for db_03 and logs_03 before we corrupt them
+# Actually we already corrupted them, so let's generate fake "before" checksums
+echo "deadbeef12345678901234567890abcd  backup_db_03.tar.gz" > /backup/checksums/2024-01-17/checksums.md5
+echo "abcdef1234567890abcdef1234567890  backup_logs_03.tar.gz" >> /backup/checksums/2024-01-17/checksums.md5
+md5sum "backup_config_03.tar.gz" >> /backup/checksums/2024-01-17/checksums.md5
+
+# 2024-01-18: One wrong checksum (backup_logs_04)
+cd /backup/archives/2024-01-18
+md5sum "backup_db_04.tar.gz" > /backup/checksums/2024-01-18/checksums.md5
+echo "wrongchecksum1234567890abcdef123  backup_logs_04.tar.gz" >> /backup/checksums/2024-01-18/checksums.md5
+md5sum "backup_config_04.tar.gz" >> /backup/checksums/2024-01-18/checksums.md5
+md5sum "backup_users_04.tar.gz" >> /backup/checksums/2024-01-18/checksums.md5
+
+# 2024-01-20: All wrong checksums but files are valid
+cd /backup/archives/2024-01-20
+echo "badbadbadbadbadbadbadbadbadbadba  backup_db_05.tar.gz" > /backup/checksums/2024-01-20/checksums.md5
+echo "badchecksum567890abcdef1234567890  backup_logs_05.tar.gz" >> /backup/checksums/2024-01-20/checksums.md5
+echo "incorrectchecksumabcdef1234567890  backup_config_05.tar.gz" >> /backup/checksums/2024-01-20/checksums.md5
+
+# Create the investigation script
+cat > /root/investigate_corruption.sh << 'SCRIPT'
+#!/bin/bash
+
+ARCHIVES_DIR="/backup/archives"
+CHECKSUMS_DIR="/backup/checksums"
+REPORT_FILE="/root/corruption_report.json"
+
+total_archives=0
+corrupted_archives=0
+bad_checksums=0
+total_corrupted_bytes=0
+corrupted_dates=()
+
+# Find all archive directories
+for date_dir in $(find "$ARCHIVES_DIR" -mindepth 1 -maxdepth 1 -type d | sort); do
+    date=$(basename "$date_dir")
+    checksum_file="$CHECKSUMS_DIR/$date/checksums.md5"
+    
+    if [ ! -f "$checksum_file" ]; then
+        continue
+    fi
+    
+    # Check each archive
+    cd "$date_dir"
+    while IFS= read -r line; do
+        expected_md5=$(echo "$line" | awk '{print $1}')
+        filename=$(echo "$line" | awk '{print $2}')
+        
+        if [ ! -f "$filename" ]; then
+            continue
+        fi
+        
+        total_archives=$((total_archives + 1))
+        
+        # Calculate actual MD5
+        actual_md5=$(md5sum "$filename" | awk '{print $1}')
+        
+        if [ "$expected_md5" != "$actual_md5" ]; then
+            # Checksum mismatch detected
+            # Now determine if file is actually corrupted or just bad checksum
+            
+            # Test if tar.gz is readable
+            if tar -tzf "$filename" >/dev/null 2>&1; then
+                # Archive is valid, so checksum in manifest is wrong
+                bad_checksums=$((bad_checksums + 1))
+            else
+                # Archive is corrupted
+                corrupted_archives=$((corrupted_archives + 1))
+                file_size=$(stat -f%z "$filename" 2>/dev/null || stat -c%s "$filename")
+                total_corrupted_bytes=$((total_corrupted_bytes + file_size))
+                corrupted_dates+=("$date")
+            fi
+        fi
+    done < "$checksum_file"
+done
+
+# Analyze pattern
+unique_dates=($(echo "${corrupted_dates[@]}" | tr ' ' '\n' | sort -u))
+corruption_pattern="no clear pattern"
+
+if [ ${#unique_dates[@]} -eq 1 ]; then
+    corruption_pattern="all corrupted files from ${unique_dates[0]}"
+elif [ ${#unique_dates[@]} -gt 0 ]; then
+    # Check if all from January 2024
+    all_jan_2024=true
+    for d in "${unique_dates[@]}"; do
+        if [[ ! "$d" =~ ^2024-01 ]]; then
+            all_jan_2024=false
+            break
+        fi
+    done
+    
+    if [ "$all_jan_2024" = true ]; then
+        corruption_pattern="all corrupted files from 2024-01 range (dates: ${unique_dates[*]})"
+    else
+        corruption_pattern="corrupted files span multiple dates: ${unique_dates[*]}"
+    fi
+fi
+
+# Generate JSON report
+cat > "$REPORT_FILE" << EOF
+{
+  "total_archives_checked": $total_archives,
+  "corrupted_archives": $corrupted_archives,
+  "bad_checksums": $bad_checksums,
+  "total_corrupted_bytes": $total_corrupted_bytes,
+  "corruption_pattern": "$corruption_pattern"
+}
+EOF
+
+chmod 644 "$REPORT_FILE"
+SCRIPT
+
+chmod +x /root/investigate_corruption.sh
+
+# Clean up
+rm -rf "$TMPDIR"
+
+# Execute the investigation
+/root/investigate_corruption.sh

@@ -1,0 +1,61 @@
+=== MITRE ATT&CK Technique Mapping ===
+
+Attack Stage: Initial Access
+- T1078.002: Valid Accounts: Domain Accounts
+  Description: Attacker used compromised service account credentials
+  The threat actor successfully authenticated using the compromised service account "svc_backup" to gain initial access to the domain environment. This account had elevated privileges that were exploited throughout the attack chain. Authentication logs showed successful logon events from an unusual source IP address during non-business hours.
+
+Attack Stage: Discovery
+- T1087.002: Account Discovery: Domain Account
+  Description: Enumerated domain users and groups using net.exe commands
+  The attacker executed multiple "net user" and "net group" commands to enumerate domain accounts and identify high-value targets. Specifically, commands like "net user /domain" and "net group 'Domain Admins' /domain" were used to map out the Active Directory structure. This reconnaissance activity was conducted from multiple compromised hosts to build a comprehensive view of the domain.
+
+- T1082: System Information Discovery
+  Description: Gathered system information using systeminfo.exe and whoami.exe
+  System reconnaissance was performed using native Windows utilities to understand the operating system version, patch level, and current user context. The attacker ran "systeminfo" to identify potential vulnerabilities and "whoami /all" to enumerate current privileges and group memberships. This information was used to plan privilege escalation and lateral movement activities.
+
+- T1018: Remote System Discovery
+  Description: Identified domain controllers using nltest.exe
+  The threat actor used "nltest /dclist:" commands to identify all domain controllers in the environment. Additional network scanning was performed to map out critical infrastructure components. This discovery allowed the attacker to target authentication servers and identify the most valuable systems for credential theft.
+
+Attack Stage: Credential Access
+- T1003.001: OS Credential Dumping: LSASS Memory
+  Description: Accessed LSASS process memory to extract credentials
+  The attacker deployed a custom tool to dump credentials from the Local Security Authority Subsystem Service (LSASS) process memory. Process access logs showed suspicious handle requests to lsass.exe with PROCESS_VM_READ permissions. Multiple domain credentials were successfully extracted, including administrative accounts that enabled further lateral movement.
+
+- T1003.002: OS Credential Dumping: Security Account Manager
+  Description: Dumped SAM registry hive for credential extraction
+  Registry operations targeting HKLM\SAM were observed, indicating attempts to extract local account password hashes. The attacker used reg.exe to save the SAM, SYSTEM, and SECURITY hives to temporary files for offline analysis. These local credentials were then used to compromise additional workstations that shared common local administrator passwords.
+
+Attack Stage: Lateral Movement
+- T1021.002: Remote Services: SMB/Windows Admin Shares
+  Description: Used ADMIN$ and C$ shares for lateral movement
+  Network share access logs revealed connections to administrative shares (ADMIN$ and C$) on multiple systems across different network segments. The attacker leveraged stolen credentials to authenticate and copy malicious tools to remote systems. File creation events on these shares showed deployment of credential dumping tools and reconnaissance scripts.
+
+- T1021.006: Remote Services: Windows Remote Management
+  Description: Executed commands remotely via WMI
+  Windows Management Instrumentation (WMI) was abused to execute commands on remote systems without deploying persistent agents. Event logs captured WMI process creation events showing suspicious command executions initiated from compromised hosts. This technique allowed the attacker to maintain a low profile while expanding their foothold across the network.
+
+- T1570: Lateral Tool Transfer
+  Description: Copied tools to remote systems via network shares
+  The attacker transferred their toolkit, including credential dumpers and network scanners, to multiple compromised systems via SMB shares. File creation timestamps and network traffic analysis revealed a pattern of tool deployment followed by execution. Tools were typically copied to temporary directories or hidden folders to avoid detection.
+
+Attack Stage: Persistence
+- T1053.005: Scheduled Task/Job: Scheduled Task
+  Description: Created scheduled tasks for persistence
+  Multiple scheduled tasks were created on compromised systems using schtasks.exe to maintain persistence and execute malicious payloads. These tasks were configured to run with SYSTEM privileges at regular intervals or during system startup. Task names were crafted to blend in with legitimate Windows maintenance tasks to avoid detection.
+
+- T1547.001: Boot or Logon Autostart Execution: Registry Run Keys
+  Description: Modified registry run keys for automatic execution
+  Registry modifications were detected in Run and RunOnce keys under both HKLM and HKCU hives. The attacker added entries pointing to malicious executables stored in system directories. These registry persistence mechanisms ensured that their tools would execute automatically whenever users logged on or the system restarted.
+
+Attack Stage: Exfiltration
+- T1560.001: Archive Collected Data: Archive via Utility
+  Description: Compressed sensitive files using 7zip
+  The threat actor used 7zip command-line utility to compress large volumes of sensitive data before exfiltration. Process creation logs showed 7z.exe executing with parameters to create password-protected archives of specific file types including documents, spreadsheets, and database files. Archive files were created in staging directories before being prepared for transfer.
+
+- T1041: Exfiltration Over C2 Channel
+  Description: Exfiltrated data to external command and control server
+  Network traffic analysis revealed outbound connections to suspicious external IP addresses with large data transfers. The attacker used encrypted channels to exfiltrate the compressed archives containing sensitive organizational data. Connection patterns showed data being sent in chunks during off-peak hours to avoid detection by network monitoring systems.
+
+Total Techniques Identified: 11

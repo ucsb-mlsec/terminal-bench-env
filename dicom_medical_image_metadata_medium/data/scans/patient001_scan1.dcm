@@ -1,0 +1,151 @@
+import os
+import struct
+from datetime import datetime
+
+def create_dicom_file():
+    """Create a minimal valid DICOM file with required metadata"""
+    
+    # DICOM File Meta Information
+    preamble = b'\x00' * 128
+    prefix = b'DICM'
+    
+    # Helper function to create DICOM data elements
+    def create_element(group, element, vr, value):
+        """Create a DICOM data element"""
+        tag = struct.pack('<HH', group, element)
+        vr_bytes = vr.encode('ascii')
+        
+        if vr in ['UI', 'LO', 'PN', 'SH', 'DA', 'CS', 'AE', 'AS']:
+            # String VRs with explicit VR
+            if isinstance(value, str):
+                value = value.encode('ascii')
+            # Pad to even length
+            if len(value) % 2 == 1:
+                value += b' '
+            length = struct.pack('<H', len(value))
+            return tag + vr_bytes + length + value
+        elif vr == 'UL':
+            # Unsigned Long
+            length = struct.pack('<H', 4)
+            value_bytes = struct.pack('<I', value)
+            return tag + vr_bytes + length + value_bytes
+        else:
+            # Default handling
+            if isinstance(value, str):
+                value = value.encode('ascii')
+            if len(value) % 2 == 1:
+                value += b' '
+            length = struct.pack('<H', len(value))
+            return tag + vr_bytes + length + value
+    
+    # File Meta Information Group Length (0002,0000)
+    meta_elements = b''
+    
+    # Transfer Syntax UID (0002,0010) - Explicit VR Little Endian
+    meta_elements += create_element(0x0002, 0x0010, 'UI', '1.2.840.10008.1.2.1')
+    
+    # Media Storage SOP Class UID (0002,0002) - CT Image Storage
+    meta_elements += create_element(0x0002, 0x0002, 'UI', '1.2.840.10008.5.1.4.1.1.2')
+    
+    # Media Storage SOP Instance UID (0002,0003)
+    meta_elements += create_element(0x0002, 0x0003, 'UI', '1.2.840.113619.2.1.1.1.1.20231015')
+    
+    # Implementation Class UID (0002,0012)
+    meta_elements += create_element(0x0002, 0x0012, 'UI', '1.2.840.114257')
+    
+    # File Meta Information Group Length
+    meta_length = struct.pack('<HH', 0x0002, 0x0000)
+    meta_length += b'UL'
+    meta_length += struct.pack('<H', 4)
+    meta_length += struct.pack('<I', len(meta_elements))
+    
+    # Dataset elements (main DICOM data)
+    dataset = b''
+    
+    # Patient's Name (0010,0010)
+    dataset += create_element(0x0010, 0x0010, 'PN', 'Patient^001')
+    
+    # Patient ID (0010,0020) - REQUIRED
+    dataset += create_element(0x0010, 0x0020, 'LO', 'PAT001')
+    
+    # Patient's Birth Date (0010,0030)
+    dataset += create_element(0x0010, 0x0030, 'DA', '19800101')
+    
+    # Patient's Sex (0010,0040)
+    dataset += create_element(0x0010, 0x0040, 'CS', 'M')
+    
+    # Study Date (0008,0020) - REQUIRED
+    dataset += create_element(0x0008, 0x0020, 'DA', '20231015')
+    
+    # Study Time (0008,0030)
+    dataset += create_element(0x0008, 0x0030, 'TM', '143000')
+    
+    # Modality (0008,0060)
+    dataset += create_element(0x0008, 0x0060, 'CS', 'CT')
+    
+    # Study Description (0008,1030)
+    dataset += create_element(0x0008, 0x1030, 'LO', 'Chest CT')
+    
+    # Series Number (0020,0011)
+    dataset += create_element(0x0020, 0x0011, 'IS', '1')
+    
+    # Instance Number (0020,0013)
+    dataset += create_element(0x0020, 0x0013, 'IS', '1')
+    
+    # Study Instance UID (0020,000D)
+    dataset += create_element(0x0020, 0x000D, 'UI', '1.2.840.113619.2.1.2.1.20231015')
+    
+    # Series Instance UID (0020,000E)
+    dataset += create_element(0x0020, 0x000E, 'UI', '1.2.840.113619.2.1.3.1.20231015')
+    
+    # SOP Instance UID (0008,0018)
+    dataset += create_element(0x0008, 0x0018, 'UI', '1.2.840.113619.2.1.1.1.1.20231015')
+    
+    # SOP Class UID (0008,0016)
+    dataset += create_element(0x0008, 0x0016, 'UI', '1.2.840.10008.5.1.4.1.1.2')
+    
+    # Rows (0028,0010)
+    dataset += create_element(0x0028, 0x0010, 'US', struct.pack('<H', 512))
+    
+    # Columns (0028,0011)
+    dataset += create_element(0x0028, 0x0011, 'US', struct.pack('<H', 512))
+    
+    # Bits Allocated (0028,0100)
+    dataset += create_element(0x0028, 0x0100, 'US', struct.pack('<H', 16))
+    
+    # Bits Stored (0028,0101)
+    dataset += create_element(0x0028, 0x0101, 'US', struct.pack('<H', 12))
+    
+    # High Bit (0028,0102)
+    dataset += create_element(0x0028, 0x0102, 'US', struct.pack('<H', 11))
+    
+    # Pixel Representation (0028,0103)
+    dataset += create_element(0x0028, 0x0103, 'US', struct.pack('<H', 0))
+    
+    # Samples per Pixel (0028,0002)
+    dataset += create_element(0x0028, 0x0002, 'US', struct.pack('<H', 1))
+    
+    # Photometric Interpretation (0028,0004)
+    dataset += create_element(0x0028, 0x0004, 'CS', 'MONOCHROME2')
+    
+    # Pixel Data (7FE0,0010) - minimal dummy data
+    pixel_data = b'\x00' * 1024  # Minimal pixel data
+    pixel_tag = struct.pack('<HH', 0x7FE0, 0x0010)
+    pixel_vr = b'OW'
+    pixel_reserved = struct.pack('<H', 0)
+    pixel_length = struct.pack('<I', len(pixel_data))
+    dataset += pixel_tag + pixel_vr + pixel_reserved + pixel_length + pixel_data
+    
+    # Combine all parts
+    dicom_file = preamble + prefix + meta_length + meta_elements + dataset
+    
+    return dicom_file
+
+# Create directory if it doesn't exist
+os.makedirs('/tmp/data/scans', exist_ok=True)
+
+# Write the DICOM file
+with open('/tmp/data/scans/patient001_scan1.dcm', 'wb') as f:
+    f.write(create_dicom_file())
+
+print("DICOM file created successfully")

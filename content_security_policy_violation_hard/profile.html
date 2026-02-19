@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+        }
+        .profile-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .profile-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .avatar-container {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            overflow: hidden;
+            margin: 0 auto 20px;
+            border: 3px solid #007bff;
+        }
+        .avatar-preview {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        input[type="text"],
+        input[type="email"],
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        .btn {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .error {
+            color: #dc3545;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        .success {
+            color: #28a745;
+            padding: 10px;
+            background: #d4edda;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+    </style>
+    <script src="https://cdn.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script async src="https://www.google-analytics.com/analytics.js"></script>
+    <script>
+        window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+        ga('create', 'UA-XXXXX-Y', 'auto');
+        ga('send', 'pageview');
+    </script>
+</head>
+<body>
+    <div class="profile-container">
+        <div class="profile-header">
+            <h1>User Profile</h1>
+            <div class="avatar-container" style="border-color: #007bff; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <img id="avatarPreview" class="avatar-preview" src="https://images.example.com/default-avatar.png" alt="Profile Picture">
+            </div>
+        </div>
+
+        <div id="successMessage" style="display: none;"></div>
+
+        <form id="profileForm" onsubmit="return handleSubmit(event)">
+            <div class="form-group">
+                <label for="name">Full Name</label>
+                <input type="text" id="name" name="name" required style="border-color: #ced4da; padding: 10px;">
+                <div id="nameError" class="error"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" name="email" required style="border-color: #ced4da; padding: 10px;">
+                <div id="emailError" class="error"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="bio">Bio</label>
+                <textarea id="bio" name="bio" maxlength="500" style="border-color: #ced4da; padding: 10px;"></textarea>
+                <div id="bioError" class="error"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="avatar">Profile Picture</label>
+                <input type="file" id="avatar" name="avatar" accept="image/*" onchange="previewImage()" style="padding: 5px;">
+            </div>
+
+            <button type="submit" class="btn">Save Profile</button>
+        </form>
+    </div>
+
+    <script>
+        function previewImage() {
+            const file = document.getElementById('avatar').files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('avatarPreview').src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+                ga('send', 'event', 'Profile', 'avatar_upload', 'preview');
+            }
+        }
+
+        function validateEmail(email) {
+            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return re.test(email);
+        }
+
+        function validateForm() {
+            let isValid = true;
+            document.getElementById('nameError').textContent = '';
+            document.getElementById('emailError').textContent = '';
+            document.getElementById('bioError').textContent = '';
+
+            const name = document.getElementById('name').value.trim();
+            if (name.length < 2) {
+                document.getElementById('nameError').textContent = 'Name must be at least 2 characters long';
+                isValid = false;
+            }
+
+            const email = document.getElementById('email').value.trim();
+            if (!validateEmail(email)) {
+                document.getElementById('emailError').textContent = 'Please enter a valid email address';
+                isValid = false;
+            }
+
+            const bio = document.getElementById('bio').value.trim();
+            if (bio.length > 500) {
+                document.getElementById('bioError').textContent = 'Bio must not exceed 500 characters';
+                isValid = false;
+            }
+
+            return isValid;
+        }
+
+        function displaySuccessMessage(username) {
+            const messageDiv = document.getElementById('successMessage');
+            messageDiv.innerHTML = '<div class="success">Profile updated successfully for ' + username + '!</div>';
+            messageDiv.style.display = 'block';
+            setTimeout(function() {
+                messageDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        async function handleSubmit(event) {
+            event.preventDefault();
+            
+            if (!validateForm()) {
+                return false;
+            }
+
+            const formData = {
+                name: document.getElementById('name').value,
+                email: document.getElementById('email').value,
+                bio: document.getElementById('bio').value
+            };
+
+            try {
+                const response = await fetch('https://api.example.com/profile', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    displaySuccessMessage(formData.name);
+                    ga('send', 'event', 'Profile', 'update', 'success');
+                } else {
+                    throw new Error('Failed to update profile');
+                }
+            } catch (error) {
+                console.error('Error updating profile:', error);
+                alert('Failed to update profile. Please try again.');
+                ga('send', 'event', 'Profile', 'update', 'error');
+            }
+
+            return false;
+        }
+
+        $(document).ready(function() {
+            $('#name, #email, #bio').on('blur', function() {
+                validateForm();
+            });
+
+            fetch('https://api.example.com/profile/current')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.name) document.getElementById('name').value = data.name;
+                    if (data.email) document.getElementById('email').value = data.email;
+                    if (data.bio) document.getElementById('bio').value = data.bio;
+                    if (data.avatar) {
+                        document.getElementById('avatarPreview').src = 'https://images.example.com/' + data.avatar;
+                    }
+                })
+                .catch(error => console.error('Error loading profile:', error));
+        });
+    </script>
+</body>
+</html>

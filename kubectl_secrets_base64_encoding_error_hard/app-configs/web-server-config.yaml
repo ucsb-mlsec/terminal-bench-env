@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: web-server-config
+  namespace: production
+data:
+  nginx.conf: |
+    # Web server TLS configuration
+    # This app reads TLS certificates from mounted secret volume
+    # Kubernetes automatically decodes base64 secrets when mounting as files
+    
+    server {
+        listen 443 ssl;
+        server_name app.example.com;
+        
+        # These files are mounted from the tls-cert-secret
+        # Content must be valid PEM format after Kubernetes decodes from base64
+        ssl_certificate /etc/tls/tls.crt;
+        ssl_certificate_key /etc/tls/tls.key;
+        
+        # Certificate should start with -----BEGIN CERTIFICATE-----
+        # Key should start with -----BEGIN PRIVATE KEY-----
+        
+        ssl_protocols TLSv1.2 TLSv1.3;
+        ssl_ciphers HIGH:!aNULL:!MD5;
+    }

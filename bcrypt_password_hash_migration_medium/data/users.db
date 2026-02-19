@@ -1,0 +1,187 @@
+#!/usr/bin/env python3
+import hashlib
+import bcrypt
+import csv
+import json
+import os
+
+# Database file path
+DB_FILE = 'data/users.db'
+MIGRATION_RESULT_FILE = '/tmp/migration_result.json'
+
+def load_users():
+    """Load users from the database file."""
+    users = {}
+    if os.path.exists(DB_FILE):
+        with open(DB_FILE, 'r') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                users[row['username']] = row['password_hash']
+    return users
+
+def save_users(users):
+    """Save users to the database file."""
+    os.makedirs(os.path.dirname(DB_FILE), exist_ok=True)
+    with open(DB_FILE, 'w', newline='') as f:
+        writer = csv.DictWriter(f, fieldnames=['username', 'password_hash'])
+        writer.writeheader()
+        for username, password_hash in users.items():
+            writer.writerow({'username': username, 'password_hash': password_hash})
+
+def is_md5_hash(hash_string):
+    """Check if a hash string is MD5 format (32 hex characters)."""
+    if len(hash_string) == 32:
+        try:
+            int(hash_string, 16)
+            return True
+        except ValueError:
+            return False
+    return False
+
+def is_bcrypt_hash(hash_string):
+    """Check if a hash string is bcrypt format."""
+    return hash_string.startswith('$2b$') or hash_string.startswith('$2a$') or hash_string.startswith('$2y$')
+
+def hash_md5(password):
+    """Generate MD5 hash of a password."""
+    return hashlib.md5(password.encode()).hexdigest()
+
+def hash_bcrypt(password):
+    """Generate bcrypt hash of a password."""
+    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+
+def verify_md5(password, hash_string):
+    """Verify password against MD5 hash."""
+    return hash_md5(password) == hash_string
+
+def verify_bcrypt(password, hash_string):
+    """Verify password against bcrypt hash."""
+    try:
+        return bcrypt.checkpw(password.encode(), hash_string.encode())
+    except:
+        return False
+
+def authenticate_user(username, password):
+    """
+    Authenticate a user and migrate from MD5 to bcrypt if needed.
+    Returns True if credentials are valid, False otherwise.
+    """
+    users = load_users()
+    
+    if username not in users:
+        return False
+    
+    stored_hash = users[username]
+    
+    # Check if it's MD5 hash
+    if is_md5_hash(stored_hash):
+        if verify_md5(password, stored_hash):
+            # Valid credentials - migrate to bcrypt
+            new_hash = hash_bcrypt(password)
+            users[username] = new_hash
+            save_users(users)
+            return True
+        else:
+            return False
+    
+    # Check if it's bcrypt hash
+    elif is_bcrypt_hash(stored_hash):
+        return verify_bcrypt(password, stored_hash)
+    
+    # Unknown hash format
+    return False
+
+def get_migration_status():
+    """
+    Get migration statistics.
+    Returns a dictionary with migration status information.
+    """
+    users = load_users()
+    total_users = len(users)
+    md5_count = 0
+    bcrypt_count = 0
+    
+    for username, password_hash in users.items():
+        if is_md5_hash(password_hash):
+            md5_count += 1
+        elif is_bcrypt_hash(password_hash):
+            bcrypt_count += 1
+    
+    return {
+        'total_users': total_users,
+        'md5_count': md5_count,
+        'bcrypt_count': bcrypt_count
+    }
+
+def main():
+    """Main migration process."""
+    # Test credentials (username: password pairs)
+    test_credentials = {
+        'alice': 'password',
+        'bob': 'test',
+        'charlie': 'secret',
+        'diana': 'admin',
+        'eve': '123456',
+        'frank': 'letmein',
+        'grace': 'welcome',
+        'henry': 'qwerty',
+        'ivy': 'hello',
+        'jack': 'pass123'
+    }
+    
+    print("Starting password migration process...")
+    print(f"Database file: {DB_FILE}")
+    
+    # Get initial status
+    initial_status = get_migration_status()
+    print(f"\nInitial status:")
+    print(f"  Total users: {initial_status['total_users']}")
+    print(f"  MD5 hashes: {initial_status['md5_count']}")
+    print(f"  Bcrypt hashes: {initial_status['bcrypt_count']}")
+    
+    # Attempt authentication for all test users
+    migrated_count = 0
+    for username, password in test_credentials.items():
+        print(f"\nAuthenticating user: {username}")
+        
+        # Check if user was using MD5 before authentication
+        users = load_users()
+        was_md5 = username in users and is_md5_hash(users[username])
+        
+        # Authenticate (this will trigger migration if MD5)
+        result = authenticate_user(username, password)
+        
+        if result:
+            print(f"  ✓ Authentication successful")
+            
+            # Check if migration occurred
+            users = load_users()
+            if username in users and is_bcrypt_hash(users[username]) and was_md5:
+                migrated_count += 1
+                print(f"  ✓ Migrated from MD5 to bcrypt")
+        else:
+            print(f"  ✗ Authentication failed")
+    
+    # Get final status
+    final_status = get_migration_status()
+    print(f"\nFinal status:")
+    print(f"  Total users: {final_status['total_users']}")
+    print(f"  MD5 hashes: {final_status['md5_count']}")
+    print(f"  Bcrypt hashes: {final_status['bcrypt_count']}")
+    print(f"  Migrated: {migrated_count}")
+    
+    # Save migration results
+    result_data = {
+        'total_users': final_status['total_users'],
+        'migrated_count': migrated_count,
+        'bcrypt_count': final_status['bcrypt_count'],
+        'md5_count': final_status['md5_count']
+    }
+    
+    with open(MIGRATION_RESULT_FILE, 'w') as f:
+        json.dump(result_data, f, indent=2)
+    
+    print(f"\nMigration results saved to: {MIGRATION_RESULT_FILE}")
+
+if __name__ == '__main__':
+    main()

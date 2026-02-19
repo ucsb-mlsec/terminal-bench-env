@@ -1,0 +1,31 @@
+#!/bin/bash
+
+# Solution script to rebuild the data processor binary correctly
+# The problem: The binary was stripped of symbols and optimized aggressively,
+# making it impossible to debug. We need to rebuild with debug symbols
+# while keeping size under 100KB.
+
+cd /workspace/processor
+
+# Clean previous build artifacts
+make clean 2>/dev/null || rm -f bin/dataproc src/*.o
+
+# Rebuild with debug symbols (-g) but without stripping (-s)
+# Use moderate optimization (-O2 instead of -O3) for better debugging
+# and to avoid potential optimization-related bugs
+make clean
+make CFLAGS="-O2 -g -Wall" LDFLAGS=""
+
+# Verify the binary was created
+if [ ! -f bin/dataproc ]; then
+    echo "Error: Binary was not created"
+    exit 1
+fi
+
+# Check binary size
+SIZE=$(stat -f%z bin/dataproc 2>/dev/null || stat -c%s bin/dataproc 2>/dev/null)
+if [ "$SIZE" -gt 102400 ]; then
+    echo "Warning: Binary size is $SIZE bytes, which exceeds 100KB"
+fi
+
+echo "Rebuild complete. Binary size: $SIZE bytes"

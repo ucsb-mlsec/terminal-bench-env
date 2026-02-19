@@ -1,0 +1,82 @@
+<?xml version="1.0"?>
+<simulation>
+  <project id="H2O_vmc" series="0">
+    <application name="qmcpack" role="molecu" class="serial" version="1.0"/>
+  </project>
+
+  <wavefunction name="psi0" target="e">
+    <determinantset type="MolecularOrbital" name="LCAOBSet" source="ion0" transform="yes">
+      <basisset name="LCAOBSet">
+        <atomicbasisset name="Gaussian" angular="cartesian" type="Gaussian" elementType="O" normalized="no">
+          <grid type="log" ri="1.e-6" rf="1.e2" npts="1001"/>
+          <basisgroup rid="O00" n="0" l="0" type="Gaussian">
+            <radfunc exponent="1.307093214e+02" contraction="1.543289673e-01"/>
+            <radfunc exponent="2.380886605e+01" contraction="5.353281423e-01"/>
+            <radfunc exponent="6.443608313e+00" contraction="4.446345422e-01"/>
+          </basisgroup>
+          <basisgroup rid="O01" n="0" l="0" type="Gaussian">
+            <radfunc exponent="5.033151319e+00" contraction="-9.996722919e-02"/>
+            <radfunc exponent="1.169596125e+00" contraction="3.995128261e-01"/>
+            <radfunc exponent="3.803889600e-01" contraction="7.001154689e-01"/>
+          </basisgroup>
+        </atomicbasisset>
+        <atomicbasisset name="Gaussian" angular="cartesian" type="Gaussian" elementType="H" normalized="no">
+          <grid type="log" ri="1.e-6" rf="1.e2" npts="1001"/>
+          <basisgroup rid="H00" n="0" l="0" type="Gaussian">
+            <radfunc exponent="1.301070100e+01" contraction="1.968215800e-02"/>
+            <radfunc exponent="1.962257200e+00" contraction="1.379652400e-01"/>
+            <radfunc exponent="4.445379600e-01" contraction="4.781405800e-01"/>
+          </basisgroup>
+        </atomicbasisset>
+      </basisset>
+      <slaterdeterminant>
+        <determinant id="updet" spin="1" size="5">
+          <occupation mode="ground" spindataset="0"/>
+          <coefficient size="15" id="updetC">
+            1.0 0.0 0.0 0.0 0.0
+            0.0 1.0 0.0 0.0 0.0
+            0.0 0.0 1.0 0.0 0.0
+          </coefficient>
+        </determinant>
+        <determinant id="downdet" spin="-1" size="5">
+          <occupation mode="ground" spindataset="0"/>
+          <coefficient size="15" id="downdetC">
+            1.0 0.0 0.0 0.0 0.0
+            0.0 1.0 0.0 0.0 0.0
+            0.0 0.0 1.0 0.0 0.0
+          </coefficient>
+        </determinant>
+      </slaterdeterminant>
+    </determinantset>
+    <jastrow name="J2" type="Two-Body" function="Bspline" print="yes">
+      <correlation speciesA="u" speciesB="u" size="8">
+        <coefficients id="uu" type="Array">
+          0.2 0.1 0.05 0.02 0.01 0.005 0.002 0.0
+        </coefficients>
+      </correlation>
+      <correlation speciesA="u" speciesB="d" size="8">
+        <coefficients id="ud" type="Array">
+          0.3 0.15 0.08 0.04 0.02 0.01 0.005 0.0
+        </coefficients>
+      </correlation>
+    </jastrow>
+  </wavefunction>
+
+  <hamiltonian name="h0" type="generic" target="e">
+    <pairpot name="ElecElec" type="coulomb" source="e" target="e"/>
+    <pairpot name="IonIon" type="coulomb" source="ion0" target="ion0"/>
+    <pairpot name="IonElec" type="coulomb" source="ion0" target="e"/>
+    <estimator name="LocalEnergy" hdf5="no"/>
+  </hamiltonian>
+
+  <qmc method="vmc" move="pbyp" checkpoint="-1">
+    <parameter name="walkers">16</parameter>
+    <parameter name="blocks">100</parameter>
+    <parameter name="steps">50</parameter>
+    <parameter name="substeps">5</parameter>
+    <parameter name="timestep">0.5</parameter>
+    <parameter name="warmupsteps">20</parameter>
+    <parameter name="usedrift">yes</parameter>
+  </qmc>
+
+</simulation>

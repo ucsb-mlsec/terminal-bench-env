@@ -1,0 +1,449 @@
+openapi: 3.0.0
+info:
+  title: Microservices API Gateway
+  version: 1.0.0
+  description: |
+    API Gateway for managing authentication, authorization, service discovery, 
+    health monitoring, and request routing across microservices architecture.
+  contact:
+    name: API Support
+    email: api-support@example.com
+
+servers:
+  - url: https://api-gateway.example.com/v1
+    description: Production API Gateway
+  - url: https://staging-gateway.example.com/v1
+    description: Staging Environment
+
+paths:
+  /oauth/token:
+    post:
+      summary: Obtain OAuth2 access token
+      description: Exchange credentials for an access token
+      tags:
+        - OAuth2
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRequest'
+      responses:
+        '200':
+          description: Token issued successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /oauth/refresh:
+    post:
+      summary: Refresh access token
+      description: Obtain a new access token using a refresh token
+      tags:
+        - OAuth2
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+
+  /resources:
+    get:
+      summary: List all resources
+      description: Retrieve a list of all accessible resources
+      tags:
+        - Resources
+      security:
+        - oauth2: [read:resources]
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            example: text_value
+          description: Page number for pagination
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+          description: Number of items per page
+      responses:
+        '200':
+          description: List of resources
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Resource'
+
+  /resources/{id}/permissions:
+    post:
+      summary: Grant resource permissions
+      description: Add permissions to a specific resource
+      tags:
+        - Resources
+      security:
+        - oauth2: [write:permissions]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Resource identifier
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PermissionRequest'
+
+  /services:
+    get:
+      summary: Discover available services
+      description: Retrieve list of registered microservices
+      tags:
+        - Service Discovery
+      security:
+        - oauth2: [read:services]
+      responses:
+        '200':
+          description: List of services
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ServiceInfo'
+
+  /services/{name}:
+    get:
+      summary: Get service details
+      description: Retrieve detailed information about a specific service
+      tags:
+        - Service Discovery
+      security:
+        - oauth2: [read:services]
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Service name
+      responses:
+        '200':
+          description: Service details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceInfo'
+        '404':
+          description: Service not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /health:
+    get:
+      summary: Gateway health check
+      description: Check the overall health status of the API gateway
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Health status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+
+  /health/{service}:
+    get:
+      summary: Service health check
+      description: Check health status of a specific service
+      tags:
+        - Health
+      parameters:
+        - name: service
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Service name to check
+      responses:
+        '200':
+          description: Service health status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceHealth'
+
+  /routes:
+    get:
+      summary: List routing rules
+      description: Retrieve all configured routing rules
+      tags:
+        - Routing
+      security:
+        - oauth2: [read:routes]
+      responses:
+        '200':
+          description: List of routes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Route'
+
+  /routes/{id}:
+    put:
+      summary: Update routing rule
+      description: Modify an existing routing rule configuration
+      tags:
+        - Routing
+      security:
+        - oauth2: [write:routes]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Route identifier
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RouteUpdate'
+      responses:
+        '200':
+          description: Route updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Route'
+        '404':
+          description: Route not found
+
+components:
+  schemas:
+    TokenRequest:
+      type: object
+      required:
+        - grant_type
+        - username
+        - password
+      properties:
+        grant_type:
+          type: string
+          example: password
+        username:
+          type: string
+          example: user@example.com
+        password:
+          type: string
+          format: password
+          example: secret123
+
+    TokenResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        token_type:
+          type: string
+          example: Bearer
+        expires_in:
+          type: integer
+          example: 3600
+        refresh_token:
+          type: string
+          example: tGzv3JOkF0XG5Qx2TlKWIA
+
+    RefreshTokenRequest:
+      type: object
+      required:
+        - grant_type
+        - refresh_token
+      properties:
+        grant_type:
+          type: string
+          example: refresh_token
+        refresh_token:
+          type: string
+          example: tGzv3JOkF0XG5Qx2TlKWIA
+
+    Resource:
+      properties:
+        id:
+          type: string
+          example: res_12345
+        name:
+          type: string
+          example: Customer Database
+        type:
+          type: string
+          example: database
+        permissions:
+          type: array
+          items:
+            type: string
+          example: [read, write, delete]
+
+    PermissionRequest:
+      type: object
+      required:
+        - user_id
+        - permissions
+      properties:
+        user_id:
+          type: string
+          example: usr_67890
+        permissions:
+          type: array
+          items:
+            type: string
+          example: [read, write]
+
+    ServiceInfo:
+      type: object
+      properties:
+        name:
+          type: string
+          example: user-service
+        version:
+          type: string
+          example: 2.1.0
+        endpoints:
+          type: array
+          items:
+            type: string
+          example: [/api/users, /api/profiles]
+        status:
+          type: string
+          enum: [online, offline, degraded]
+          example: online
+
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, unhealthy, degraded]
+          example: healthy
+        timestamp:
+          type: string
+          format: date-time
+          example: 2024-01-15T10:30:00Z
+        services:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/NonExistentSchema'
+
+    ServiceHealth:
+      type: object
+      properties:
+        service_name:
+          type: string
+          example: payment-service
+        status:
+          type: string
+          enum: [healthy, unhealthy]
+          example: healthy
+        response_time:
+          type: number
+          format: float
+          example: 45.2
+        last_check:
+          type: string
+          format: date-time
+          example: 2024-01-15T10:30:00Z
+
+    Route:
+      type: object
+      properties:
+        id:
+          type: string
+          example: route_001
+        path:
+          type: string
+          example: /api/users/*
+        target_service:
+          type: string
+          example: user-service
+        methods:
+          type: array
+          items:
+            type: string
+          example: [GET, POST]
+        priority:
+          type: integer
+          example: 10
+
+    RouteUpdate:
+      type: object
+      properties:
+        path:
+          type: string
+          example: /api/users/*
+        target_service:
+          type: string
+          example: user-service-v2
+        methods:
+          type: array
+          items:
+            type: string
+          example: [GET, POST, PUT]
+        priority:
+          type: integer
+          example: 5
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: invalid_request
+        error_description:
+          type: string
+          example: The request is missing a required parameter
+
+  securitySchemes:
+    oauth2:
+      type: oauth2
+      flows:
+        password:
+          scopes:
+            read:resources: Read access to resources
+            write:resources: Write access to resources
+            read:services: Read service information
+            write:permissions: Manage permissions
+            read:routes: Read routing configuration
+            write:routes: Modify routing configuration
+        clientCredentials:
+          tokenUrl: https://api-gateway.example.com/v1/oauth/token
+          scopes:
+            read:services: Read service information
+            read:routes: Read routing configuration

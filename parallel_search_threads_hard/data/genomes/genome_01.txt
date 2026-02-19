@@ -1,0 +1,304 @@
+I'll create a Python script to generate the genome file and then build the parallel search system.
+
+First, let me create a script to generate realistic genome data:
+
+```python
+import random
+import os
+
+# Create genomes directory
+os.makedirs('/workspace/genomes', exist_ok=True)
+
+# Define patterns to embed
+patterns = [
+    'ATCGATCGATCG', 'GCTAGCTAGCTA', 'TTAAGGCCTTAA', 'CGCGATATCGCG',
+    'AAAATTTTCCCC', 'GGGGTTTAAACC', 'CCCCGGGGAAAA', 'TACGTACGTACG',
+    'AGCTAGCTAGCT', 'TGCATGCATGCA', 'ACGTACGTACGT', 'GATCGATCGATC',
+    'CTGACTGACTGA', 'TAGCTAGCTAGC', 'CGATCGATCGAT'
+]
+
+def generate_random_dna(length):
+    return ''.join(random.choices('ACGT', k=length))
+
+def generate_genome_file(filename, num_lines):
+    with open(filename, 'w') as f:
+        for i in range(num_lines):
+            line_length = random.randint(80, 200)
+            
+            # Randomly decide if this line should contain a pattern (20% chance)
+            if random.random() < 0.2:
+                pattern = random.choice(patterns)
+                position = random.randint(0, max(0, line_length - len(pattern)))
+                
+                # Build line with pattern
+                before = generate_random_dna(position)
+                after = generate_random_dna(line_length - position - len(pattern))
+                line = before + pattern + after
+            else:
+                line = generate_random_dna(line_length)
+            
+            f.write(line + '\n')
+
+# Generate 8 genome files
+genome_sizes = [50000, 60000, 55000, 70000, 52000, 65000, 58000, 62000]
+
+for idx, size in enumerate(genome_sizes, 1):
+    filename = f'/workspace/genomes/genome_{idx:02d}.txt'
+    print(f"Generating {filename} with {size} lines...")
+    generate_genome_file(filename, size)
+
+print("Genome files generated!")
+
+# Generate patterns.txt
+with open('/workspace/patterns.txt', 'w') as f:
+    for pattern in patterns:
+        f.write(pattern + '\n')
+
+print("Patterns file generated!")
+```
+
+Now let me create the parallel search implementation:
+
+```python
+import json
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from threading import Lock
+import os
+
+def search_pattern_in_line(line, pattern):
+    """Find all occurrences of pattern in line, returns list of positions"""
+    positions = []
+    start = 0
+    while True:
+        pos = line.find(pattern, start)
+        if pos == -1:
+            break
+        positions.append(pos)
+        start = pos + 1  # Allow overlapping matches
+    return positions
+
+def search_file_for_pattern(genome_file, pattern, genome_dir='/workspace/genomes'):
+    """Search a single genome file for a single pattern"""
+    matches = []
+    filepath = os.path.join(genome_dir, genome_file)
+    
+    with open(filepath, 'r') as f:
+        for line_num, line in enumerate(f, 1):
+            line = line.rstrip('\n')
+            positions = search_pattern_in_line(line, pattern)
+            for pos in positions:
+                matches.append({
+                    'file': genome_file,
+                    'line': line_num,
+                    'pattern': pattern,
+                    'position': pos
+                })
+    
+    return matches
+
+def search_file_for_all_patterns(genome_file, patterns, genome_dir='/workspace/genomes'):
+    """Search a single genome file for all patterns"""
+    all_matches = []
+    filepath = os.path.join(genome_dir, genome_file)
+    
+    with open(filepath, 'r') as f:
+        for line_num, line in enumerate(f, 1):
+            line = line.rstrip('\n')
+            for pattern in patterns:
+                positions = search_pattern_in_line(line, pattern)
+                for pos in positions:
+                    all_matches.append({
+                        'file': genome_file,
+                        'line': line_num,
+                        'pattern': pattern,
+                        'position': pos
+                    })
+    
+    return all_matches
+
+def parallel_search():
+    """Main parallel search function"""
+    start_time = time.time()
+    
+    # Load patterns
+    with open('/workspace/patterns.txt', 'r') as f:
+        patterns = [line.strip() for line in f if line.strip()]
+    
+    # Get genome files
+    genome_dir = '/workspace/genomes'
+    genome_files = sorted([f for f in os.listdir(genome_dir) if f.startswith('genome_') and f.endswith('.txt')])
+    
+    all_matches = []
+    match_lock = Lock()
+    
+    # Use ThreadPoolExecutor for parallel processing
+    # Process each file in parallel
+    max_workers = min(8, os.cpu_count() or 4)
+    
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # Submit tasks for each genome file
+        future_to_file = {
+            executor.submit(search_file_for_all_patterns, genome_file, patterns, genome_dir): genome_file
+            for genome_file in genome_files
+        }
+        
+        # Collect results as they complete
+        for future in as_completed(future_to_file):
+            genome_file = future_to_file[future]
+            try:
+                matches = future.result()
+                with match_lock:
+                    all_matches.extend(matches)
+            except Exception as e:
+                print(f"Error processing {genome_file}: {e}")
+    
+    # Sort matches: first by filename, then by line number, then by position
+    all_matches.sort(key=lambda x: (x['file'], x['line'], x['position']))
+    
+    execution_time = time.time() - start_time
+    
+    # Prepare results
+    results = {
+        'total_matches': len(all_matches),
+        'execution_time_seconds': round(execution_time, 2),
+        'matches': all_matches
+    }
+    
+    # Save results to JSON
+    with open('/workspace/results.json', 'w') as f:
+        json.dump(results, f, indent=2)
+    
+    print(f"Search completed in {execution_time:.2f} seconds")
+    print(f"Total matches found: {len(all_matches)}")
+    
+    return results
+
+if __name__ == '__main__':
+    # First generate the test data
+    print("Generating genome files...")
+    exec(open('generate_genomes.py').read()) if os.path.exists('generate_genomes.py') else None
+    
+    # Run the parallel search
+    print("\nStarting parallel search...")
+    parallel_search()
+```
+
+Let me create a complete, optimized solution as a single script:
+
+```python
+#!/usr/bin/env python3
+import json
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import os
+import random
+
+# First, generate the data files
+def generate_data():
+    os.makedirs('/workspace/genomes', exist_ok=True)
+    
+    patterns = [
+        'ATCGATCGATCG', 'GCTAGCTAGCTA', 'TTAAGGCCTTAA', 'CGCGATATCGCG',
+        'AAAATTTTCCCC', 'GGGGTTTAAACC', 'CCCCGGGGAAAA', 'TACGTACGTACG',
+        'AGCTAGCTAGCT', 'TGCATGCATGCA', 'ACGTACGTACGT', 'GATCGATCGATC',
+        'CTGACTGACTGA', 'TAGCTAGCTAGC', 'CGATCGATCGAT'
+    ]
+    
+    def generate_random_dna(length):
+        return ''.join(random.choices('ACGT', k=length))
+    
+    def generate_genome_file(filename, num_lines):
+        with open(filename, 'w') as f:
+            for i in range(num_lines):
+                line_length = random.randint(80, 200)
+                
+                if random.random() < 0.15:
+                    pattern = random.choice(patterns)
+                    position = random.randint(0, max(0, line_length - len(pattern)))
+                    before = generate_random_dna(position)
+                    after = generate_random_dna(line_length - position - len(pattern))
+                    line = before + pattern + after
+                else:
+                    line = generate_random_dna(line_length)
+                
+                f.write(line + '\n')
+    
+    genome_sizes = [50000, 60000, 55000, 70000, 52000, 65000, 58000, 62000]
+    
+    for idx, size in enumerate(genome_sizes, 1):
+        filename = f'/workspace/genomes/genome_{idx:02d}.txt'
+        generate_genome_file(filename, size)
+    
+    with open('/workspace/patterns.txt', 'w') as f:
+        for pattern in patterns:
+            f.write(pattern + '\n')
+
+# Parallel search implementation
+def search_file_for_all_patterns(genome_file, patterns, genome_dir='/workspace/genomes'):
+    all_matches = []
+    filepath = os.path.join(genome_dir, genome_file)
+    
+    with open(filepath, 'r') as f:
+        for line_num, line in enumerate(f, 1):
+            line = line.rstrip('\n')
+            for pattern in patterns:
+                start = 0
+                while True:
+                    pos = line.find(pattern, start)
+                    if pos == -1:
+                        break
+                    all_matches.append({
+                        'file': genome_file,
+                        'line': line_num,
+                        'pattern': pattern,
+                        'position': pos
+                    })
+                    start = pos + 1
+    
+    return all_matches
+
+def parallel_search():
+    start_time = time.time()
+    
+    with open('/workspace/patterns.txt', 'r') as f:
+        patterns = [line.strip() for line in f if line.strip()]
+    
+    genome_dir = '/workspace/genomes'
+    genome_files = sorted([f for f in os.listdir(genome_dir) if f.startswith('genome_') and f.endswith('.txt')])
+    
+    all_matches = []
+    max_workers = min(8, (os.cpu_count() or 4) * 2)
+    
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        future_to_file = {
+            executor.submit(search_file_for_all_patterns, genome_file, patterns, genome_dir): genome_file
+            for genome_file in genome_files
+        }
+        
+        for future in as_completed(future_to_file):
+            matches = future.result()
+            all_matches.extend(matches)
+    
+    all_matches.sort(key=lambda x: (x['file'], x['line'], x['position']))
+    
+    execution_time = time.time() - start_time
+    
+    results = {
+        'total_matches': len(all_matches),
+        'execution_time_seconds': round(execution_time, 2),
+        'matches': all_matches
+    }
+    
+    with open('/workspace/results.json', 'w') as f:
+        json.dump(results, f, indent=2)
+    
+    print(f"Search completed in {execution_time:.2f} seconds")
+    print(f"Total matches found: {len(all_matches)}")
+
+if __name__ == '__main__':
+    generate_data()
+    parallel_search()
+```
+
+Save this as `/workspace/dna_search.py` and run it with `python3 /workspace/dna_search.py`

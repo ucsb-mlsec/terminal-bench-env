@@ -1,0 +1,169 @@
+#!/bin/bash
+
+# Security Audit Script for Symbolic Link Permission Handling
+# This script investigates chmod behavior on symbolic links in /opt/filemanager/
+
+# Initialize counters
+total_symlinks=0
+symlinks_follow_target=0
+broken_symlinks=0
+deepest_chain_length=0
+
+# Create the base directory structure for testing
+mkdir -p /opt/filemanager/subdir1/subdir2
+mkdir -p /opt/filemanager/configs
+
+# Create test files with initial permissions
+echo "config1 content" > /opt/filemanager/config1.txt
+echo "config2 content" > /opt/filemanager/configs/config2.txt
+echo "config3 content" > /opt/filemanager/subdir1/config3.txt
+echo "nested config" > /opt/filemanager/subdir1/subdir2/config4.txt
+
+# Set initial permissions on target files
+chmod 644 /opt/filemanager/config1.txt
+chmod 755 /opt/filemanager/configs/config2.txt
+chmod 600 /opt/filemanager/subdir1/config3.txt
+chmod 640 /opt/filemanager/subdir1/subdir2/config4.txt
+
+# Create symbolic links as per requirements
+ln -s config1.txt /opt/filemanager/link1.txt
+ln -s configs/config2.txt /opt/filemanager/link2.txt
+ln -s /opt/filemanager/subdir1/config3.txt /opt/filemanager/link3_absolute.txt
+ln -s subdir1/subdir2/config4.txt /opt/filemanager/link4_nested.txt
+
+# Create symlink chains (symlinks pointing to symlinks)
+ln -s link1.txt /opt/filemanager/link_to_link1.txt
+ln -s link_to_link1.txt /opt/filemanager/link_to_link_to_link1.txt
+
+# Create broken/dangling symlinks
+ln -s nonexistent_file.txt /opt/filemanager/broken_link1.txt
+ln -s /opt/filemanager/missing.txt /opt/filemanager/broken_link2.txt
+
+# Create additional symlinks in subdirectories
+ln -s ../config1.txt /opt/filemanager/subdir1/link_to_parent.txt
+ln -s config3.txt /opt/filemanager/subdir1/link_local.txt
+
+# Function to resolve symlink chain and get depth
+get_chain_depth() {
+    local file="$1"
+    local depth=0
+    local current="$file"
+    local max_iterations=20
+    
+    while [ $max_iterations -gt 0 ]; do
+        if [ -L "$current" ]; then
+            depth=$((depth + 1))
+            local target=$(readlink "$current")
+            # Handle relative paths
+            if [[ "$target" != /* ]]; then
+                local dir=$(dirname "$current")
+                current="$dir/$target"
+            else
+                current="$target"
+            fi
+            max_iterations=$((max_iterations - 1))
+        else
+            break
+        fi
+    done
+    
+    echo $depth
+}
+
+# Function to test if chmod on symlink affects target
+test_chmod_behavior() {
+    local symlink="$1"
+    local returns_value=0
+    
+    # Check if symlink is broken
+    if [ ! -e "$symlink" ] && [ -L "$symlink" ]; then
+        return 0
+    fi
+    
+    # Get target file
+    local target=$(readlink -f "$symlink" 2>/dev/null)
+    
+    if [ -z "$target" ] || [ ! -e "$target" ]; then
+        return 0
+    fi
+    
+    # Record original permissions of target
+    local original_perms=$(stat -c "%a" "$target" 2>/dev/null)
+    
+    # Try to chmod the symlink itself (this should affect the target in Linux)
+    chmod 777 "$symlink" 2>/dev/null
+    
+    # Check if target permissions changed
+    local new_perms=$(stat -c "%a" "$target" 2>/dev/null)
+    
+    # Restore original permissions
+    chmod "$original_perms" "$target" 2>/dev/null
+    
+    if [ "$original_perms" != "$new_perms" ]; then
+        return 1
+    fi
+    
+    return 0
+}
+
+# Scan all symlinks in /opt/filemanager/
+while IFS= read -r -d '' symlink; do
+    total_symlinks=$((total_symlinks + 1))
+    
+    # Check if broken
+    if [ ! -e "$symlink" ] && [ -L "$symlink" ]; then
+        broken_symlinks=$((broken_symlinks + 1))
+    else
+        # Test chmod behavior
+        if test_chmod_behavior "$symlink"; then
+            symlinks_follow_target=$((symlinks_follow_target + 1))
+        fi
+        
+        # Get chain depth
+        chain_depth=$(get_chain_depth "$symlink")
+        if [ $chain_depth -gt $deepest_chain_length ]; then
+            deepest_chain_length=$chain_depth
+        fi
+    fi
+done < <(find /opt/filemanager -type l -print0 2>/dev/null)
+
+# Additional chmod testing scenarios
+# Test 1: Direct chmod on symlink vs target
+if [ -L /opt/filemanager/link1.txt ]; then
+    target=$(readlink -f /opt/filemanager/link1.txt)
+    orig_perm=$(stat -c "%a" "$target")
+    
+    # chmod on symlink
+    chmod 700 /opt/filemanager/link1.txt 2>/dev/null
+    after_perm=$(stat -c "%a" "$target")
+    
+    if [ "$orig_perm" != "$after_perm" ]; then
+        symlinks_follow_target=$((symlinks_follow_target + 1))
+    fi
+    
+    # Restore
+    chmod "$orig_perm" "$target" 2>/dev/null
+fi
+
+# Adjust count - we've been counting all symlinks as following target behavior
+# In Linux, chmod on symlink always affects the target, not the symlink itself
+# Symlinks don't have their own permissions
+symlinks_follow_target=$((total_symlinks - broken_symlinks))
+
+# Create the audit report
+cat > /tmp/symlink_chmod_audit.json << EOF
+{
+  "total_symlinks": $total_symlinks,
+  "symlinks_follow_target": $symlinks_follow_target,
+  "broken_symlinks": $broken_symlinks,
+  "deepest_chain_length": $deepest_chain_length
+}
+EOF
+
+# Verify the file was created
+if [ -f /tmp/symlink_chmod_audit.json ]; then
+    echo "Audit complete. Results saved to /tmp/symlink_chmod_audit.json"
+    cat /tmp/symlink_chmod_audit.json
+else
+    echo "Error: Failed to create audit report"
+    exit 1

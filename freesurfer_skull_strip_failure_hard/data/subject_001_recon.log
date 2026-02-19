@@ -1,0 +1,159 @@
+# recon-all log file
+# 
+# FreeSurfer recon-all processing log
+# Subject: subject_001
+# Start date: Mon Jan 15 14:23:10 UTC 2024
+# 
+# FreeSurfer version: freesurfer-linux-centos7_x86_64-7.3.2
+# Build date: 2022-07-15
+# 
+# SUBJECTS_DIR: /data/freesurfer/subjects
+# Subject directory: /data/freesurfer/subjects/subject_001
+# 
+#--------------------------------------------
+# Setting up environment
+#--------------------------------------------
+# 
+# FREESURFER_HOME=/usr/local/freesurfer
+# Hostname: neuro-compute-01
+# Machine: Linux
+# User: fsuser
+# 
+#--------------------------------------------
+# Starting recon-all pipeline
+#--------------------------------------------
+# 
+# Command: recon-all -s subject_001 -all
+# 
+
+#---------------------------------
+# Motion Correction - mri_motion_cor
+#---------------------------------
+# 
+# Mon Jan 15 14:23:15 UTC 2024
+# 
+mri_motion_cor.bin --i /data/freesurfer/subjects/subject_001/mri/orig/001.mgz --o /data/freesurfer/subjects/subject_001/mri/rawavg.mgz --threads 4
+
+Reading input volume /data/freesurfer/subjects/subject_001/mri/orig/001.mgz
+Input volume dimensions: 256 x 256 x 176
+Voxel size: 1.000 x 1.000 x 1.000 mm
+Number of frames: 1
+Processing frame 1 of 1
+Estimating motion parameters...
+Motion correction complete
+Writing output to /data/freesurfer/subjects/subject_001/mri/rawavg.mgz
+mri_motion_cor.bin finished without error
+# 
+# Motion correction took 45 seconds
+# Mon Jan 15 14:24:00 UTC 2024
+# 
+
+#---------------------------------
+# Intensity Normalization - mri_normalize
+#---------------------------------
+# 
+# Mon Jan 15 14:24:05 UTC 2024
+# 
+mri_normalize -g 1 -mprage /data/freesurfer/subjects/subject_001/mri/orig.mgz /data/freesurfer/subjects/subject_001/mri/T1.mgz
+
+Reading input volume...
+Input: /data/freesurfer/subjects/subject_001/mri/orig.mgz
+Dimensions: 256 x 256 x 176
+Computing intensity statistics...
+Mean intensity: 87.3
+Standard deviation: 34.2
+Computing optimal scaling parameters...
+Applying normalization...
+Progress: 10%
+Progress: 25%
+Progress: 50%
+Progress: 75%
+Progress: 90%
+Progress: 100%
+Writing normalized volume to /data/freesurfer/subjects/subject_001/mri/T1.mgz
+mri_normalize finished without error
+# 
+# Intensity normalization took 127 seconds
+# Mon Jan 15 14:26:12 UTC 2024
+# 
+
+#---------------------------------
+# Talairach Registration - talairach_avi
+#---------------------------------
+# 
+# Mon Jan 15 14:26:15 UTC 2024
+# 
+talairach_avi --i /data/freesurfer/subjects/subject_001/mri/orig.mgz --xfm /data/freesurfer/subjects/subject_001/mri/transforms/talairach.auto.xfm
+
+Reading input volume...
+Input file: /data/freesurfer/subjects/subject_001/mri/orig.mgz
+Loading atlas: /usr/local/freesurfer/average/RB_all_2020-01-02.gca
+Atlas loaded successfully
+Computing initial alignment...
+Initial translation: (-2.3, 1.7, -5.2)
+Initial rotation: (0.02, -0.01, 0.03) radians
+Optimizing registration...
+Iteration 1: cost = 0.2847
+Iteration 2: cost = 0.2134
+Iteration 3: cost = 0.1876
+Iteration 4: cost = 0.1743
+Iteration 5: cost = 0.1698
+Iteration 6: cost = 0.1672
+Iteration 7: cost = 0.1665
+Iteration 8: cost = 0.1663
+Registration converged
+Final transformation matrix:
+  0.9876  -0.0234   0.0187   -2.1
+  0.0256   0.9912  -0.0134    1.8
+ -0.0165   0.0178   0.9934   -5.0
+  0.0000   0.0000   0.0000    1.0
+Writing transform to /data/freesurfer/subjects/subject_001/mri/transforms/talairach.auto.xfm
+talairach_avi finished without error
+# 
+# Talairach registration took 243 seconds
+# Mon Jan 15 14:30:18 UTC 2024
+# 
+
+#---------------------------------
+# Skull Stripping - mri_watershed
+#---------------------------------
+# 
+# Mon Jan 15 14:30:22 UTC 2024
+# 
+mri_watershed -useSRAS -surf /data/freesurfer/subjects/subject_001/surf/lh.seghead -brain_atlas /usr/local/freesurfer/average/RB_all_withskull_2020_01_02.gca /data/freesurfer/subjects/subject_001/mri/T1.mgz /data/freesurfer/subjects/subject_001/mri/brainmask.auto.mgz
+
+Loading input volume: /data/freesurfer/subjects/subject_001/mri/T1.mgz
+Input dimensions: 256 x 256 x 176
+Voxel resolution: 1.0 x 1.0 x 1.0 mm
+Loading brain atlas: /usr/local/freesurfer/average/RB_all_withskull_2020_01_02.gca
+Atlas dimensions: 256 x 256 x 256
+Allocating memory for processing buffers...
+Requested: 4096 MB
+
+ERROR: Unable to allocate memory buffer
+malloc failed: Cannot allocate memory
+ERROR: Memory allocation failed for watershed volume buffer
+ERROR: Attempted allocation size: 4294967296 bytes (4096 MB)
+ERROR: System reports insufficient memory available
+
+mri_watershed exited with ERROR code 137
+# 
+# Skull stripping FAILED after 18 seconds
+# Mon Jan 15 14:30:40 UTC 2024
+# 
+
+#---------------------------------
+# ERROR: Processing terminated
+#---------------------------------
+# 
+# recon-all -s subject_001 exited with ERRORS at Mon Jan 15 14:30:40 UTC 2024
+# 
+# Total processing time: 450 seconds (7.5 minutes)
+# 
+# See log file for error details: /data/freesurfer/subjects/subject_001/scripts/recon-all.log
+# 
+# ERROR SUMMARY:
+# - Stage: Skull Stripping (mri_watershed)
+# - Error code: 137 (Out of memory)
+# - Failed at: Mon Jan 15 14:30:40 UTC 2024
+# 

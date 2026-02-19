@@ -1,0 +1,83 @@
+PROTOCOL SPECIFICATION: TOKEN-PASSING RING PROTOCOL
+========================================================
+
+1. OVERVIEW
+-----------
+This specification describes a token-passing protocol for a distributed system
+with 3 processes arranged in a unidirectional ring topology. The processes are
+designated as P0, P1, and P2, where P0 passes to P1, P1 passes to P2, and P2
+passes back to P0, forming a closed ring. The protocol ensures orderly access
+to shared resources through controlled token circulation.
+
+2. TOKEN MANAGEMENT
+-------------------
+Exactly one token exists in the system at all times. The token represents the
+exclusive right to perform critical operations or access shared resources. The
+token must continuously circulate around the ring to ensure all processes get
+fair access. No process may create or destroy tokens; the single token is
+initialized at system start and persists throughout execution.
+
+3. RING TOPOLOGY
+----------------
+The processes form a unidirectional ring structure:
+  - Process P0 (ID: 0) passes the token to Process P1
+  - Process P1 (ID: 1) passes the token to Process P2
+  - Process P2 (ID: 2) passes the token to Process P0
+  
+Each process has exactly one predecessor and one successor. Token flow is
+strictly unidirectional following the ring order. No process can pass the
+token backward or skip processes in the sequence.
+
+4. TOKEN PASSING RULES
+----------------------
+The following rules govern token passing behavior:
+
+a) A process currently holding the token may choose to pass it to its
+   successor at any time, but is not required to pass immediately.
+
+b) When a process offers the token to its successor, the successor must
+   be ready and willing to accept it (subject to timing constraints).
+
+c) Token passing is synchronous, requiring a handshake between the sender
+   and receiver. Both processes must participate in the transfer.
+
+d) After receiving the token, a process may hold it for some duration
+   before passing it to the next process.
+
+5. TIMING CONSTRAINT
+--------------------
+To prevent token hoarding and ensure fair circulation, a cooldown mechanism
+is enforced: a process can only accept a token if at least 2 time units have
+elapsed since it last released a token. This prevents any single process from
+immediately recapturing the token after releasing it.
+
+The timing state for each process must track:
+  - The last time the process released the token
+  - The current system time
+  - Whether the cooldown period has elapsed (ready to accept)
+
+6. IMPLEMENTATION NOTE
+----------------------
+The Promela model must use embedded C code to track timing state, as Promela
+does not provide native support for continuous time values. Use c_track
+directives to expose C variables representing timing state to SPIN's state
+space explorer. Use c_code blocks to update timing values when token passing
+events occur. Ensure proper synchronization between C state and Promela state.
+
+7. SAFETY PROPERTIES
+--------------------
+The protocol must satisfy the following properties:
+
+a) DEADLOCK FREEDOM: The system must never enter a state where no process
+   can make progress. All processes must remain able to participate in
+   token passing.
+
+b) MUTUAL EXCLUSION INVARIANT: Exactly one token must exist in the system
+   at all times. No state should have zero tokens or multiple tokens.
+
+c) LIVELOCK FREEDOM: The system must eventually make progress. The token
+   must continue to circulate and not get stuck in infinite non-productive
+   loops.
+
+These properties should be verified using SPIN's assertion checking and
+LTL property verification capabilities.

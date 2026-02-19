@@ -1,0 +1,139 @@
+Begin creating tar.gz archive: backup_20240114_160000.tar.gz
+
+---FILE: app.py---
+from flask import Flask, request, jsonify, render_template_string
+import sqlite3
+import os
+from werkzeug.utils import secure_filename
+from datetime import datetime
+
+app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
+app.config['DATABASE'] = 'data.db'
+
+ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'doc', 'docx'}
+
+def get_db_connection():
+    conn = sqlite3.connect(app.config['DATABASE'])
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.route('/')
+def index():
+    html = '''
+    <html>
+        <head><title>Web Application</title></head>
+        <body>
+            <h1>Welcome to the Web Application</h1>
+            <p><a href="/users">View Users</a></p>
+            <p><a href="/upload">Upload File</a></p>
+        </body>
+    </html>
+    '''
+    return render_template_string(html)
+
+@app.route('/users')
+def users():
+    try:
+        conn = get_db_connection()
+        users = conn.execute('SELECT * FROM users ORDER BY created_at DESC').fetchall()
+        conn.close()
+        
+        user_list = [dict(user) for user in users]
+        return jsonify({'users': user_list, 'count': len(user_list)})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/users/add', methods=['POST'])
+def add_user():
+    try:
+        data = request.get_json()
+        username = data.get('username')
+        email = data.get('email')
+        
+        if not username or not email:
+            return jsonify({'error': 'Username and email required'}), 400
+        
+        conn = get_db_connection()
+        conn.execute('INSERT INTO users (username, email, created_at) VALUES (?, ?, ?)',
+                    (username, email, datetime.now()))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'message': 'User added successfully'}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/upload', methods=['GET', 'POST'])
+def upload_file():
+    if request.method == 'POST':
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file part'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No selected file'}), 400
+        
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
+            return jsonify({'message': 'File uploaded successfully', 'filename': filename}), 200
+        else:
+            return jsonify({'error': 'File type not allowed'}), 400
+    
+    html = '''
+    <html>
+        <head><title>Upload File</title></head>
+        <body>
+            <h1>Upload File</h1>
+            <form method="post" enctype="multipart/form-data">
+                <input type="file" name="file">
+                <input type="submit" value="Upload">
+            </form>
+        </body>
+    </html>
+    '''
+    return render_template_string(html)
+
+if __name__ == '__main__':
+    if not os.path.exists(app.config['UPLOAD_FOLDER']):
+        os.makedirs(app.config['UPLOAD_FOLDER'])
+    app.run(host='0.0.0.0', port=5000, debug=False)
+
+---FILE: uploads/file1.txt---
+This is the first uploaded file.
+It contains sample data for testing purposes.
+Created on January 10, 2024.
+
+---FILE: uploads/data.txt---
+Important data file
+Contains user information backup
+Last modified: 2024-01-12
+
+---FILE: uploads/report.txt---
+Monthly Report - December 2023
+Total users: 45
+Active sessions: 23
+
+---FILE: uploads/document.txt---
+Corporate Document
+Confidential Information
+Please handle with care
+
+---FILE: uploads/notes.txt---
+Meeting notes from January 8th
+Attendees: John, Sarah, Mike
+Next meeting scheduled for January 22nd
+
+---FILE: uploads/readme.txt---
+Application Documentation
+Version 2.1
+For support contact: admin@example.com
+Last updated: January 2024
+
+---END OF ARCHIVE---

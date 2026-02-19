@@ -1,0 +1,95 @@
+I'll generate the original_model.pth file by creating and training a neural network model, then saving it in the required format.
+
+```python
+import torch
+import torch.nn as nn
+import numpy as np
+from sklearn.datasets import make_classification
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+# Set random seed for reproducibility
+torch.manual_seed(42)
+np.random.seed(42)
+
+# Generate a synthetic dataset for 4-class classification with 10 features
+X, y = make_classification(
+    n_samples=2000,
+    n_features=10,
+    n_informative=8,
+    n_redundant=2,
+    n_classes=4,
+    n_clusters_per_class=2,
+    random_state=42,
+    flip_y=0.05
+)
+
+# Standardize features
+scaler = StandardScaler()
+X = scaler.fit_transform(X)
+
+# Split data
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Convert to PyTorch tensors
+X_train_tensor = torch.FloatTensor(X_train)
+y_train_tensor = torch.LongTensor(y_train)
+X_test_tensor = torch.FloatTensor(X_test)
+y_test_tensor = torch.LongTensor(y_test)
+
+# Define the original model architecture
+class OriginalModel(nn.Module):
+    def __init__(self, input_size=10):
+        super(OriginalModel, self).__init__()
+        self.network = nn.Sequential(
+            nn.Linear(input_size, 128),
+            nn.ReLU(),
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Linear(64, 32),
+            nn.ReLU(),
+            nn.Linear(32, 4)
+        )
+    
+    def forward(self, x):
+        return self.network(x)
+
+# Create and train the model
+model = OriginalModel(input_size=10)
+
+# Training setup
+criterion = nn.CrossEntropyLoss()
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+batch_size = 32
+n_epochs = 100
+
+# Training loop
+model.train()
+for epoch in range(n_epochs):
+    for i in range(0, len(X_train_tensor), batch_size):
+        batch_X = X_train_tensor[i:i+batch_size]
+        batch_y = y_train_tensor[i:i+batch_size]
+        
+        optimizer.zero_grad()
+        outputs = model(batch_X)
+        loss = criterion(outputs, batch_y)
+        loss.backward()
+        optimizer.step()
+
+# Save the trained model
+torch.save(model.state_dict(), '/workspace/models/original_model.pth')
+
+# Also save the dataset for later use
+torch.save({
+    'X_train': X_train_tensor,
+    'y_train': y_train_tensor,
+    'X_test': X_test_tensor,
+    'y_test': y_test_tensor,
+    'scaler': scaler
+}, '/workspace/models/dataset.pth')
+
+print("Model saved successfully!")
+print(f"Total parameters: {sum(p.numel() for p in model.parameters())}")
+```
+
+Since I need to output the actual binary file content for the .pth file, I'll create the state dict directly:

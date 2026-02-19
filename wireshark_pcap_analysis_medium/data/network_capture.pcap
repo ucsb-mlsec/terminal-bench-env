@@ -1,0 +1,196 @@
+I'll create a PCAP file with the specified requirements. Let me generate this using Python with the scapy library.
+
+<solution>
+import json
+from scapy.all import DNS, DNSQR, IP, UDP, wrpcap, Raw
+from datetime import datetime, timedelta
+import random
+
+# Create packets list
+packets = []
+
+# Base timestamp
+base_time = datetime.now().timestamp()
+
+# Secret message to exfiltrate
+secret_message = "SECRET: The password for the database is admin123 and the server IP is 192.168.50.100"
+
+# Convert message to hex
+hex_encoded = secret_message.encode('utf-8').hex()
+
+# Split hex string into chunks (30-40 chars each)
+chunk_size = 36
+hex_chunks = [hex_encoded[i:i+chunk_size] for i in range(0, len(hex_encoded), chunk_size)]
+
+suspicious_domain = "exfil-server.net"
+
+# Legitimate domains for normal traffic
+legitimate_domains = [
+    "google.com", "facebook.com", "amazon.com", "cloudflare.com",
+    "microsoft.com", "apple.com", "twitter.com", "linkedin.com",
+    "github.com", "stackoverflow.com", "reddit.com", "wikipedia.org",
+    "youtube.com", "netflix.com", "dropbox.com", "slack.com"
+]
+
+# Source and destination IPs
+src_ip = "192.168.1.105"
+dns_server = "8.8.8.8"
+
+# Generate normal DNS queries
+normal_query_count = 25
+for i in range(normal_query_count):
+    domain = random.choice(legitimate_domains)
+    timestamp = base_time + random.uniform(0, 900)  # Spread over 15 minutes
+    
+    dns_query = IP(src=src_ip, dst=dns_server) / \
+                UDP(sport=random.randint(49152, 65535), dport=53) / \
+                DNS(id=random.randint(1, 65535), 
+                    qr=0,
+                    opcode=0,
+                    rd=1,
+                    qd=DNSQR(qname=domain, qtype='A'))
+    
+    dns_query.time = timestamp
+    packets.append(dns_query)
+
+# Generate suspicious DNS queries with exfiltrated data
+suspicious_query_count = len(hex_chunks)
+for idx, chunk in enumerate(hex_chunks):
+    # Add some spacing between chunks
+    timestamp = base_time + 100 + (idx * 45) + random.uniform(0, 10)
+    
+    query_name = f"{chunk}.{suspicious_domain}"
+    
+    dns_query = IP(src=src_ip, dst=dns_server) / \
+                UDP(sport=random.randint(49152, 65535), dport=53) / \
+                DNS(id=random.randint(1, 65535),
+                    qr=0,
+                    opcode=0,
+                    rd=1,
+                    qd=DNSQR(qname=query_name, qtype='A'))
+    
+    dns_query.time = timestamp
+    packets.append(dns_query)
+
+# Add some TCP background traffic
+for i in range(10):
+    from scapy.all import TCP
+    timestamp = base_time + random.uniform(0, 900)
+    
+    tcp_packet = IP(src=src_ip, dst="93.184.216.34") / \
+                 TCP(sport=random.randint(49152, 65535), 
+                     dport=random.choice([80, 443]),
+                     flags="S") / \
+                 Raw(load=b"")
+    
+    tcp_packet.time = timestamp
+    packets.append(tcp_packet)
+
+# Sort packets by timestamp
+packets.sort(key=lambda x: x.time)
+
+# Write to pcap file
+wrpcap('/home/agent/network_capture.pcap', packets)
+
+print(f"PCAP file created successfully")
+print(f"Total packets: {len(packets)}")
+print(f"Suspicious DNS queries: {suspicious_query_count}")
+print(f"Normal DNS queries: {normal_query_count}")
+print(f"Suspicious domain: {suspicious_domain}")
+print(f"Secret message: {secret_message}")
+</solution>
+
+Now let me create the analysis script to solve the challenge:
+
+<solution>
+from scapy.all import rdpcap, DNS, DNSQR
+import json
+from collections import defaultdict
+
+# Read the pcap file
+packets = rdpcap('/home/agent/network_capture.pcap')
+
+# Dictionary to store DNS queries by domain
+dns_queries = defaultdict(list)
+
+# Extract all DNS queries
+for packet in packets:
+    if packet.haslayer(DNS) and packet.haslayer(DNSQR):
+        dns_layer = packet[DNS]
+        if dns_layer.qr == 0:  # Query (not response)
+            query_name = dns_layer.qd.qname.decode('utf-8').rstrip('.')
+            dns_queries[query_name].append(packet)
+
+# Identify suspicious domain by analyzing query patterns
+domain_stats = defaultdict(lambda: {'count': 0, 'avg_length': 0, 'queries': []})
+
+for query_name in dns_queries.keys():
+    # Extract base domain (last two parts)
+    parts = query_name.split('.')
+    if len(parts) >= 2:
+        base_domain = '.'.join(parts[-2:])
+        subdomain = '.'.join(parts[:-2]) if len(parts) > 2 else ''
+        
+        domain_stats[base_domain]['count'] += 1
+        domain_stats[base_domain]['queries'].append(query_name)
+        if subdomain:
+            domain_stats[base_domain]['avg_length'] += len(subdomain)
+
+# Find suspicious domain (high query count with long subdomains)
+suspicious_domain = None
+max_suspicion_score = 0
+
+for domain, stats in domain_stats.items():
+    if stats['count'] > 0:
+        avg_subdomain_length = stats['avg_length'] / stats['count']
+        # Suspicious if many queries with long subdomains
+        suspicion_score = stats['count'] * avg_subdomain_length
+        
+        if suspicion_score > max_suspicion_score and avg_subdomain_length > 20:
+            max_suspicion_score = suspicion_score
+            suspicious_domain = domain
+
+# Extract and decode data from suspicious queries
+if suspicious_domain:
+    suspicious_queries = sorted(domain_stats[suspicious_domain]['queries'])
+    
+    # Extract hex chunks from subdomains
+    hex_chunks = []
+    for query in suspicious_queries:
+        parts = query.split('.')
+        if len(parts) > 2:
+            subdomain = parts[0]  # First part contains the encoded data
+            # Check if it looks like hex
+            try:
+                int(subdomain, 16)
+                hex_chunks.append(subdomain)
+            except ValueError:
+                pass
+    
+    # Concatenate all hex chunks
+    full_hex = ''.join(hex_chunks)
+    
+    # Decode from hex to string
+    try:
+        decoded_message = bytes.fromhex(full_hex).decode('utf-8')
+    except:
+        decoded_message = "Unable to decode"
+    
+    # Prepare solution
+    solution = {
+        "suspicious_domain": suspicious_domain,
+        "exfiltrated_data": decoded_message,
+        "query_count": len(suspicious_queries)
+    }
+    
+    # Save to JSON file
+    with open('/home/agent/solution.json', 'w') as f:
+        json.dump(solution, f, indent=2)
+    
+    print(f"Analysis complete!")
+    print(f"Suspicious domain: {suspicious_domain}")
+    print(f"Query count: {len(suspicious_queries)}")
+    print(f"Exfiltrated data: {decoded_message}")
+else:
+    print("No suspicious domain found")
+</solution>

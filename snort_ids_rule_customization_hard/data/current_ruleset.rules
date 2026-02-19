@@ -1,0 +1,159 @@
+# Current Snort Ruleset - Unoptimized Production Configuration
+# WARNING: This ruleset contains performance issues and requires optimization
+# Total Rules: 95
+# Last Updated: 2024-01-15
+
+# ============================================================================
+# SECTION 1: DUPLICATE/REDUNDANT SQL INJECTION RULES (20 rules)
+# ============================================================================
+
+alert tcp any any -> any 80 (msg:"SQL Injection - SELECT keyword detected"; content:"SELECT"; nocase; sid:2000001; rev:1;)
+alert tcp any any -> any 80 (msg:"SQL Injection attempt - select statement"; content:"select"; nocase; sid:2000002; rev:2;)
+alert tcp any any -> any 443 (msg:"Possible SQL injection SELECT"; flow:to_server,established; content:"SELECT"; nocase; sid:2000003; rev:1;)
+alert tcp any any -> any any (msg:"SQL UNION attack detected"; content:"UNION"; nocase; sid:2000004; rev:1;)
+alert tcp any any -> any 80 (msg:"SQL Injection UNION SELECT"; content:"UNION"; nocase; content:"SELECT"; nocase; distance:0; sid:2000005; rev:3;)
+alert tcp any any -> any 443 (msg:"Database UNION injection"; content:"union"; nocase; sid:2000006; rev:1;)
+alert tcp any any -> any any (msg:"SQL Injection OR 1=1 pattern"; content:"OR 1=1"; nocase; sid:2000007; rev:2;)
+alert tcp any any -> any 80 (msg:"SQL authentication bypass OR 1=1"; content:"or 1=1"; nocase; sid:2000008; rev:1;)
+alert tcp any any -> any 80 (msg:"SQL Injection OR equals pattern"; content:"OR"; nocase; content:"="; distance:0; within:10; sid:2000009; rev:1;)
+alert tcp any any -> any any (msg:"SQL comment injection --"; content:"--"; sid:2000010; rev:1;)
+alert tcp any any -> any 80 (msg:"SQL inline comment detected"; content:"/*"; content:"*/"; distance:0; sid:2000011; rev:2;)
+alert tcp any any -> any 443 (msg:"SQL comment bypass technique"; content:"--"; sid:2000012; rev:1;)
+alert tcp any any -> any any (msg:"SQL DROP TABLE command"; content:"DROP TABLE"; nocase; sid:2000013; rev:1;)
+alert tcp any any -> any 3306 (msg:"MySQL DROP command detected"; content:"DROP"; nocase; sid:2000014; rev:3;)
+alert tcp any any -> any any (msg:"SQL DELETE FROM pattern"; content:"DELETE FROM"; nocase; sid:2000015; rev:1;)
+alert tcp any any -> any 80 (msg:"SQL INSERT injection"; content:"INSERT INTO"; nocase; sid:2000016; rev:2;)
+alert tcp any any -> any any (msg:"SQL UPDATE injection detected"; content:"UPDATE"; nocase; content:"SET"; nocase; distance:0; sid:2000017; rev:1;)
+alert tcp any any -> any 80 (msg:"SQLExecuteStatement detected"; content:"exec"; nocase; sid:2000018; rev:1;)
+alert tcp any any -> any 443 (msg:"SQL xp_cmdshell execution"; content:"xp_cmdshell"; nocase; sid:2000019; rev:4;)
+alert tcp any any -> any any (msg:"Generic SQL injection attempt"; content:"'"; content:"OR"; distance:0; nocase; sid:2000020; rev:1;)
+
+# ============================================================================
+# SECTION 2: DUPLICATE/REDUNDANT XSS RULES (18 rules)
+# ============================================================================
+
+alert tcp any any -> any 80 (msg:"XSS Attack - script tag detected"; content:"<script>"; nocase; sid:2000021; rev:1;)
+alert tcp any any -> any 80 (msg:"Cross-site scripting script tag"; content:"<script"; nocase; sid:2000022; rev:2;)
+alert tcp any any -> any 443 (msg:"XSS script injection"; content:"<SCRIPT>"; sid:2000023; rev:1;)
+alert tcp any any -> any any (msg:"XSS javascript protocol"; content:"javascript:"; nocase; sid:2000024; rev:1;)
+alert tcp any any -> any 80 (msg:"XSS javascript URL scheme"; content:"javascript"; nocase; sid:2000025; rev:3;)
+alert tcp any any -> any 443 (msg:"XSS onerror handler injection"; content:"onerror="; nocase; sid:2000026; rev:1;)
+alert tcp any any -> any 80 (msg:"XSS onload event handler"; content:"onload="; nocase; sid:2000027; rev:2;)
+alert tcp any any -> any any (msg:"XSS event handler detected"; content:"on"; nocase; sid:2000028; rev:1;)
+alert tcp any any -> any 80 (msg:"XSS img tag injection"; content:"<img"; nocase; sid:2000029; rev:1;)
+alert tcp any any -> any 443 (msg:"XSS iframe injection"; content:"<iframe"; nocase; sid:2000030; rev:2;)
+alert tcp any any -> any 80 (msg:"XSS iframe tag detected"; content:"iframe"; nocase; sid:2000031; rev:1;)
+alert tcp any any -> any any (msg:"XSS alert function call"; content:"alert("; nocase; sid:2000032; rev:1;)
+alert tcp any any -> any 80 (msg:"XSS document.cookie access"; content:"document.cookie"; nocase; sid:2000033; rev:3;)
+alert tcp any any -> any 443 (msg:"XSS eval function detected"; content:"eval("; nocase; sid:2000034; rev:1;)
+alert tcp any any -> any 80 (msg:"XSS window.location manipulation"; content:"window.location"; nocase; sid:2000035; rev:1;)
+alert tcp any any -> any any (msg:"XSS String.fromCharCode obfuscation"; content:"fromCharCode"; nocase; sid:2000036; rev:2;)
+alert tcp any any -> any 80 (msg:"XSS with HTML entity encoding"; content:"&#"; sid:2000037; rev:1;)
+alert tcp any any -> any 443 (msg:"XSS svg tag injection"; content:"<svg"; nocase; sid:2000038; rev:1;)
+
+# ============================================================================
+# SECTION 3: OVERLY BROAD RULES (18 rules)
+# ============================================================================
+
+alert tcp any any -> any any (msg:"Suspicious GET request"; content:"GET"; sid:2000039; rev:1;)
+alert tcp any any -> any any (msg:"POST method detected"; content:"POST"; sid:2000040; rev:1;)
+alert tcp any any -> any any (msg:"Possible password in cleartext"; content:"pass"; nocase; sid:2000041; rev:2;)
+alert tcp any any -> any any (msg:"Admin access detected"; content:"admin"; nocase; sid:2000042; rev:1;)
+alert tcp any any -> any any (msg:"Root user detected"; content:"root"; sid:2000043; rev:1;)
+alert tcp any any -> any any (msg:"Equals sign in traffic"; content:"="; sid:2000044; rev:1;)
+alert tcp any any -> any any (msg:"Ampersand parameter separator"; content:"&"; sid:2000045; rev:1;)
+alert tcp any any -> any any (msg:"Question mark detected"; content:"?"; sid:2000046; rev:2;)
+alert tcp any any -> any any (msg:"Slash character in URI"; content:"/"; sid:2000047; rev:1;)
+alert tcp any any -> any any (msg:"Dot character detected"; content:"."; sid:2000048; rev:1;)
+alert tcp any any -> any any (msg:"Pipe character shell metacharacter"; content:"|"; sid:2000049; rev:1;)
+alert tcp any any -> any any (msg:"Semicolon command separator"; content:";"; sid:2000050; rev:3;)
+alert ip any any -> any any (msg:"ICMP traffic detected"; ip_proto:icmp; sid:2000051; rev:1;)
+alert tcp any any -> any any (msg:"HTTP User-Agent present"; content:"User-Agent"; nocase; sid:2000052; rev:1;)
+alert tcp any any -> any any (msg:"HTTP Cookie header"; content:"Cookie:"; nocase; sid:2000053; rev:2;)
+alert tcp any any -> any any (msg:"Encoded URL parameter"; content:"%"; sid:2000054; rev:1;)
+alert tcp any any -> any any (msg:"Base64 encoding detected"; content:"base64"; nocase; sid:2000055; rev:1;)
+alert tcp any any -> any any (msg:"File extension in request"; content:".php"; nocase; sid:2000056; rev:1;)
+
+# ============================================================================
+# SECTION 4: RULES FOR UNUSED SERVICES (15 rules)
+# ============================================================================
+
+alert tcp any any -> any 21 (msg:"FTP connection attempt"; flow:to_server,established; content:"USER"; nocase; sid:2000057; rev:2;)
+alert tcp any any -> any 21 (msg:"FTP PASS command detected"; content:"PASS"; nocase; sid:2000058; rev:1;)
+alert tcp any any -> any 20 (msg:"FTP-DATA port activity"; sid:2000059; rev:1;)
+alert tcp any any -> any 21 (msg:"FTP CWD command"; content:"CWD"; nocase; sid:2000060; rev:3;)
+alert tcp any any -> any 23 (msg:"Telnet connection established"; flow:to_server,established; sid:2000061; rev:1;)
+alert tcp any any -> any 23 (msg:"Telnet login attempt"; content:"login:"; nocase; sid:2000062; rev:2;)
+alert tcp any any -> any 23 (msg:"Telnet password prompt"; content:"password"; nocase; sid:2000063; rev:1;)
+alert tcp any any -> any 139 (msg:"NetBIOS session service"; sid:2000064; rev:1;)
+alert tcp any any -> any 445 (msg:"SMB traffic detected"; content:"|ff|SMB"; sid:2000065; rev:2;)
+alert tcp any any -> any 445 (msg:"SMB file access attempt"; sid:2000066; rev:1;)
+alert tcp any any -> any 139 (msg:"NetBIOS name query"; sid:2000067; rev:1;)
+alert udp any any -> any 161 (msg:"SNMP GET request"; content:"|A0|"; sid:2000068; rev:3;)
+alert udp any any -> any 161 (msg:"SNMP public community string"; content:"public"; nocase; sid:2000069; rev:2;)
+alert udp any any -> any 162 (msg:"SNMP trap received"; sid:2000070; rev:1;)
+alert tcp any any -> any 23 (msg:"Telnet IAC command sequence"; content:"|FF|"; sid:2000071; rev:1;)
+
+# ============================================================================
+# SECTION 5: RULES TRIGGERING ON INTERNAL TRAFFIC (12 rules)
+# ============================================================================
+
+alert tcp any any -> any 3306 (msg:"MySQL query from internal network"; flow:to_server,established; content:"SELECT"; nocase; sid:2000072; rev:1;)
+alert tcp 192.168.10.0/24 any -> 192.168.10.0/24 3306 (msg:"Internal database connection"; sid:2000073; rev:2;)
+alert tcp any any -> any any (msg:"Private IP address in payload"; content:"192.168"; sid:2000074; rev:1;)
+alert tcp any any -> any any (msg:"Internal network 10.x detected"; content:"10."; sid:2000075; rev:1;)
+alert tcp 192.168.10.0/24 any -> 192.168.10.0/24 80 (msg:"Internal web request"; content:"GET"; sid:2000076; rev:3;)
+alert tcp any any -> 192.168.10.0/24 22 (msg:"SSH to internal network"; flow:to_server,established; sid:2000077; rev:1;)
+alert tcp 10.50.0.0/24 any -> 192.168.10.0/24 any (msg:"DMZ to Internal communication"; sid:2000078; rev:2;)
+alert tcp any any -> any any (msg:"Internal API endpoint called"; content:"/api/internal"; nocase; sid:2000079; rev:1;)
+alert tcp 192.168.10.0/24 any -> 192.168.10.0/24 443 (msg:"Internal HTTPS traffic"; sid:2000080; rev:1;)
+alert tcp any any -> any any (msg:"Monitoring internal health check"; content:"/health"; nocase; sid:2000081; rev:2;)
+alert tcp 172.16.5.0/24 any -> 192.168.10.0/24 53 (msg:"Guest network DNS query to internal"; sid:2000082; rev:1;)
+alert tcp any any -> any any (msg:"Internal hostname detected"; content:"internal.local"; nocase; sid:2000083; rev:1;)
+
+# ============================================================================
+# SECTION 6: PERFORMANCE-INEFFICIENT RULES (15 rules)
+# ============================================================================
+
+alert tcp any any -> any 80 (msg:"Complex regex without optimization"; pcre:"/(.*)+@(.*)+\.(.*)+/"; sid:2000084; rev:1;)
+alert tcp any any -> any 443 (msg:"Multiple content no fast_pattern"; content:"user"; nocase; content:"password"; nocase; content:"login"; nocase; sid:2000085; rev:2;)
+alert tcp any any -> any 80 (msg:"Full payload scan no flow"; content:"attack"; sid:2000086; rev:1;)
+alert tcp any any -> any any (msg:"Inefficient backtracking regex"; pcre:"/(.+)+/"; sid:2000087; rev:3;)
+alert tcp any any -> any 80 (msg:"No depth limit content search"; content:"malicious"; nocase; sid:2000088; rev:1;)
+alert tcp any any -> any 443 (msg:"Unanchored regex scan"; pcre:"/[a-zA-Z0-9]+@[a-zA-Z0-9]+/"; sid:2000089; rev:2;)
+alert tcp any any -> any any (msg:"Multiple PCRE no optimization"; pcre:"/admin/i"; pcre:"/password/i"; pcre:"/login/i"; sid:2000090; rev:1;)
+alert tcp any any -> any 80 (msg:"Deep packet inspection no offset"; content:"exploit"; content:"payload"; distance:0; sid:2000091; rev:1;)
+alert tcp any any -> any any (msg:"Excessive alternation regex"; pcre:"/(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC)/i"; sid:2000092; rev:2;)
+alert tcp any any -> any 80 (msg:"No flow optimization established"; content:"attack"; nocase; sid:2000093; rev:1;)
+alert tcp any any -> any 443 (msg:"Nested quantifier regex"; pcre:"/((a+)+)+/"; sid:2000094; rev:3;)
+alert tcp any any -> any any (msg:"Case sensitive search inefficiency"; content:"Exploit"; sid:2000095; rev:1;)
+alert tcp any any -> any 80 (msg:"Multiple content matches unoptimized"; content:"hack"; content:"crack"; content:"attack"; sid:2000096; rev:1;)
+alert tcp any any -> any any (msg:"Unbounded regex search"; pcre:"/.*attack.*/"; sid:2000097; rev:2;)
+alert tcp any any -> any 80 (msg:"No within constraint distance"; content:"cmd"; content:"exec"; distance:0; sid:2000098; rev:1;)
+
+# ============================================================================
+# SECTION 7: PRIORITY CONFLICTS AND MISSING DIRECTIVES (10 rules)
+# ============================================================================
+
+alert tcp any any -> any 80 (msg:"Critical RCE attempt"; content:"/bin/bash"; nocase; priority:3; sid:2000099; rev:1;)
+alert tcp any any -> any any (msg:"Low priority info leak"; content:"phpinfo"; nocase; priority:1; sid:2000100; rev:2;)
+alert tcp any any -> any 443 (msg:"Severe authentication bypass"; content:"' OR '1'='1"; nocase; classtype:web-application-attack; sid:2000101; rev:1;)
+alert tcp any any -> any any (msg:"Minor HTTP version in request"; content:"HTTP/1.1"; priority:4; sid:2000102; rev:1;)
+alert tcp any any -> any 22 (msg:"SSH brute force HIGH severity"; flow:to_server; content:"SSH"; priority:2; sid:2000103; rev:3;)
+alert tcp any any -> any 80 (msg:"CRITICAL buffer overflow"; content:"|90 90 90 90|"; sid:2000104; rev:1;)
+alert tcp any any -> any any (msg:"Informational banner grab"; content:"Server:"; nocase; priority:3; sid:2000105; rev:1;)
+alert tcp any any -> any 80 (msg:"Directory traversal CRITICAL"; content:"../"; priority:3; classtype:attempted-user; sid:2000106; rev:2;)
+alert tcp any any -> any any (msg:"Command injection shell detected"; content:"/bin/sh"; sid:2000107; rev:1;)
+alert tcp any any -> any 443 (msg:"XXE injection detected"; content:"<!ENTITY"; nocase; classtype:web-application-attack; priority:2; sid:2000108; rev:1;)
+
+# ============================================================================
+# SECTION 8: ADDITIONAL INEFFICIENT REGEX RULES (7 rules)
+# ============================================================================
+
+alert tcp any any -> any 80 (msg:"Email validation catastrophic backtracking"; pcre:"/^([a-zA-Z0-9]+)*@([a-zA-Z0-9]+)*$/"; sid:2000109; rev:2;)
+alert tcp any any -> any any (msg:"Unoptimized alternatives regex"; pcre:"/(http|https|ftp|ftps|ssh|telnet|smtp)/i"; sid:2000110; rev:1;)
+alert tcp any any -> any 443 (msg:"Greedy quantifier chain"; pcre:"/.*.*.*attack/i"; sid:2000111; rev:1;)
+alert tcp any any -> any 80 (msg:"Nested groups excessive backtrack"; pcre:"/((([a-z]+)+)+)+/"; sid:2000112; rev:3;)
+alert tcp any any -> any any (msg:"Redundant character class"; pcre:"/[0-9][0-9][0-9][0-9]/"; sid:2000113; rev:1;)
+alert tcp any any -> any 80 (msg:"Unbounded lookahead assertion"; pcre:"/(?=.*password)(?=.*admin)/i"; sid:2000114; rev:2;)
+alert tcp any any -> any 443 (msg:"Complex OR chain no optimization"; pcre:"/(vulnerability|exploit|attack|hack|crack|inject|overflow)/i"; sid:2000115; rev:1;)

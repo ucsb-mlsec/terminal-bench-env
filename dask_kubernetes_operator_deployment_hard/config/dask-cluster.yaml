@@ -1,0 +1,77 @@
+apiVersion: kubernetes.dask.org/v1beta
+kind: DaskCluster
+metadata:
+  name: dask-cluster
+  namespace: default
+  labels:
+    app: "dask-cluster
+    environment: production
+spec:
+  worker:
+    replicas: 3
+    minReplicas: 3
+    maxReplicas: 8
+    resources:
+      limits:
+        cpu: "1"
+        memory: "2Gi"
+      requests:
+        cpu: "2"
+        memory: "3Gi"
+    env:
+      - name: DASK_DISTRIBUTED__SCHEDULER_ADDRESS
+        value: ${SCHEDULER_SERVICE_HOST}
+      - name: DASK_AUTH_TOKEN
+        value: "auth-token-abc123"
+      - name: EXTRA_PIP_PACKAGES
+        value: "pandas numpy scipy"
+    labels:
+      app: dask-worker
+      component: worker
+  scheduler:
+    service:
+      type: ClusterIP
+      ports:
+        - name: tcp-comm
+          port: 8787
+          protocol: TCP
+          targetPort: 8787
+        - name: http-dashboard
+          port: 8787
+          protocol: TCP
+          targetPort: 8787
+      selector:
+        app: dask-scheduler
+    spec:
+      containers:
+        - name: scheduler
+          image: daskdev/dask:latest
+          args:
+            - dask-scheduler
+          ports:
+            - containerPort: 8787
+              name: tcp-comm
+            - containerPort: 8787
+              name: http-dashboard
+          env:
+            - name: DASK_AUTH_TOKEN
+              value: "auth-token-abc123"
+            - name: DASK_DISTRIBUTED__SCHEDULER__DASHBOARD__LINK
+              value: "/dashboard"
+          resources:
+            limits:
+              cpu: "2"
+              memory: "4Gi"
+            requests:
+              cpu: "1"
+              memory: "2Gi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8787
+            initialDelaySeconds: 15
+            periodSeconds: 20
+      labels:
+        app: dask-scheduler
+        component: scheduler
+        environment: production

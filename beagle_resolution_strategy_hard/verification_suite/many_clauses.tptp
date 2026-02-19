@@ -1,0 +1,63 @@
+% Problem: Comprehensive shader property verification
+% Type: many_clauses
+% Description: Verifies multiple interacting shader properties
+% Characteristics: 40+ clauses, benefits from set-of-support strategy
+% Initial support set: Conjecture and related axioms form natural support set
+
+% Background theory axioms - basic shader operations
+cnf(shader_identity_1, axiom, shader_valid(identity_shader)).
+cnf(shader_composition_valid, axiom, (shader_valid(X) | ~shader_valid(apply(X, Y)) | ~shader_valid(Y))).
+cnf(shader_apply_defined, axiom, (shader_valid(apply(X, Y)) | ~shader_valid(X) | ~shader_valid(Y))).
+cnf(render_preserves_validity, axiom, (shader_valid(X) | ~shader_valid(render(X)))).
+cnf(blend_symmetric, axiom, (blend(X, Y) = blend(Y, X))).
+cnf(blend_preserves_validity, axiom, (shader_valid(blend(X, Y)) | ~shader_valid(X) | ~shader_valid(Y))).
+cnf(filter_preserves_validity, axiom, (shader_valid(filter(X, Y)) | ~shader_valid(X))).
+cnf(color_preservation_reflexive, axiom, preserves_color(X, X)).
+cnf(color_preservation_transitive, axiom, (preserves_color(X, Z) | ~preserves_color(X, Y) | ~preserves_color(Y, Z))).
+cnf(identity_preserves_color, axiom, preserves_color(identity_shader, X)).
+cnf(apply_preserves_color_chain, axiom, (preserves_color(apply(X, Y), Z) | ~preserves_color(X, Y) | ~preserves_color(Y, Z))).
+cnf(blend_preserves_color_left, axiom, (preserves_color(blend(X, Y), X))).
+cnf(blend_preserves_color_right, axiom, (preserves_color(blend(X, Y), Y))).
+cnf(filter_color_preservation, axiom, (preserves_color(filter(X, Y), X) | ~shader_valid(X))).
+cnf(commutative_symmetric, axiom, (commutative(X, Y) | ~commutative(Y, X))).
+cnf(blend_commutative, axiom, commutative(blend(X, Y), blend(Y, X))).
+cnf(associative_apply_chain, axiom, (apply(apply(X, Y), Z) = apply(X, apply(Y, Z)) | ~associative(X))).
+cnf(blend_associative_property, axiom, associative(blend(X, Y))).
+cnf(bounded_render, axiom, (bounded(render(X), max_bound) | ~shader_valid(X))).
+cnf(bounded_transitive, axiom, (bounded(X, Z) | ~bounded(X, Y) | ~bounded(Y, Z))).
+cnf(bounded_blend, axiom, (bounded(blend(X, Y), max_bound) | ~bounded(X, max_bound) | ~bounded(Y, max_bound))).
+cnf(bounded_filter_reduces, axiom, (bounded(filter(X, Y), max_bound) | ~bounded(X, max_bound))).
+cnf(render_idempotent, axiom, (render(render(X)) = render(X))).
+cnf(apply_associative, axiom, associative(apply(X, Y))).
+cnf(filter_monotonic, axiom, (bounded(filter(X, Y), B) | ~bounded(X, B))).
+
+% Domain axioms - specific shader properties
+cnf(gamma_shader_valid, axiom, shader_valid(gamma_correction)).
+cnf(brightness_shader_valid, axiom, shader_valid(brightness_adjust)).
+cnf(contrast_shader_valid, axiom, shader_valid(contrast_enhance)).
+cnf(saturation_shader_valid, axiom, shader_valid(saturation_filter)).
+cnf(blur_shader_valid, axiom, shader_valid(blur_effect)).
+cnf(sharpen_shader_valid, axiom, shader_valid(sharpen_effect)).
+cnf(gamma_preserves_brightness, axiom, preserves_color(gamma_correction, brightness_adjust)).
+cnf(brightness_bounded, axiom, bounded(brightness_adjust, max_bound)).
+cnf(contrast_bounded, axiom, bounded(contrast_enhance, max_bound)).
+cnf(blur_color_safe, axiom, preserves_color(blur_effect, saturation_filter)).
+cnf(sharpen_contrast_relation, axiom, commutative(sharpen_effect, contrast_enhance)).
+cnf(gamma_commutes_saturation, axiom, commutative(gamma_correction, saturation_filter)).
+cnf(brightness_contrast_order, axiom, (apply(brightness_adjust, contrast_enhance) = apply(contrast_enhance, brightness_adjust))).
+cnf(blur_sharpen_inverse, axiom, (render(apply(blur_effect, sharpen_effect)) = render(identity_shader))).
+cnf(saturation_bounded, axiom, bounded(saturation_filter, max_bound)).
+cnf(blend_gamma_brightness, axiom, shader_valid(blend(gamma_correction, brightness_adjust))).
+cnf(filter_preserves_gamma, axiom, preserves_color(filter(gamma_correction, X), gamma_correction)).
+cnf(composite_brightness_saturation, axiom, shader_valid(apply(brightness_adjust, saturation_filter))).
+cnf(render_chain_valid, axiom, (shader_valid(render(apply(X, Y))) | ~shader_valid(X) | ~shader_valid(Y))).
+
+% Additional clauses for complexity
+cnf(blend_triple_valid, axiom, (shader_valid(blend(blend(X, Y), Z)) | ~shader_valid(X) | ~shader_valid(Y) | ~shader_valid(Z))).
+cnf(apply_triple_chain, axiom, (shader_valid(apply(apply(X, Y), Z)) | ~shader_valid(X) | ~shader_valid(Y) | ~shader_valid(Z))).
+cnf(filter_blend_interaction, axiom, (preserves_color(filter(blend(X, Y), Z), X) | ~shader_valid(X))).
+cnf(complex_composition_bounded, axiom, (bounded(apply(blend(X, Y), filter(Z, W)), max_bound) | ~bounded(X, max_bound) | ~bounded(Y, max_bound) | ~bounded(Z, max_bound))).
+cnf(nested_render_simplification, axiom, (render(apply(X, render(Y))) = render(apply(X, Y)))).
+
+% Conjecture - specific verification goal
+cnf(target_property, conjecture, ~shader_valid(render(apply(blend(gamma_correction, brightness_adjust), saturation_filter)))).

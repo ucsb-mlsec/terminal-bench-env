@@ -1,0 +1,656 @@
+[
+  {
+    "# Pre-Request Script Solution":"```javascript"
+  },
+  {
+    "# Pre-Request Script Solution":"\/\/ Pre-Request Script for Multi-Tenant OAuth 2.0 Authentication"
+  },
+  {
+    "# Pre-Request Script Solution":"(function() {"
+  },
+  {
+    "# Pre-Request Script Solution":"    'use strict';"
+  },
+  {
+    "# Pre-Request Script Solution":"    \/\/ Configuration constants"
+  },
+  {
+    "# Pre-Request Script Solution":"    const TOKEN_EXPIRY_BUFFER = 30; \/\/ seconds before expiry to refresh"
+  },
+  {
+    "# Pre-Request Script Solution":"    const GRANT_TYPE = 'client_credentials';"
+  },
+  {
+    "# Pre-Request Script Solution":"    \/\/ OAuth configuration with scope mappings and custom headers"
+  },
+  {
+    "# Pre-Request Script Solution":"    const oauthConfig = {"
+  },
+  {
+    "# Pre-Request Script Solution":"        scope_mappings: {"
+  },
+  {
+    "# Pre-Request Script Solution":"        custom_headers: {"
+  },
+  {
+    "# Pre-Request Script Solution":"            'X-API-Version': 'v1'"
+  },
+  {
+    "# Pre-Request Script Solution":"        endpoint_custom_headers: {"
+  },
+  {
+    "# Pre-Request Script Solution":"            '\/api\/v1\/billing': {"
+  },
+  {
+    "# Pre-Request Script Solution":"                'X-Billing-Context': 'full'"
+  },
+  {
+    "# Pre-Request Script Solution":"            '\/api\/v1\/cache': {"
+  },
+  {
+    "# Pre-Request Script Solution":"                'X-Cache-Control': 'no-cache'"
+  },
+  {
+    "# Pre-Request Script Solution":"            }"
+  },
+  {
+    "# Pre-Request Script Solution":"        endpoints_requiring_custom_headers: ["
+  },
+  {
+    "# Pre-Request Script Solution":"            '\/api\/v1\/settings'"
+  },
+  {
+    "# Pre-Request Script Solution":"        ]"
+  },
+  {
+    "# Pre-Request Script Solution":"    };"
+  },
+  {
+    "# Pre-Request Script Solution":"    \/**"
+  },
+  {
+    "# Pre-Request Script Solution":"     * Get the current tenant environment identifier"
+  },
+  {
+    "# Pre-Request Script Solution":"     *\/"
+  },
+  {
+    "# Pre-Request Script Solution":"    function getCurrentTenant() {"
+  },
+  {
+    "# Pre-Request Script Solution":"        const tenantId = pm.environment.get('tenant_id');"
+  },
+  {
+    "# Pre-Request Script Solution":"        if (!tenantId) {"
+  },
+  {
+    "# Pre-Request Script Solution":"            throw new Error('No tenant_id found in environment variables');"
+  },
+  {
+    "# Pre-Request Script Solution":"        }"
+  },
+  {
+    "# Pre-Request Script Solution":"        return tenantId;"
+  },
+  {
+    "# Pre-Request Script Solution":"    }"
+  },
+  {
+    "# Pre-Request Script Solution":"    \/**"
+  },
+  {
+    "# Pre-Request Script Solution":"     * Get OAuth credentials for the current tenant"
+  },
+  {
+    "# Pre-Request Script Solution":"     *\/"
+  },
+  {
+    "# Pre-Request Script Solution":"    function getOAuthCredentials() {"
+  },
+  {
+    "# Pre-Request Script Solution":"        const clientId = pm.environment.get('oauth_client_id');"
+  },
+  {
+    "# Pre-Request Script Solution":"        const clientSecret = pm.environment.get('oauth_client_secret');"
+  },
+  {
+    "# Pre-Request Script Solution":"        const tokenUrl = pm.environment.get('oauth_token_url');"
+  },
+  {
+    "# Pre-Request Script Solution":"        if (!clientId || !clientSecret || !tokenUrl) {"
+  },
+  {
+    "# Pre-Request Script Solution":"        }"
+  },
+  {
+    "# Pre-Request Script Solution":"        return {"
+  },
+  {
+    "# Pre-Request Script Solution":"            token_url: tokenUrl"
+  },
+  {
+    "# Pre-Request Script Solution":"        };"
+  },
+  {
+    "# Pre-Request Script Solution":"    }"
+  },
+  {
+    "# Pre-Request Script Solution":"    \/**"
+  },
+  {
+    "# Pre-Request Script Solution":"     * Determine required scopes based on the API endpoint being called"
+  },
+  {
+    "# Pre-Request Script Solution":"     * @param {string} requestUrl - The full URL of the request"
+  },
+  {
+    "# Pre-Request Script Solution":"     * @returns {Array} Array of required scope strings"
+  },
+  {
+    "# Pre-Request Script Solution":"     *\/"
+  },
+  {
+    "# Pre-Request Script Solution":"    function getRequiredScopes(requestUrl) {"
+  },
+  {
+    "# Pre-Request Script Solution":"        try {"
+  },
+  {
+    "# Pre-Request Script Solution":"            const url = new URL(requestUrl);"
+  },
+  {
+    "# Pre-Request Script Solution":"            const pathname = url.pathname;"
+  },
+  {
+    "# Pre-Request Script Solution":"            \/\/ Check for exact matches in scope mappings"
+  },
+  {
+    "# Pre-Request Script Solution":"                if (pathname.startsWith(endpoint)) {"
+  },
+  {
+    "# Pre-Request Script Solution":"                    return scopes;"
+  },
+  {
+    "# Pre-Request Script Solution":"                }"
+  },
+  {
+    "# Pre-Request Script Solution":"            }"
+  },
+  {
+    "# Pre-Request Script Solution":"            \/\/ Return default scope if no match found"
+  },
+  {
+    "# Pre-Request Script Solution":"            return [oauthConfig.default_scope];"
+  },
+  {
+    "# Pre-Request Script Solution":"        } catch (error) {"
+  },
+  {
+    "# Pre-Request Script Solution":"            return [oauthConfig.default_scope];"
+  },
+  {
+    "# Pre-Request Script Solution":"        }"
+  },
+  {
+    "# Pre-Request Script Solution":"    }"
+  },
+  {
+    "# Pre-Request Script Solution":"    \/**"
+  },
+  {
+    "# Pre-Request Script Solution":"     * Check if the current access token is valid and not expired"
+  },
+  {
+    "# Pre-Request Script Solution":"     * @returns {boolean} True if token is valid and not expired"
+  },
+  {
+    "# Pre-Request Script Solution":"     *\/"
+  },
+  {
+    "# Pre-Request Script Solution":"    function isTokenValid() {"
+  },
+  {
+    "# Pre-Request Script Solution":"        const accessToken = pm.environment.get('access_token');"
+  },
+  {
+    "# Pre-Request Script Solution":"        const tokenExpiry = pm.environment.get('token_expiry_timestamp');"
+  },
+  {
+    "# Pre-Request Script Solution":"        if (!accessToken || !tokenExpiry) {"
+  },
+  {
+    "# Pre-Request Script Solution":"            return false;"
+  },
+  {
+    "# Pre-Request Script Solution":"        }"
+  },
+  {
+    "# Pre-Request Script Solution":"        const currentTime = Math.floor(Date.now() \/ 1000);"
+  },
+  {
+    "# Pre-Request Script Solution":"        \/\/ Check if token will expire within the buffer period"
+  },
+  {
+    "# Pre-Request Script Solution":"        return (expiryTime - currentTime) > oauthConfig.token_expiry_buffer;"
+  },
+  {
+    "# Pre-Request Script Solution":"    }"
+  },
+  {
+    "# Pre-Request Script Solution":"    \/**"
+  },
+  {
+    "# Pre-Request Script Solution":"     * Request a new OAuth 2.0 access token using client credentials flow"
+  },
+  {
+    "# Pre-Request Script Solution":"     * @param {Object} credentials - OAuth credentials object"
+  },
+  {
+    "# Pre-Request Script Solution":"     * @param {Array} scopes - Array of required scopes"
+  },
+  {
+    "# Pre-Request Script Solution":"     * @returns {Promise} Promise that resolves when token is acquired"
+  },
+  {
+    "# Pre-Request Script Solution":"     *\/"
+  },
+  {
+    "# Pre-Request Script Solution":"            const tokenRequest = {"
+  },
+  {
+    "# Pre-Request Script Solution":"                header: {"
+  },
+  {
+    "# Pre-Request Script Solution":"                    'Content-Type': 'application\/x-www-form-urlencoded'"
+  },
+  {
+    "# Pre-Request Script Solution":"                body: {"
+  },
+  {
+    "# Pre-Request Script Solution":"                    urlencoded: ["
+  },
+  {
+    "# Pre-Request Script Solution":"                    ]"
+  },
+  {
+    "# Pre-Request Script Solution":"                }"
+  },
+  {
+    "# Pre-Request Script Solution":"            };"
+  },
+  {
+    "# Pre-Request Script Solution":"                if (error) {"
+  },
+  {
+    "# Pre-Request Script Solution":"                    reject(new Error(`Token request failed: ${error.message}`));"
+  },
+  {
+    "# Pre-Request Script Solution":"                    return;"
+  },
+  {
+    "# Pre-Request Script Solution":"                }"
+  },
+  {
+    "# Pre-Request Script Solution":"                if (response.code !== 200) {"
+  },
+  {
+    "# Pre-Request Script Solution":"                    reject(new Error(`Token request failed with status ${response.code}`));"
+  },
+  {
+    "# Pre-Request Script Solution":"                    return;"
+  },
+  {
+    "# Pre-Request Script Solution":"                }"
+  },
+  {
+    "# Pre-Request Script Solution":"                try {"
+  },
+  {
+    "# Pre-Request Script Solution":"                    const responseBody = response.json();"
+  },
+  {
+    "# Pre-Request Script Solution":"                    if (!responseBody.access_token) {"
+  },
+  {
+    "# Pre-Request Script Solution":"                        reject(new Error('No access_token in response'));"
+  },
+  {
+    "# Pre-Request Script Solution":"                        return;"
+  },
+  {
+    "# Pre-Request Script Solution":"                    }"
+  },
+  {
+    "# Pre-Request Script Solution":"                    \/\/ Store the access token"
+  },
+  {
+    "# Pre-Request Script Solution":"                    \/\/ Calculate and store expiry timestamp"
+  },
+  {
+    "# Pre-Request Script Solution":"                    const expiresIn = responseBody.expires_in || 300; \/\/ Default 300 seconds"
+  },
+  {
+    "# Pre-Request Script Solution":"                    const expiryTimestamp = Math.floor(Date.now() \/ 1000) + expiresIn;"
+  },
+  {
+    "# Pre-Request Script Solution":"                    \/\/ Store token type if provided"
+  },
+  {
+    "# Pre-Request Script Solution":"                    if (responseBody.token_type) {"
+  },
+  {
+    "# Pre-Request Script Solution":"                    }"
+  },
+  {
+    "# Pre-Request Script Solution":"                    console.log(`New access token acquired for tenant: ${getCurrentTenant()}`);"
+  },
+  {
+    "# Pre-Request Script Solution":"                    console.log(`Token expires in ${expiresIn} seconds`);"
+  },
+  {
+    "# Pre-Request Script Solution":"                    resolve(responseBody.access_token);"
+  },
+  {
+    "# Pre-Request Script Solution":"                } catch (parseError) {"
+  },
+  {
+    "# Pre-Request Script Solution":"                    reject(new Error(`Failed to parse token response: ${parseError.message}`));"
+  },
+  {
+    "# Pre-Request Script Solution":"                }"
+  },
+  {
+    "# Pre-Request Script Solution":"            });"
+  },
+  {
+    "# Pre-Request Script Solution":"        });"
+  },
+  {
+    "# Pre-Request Script Solution":"    }"
+  },
+  {
+    "# Pre-Request Script Solution":"    \/**"
+  },
+  {
+    "# Pre-Request Script Solution":"     * Apply custom headers based on the endpoint being called"
+  },
+  {
+    "# Pre-Request Script Solution":"     * @param {string} requestUrl - The full URL of the request"
+  },
+  {
+    "# Pre-Request Script Solution":"     *\/"
+  },
+  {
+    "# Pre-Request Script Solution":"    function applyCustomHeaders(requestUrl) {"
+  },
+  {
+    "# Pre-Request Script Solution":"        try {"
+  },
+  {
+    "# Pre-Request Script Solution":"            const url = new URL(requestUrl);"
+  },
+  {
+    "# Pre-Request Script Solution":"            const pathname = url.pathname;"
+  },
+  {
+    "# Pre-Request Script Solution":"            \/\/ Apply global custom headers"
+  },
+  {
+    "# Pre-Request Script Solution":"                \/\/ Replace template variables with actual values"
+  },
+  {
+    "# Pre-Request Script Solution":"                let resolvedValue = headerValue;"
+  },
+  {
+    "# Pre-Request Script Solution":"                const matches = headerValue.match(\/\\{\\{(\\w+)\\}\\}\/g);"
+  },
+  {
+    "# Pre-Request Script Solution":"                if (matches) {"
+  },
+  {
+    "# Pre-Request Script Solution":"                    matches.forEach(match => {"
+  },
+  {
+    "# Pre-Request Script Solution":"                        const envValue = pm.environment.get(varName);"
+  },
+  {
+    "# Pre-Request Script Solution":"                        if (envValue) {"
+  },
+  {
+    "# Pre-Request Script Solution":"                        }"
+  },
+  {
+    "# Pre-Request Script Solution":"                    });"
+  },
+  {
+    "# Pre-Request Script Solution":"                }"
+  },
+  {
+    "# Pre-Request Script Solution":"            }"
+  },
+  {
+    "# Pre-Request Script Solution":"            \/\/ Apply endpoint-specific custom headers"
+  },
+  {
+    "# Pre-Request Script Solution":"                if (pathname.startsWith(endpoint)) {"
+  },
+  {
+    "# Pre-Request Script Solution":"                    }"
+  },
+  {
+    "# Pre-Request Script Solution":"                }"
+  },
+  {
+    "# Pre-Request Script Solution":"            }"
+  },
+  {
+    "# Pre-Request Script Solution":"        } catch (error) {"
+  },
+  {
+    "# Pre-Request Script Solution":"        }"
+  },
+  {
+    "# Pre-Request Script Solution":"    }"
+  },
+  {
+    "# Pre-Request Script Solution":"    \/**"
+  },
+  {
+    "# Pre-Request Script Solution":"     * Set the Authorization header with the bearer token"
+  },
+  {
+    "# Pre-Request Script Solution":"     * @param {string} accessToken - The OAuth access token"
+  },
+  {
+    "# Pre-Request Script Solution":"     *\/"
+  },
+  {
+    "# Pre-Request Script Solution":"    function setAuthorizationHeader(accessToken) {"
+  },
+  {
+    "# Pre-Request Script Solution":"        const tokenType = pm.environment.get('token_type') || 'Bearer';"
+  },
+  {
+    "# Pre-Request Script Solution":"        pm.request.headers.add({"
+  },
+  {
+    "# Pre-Request Script Solution":"            value: `${tokenType} ${accessToken}`"
+  },
+  {
+    "# Pre-Request Script Solution":"        });"
+  },
+  {
+    "# Pre-Request Script Solution":"    }"
+  },
+  {
+    "# Pre-Request Script Solution":"    \/**"
+  },
+  {
+    "# Pre-Request Script Solution":"     * Main authentication flow"
+  },
+  {
+    "# Pre-Request Script Solution":"     *\/"
+  },
+  {
+    "# Pre-Request Script Solution":"    async function authenticateRequest() {"
+  },
+  {
+    "# Pre-Request Script Solution":"        try {"
+  },
+  {
+    "# Pre-Request Script Solution":"            \/\/ Step 1: Detect tenant environment"
+  },
+  {
+    "# Pre-Request Script Solution":"            const tenant = getCurrentTenant();"
+  },
+  {
+    "# Pre-Request Script Solution":"            console.log(`Authenticating request for tenant: ${tenant}`);"
+  },
+  {
+    "# Pre-Request Script Solution":"            \/\/ Step 2: Get OAuth credentials"
+  },
+  {
+    "# Pre-Request Script Solution":"            const credentials = getOAuthCredentials();"
+  },
+  {
+    "# Pre-Request Script Solution":"            \/\/ Step 3: Determine required scopes"
+  },
+  {
+    "# Pre-Request Script Solution":"            const requestUrl = pm.request.url.toString();"
+  },
+  {
+    "# Pre-Request Script Solution":"            const requiredScopes = getRequiredScopes(requestUrl);"
+  },
+  {
+    "# Pre-Request Script Solution":"            \/\/ Step 4: Check if token is valid"
+  },
+  {
+    "# Pre-Request Script Solution":"            let accessToken = pm.environment.get('access_token');"
+  },
+  {
+    "# Pre-Request Script Solution":"            if (!isTokenValid()) {"
+  },
+  {
+    "# Pre-Request Script Solution":"            } else {"
+  },
+  {
+    "# Pre-Request Script Solution":"                console.log('Using existing valid access token');"
+  },
+  {
+    "# Pre-Request Script Solution":"            }"
+  },
+  {
+    "# Pre-Request Script Solution":"            \/\/ Step 5: Set authorization header"
+  },
+  {
+    "# Pre-Request Script Solution":"            setAuthorizationHeader(accessToken);"
+  },
+  {
+    "# Pre-Request Script Solution":"            \/\/ Step 6: Apply custom headers"
+  },
+  {
+    "# Pre-Request Script Solution":"            applyCustomHeaders(requestUrl);"
+  },
+  {
+    "# Pre-Request Script Solution":"            console.log('Authentication successful');"
+  },
+  {
+    "# Pre-Request Script Solution":"        } catch (error) {"
+  },
+  {
+    "# Pre-Request Script Solution":"            \/\/ Set an environment variable to indicate authentication failure"
+  },
+  {
+    "# Pre-Request Script Solution":"            throw error;"
+  },
+  {
+    "# Pre-Request Script Solution":"        }"
+  },
+  {
+    "# Pre-Request Script Solution":"    }"
+  },
+  {
+    "# Pre-Request Script Solution":"    \/\/ Execute the authentication flow"
+  },
+  {
+    "# Pre-Request Script Solution":"    authenticateRequest();"
+  },
+  {
+    "# Pre-Request Script Solution":"})();"
+  },
+  {
+    "# Pre-Request Script Solution":"```"
+  },
+  {
+    "# Pre-Request Script Solution":"Now creating the oauth-config.json file:"
+  },
+  {
+    "# Pre-Request Script Solution":"```json"
+  },
+  {
+    "# Pre-Request Script Solution":"{"
+  },
+  {
+    "# Pre-Request Script Solution":"  \"scope_mappings\": {"
+  },
+  {
+    "# Pre-Request Script Solution":"  \"custom_headers\": {"
+  },
+  {
+    "# Pre-Request Script Solution":"    \"X-API-Version\": \"v1\""
+  },
+  {
+    "# Pre-Request Script Solution":"  \"endpoint_custom_headers\": {"
+  },
+  {
+    "# Pre-Request Script Solution":"    \"\/api\/v1\/billing\": {"
+  },
+  {
+    "# Pre-Request Script Solution":"      \"X-Billing-Context\": \"full\""
+  },
+  {
+    "# Pre-Request Script Solution":"    \"\/api\/v1\/cache\": {"
+  },
+  {
+    "# Pre-Request Script Solution":"      \"X-Cache-Control\": \"no-cache\""
+  },
+  {
+    "# Pre-Request Script Solution":"    \"\/api\/v1\/settings\": {"
+  },
+  {
+    "# Pre-Request Script Solution":"      \"X-Settings-Mode\": \"advanced\""
+  },
+  {
+    "# Pre-Request Script Solution":"    }"
+  },
+  {
+    "# Pre-Request Script Solution":"  \"endpoints_requiring_custom_headers\": ["
+  },
+  {
+    "# Pre-Request Script Solution":"    \"\/api\/v1\/webhooks\""
+  },
+  {
+    "# Pre-Request Script Solution":"  ]"
+  },
+  {
+    "# Pre-Request Script Solution":"}"
+  },
+  {
+    "# Pre-Request Script Solution":"```"
+  },
+  {
+    "# Pre-Request Script Solution":"And the validation.json file:"
+  },
+  {
+    "# Pre-Request Script Solution":"```json"
+  },
+  {
+    "# Pre-Request Script Solution":"{"
+  },
+  {
+    "# Pre-Request Script Solution":"  \"error_handling_implemented\": true"
+  },
+  {
+    "# Pre-Request Script Solution":"}"
+  }
+]

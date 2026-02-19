@@ -1,0 +1,27 @@
+---
+- name: System Configuration Management
+  hosts: localhost
+  connection: local
+  become: yes
+  
+  tasks:
+    - name: Create application directory
+      command: mkdir -p /opt/myapp
+      
+    - name: Install required package
+      command: apt-get install -y curl
+      
+    - name: Create configuration file
+      shell: echo "APP_ENV=production" > /etc/myapp.conf
+      
+    - name: Add log rotation setting
+      shell: echo "rotate 7" >> /etc/logrotate.d/myapp
+      
+    - name: Set system parameter
+      command: sysctl -w net.ipv4.ip_forward=1
+      
+    - name: Create application user
+      shell: id appuser || useradd -r -s /bin/false appuser
+      
+    - name: Set permissions on app directory
+      command: chown -R appuser:appuser /opt/myapp

@@ -1,0 +1,34 @@
+import numpy as np
+import os
+
+# Create directory if it doesn't exist
+os.makedirs('/workspace/test_data', exist_ok=True)
+
+# Create a realistic test image with a simple pattern
+# This creates a 64x64 RGB image with normalized values [0, 1]
+np.random.seed(42)  # For reproducibility
+
+# Create a test image with some structure (gradient pattern with some noise)
+image = np.zeros((64, 64, 3), dtype=np.float32)
+
+# Add gradient patterns to each channel
+for i in range(64):
+    for j in range(64):
+        # Red channel: horizontal gradient
+        image[i, j, 0] = i / 63.0
+        # Green channel: vertical gradient
+        image[i, j, 1] = j / 63.0
+        # Blue channel: diagonal pattern
+        image[i, j, 2] = ((i + j) / 2) / 63.0
+
+# Add some random noise to make it more realistic
+noise = np.random.normal(0, 0.05, (64, 64, 3)).astype(np.float32)
+image = np.clip(image + noise, 0.0, 1.0)
+
+# Save the image
+np.save('/workspace/test_data/sample_image.npy', image)
+
+print("Sample image created successfully")
+print(f"Shape: {image.shape}")
+print(f"Data type: {image.dtype}")
+print(f"Value range: [{image.min():.3f}, {image.max():.3f}]")

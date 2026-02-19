@@ -1,0 +1,97 @@
+applications:
+  - name: ml_models
+    route_prefix: /
+    import_path: app:deployment
+    runtime_env:
+      pip:
+        - torch==2.0.0
+        - transformers==4.30.0
+    deployments:
+      - name: text_classifier
+        num_replicas: 2
+        route_prefix: /classify
+        ray_actor_options:
+          num_cpus: 2
+          num_gpus: 1
+          memory: 4000000000
+        autoscaling_config:
+          min_replicas: 1
+          max_replicas: 5
+          target_num_ongoing_requests_per_replica: 10
+        user_config:
+          model_path: /models/classifier
+          batch_size: 32
+      
+      - name: image model@v2
+        num_replicas: -1
+        route_prefix: /images
+        ray_actor_options:
+          num_cpus: 4
+          num_gpus: 2
+          memory: 8000000000
+        autoscaling_config:
+          min_replicas: 2
+          max_replicas: 8
+          target_num_ongoing_requests_per_replica: 5
+        user_config:
+          model_path: /models/vision
+          image_size: 224
+      
+      - name: sentiment_analyzer
+        num_replicas: 3
+        route_prefix: /sentiment
+        ray_actor_options:
+          num_cpus: -2
+          num_gpus: 1
+          memory: 6000000000
+        autoscaling_config:
+          min_replicas: 5
+          max_replicas: 2
+          target_num_ongoing_requests_per_replica: 15
+        user_config:
+          model_path: /models/sentiment
+          max_length: 512
+      
+      - name: embeddings_generator
+        num_replicas: 4
+        route_prefix: /embeddings
+        ray_actor_options:
+          num_cpus: 3
+          num_gpus: 1
+          memory: 999999GB
+        autoscaling_config:
+          min_replicas: 2
+          max_replicas: 10
+          target_num_ongoing_requests_per_replica: -5
+        user_config:
+          model_path: /models/embeddings
+          dimension: 768
+      
+      - name: translation_service
+        num_replicas: 2
+        route_prefix: /classify
+        ray_actor_options:
+          num_cpus: 4
+          num_gpus: 2
+          memory: 10000000000
+        autoscaling_config:
+          min_replicas: 1
+          max_replicas: 6
+          target_num_ongoing_requests_per_replica: 0
+        user_config:
+          model_path: /models/translation
+          source_lang: en
+          target_lang: es
+    
+    http_options:
+      routes:
+        - path: /classify
+          deployment: text_classifier
+        - path: /images
+          deployment: image_model_v2
+        - path: /sentiment
+          deployment: nonexistent_model
+        - path: /embeddings
+          deployment: embeddings_generator
+        - path: /translate
+          deployment: translation_service

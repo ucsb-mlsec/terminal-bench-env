@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ApplicationConfig version="2.4.1" environment="production">
+    <!-- Common Configuration for Legacy Application -->
+    <DatabaseSettings>
+        <PrimaryConnection 
+            host="db-primary.internal.corp" 
+            port="5432" 
+            database="legacy_app_prod"
+            timeout="30">postgres</PrimaryConnection>
+        <SecondaryConnection 
+            host="db-secondary.internal.corp" 
+            port="5432" 
+            database="legacy_app_prod"
+            timeout="30">postgres</SecondaryConnection>
+        <ConnectionPool 
+            minSize="10" 
+            maxSize="100" 
+            idleTimeout="300">enabled</ConnectionPool>
+        <QueryTimeout seconds="60">true</QueryTimeout>
+        <TransactionIsolation level="READ_COMMITTED">default</TransactionIsolation>
+        <AutoReconnect enabled="true" maxRetries="3">true</AutoReconnect>
+    </DatabaseSettings>
+    
+    <CacheSettings>
+        <MemoryCache 
+            maxSizeMB="512" 
+            evictionPolicy="LRU" 
+            ttl="3600">enabled</MemoryCache>
+        <DistributedCache 
+            type="redis" 
+            host="cache-cluster.internal.corp" 
+            port="6379">enabled</DistributedCache>
+        <CacheKeyPrefix namespace="legacy_app">LAPP</CacheKeyPrefix>
+        <InvalidationStrategy type="explicit">manual</InvalidationStrategy>
+        <CompressionEnabled threshold="1024">true</CompressionEnabled>
+    </CacheSettings>
+    
+    <SecuritySettings>
+        <Authentication method="LDAP" 
+            server="ldap://auth.internal.corp" 
+            port="389">enabled</Authentication>
+        <SessionTimeout minutes="30">1800</SessionTimeout>
+        <PasswordPolicy 
+            minLength="12" 
+            requireSpecialChars="true" 
+            expiryDays="90">enforced</PasswordPolicy>
+        <EncryptionAlgorithm standard="AES-256-GCM">AES256</EncryptionAlgorithm>
+        <TLSVersion minimum="1.2">1.3</TLSVersion>
+        <AuditLogging enabled="true" level="detailed">all</AuditLogging>
+    </SecuritySettings>
+    
+    <LoggingSettings>
+        <LogLevel default="INFO" 
+            performance="WARN" 
+            security="DEBUG">INFO</LogLevel>
+        <LogRotation 
+            maxSizeMB="100" 
+            maxFiles="10" 
+            compress="true">daily</LogRotation>
+        <LogDestination 
+            type="file" 
+            path="/var/log/legacy_app">/var/log/legacy_app/app.log</LogDestination>
+        <SyslogForwarding 
+            enabled="true" 
+            host="syslog.internal.corp" 
+            port="514">enabled</SyslogForwarding>
+        <StructuredLogging format="JSON" 
+            includeStackTrace="true">enabled</StructuredLogging>
+    </LoggingSettings>
+</ApplicationConfig>

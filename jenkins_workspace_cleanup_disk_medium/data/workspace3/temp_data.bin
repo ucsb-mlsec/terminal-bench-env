@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# Create the temp_data.bin file with 800MB size and set modification time to 60 days ago
+
+TARGET_FILE="data/workspace3/temp_data.bin"
+TARGET_SIZE=$((800 * 1024 * 1024))  # 800MB in bytes
+
+# Create directory if it doesn't exist
+mkdir -p "$(dirname "$TARGET_FILE")"
+
+# Create a file header
+echo "=== JENKINS WORKSPACE TEMPORARY DATA FILE ===" > "$TARGET_FILE"
+echo "File Size: 800MB" >> "$TARGET_FILE"
+echo "Purpose: Build artifacts and temporary compilation data" >> "$TARGET_FILE"
+echo "Workspace: workspace3" >> "$TARGET_FILE"
+echo "Generated: $(date -d '60 days ago' '+%Y-%m-%d %H:%M:%S')" >> "$TARGET_FILE"
+echo "============================================" >> "$TARGET_FILE"
+echo "" >> "$TARGET_FILE"
+
+# Calculate how much data we still need to write
+HEADER_SIZE=$(stat -f%z "$TARGET_FILE" 2>/dev/null || stat -c%s "$TARGET_FILE" 2>/dev/null)
+REMAINING_SIZE=$((TARGET_SIZE - HEADER_SIZE))
+
+# Generate the bulk of the file efficiently using dd with random-like pattern
+dd if=/dev/zero of="$TARGET_FILE" bs=1M count=800 seek=0 conv=notrunc oflag=append 2>/dev/null
+
+# Set the modification time to 60 days ago
+touch -t $(date -d '60 days ago' '+%Y%m%d%H%M.%S') "$TARGET_FILE" 2>/dev/null || \
+touch -d '60 days ago' "$TARGET_FILE" 2>/dev/null

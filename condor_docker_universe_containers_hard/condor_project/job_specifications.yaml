@@ -1,0 +1,95 @@
+global_settings:
+  log_directory: /var/log/condor
+  error_directory: /var/log/condor/errors
+  output_directory: /var/log/condor/output
+
+jobs:
+  - name: data_processing
+    docker_image: python:3.9-slim
+    cpus: 2
+    memory: 4GB
+    gpus: 0
+    volumes:
+      - host: /data/input
+        container: /workspace/data
+      - host: /data/output
+        container: /workspace/results
+      - host: /shared/scripts
+        container: /app/scripts
+    environment:
+      LOG_LEVEL: INFO
+      BATCH_SIZE: 1000
+      PROCESSING_MODE: batch
+      OUTPUT_FORMAT: parquet
+      PYTHON_ENV: production
+    executable: python
+    arguments: /app/scripts/process_data.py --input /workspace/data/raw.csv --output /workspace/results/processed.parquet --batch-size 1000
+    queue_count: 3
+    network_type: bridge
+
+  - name: gpu_training
+    docker_image: tensorflow/tensorflow:2.12.0-gpu
+    cpus: 8
+    memory: 32GB
+    gpus: 2
+    volumes:
+      - host: /ml/datasets
+        container: /data/training
+      - host: /ml/models
+        container: /models
+      - host: /ml/checkpoints
+        container: /checkpoints
+    environment:
+      LOG_LEVEL: DEBUG
+      BATCH_SIZE: 32
+      CUDA_VISIBLE_DEVICES: 0,1
+      TF_CPP_MIN_LOG_LEVEL: 2
+      EPOCHS: 100
+    executable: python
+    arguments: train.py --epochs 100 --batch-size 32 --data-dir /data/training --model-dir /models --checkpoint-dir /checkpoints
+    queue_count: 1
+    network_type: host
+
+  - name: analysis_pipeline
+    docker_image: jupyter/scipy-notebook:latest
+    cpus: 4
+    memory: 16GB
+    gpus: 0
+    volumes:
+      - host: /research/data
+        container: /workspace/data
+      - host: /research/notebooks
+        container: /workspace/notebooks
+    environment:
+      LOG_LEVEL: INFO
+      ANALYSIS_TYPE: statistical
+      OUTPUT_FORMAT: html
+      JUPYTER_ENABLE_LAB: yes
+      GRANT_SUDO: yes
+    executable: python
+    arguments: /workspace/notebooks/analysis.py --input /workspace/data/experiment_results.csv --output /workspace/data/analysis_report.html --generate-plots
+    queue_count: 2
+    network_type: bridge
+
+  - name: batch_compute
+    docker_image: nvidia/cuda:11.8.0-base
+    cpus: 6
+    memory: 8GB
+    gpus: 1
+    volumes:
+      - host: /compute/input
+        container: /data/input
+      - host: /compute/output
+        container: /data/output
+      - host: /compute/cache
+        container: /tmp/cache
+    environment:
+      LOG_LEVEL: WARNING
+      CUDA_VISIBLE_DEVICES: 0
+      COMPUTE_THREADS: 6
+      CACHE_SIZE: 2048
+      DEBUG_MODE: false
+    executable: /usr/bin/compute
+    arguments: --input /data/input/simulation_params.json --output /data/output/results.bin --threads 6 --use-gpu
+    queue_count: 5
+    network_type: none

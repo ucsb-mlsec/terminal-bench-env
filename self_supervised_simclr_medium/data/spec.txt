@@ -1,0 +1,100 @@
+SimCLR Configuration Specification
+=====================================
+
+Version: 1.0
+Last Updated: 2024
+
+This document specifies the valid parameter ranges for SimCLR (Simple Framework for Contrastive Learning of Visual Representations) training configuration.
+
+OVERVIEW
+--------
+SimCLR is a self-supervised learning framework that learns visual representations by maximizing agreement between differently augmented views of the same image. Proper configuration of augmentation and training parameters is critical for learning meaningful representations.
+
+
+REQUIRED PARAMETERS
+------------------
+
+1. TEMPERATURE
+   Parameter Name: temperature
+   Data Type: Float
+   Valid Range: 0.1 to 1.0
+   Description: Controls the concentration of the contrastive loss function. Lower values make the model more discriminative between similar and dissimilar pairs. Higher values soften the distinctions.
+   Typical Values: 0.5
+   Recommended: Start with 0.5 and adjust based on validation performance
+   Notes: Values below 0.1 may cause numerical instability. Values above 1.0 may make training too easy and reduce representation quality.
+
+
+2. BATCH SIZE
+   Parameter Name: batch_size
+   Data Type: Integer
+   Valid Range: 32 to 512
+   Description: Number of samples per training batch. Larger batches provide more negative examples for contrastive learning, which generally improves performance. Must be even number, preferably power of 2.
+   Typical Values: 128, 256
+   Recommended: Use the largest batch size that fits in GPU memory
+   Notes: SimCLR benefits significantly from large batch sizes. If memory is limited, consider gradient accumulation techniques.
+
+
+3. LEARNING RATE
+   Parameter Name: learning_rate
+   Data Type: Float
+   Valid Range: 0.0001 to 0.1
+   Description: Step size for the optimizer during gradient descent. Controls how much model weights are updated in each training iteration.
+   Typical Values: 0.001, 0.003
+   Recommended: 0.003 for batch size 256, scale linearly with batch size
+   Notes: Learning rate should typically scale with batch size. Use learning rate warmup for stability. Values above 0.1 may cause training instability.
+
+
+4. COLOR JITTER STRENGTH
+   Parameter Name: color_jitter_strength
+   Data Type: Float
+   Valid Range: 0.0 to 1.0
+   Description: Controls the intensity of color augmentation including brightness, contrast, saturation, and hue adjustments. Higher values create more aggressive color transformations.
+   Typical Values: 0.5 to 0.8
+   Recommended: 0.8 for natural images, 0.5 for images where color is semantically important
+   Notes: Strong color jitter is crucial for SimCLR performance. A value of 0.0 disables color augmentation (not recommended). Values above 1.0 may create unrealistic images.
+
+
+5. CROP SCALE MINIMUM
+   Parameter Name: crop_scale_min
+   Data Type: Float
+   Valid Range: 0.08 to 0.9
+   Description: Lower bound for random crop size as a fraction of the original image dimensions. During augmentation, crops will be randomly sized between this minimum and 1.0 (full image).
+   Typical Values: 0.2 to 0.4
+   Recommended: 0.2 for general purpose, 0.08 for small object detection tasks
+   Notes: The original SimCLR paper uses 0.08, but larger values (0.2-0.4) often work better for images with larger objects of interest. Values close to 1.0 reduce augmentation diversity.
+
+
+CONFIGURATION FILE FORMAT
+-------------------------
+The configuration must be saved as valid JSON with the following structure:
+
+{
+  "temperature": <float>,
+  "batch_size": <integer>,
+  "learning_rate": <float>,
+  "color_jitter_strength": <float>,
+  "crop_scale_min": <float>
+}
+
+
+VALIDATION RULES
+---------------
+1. All five parameters must be present
+2. All values must be within their specified valid ranges
+3. batch_size must be an integer
+4. All other numeric parameters must be floats
+5. File must be valid JSON (parseable)
+
+
+COMMON CONFIGURATION ERRORS
+--------------------------
+- Temperature set too high (>1.0) or too low (<0.1)
+- Batch size not even or outside memory constraints
+- Learning rate too high causing divergence
+- Color jitter disabled (0.0) reducing model performance
+- Crop scale minimum too large reducing augmentation diversity
+
+
+REFERENCES
+----------
+- Chen, T., Kornblith, S., Norouzi, M., & Hinton, G. (2020). A simple framework for contrastive learning of visual representations. ICML.

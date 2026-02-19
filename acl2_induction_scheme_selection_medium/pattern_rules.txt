@@ -1,0 +1,139 @@
+ACL2 RECURSION PATTERN CLASSIFICATION GUIDE
+=====================================================
+
+This guide provides classification criteria for common recursion patterns
+in ACL2 functions to support automated induction scheme selection.
+
+PATTERN 1: SINGLE_VAR
+---------------------
+Definition: The function recurses on exactly one parameter that decreases 
+toward a base case. All other parameters remain unchanged or are used only 
+in computations without driving recursion.
+
+Key Characteristics:
+- One parameter appears in recursive call in a reduced form
+- Base case tests that one parameter
+- Other parameters may be present but don't change structurally
+- Most common pattern in functional programming
+
+How to Identify:
+- Look for (cdr x), (- n 1), (rest lst) on ONE parameter only
+- Base case typically checks (endp x), (zp n), or (atom x)
+- Recursive calls modify only one argument position
+
+Example Signatures:
+  (defun len (x) (if (endp x) 0 (+ 1 (len (cdr x)))))
+  (defun factorial (n) (if (zp n) 1 (* n (factorial (- n 1)))))
+
+Induction Scheme: Standard single-variable induction on the changing parameter
+
+
+PATTERN 2: MULTI_VAR
+--------------------
+Definition: The function recurses with two or more parameters simultaneously
+decreasing toward their respective base cases. Each recursive call reduces
+multiple parameters together.
+
+Key Characteristics:
+- Multiple parameters modified in the same recursive call
+- Base case often checks multiple conditions (OR/AND combinations)
+- Parameters decrease in coordination
+- Common in merge, zip, and comparison operations
+
+How to Identify:
+- Recursive call shows (cdr x) AND (cdr y) or similar on multiple vars
+- Base case: (or (endp x) (endp y)) or (and (endp x) (endp y))
+- No single parameter drives all recursion paths
+
+Example Signatures:
+  (defun merge (x y) (if (or (endp x) (endp y)) ... (merge (cdr x) (cdr y))))
+  (defun zip (a b) (if (or (endp a) (endp b)) nil (cons ... (zip (cdr a) (cdr b)))))
+
+Induction Scheme: Multi-variable induction scheme considering all changing parameters
+
+
+PATTERN 3: ACCUMULATOR
+-----------------------
+Definition: The function includes an extra parameter (accumulator) that collects
+intermediate results while the primary parameter decreases. The accumulator is
+modified with each recursive call, often enabling tail recursion.
+
+Key Characteristics:
+- At least one parameter decreases (primary), one accumulates (secondary)
+- Accumulator parameter passed with modifications: (+ acc x), (cons x acc)
+- Often tail-recursive
+- Typically has a wrapper function with initial accumulator value
+
+How to Identify:
+- Look for extra parameter not in the "logical" input domain
+- Accumulator passed as (+ acc ...), (cons ... acc), (* acc ...)
+- Primary parameter still decreases: (cdr lst), (- n 1)
+- Result often returns accumulator at base case
+
+Example Signatures:
+  (defun sum-acc (lst acc) (if (endp lst) acc (sum-acc (cdr lst) (+ acc (car lst)))))
+  (defun rev-acc (x acc) (if (endp x) acc (rev-acc (cdr x) (cons (car x) acc))))
+
+Induction Scheme: Induction on primary variable, with accumulator as carried value
+
+
+PATTERN 4: MUTUAL
+------------------
+Definition: Two or more functions defined together where each function calls
+the others in the mutual recursion group. The functions depend on each other
+for their definitions.
+
+Key Characteristics:
+- Multiple functions defined in a mutual-recursion block
+- Function A calls function B, which calls function A (or longer cycles)
+- Each function has its own base case
+- Common for grammars, tree structures with different node types
+
+How to Identify:
+- Explicit (mutual-recursion ...) wrapper or defuns block
+- Function body contains calls to other functions in the group
+- Cannot be defined independently
+
+Example Signatures:
+  (mutual-recursion
+    (defun even-p (n) (if (zp n) t (odd-p (- n 1))))
+    (defun odd-p (n) (if (zp n) nil (even-p (- n 1)))))
+
+Induction Scheme: Mutual induction scheme covering all functions in the group
+
+
+PATTERN 5: NESTED
+------------------
+Definition: The function makes recursive calls where the result of one recursive
+call is passed as an argument to another recursive call. Recursion is "nested"
+rather than sequential.
+
+Key Characteristics:
+- Recursive call appears as argument to another recursive call
+- Not simply (f (cdr x)), but (f (f (cdr x))) or (f (g (f x)))
+- Evaluation depth harder to predict
+- Common in tree operations and complex transformations
+
+How to Identify:
+- See function name appearing multiple times in same expression
+- Pattern like: (func (func ...)) or (func (helper (func ...)))
+- Argument to recursive call is itself a recursive expression
+
+Example Signatures:
+  (defun ackermann (m n) (if (zp m) (+ n 1) (ackermann (- m 1) (ackermann m (- n 1)))))
+  (defun flatten (tree) (if (atom tree) (list tree) (append (flatten (car tree)) (flatten (cdr tree)))))
+
+Induction Scheme: Complex nested induction, may require custom schemes
+
+
+IDENTIFYING THE PRIMARY VARIABLE
+=================================
+The primary variable is the parameter that drives toward the base case:
+- In SINGLE_VAR: The only changing parameter
+- In MULTI_VAR: The first parameter tested in base case or leftmost changing parameter
+- In ACCUMULATOR: The non-accumulator parameter being reduced
+- In MUTUAL: The parameter being reduced in the entry function
+- In NESTED: The parameter being structurally decreased
+
+Look for: (cdr x), (- n 1), (car tree), (rest lst) to identify which
+variable is being decomposed toward the termination condition.

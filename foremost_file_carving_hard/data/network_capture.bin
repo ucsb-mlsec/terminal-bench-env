@@ -1,0 +1,114 @@
+I'll generate a binary file that contains multiple embedded JPEG images with realistic network capture characteristics. Let me create this file with the specified requirements.
+
+<synthesis>
+I need to create a binary file containing:
+1. Multiple complete JPEG files (3-5)
+2. One JPEG exactly 1920 pixels wide
+3. Other JPEGs with different dimensions
+4. Random binary data between files
+5. Incomplete JPEG headers as noise
+6. Other file type signatures as decoys
+7. Total size 5-10 MB
+</synthesis>
+
+Since I need to generate actual binary content with valid JPEG files, I'll create a Python script output that generates this file:
+
+#!/usr/bin/env python3
+import os
+import random
+import struct
+from PIL import Image
+import io
+
+def create_jpeg(width, height, color):
+    """Create a valid JPEG image in memory"""
+    img = Image.new('RGB', (width, height), color=color)
+    buffer = io.BytesIO()
+    img.save(buffer, format='JPEG', quality=85)
+    return buffer.getvalue()
+
+def random_bytes(size):
+    """Generate random binary data"""
+    return bytes(random.getrandbits(8) for _ in range(size))
+
+def create_incomplete_jpeg_header():
+    """Create incomplete JPEG header as noise"""
+    return b'\xff\xd8\xff' + random_bytes(random.randint(10, 100))
+
+def create_fake_file_signatures():
+    """Create fake file type signatures"""
+    signatures = [
+        b'%PDF-1.' + random_bytes(50),
+        b'\x89PNG\r\n\x1a\n' + random_bytes(40),
+        b'PK\x03\x04' + random_bytes(60),
+        b'GIF89a' + random_bytes(30)
+    ]
+    return random.choice(signatures)
+
+# Create output directory
+os.makedirs('/evidence', exist_ok=True)
+
+output_file = '/evidence/network_capture.bin'
+
+# Generate JPEG images with different dimensions
+jpeg_images = [
+    create_jpeg(800, 600, (255, 100, 100)),      # Red-ish
+    create_jpeg(1024, 768, (100, 255, 100)),     # Green-ish
+    create_jpeg(1920, 1080, (100, 100, 255)),    # Blue-ish - TARGET
+    create_jpeg(640, 480, (255, 255, 100)),      # Yellow-ish
+    create_jpeg(1280, 720, (255, 100, 255))      # Magenta-ish
+]
+
+# Shuffle to ensure 1920-width image is not first
+random.shuffle(jpeg_images)
+
+# Build the binary dump
+binary_data = bytearray()
+
+# Start with random noise
+binary_data.extend(random_bytes(random.randint(50000, 100000)))
+
+for i, jpeg_data in enumerate(jpeg_images):
+    # Add noise before each JPEG
+    binary_data.extend(random_bytes(random.randint(20000, 50000)))
+    
+    # Sometimes add incomplete JPEG header
+    if random.random() > 0.5:
+        binary_data.extend(create_incomplete_jpeg_header())
+        binary_data.extend(random_bytes(random.randint(5000, 15000)))
+    
+    # Add fake file signatures
+    if random.random() > 0.6:
+        binary_data.extend(create_fake_file_signatures())
+        binary_data.extend(random_bytes(random.randint(3000, 10000)))
+    
+    # Add the actual complete JPEG
+    binary_data.extend(jpeg_data)
+    
+    # Add noise after JPEG
+    binary_data.extend(random_bytes(random.randint(30000, 80000)))
+    
+    # Add some corrupted data that looks like JPEG fragments
+    if random.random() > 0.4:
+        binary_data.extend(b'\xff\xd8\xff\xe0')
+        binary_data.extend(random_bytes(random.randint(100, 500)))
+        # No proper ending - corrupted
+
+# Add more noise at the end
+binary_data.extend(random_bytes(random.randint(100000, 200000)))
+
+# Add a few more incomplete signatures scattered
+for _ in range(5):
+    pos = random.randint(0, len(binary_data) - 1000)
+    if random.random() > 0.5:
+        binary_data[pos:pos+3] = b'\xff\xd8\xff'
+    else:
+        sig = create_fake_file_signatures()
+        binary_data[pos:pos+len(sig)] = sig
+
+# Write to file
+with open(output_file, 'wb') as f:
+    f.write(binary_data)
+
+print(f"Created {output_file} with {len(binary_data)} bytes")
+print(f"Embedded {len(jpeg_images)} complete JPEG files")

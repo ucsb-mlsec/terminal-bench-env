@@ -1,0 +1,245 @@
+I'll help you recover data from these corrupted gzip files. Let me start by creating a recovery script and then generating the corrupted network traffic log file.
+
+First, let me create the recovery script:
+
+```python
+#!/usr/bin/env python3
+import gzip
+import json
+import os
+from datetime import datetime
+import re
+
+def try_recover_gzip(filepath):
+    """Attempt to recover data from a corrupted gzip file."""
+    recovered_lines = []
+    
+    try:
+        # Try normal decompression first
+        with gzip.open(filepath, 'rt', encoding='utf-8', errors='ignore') as f:
+            for line in f:
+                recovered_lines.append(line.strip())
+    except Exception:
+        # If that fails, try to read as much as possible
+        try:
+            with gzip.open(filepath, 'rb') as f:
+                data = b''
+                while True:
+                    try:
+                        chunk = f.read(8192)
+                        if not chunk:
+                            break
+                        data += chunk
+                    except:
+                        break
+                
+                # Decode what we have
+                text = data.decode('utf-8', errors='ignore')
+                recovered_lines = text.strip().split('\n')
+        except:
+            pass
+    
+    return recovered_lines
+
+def is_valid_log_entry(line):
+    """Check if a line is a valid log entry."""
+    if not line or '|' not in line:
+        return False
+    
+    parts = line.split('|')
+    if len(parts) != 4:
+        return False
+    
+    timestamp, level, component, message = parts
+    
+    # Validate timestamp format
+    timestamp_pattern = r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$'
+    if not re.match(timestamp_pattern, timestamp):
+        return False
+    
+    return True
+
+def parse_timestamp(timestamp_str):
+    """Parse timestamp string to datetime object."""
+    try:
+        return datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S')
+    except:
+        return None
+
+def main():
+    corrupted_dir = '/data/corrupted_logs/'
+    solution_dir = '/solution/'
+    
+    os.makedirs(solution_dir, exist_ok=True)
+    
+    total_entries = 0
+    earliest_ts = None
+    latest_ts = None
+    files_with_data = 0
+    
+    # Get all .gz files
+    gz_files = [f for f in os.listdir(corrupted_dir) if f.endswith('.gz')]
+    
+    for filename in gz_files:
+        filepath = os.path.join(corrupted_dir, filename)
+        
+        # Recover data from file
+        recovered_lines = try_recover_gzip(filepath)
+        
+        valid_entries = 0
+        for line in recovered_lines:
+            if is_valid_log_entry(line):
+                valid_entries += 1
+                total_entries += 1
+                
+                # Extract timestamp
+                timestamp_str = line.split('|')[0]
+                ts = parse_timestamp(timestamp_str)
+                
+                if ts:
+                    if earliest_ts is None or ts < earliest_ts:
+                        earliest_ts = ts
+                    if latest_ts is None or ts > latest_ts:
+                        latest_ts = ts
+        
+        if valid_entries > 0:
+            files_with_data += 1
+    
+    # Prepare report
+    report = {
+        "total_entries_recovered": total_entries,
+        "earliest_timestamp": earliest_ts.strftime('%Y-%m-%d %H:%M:%S') if earliest_ts else "",
+        "latest_timestamp": latest_ts.strftime('%Y-%m-%d %H:%M:%S') if latest_ts else "",
+        "files_processed": files_with_data
+    }
+    
+    # Save report
+    with open(os.path.join(solution_dir, 'recovery_report.json'), 'w') as f:
+        json.dump(report, f, indent=2)
+    
+    print(f"Recovery complete: {total_entries} entries from {files_with_data} files")
+
+if __name__ == '__main__':
+    main()
+```
+
+Now, let me generate the network_traffic_2024_01.log.gz file with realistic content that will be corrupted around 70% through:
+
+```python
+#!/usr/bin/env python3
+import gzip
+import random
+from datetime import datetime, timedelta
+
+# Generate log entries
+entries = []
+start_date = datetime(2024, 1, 1, 0, 0, 0)
+
+levels = ['INFO', 'WARNING', 'ERROR', 'DEBUG']
+components = ['NetworkMonitor', 'PacketAnalyzer', 'FirewallManager', 'BandwidthTracker', 'ConnectionHandler']
+
+messages = [
+    'Bandwidth usage: {} Mbps',
+    'Packet loss: {}%',
+    'Connection established from {}',
+    'Connection closed from {}',
+    'Firewall rule applied: ALLOW {}',
+    'Firewall rule applied: DENY {}',
+    'Latency spike detected: {}ms',
+    'Network throughput: {} Mbps',
+    'DNS resolution time: {}ms',
+    'TCP connection timeout from {}',
+    'UDP packet received from {}',
+    'ICMP ping response: {}ms',
+    'Port scan detected from {}',
+    'DDoS mitigation activated',
+    'Traffic shaping policy applied',
+    'QoS priority set to HIGH',
+    'QoS priority set to MEDIUM',
+    'QoS priority set to LOW',
+    'BGP route update received',
+    'OSPF neighbor established',
+    'Interface eth0 link up',
+    'Interface eth1 link down',
+    'VLAN 100 traffic monitored',
+    'SSL certificate validated',
+    'TLS handshake completed',
+    'HTTP request processed: GET',
+    'HTTP request processed: POST',
+    'WebSocket connection opened',
+    'WebSocket connection closed',
+    'Load balancer health check passed',
+    'Load balancer health check failed',
+    'CDN cache hit ratio: {}%',
+    'Proxy connection established',
+    'VPN tunnel connected',
+    'VPN tunnel disconnected',
+    'NAT translation created',
+    'ACL rule matched: traffic permitted',
+    'ACL rule matched: traffic denied',
+    'Multicast group joined',
+    'DHCP lease assigned',
+    'DHCP lease renewed',
+    'ARP cache updated',
+    'Routing table updated'
+]
+
+# Generate 130 entries
+for i in range(130):
+    timestamp = start_date + timedelta(
+        days=random.randint(0, 30),
+        hours=random.randint(0, 23),
+        minutes=random.randint(0, 59),
+        seconds=random.randint(0, 59)
+    )
+    
+    level = random.choice(levels)
+    component = random.choice(components)
+    
+    msg_template = random.choice(messages)
+    if '{}' in msg_template:
+        if 'Mbps' in msg_template:
+            message = msg_template.format(random.randint(50, 950))
+        elif 'loss' in msg_template:
+            message = msg_template.format(round(random.uniform(0.0, 5.0), 2))
+        elif 'from' in msg_template or 'ALLOW' in msg_template or 'DENY' in msg_template:
+            message = msg_template.format(f"192.168.{random.randint(1, 255)}.{random.randint(1, 255)}")
+        elif 'ms' in msg_template:
+            message = msg_template.format(random.randint(1, 500))
+        elif '%' in msg_template:
+            message = msg_template.format(random.randint(50, 99))
+        else:
+            message = msg_template.format(random.randint(1, 100))
+    else:
+        message = msg_template
+    
+    entry = f"{timestamp.strftime('%Y-%m-%d %H:%M:%S')}|{level}|{component}|{message}"
+    entries.append(entry)
+
+# Sort by timestamp
+entries.sort()
+
+# Create the file content
+content = '\n'.join(entries) + '\n'
+
+# Compress and write, then corrupt at 70%
+os.makedirs('/data/corrupted_logs/', exist_ok=True)
+filepath = '/data/corrupted_logs/network_traffic_2024_01.log.gz'
+
+with gzip.open(filepath, 'wt', encoding='utf-8') as f:
+    f.write(content)
+
+# Now corrupt the file at approximately 70%
+with open(filepath, 'rb') as f:
+    data = f.read()
+
+corruption_point = int(len(data) * 0.70)
+corrupted_data = data[:corruption_point] + b'\x00\x00\xFF\xFF\xAB\xCD' + bytes([random.randint(0, 255) for _ in range(50)])
+
+with open(filepath, 'wb') as f:
+    f.write(corrupted_data)
+
+print(f"Generated {filepath} with {len(entries)} entries, corrupted at {corruption_point} bytes")
+```
+
+Since I need to output the actual file content directly, let me generate the proper gzip file content with corruption:

@@ -1,0 +1,32 @@
+<VirtualHost *:{{ port }}>
+    ServerName {{ server_name }}
+    ServerAdmin {{ admin_email }}
+    DocumentRoot {{ document_root }}
+
+    {% if ansible_os_family == "Debian" %}
+    ErrorLog ${APACHE_LOG_DIR}/{{ server_name }}-error.log
+    CustomLog ${APACHE_LOG_DIR}/{{ server_name }}-access.log combined
+    
+    <Directory {{ document_root }}>
+        Options Indexes FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    {% if enable_ssl %}
+    SSLEngine on
+    SSLCertificateFile {{ ssl_certificate }}
+    SSLCertificateKeyFile {{ ssl_key }}
+    
+    LogLevel {{ log_level }}
+    
+    <FilesMatch "\.(cgi|shtml|phtml|php)$">
+        SSLOptions +StdEnvVars
+    </FilesMatch>
+
+    # Custom headers for security
+    Header always set X-Frame-Options "{{ x_frame_options }}"
+    Header always set X-Content-Type-Options "nosniff"
+
+    ServerAlias {{ server_alias }}
+</VirtualHost>

@@ -1,0 +1,1 @@
+MATCH (follower)-[r:FOLLOWS]->(u) WHERE u:User RETURN u.name, count(follower) AS follower_count ORDER BY follower_count DESC LIMIT 10;

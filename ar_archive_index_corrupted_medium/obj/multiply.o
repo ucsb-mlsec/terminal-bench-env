@@ -1,0 +1,23 @@
+#!/bin/bash
+# Solution script to repair the corrupted static library archive
+
+# Navigate to workspace
+cd /workspace
+
+# Remove the corrupted library
+rm -f lib/libcalc.a
+
+# Rebuild the static library from the original object files
+ar rcs lib/libcalc.a obj/add.o obj/subtract.o obj/multiply.o obj/divide.o
+
+# Regenerate the symbol index using ranlib (although ar rcs should do this)
+ranlib lib/libcalc.a
+
+# Verify the library contains all expected symbols
+ar t lib/libcalc.a > /dev/null 2>&1
+
+# Test compilation and linking
+gcc test_calc.c -L./lib -lcalc -o test_calc
+
+# Exit with success if we got this far
+exit 0

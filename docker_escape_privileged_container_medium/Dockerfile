@@ -1,0 +1,33 @@
+FROM ghcr.io/laude-institute/t-bench/ubuntu-24-04:20250624
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install python3-pip and create python symlink
+RUN apt-get update && \
+    apt-get install -y python3-pip && \
+    ln -s /usr/bin/python3 /usr/bin/python && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install test dependencies
+RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
+
+# Create necessary directories
+RUN mkdir -p /host_system /result
+
+# Copy the host secret file to simulate it being on the "host"
+# This will be placed at /host_system on the actual host filesystem
+COPY data/company_secrets.txt /host_system/company_secrets.txt
+
+# Install necessary utilities for container escape investigation
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    fdisk \
+    util-linux \
+    kmod && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install dependencies from Phase 2.5 analysis
+RUN apt-get update && apt-get install -y fdisk mount && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /

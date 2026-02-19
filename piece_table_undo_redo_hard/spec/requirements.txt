@@ -1,0 +1,142 @@
+# Text Editor Specification: Piece Table with Undo/Redo
+
+## 1. Core Operations
+
+The text editor must implement the following five core methods:
+
+- **insert(position, text)**: Insert text at a specific position in the document
+  - position: integer index where text should be inserted (0-based)
+  - text: string content to insert
+  - Returns: None
+  
+- **delete(start, length)**: Delete a range of characters starting at position 'start' with specified length
+  - start: integer index where deletion begins (0-based)
+  - length: number of characters to delete
+  - Returns: None
+  
+- **get_text()**: Return the current document content as a string
+  - No parameters
+  - Returns: string representing the entire document
+  
+- **undo()**: Reverse the last operation
+  - No parameters
+  - Returns: None
+  - Effect: Restores document to state before the last insert or delete operation
+  
+- **redo()**: Reapply an operation that was undone
+  - No parameters
+  - Returns: None
+  - Effect: Reapplies the most recently undone operation
+
+## 2. Performance Requirements
+
+The implementation must meet the following performance criteria:
+
+- **No Document Copying**: Insert and delete operations must not copy the entire document content. Operations should work by manipulating metadata/references only.
+
+- **Efficient Undo/Redo**: Undo/redo operations must not store complete document snapshots for each operation. Instead, store only the operation metadata needed to reverse or reapply changes.
+
+- **Large Document Support**: Must handle documents with 1,000,000+ characters efficiently without performance degradation.
+
+- **Piece Table Structure**: Must use a piece table data structure for efficient text management. The piece table maintains:
+  - Original buffer: immutable original text
+  - Add buffer: appended text from insert operations
+  - Piece descriptors: metadata describing which buffer sections form the document
+
+- **Time Complexity Goals**:
+  - Insert operation: O(n) where n is number of pieces (typically small)
+  - Delete operation: O(n) where n is number of pieces
+  - Get text: O(m) where m is total document length
+  - Undo/Redo: O(1) for operation reversal + O(n) for piece table update
+
+## 3. Behavioral Specifications
+
+The text editor must exhibit the following behaviors:
+
+- **Redo History Clearing**: After performing a new edit operation (insert or delete), any previously undone operations cannot be redone. The redo stack must be cleared when a new operation is performed.
+
+- **Empty History Undo**: Calling undo() on an empty operation history should have no effect. The document should remain unchanged and no error should be raised.
+
+- **Empty Redo Stack**: Calling redo() when there are no undone operations should have no effect. The document should remain unchanged and no error should be raised.
+
+- **State Consistency**: The document state must be exactly identical to any previous state when undoing back to it. Every character must match the previous state exactly.
+
+- **Sequence Preservation**: Multiple consecutive undos followed by the same number of redos must restore the exact sequence of states. The document must progress through each intermediate state in both directions.
+
+- **Position Validation**: Operations must handle boundary positions correctly (position 0, end of document).
+
+- **Empty Document Handling**: All operations must work correctly on an empty document.
+
+## 4. Implementation Notes
+
+Guidelines for implementing the piece table and undo/redo system:
+
+- **Piece Table Structure**: The piece table should maintain:
+  - An original buffer (immutable, contains initial document text)
+  - An add buffer (append-only, contains all text added via insert operations)
+  - A list of pieces, where each piece contains:
+    - Buffer identifier (original or add)
+    - Start position in that buffer
+    - Length of the piece
+    
+- **Operation Tracking**: Operations should be tracked for undo/redo by storing:
+  - Operation type (insert or delete)
+  - Operation parameters (position, text content, or deleted range)
+  - Sufficient metadata to reverse the operation
+  - Do NOT store full document snapshots
+
+- **Undo Stack**: Maintain a stack of operations that can be undone. When an operation is performed, push it onto the undo stack.
+
+- **Redo Stack**: Maintain a stack of operations that can be redone. When undo is called, move the operation to the redo stack. Clear the redo stack when a new edit operation is performed.
+
+- **Class Naming**: The class can be named anything (e.g., TextEditor, PieceTableEditor, Editor) but must implement the five required methods with exact signatures.
+
+- **Text Reconstruction**: The get_text() method should reconstruct the document by iterating through all pieces in order and concatenating the referenced text segments.
+
+## 5. Test Scenarios
+
+The implementation will be validated against the following test scenarios:
+
+- **Basic Operations**:
+  - Insert text into an empty document
+  - Insert text at various positions (beginning, middle, end)
+  - Delete text from various positions
+  - Retrieve document content after operations
+
+- **Undo/Redo Sequences**:
+  - Single undo after insert
+  - Single undo after delete
+  - Multiple consecutive undos
+  - Multiple consecutive redos
+  - Alternating undo and redo operations
+
+- **Redo History Management**:
+  - Perform operation, undo, then perform new operation (redo should be unavailable)
+  - Verify redo stack is cleared after new edit
+  - Multiple undos, new edit, verify all redos are cleared
+
+- **Complex Sequences**:
+  - Mix of inserts, deletes, undos, and redos in various combinations
+  - Build document through multiple operations, undo several, redo some, add new content
+  - Long chains of operations with scattered undo/redo calls
+
+- **Edge Cases**:
+  - Undo on empty history
+  - Redo on empty redo stack
+  - Operations on empty document
+  - Insert at position 0
+  - Insert at end of document
+  - Delete entire document
+  - Delete with length 0
+
+- **Performance Tests**:
+  - Large document (100,000+ characters) with many insert operations
+  - Many small insert operations (1000+)
+  - Deep undo history (100+ operations)
+  - Verify no performance degradation with large documents
+
+- **State Verification**:
+  - Verify document state matches expected content after each operation
+  - Verify undo restores exact previous state
+  - Verify redo restores exact next state
+  - Verify character-by-character accuracy

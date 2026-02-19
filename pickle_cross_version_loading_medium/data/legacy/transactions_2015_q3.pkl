@@ -1,0 +1,111 @@
+import pickle
+import json
+import os
+from datetime import datetime, timedelta
+import random
+
+# Create the legacy directory structure
+os.makedirs('/data/legacy', exist_ok=True)
+os.makedirs('/output', exist_ok=True)
+
+# Generate realistic transaction data for Q3 2015
+def generate_q3_transactions():
+    transactions = []
+    start_date = datetime(2015, 7, 1)
+    end_date = datetime(2015, 9, 30)
+    
+    customer_ids = [f'C{str(i).zfill(3)}' for i in range(100, 120)]
+    
+    for i in range(55):
+        days_offset = random.randint(0, 91)
+        transaction_date = start_date + timedelta(days=days_offset)
+        
+        transaction = {
+            b'customer_id': random.choice(customer_ids).encode('latin-1'),
+            b'amount': round(random.uniform(15.00, 1000.00), 2),
+            b'date': transaction_date.strftime('%Y-%m-%d').encode('latin-1')
+        }
+        transactions.append(transaction)
+    
+    return transactions
+
+# Generate and save the pickle file using protocol 2 (Python 2.7 compatible)
+transactions = generate_q3_transactions()
+
+with open('/data/legacy/transactions_2015_q3.pkl', 'wb') as f:
+    pickle.dump(transactions, f, protocol=2)
+
+# Now solve the task: Load, consolidate, and save to JSON
+def load_pickle_file(filepath):
+    """Load a pickle file with Python 2/3 compatibility handling"""
+    try:
+        with open(filepath, 'rb') as f:
+            # Try with encoding parameter for Python 2 pickles
+            data = pickle.load(f, encoding='latin-1')
+        return data
+    except Exception as e:
+        print(f"Error loading {filepath}: {e}")
+        return None
+
+def normalize_record(record):
+    """Normalize a record to handle bytes and various formats"""
+    normalized = {}
+    
+    for key, value in record.items():
+        # Handle byte string keys
+        if isinstance(key, bytes):
+            key = key.decode('latin-1')
+        
+        # Handle byte string values
+        if isinstance(value, bytes):
+            value = value.decode('latin-1')
+        
+        normalized[key] = value
+    
+    return normalized
+
+def consolidate_transactions():
+    """Main function to consolidate all pickle files"""
+    legacy_dir = '/data/legacy'
+    all_records = []
+    
+    # Process all pickle files in the directory
+    for filename in os.listdir(legacy_dir):
+        if filename.endswith('.pkl'):
+            filepath = os.path.join(legacy_dir, filename)
+            print(f"Processing {filename}...")
+            
+            data = load_pickle_file(filepath)
+            
+            if data is not None:
+                # Handle different data structures
+                if isinstance(data, list):
+                    for record in data:
+                        normalized = normalize_record(record)
+                        all_records.append(normalized)
+                elif isinstance(data, dict):
+                    normalized = normalize_record(data)
+                    all_records.append(normalized)
+    
+    # Calculate totals
+    total_records = len(all_records)
+    total_amount = sum(float(record['amount']) for record in all_records)
+    
+    # Create output structure
+    output = {
+        'total_records': total_records,
+        'total_amount': round(total_amount, 2),
+        'records': all_records
+    }
+    
+    # Save to JSON
+    output_path = '/output/transactions.json'
+    with open(output_path, 'w') as f:
+        json.dump(output, f, indent=2)
+    
+    print(f"Successfully consolidated {total_records} records")
+    print(f"Total amount: ${total_amount:.2f}")
+    print(f"Output saved to {output_path}")
+
+# Execute the consolidation
+consolidate_transactions()

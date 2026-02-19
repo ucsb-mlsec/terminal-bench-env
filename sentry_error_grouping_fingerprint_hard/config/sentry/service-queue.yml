@@ -1,0 +1,96 @@
+fingerprinting_rules:
+  # Valid rule 1: Queue processing errors with path matcher
+  - matchers:
+      - - path
+        - "**/queue/processor.py"
+    fingerprint:
+      - "queue-processing-error"
+      - "{{ default }}"
+
+  # Valid rule 2: Exception type for QueueFullError
+  - matchers:
+      - - exception.type
+        - "QueueFullError"
+    fingerprint:
+      - "queue-full"
+      - "{{ type }}"
+
+  # Valid rule 3: Using function variable
+  - matchers:
+      - - path
+        - "**/workers/task_handler.py"
+      - - type
+        - "RuntimeError"
+    fingerprint:
+      - "task-handler-error"
+      - "{{ function }}"
+
+  # Valid rule 4: Message matcher for retry logic
+  - matchers:
+      - - message
+        - "*retry*exceeded*"
+    fingerprint:
+      - "queue-retry-exhausted"
+      - "{{ message }}"
+
+  # Valid rule 5: Tags matcher for queue_name
+  - matchers:
+      - - tags.queue_name
+        - "high_priority"
+    fingerprint:
+      - "high-priority-queue"
+      - "{{ tags.queue_name }}"
+
+  # Valid rule 6: Multiple matchers with module
+  - matchers:
+      - - module
+        - "celery.worker"
+      - - type
+        - "TimeoutError"
+    fingerprint:
+      - "celery-timeout"
+      - "{{ module }}"
+
+  # Invalid rule 1: queue_type matcher not supported
+  - matchers:
+      - - queue_type
+        - "redis"
+    fingerprint:
+      - "redis-queue-error"
+
+  # Invalid rule 2: fingerprint-rule as matcher (not valid)
+  - matchers:
+      - - fingerprint-rule
+        - "custom"
+    fingerprint:
+      - "custom-fingerprint"
+
+  # Invalid rule 3: job_id variable not in spec
+  - matchers:
+      - - type
+        - "JobError"
+    fingerprint:
+      - "job-failed"
+      - "{{ job_id }}"
+
+  # Invalid rule 4: Deprecated app syntax
+  - matchers:
+      - - type
+        - "QueueConnectionError"
+    app: queue_service
+    fingerprint:
+      - "connection-error"
+
+  # Invalid rule 5: Matchers as string instead of list
+  - matchers: "path:**/queue/**"
+    fingerprint:
+      - "queue-general-error"
+
+  # Invalid rule 6: Duplicate type matchers (malformed)
+  - matchers:
+      - - type
+        - "ValueError"
+      - - type
+        - "KeyError"
+    fingerprint:
+      - "duplicate-matcher-error"

@@ -1,0 +1,148 @@
+#!/bin/bash
+
+# Mock tcpdump - Configuration validation utility
+# Simulates tcpdump behavior by validating network capture configuration
+
+set -e
+
+CONFIG_FILE="/etc/netcap/config.json"
+INTERFACES_FILE="/etc/netcap/interfaces.conf"
+PERMISSIONS_FILE="/etc/netcap/permissions.conf"
+LIMITS_FILE="/etc/netcap/system_limits.conf"
+
+EXIT_CODE=0
+
+# Function to extract JSON value (simple parsing)
+get_json_value() {
+    local json="$1"
+    local key="$2"
+    echo "$json" | grep -o "\"$key\"[[:space:]]*:[[:space:]]*\"[^\"]*\"" | sed 's/.*":\s*"\(.*\)"/\1/' | head -1
+}
+
+get_json_number() {
+    local json="$1"
+    local key="$2"
+    echo "$json" | grep -o "\"$key\"[[:space:]]*:[[:space:]]*[0-9]*" | sed 's/.*:\s*\([0-9]*\)/\1/' | head -1
+}
+
+get_json_array() {
+    local json="$1"
+    local key="$2"
+    echo "$json" | grep -o "\"$key\"[[:space:]]*:[[:space:]]*\[[^]]*\]" | sed 's/.*:\s*\[\(.*\)\]/\1/' | tr -d '"' | tr ',' '\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'
+}
+
+# Check if configuration file exists
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "ERROR: Configuration file $CONFIG_FILE not found" >&2
+    exit 1
+fi
+
+# Check if interfaces file exists
+if [ ! -f "$INTERFACES_FILE" ]; then
+    echo "ERROR: Interfaces file $INTERFACES_FILE not found" >&2
+    exit 1
+fi
+
+# Check if permissions file exists
+if [ ! -f "$PERMISSIONS_FILE" ]; then
+    echo "ERROR: Permissions file $PERMISSIONS_FILE not found" >&2
+    exit 1
+fi
+
+# Check if system limits file exists
+if [ ! -f "$LIMITS_FILE" ]; then
+    echo "ERROR: System limits file $LIMITS_FILE not found" >&2
+    exit 1
+fi
+
+# Read configuration file
+CONFIG_JSON=$(cat "$CONFIG_FILE")
+
+# Extract configuration values
+CAPTURE_USER=$(get_json_value "$CONFIG_JSON" "capture_user")
+PRIMARY_INTERFACE=$(get_json_value "$CONFIG_JSON" "primary_interface")
+BUFFER_SIZE=$(get_json_number "$CONFIG_JSON" "buffer_size")
+
+# Extract interfaces array
+INTERFACES=$(get_json_array "$CONFIG_JSON" "interfaces")
+
+# Validate capture user is specified
+if [ -z "$CAPTURE_USER" ]; then
+    echo "ERROR: capture_user not specified in configuration" >&2
+    EXIT_CODE=1
+fi
+
+# Validate primary interface is specified
+if [ -z "$PRIMARY_INTERFACE" ]; then
+    echo "ERROR: primary_interface not specified in configuration" >&2
+    EXIT_CODE=1
+fi
+
+# Validate interfaces array is not empty
+if [ -z "$INTERFACES" ]; then
+    echo "ERROR: interfaces array is empty or not specified" >&2
+    EXIT_CODE=1
+fi
+
+# Check if primary interface is in interfaces list
+PRIMARY_IN_LIST=0
+while IFS= read -r iface; do
+    [ -z "$iface" ] && continue
+    iface=$(echo "$iface" | xargs)
+    if [ "$iface" = "$PRIMARY_INTERFACE" ]; then
+        PRIMARY_IN_LIST=1
+        break
+    fi
+done <<< "$INTERFACES"
+
+if [ $PRIMARY_IN_LIST -eq 0 ] && [ -n "$PRIMARY_INTERFACE" ]; then
+    echo "ERROR: primary_interface '$PRIMARY_INTERFACE' not found in interfaces list" >&2
+    EXIT_CODE=1
+fi
+
+# Validate all interfaces exist in interfaces.conf
+while IFS= read -r iface; do
+    [ -z "$iface" ] && continue
+    iface=$(echo "$iface" | xargs)
+    if ! grep -q "^$iface$" "$INTERFACES_FILE"; then
+        echo "ERROR: Interface '$iface' not found in $INTERFACES_FILE" >&2
+        EXIT_CODE=1
+    fi
+done <<< "$INTERFACES"
+
+# Validate user permissions
+if [ -n "$CAPTURE_USER" ]; then
+    if ! grep -q "^$CAPTURE_USER:" "$PERMISSIONS_FILE"; then
+        echo "ERROR: User '$CAPTURE_USER' not found in $PERMISSIONS_FILE" >&2
+        EXIT_CODE=1
+    else
+        # Check if user has capture permission
+        USER_PERMS=$(grep "^$CAPTURE_USER:" "$PERMISSIONS_FILE" | cut -d: -f2)
+        if ! echo "$USER_PERMS" | grep -q "capture"; then
+            echo "ERROR: User '$CAPTURE_USER' does not have capture permission" >&2
+            EXIT_CODE=1
+        fi
+    fi
+fi
+
+# Validate buffer size against system limits
+if [ -n "$BUFFER_SIZE" ]; then
+    MAX_BUFFER=$(grep "^max_buffer_size:" "$LIMITS_FILE" | cut -d: -f2 | xargs)
+    MIN_BUFFER=$(grep "^min_buffer_size:" "$LIMITS_FILE" | cut -d: -f2 | xargs)
+    
+    if [ -n "$MAX_BUFFER" ] && [ "$BUFFER_SIZE" -gt "$MAX_BUFFER" ]; then
+        echo "ERROR: Buffer size $BUFFER_SIZE exceeds maximum limit of $MAX_BUFFER" >&2
+        EXIT_CODE=1
+    fi
+    
+    if [ -n "$MIN_BUFFER" ] && [ "$BUFFER_SIZE" -lt "$MIN_BUFFER" ]; then
+        echo "ERROR: Buffer size $BUFFER_SIZE below minimum limit of $MIN_BUFFER" >&2
+        EXIT_CODE=1
+    fi
+fi
+
+if [ $EXIT_CODE -eq 0 ]; then
+    echo "Configuration validation passed"
+fi
+
+exit $EXIT_CODE

@@ -1,0 +1,47 @@
+I'll analyze this diffusion model training problem and provide an optimized noise schedule configuration.
+
+## Analysis
+
+Given information:
+- 64x64 RGB images
+- U-Net with 4 downsampling layers
+- FID score plateaued at 45.2 (poor performance)
+- Training instability and blurry outputs
+
+### Key Issues with Common Suboptimal Configurations:
+
+1. **Too few timesteps**: Causes abrupt transitions and training instability
+2. **Linear schedules**: Often perform worse than cosine for image generation
+3. **Poor beta range**: Too high beta_end causes loss of signal too quickly; too low beta_start doesn't add enough noise initially
+4. **Mismatch with architecture depth**: 4 downsampling layers suggests need for sufficient timesteps
+
+### Optimal Configuration Reasoning:
+
+**num_timesteps: 1000**
+- Standard for stable diffusion training
+- Provides smooth noise transitions
+- Adequate for 64x64 images with 4-layer U-Net
+
+**beta_start: 0.0001**
+- Low enough to preserve image structure in early timesteps
+- Prevents information loss at start of forward process
+
+**beta_end: 0.02**
+- Conservative upper bound that maintains signal-to-noise ratio
+- Prevents complete destruction of image information
+- Better than aggressive schedules (0.03+) that cause training instability
+
+**schedule_type: cosine**
+- Proven superior for image generation tasks
+- Provides more stable gradients during training
+- Allocates more capacity to perceptually important noise levels
+- Reduces the blurry output problem by maintaining better signal in middle timesteps
+
+This configuration follows best practices from DDPM/DDIM literature and should significantly improve FID score and training stability.
+
+{
+    "num_timesteps": 1000,
+    "beta_start": 0.0001,
+    "beta_end": 0.02,
+    "schedule_type": "cosine"
+}

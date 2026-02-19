@@ -1,0 +1,39 @@
+=== Shadow Volume Rendering Specification ===
+
+Required Parameters:
+
+1. GL_DEPTH_CLAMP must be DISABLED (set to false)
+   Reason: Shadow volumes must extend beyond the viewing frustum without being clipped.
+   When depth clamping is enabled, it causes artifacts when camera moves close to objects
+   or when shadow geometry extends far from camera.
+
+2. DEPTH_CLAMP_NEAR parameter is REQUIRED
+   Purpose: Specifies near plane handling for shadow volume depth calculations
+   Valid values: 0.0 to 1.0
+   Recommended: 0.0
+
+3. DEPTH_CLAMP_FAR parameter is REQUIRED
+   Purpose: Specifies far plane handling for shadow volume depth calculations
+   Valid values: 0.0 to 1.0
+   Recommended: 1.0
+
+4. GL_STENCIL_TEST must be enabled (true)
+   Required for shadow volume counting algorithm
+
+5. TWO_SIDED_STENCIL should be enabled (true)
+   Allows proper handling of front and back faces of shadow volumes
+
+Depth Buffer Settings:
+- DEPTH_TEST should be enabled during shadow rendering
+- DEPTH_WRITEMASK should be disabled (false) during shadow volume pass
+  to prevent writing to depth buffer while building stencil mask
+
+Conflicting Settings:
+- If DEPTH_WRITEMASK is true AND comments indicate it should be disabled
+- If POLYGON_OFFSET is enabled while shadow volumes are being used
+  (polygon offset conflicts with shadow volume depth calculations)
+
+Common Issues:
+- Shadows disappearing near camera: Usually caused by GL_DEPTH_CLAMP being enabled
+- Shadow artifacts at distance: Missing DEPTH_CLAMP_FAR parameter
+- Incorrect shadow boundaries: Conflicting depth write settings

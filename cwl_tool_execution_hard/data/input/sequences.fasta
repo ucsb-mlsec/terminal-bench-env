@@ -1,0 +1,140 @@
+#!/bin/bash
+
+set -e
+
+# Create necessary directories
+mkdir -p /workspace/input
+mkdir -p /workspace/output
+mkdir -p /workspace/cwl
+
+# Create the input FASTA file
+cat > /workspace/input/sequences.fasta << 'EOF'
+>seq1
+ATCGATCGATCG
+>seq2
+GCTAGCTAGCTA
+>seq3
+TTAATTAATTAA
+EOF
+
+# Create the sequence analysis tool CWL
+cat > /workspace/cwl/analyze-sequences.cwl << 'EOF'
+cwlVersion: v1.2
+class: CommandLineTool
+baseCommand: [bash, -c]
+arguments:
+  - |
+    input_file="$1"
+    output_file="$2"
+    
+    # Count sequences (lines starting with >)
+    seq_count=$(grep -c "^>" "$input_file")
+    
+    # Calculate total length (sum of all non-header lines)
+    total_length=$(grep -v "^>" "$input_file" | tr -d '\n' | wc -c)
+    
+    # Calculate average length
+    average_length=$(echo "scale=1; $total_length / $seq_count" | bc)
+    
+    # Write output
+    echo "$seq_count,$total_length,$average_length" > "$output_file"
+  - valueFrom: $(inputs.fasta_file.path)
+    shellQuote: true
+  - valueFrom: $(runtime.outdir)/stats.txt
+    shellQuote: true
+
+inputs:
+  fasta_file:
+    type: File
+    
+outputs:
+  statistics:
+    type: File
+    outputBinding:
+      glob: stats.txt
+EOF
+
+# Create the report generation tool CWL
+cat > /workspace/cwl/generate-report.cwl << 'EOF'
+cwlVersion: v1.2
+class: CommandLineTool
+baseCommand: [bash, -c]
+arguments:
+  - |
+    input_file="$1"
+    output_file="$2"
+    
+    # Read the statistics
+    IFS=',' read -r seq_count total_length average_length < "$input_file"
+    
+    # Generate JSON report
+    cat > "$output_file" << JSONEOF
+{
+  "sequence_count": $seq_count,
+  "total_length": $total_length,
+  "average_length": $average_length
+}
+JSONEOF
+  - valueFrom: $(inputs.stats_file.path)
+    shellQuote: true
+  - valueFrom: $(runtime.outdir)/report.json
+    shellQuote: true
+
+inputs:
+  stats_file:
+    type: File
+    
+outputs:
+  report:
+    type: File
+    outputBinding:
+      glob: report.json
+EOF
+
+# Create the workflow CWL
+cat > /workspace/cwl/workflow.cwl << 'EOF'
+cwlVersion: v1.2
+class: Workflow
+
+inputs:
+  input_fasta:
+    type: File
+
+outputs:
+  final_report:
+    type: File
+    outputSource: generate_report/report
+
+steps:
+  analyze_sequences:
+    run: analyze-sequences.cwl
+    in:
+      fasta_file: input_fasta
+    out: [statistics]
+  
+  generate_report:
+    run: generate-report.cwl
+    in:
+      stats_file: analyze_sequences/statistics
+    out: [report]
+EOF
+
+# Create the workflow input configuration
+cat > /workspace/cwl/workflow-input.yml << 'EOF'
+input_fasta:
+  class: File
+  path: /workspace/input/sequences.fasta
+EOF
+
+# Execute the workflow
+cd /workspace/cwl
+cwltool --outdir /workspace/output workflow.cwl workflow-input.yml
+
+# Verify the output exists
+if [ ! -f /workspace/output/report.json ]; then
+    echo "Error: Output file not generated"
+    exit 1
+fi
+
+echo "Workflow completed successfully"
+exit 0

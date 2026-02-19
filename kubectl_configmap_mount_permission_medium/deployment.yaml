@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-app
+  labels:
+    app: web-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: web-app
+  template:
+    metadata:
+      labels:
+        app: web-app
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+      - name: app-container
+        image: nginx:1.21
+        securityContext:
+          runAsUser: 1000
+          runAsNonRoot: true
+        volumeMounts:
+        - name: config-volume
+          mountPath: /app/conf
+          readOnly: true
+        ports:
+        - containerPort: 8080
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+      volumes:
+      - name: config-volume
+        configMap:
+          name: app-config
+          items:
+          - key: app.conf
+            path: application.conf

@@ -1,0 +1,32 @@
+FROM python:3.9
+
+LABEL maintainer="dev-team@company.com"
+
+ARG APP_VERSION=latest
+ARG BUILD_DATE
+ENV APP_VERSION=${APP_VERSION}
+ENV BUILD_DATE=${BUILD_DATE}
+
+COPY config/ /app/config/
+COPY scripts/ /app/scripts/
+COPY shared/ /app/shared/
+
+RUN apt-get update && apt-get install -y \
+    postgresql-client \
+    redis-tools \
+    curl \
+    git \
+    vim
+
+COPY requirements-base.txt /tmp/
+RUN pip install --no-cache-dir -r /tmp/requirements-base.txt
+
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+RUN useradd -m -u 1000 appuser && \
+    mkdir -p /app/logs /app/data && \
+    chown -R appuser:appuser /app
+
+USER appuser
+WORKDIR /app

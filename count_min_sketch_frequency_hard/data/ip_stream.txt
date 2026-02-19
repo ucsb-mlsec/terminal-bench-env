@@ -1,0 +1,60 @@
+import random
+import sys
+
+def generate_ip():
+    """Generate a realistic IP address"""
+    ip_type = random.random()
+    if ip_type < 0.4:  # 40% private 10.x.x.x
+        return f"10.{random.randint(0, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}"
+    elif ip_type < 0.6:  # 20% private 192.168.x.x
+        return f"192.168.{random.randint(0, 255)}.{random.randint(0, 255)}"
+    elif ip_type < 0.7:  # 10% private 172.16-31.x.x
+        return f"172.{random.randint(16, 31)}.{random.randint(0, 255)}.{random.randint(0, 255)}"
+    else:  # 30% public IPs
+        return f"{random.randint(1, 223)}.{random.randint(0, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}"
+
+# Generate heavy hitters (top 10 IPs)
+heavy_hitters = [generate_ip() for _ in range(10)]
+heavy_hitter_counts = [random.randint(10000, 15000) for _ in range(10)]
+
+# Generate frequent IPs (next 100 IPs)
+frequent_ips = [generate_ip() for _ in range(100)]
+frequent_counts = [random.randint(1000, 5000) for _ in range(100)]
+
+# Generate medium IPs (next 1000 IPs)
+medium_ips = [generate_ip() for _ in range(1000)]
+medium_counts = [random.randint(100, 1000) for _ in range(1000)]
+
+# Calculate remaining entries
+total_so_far = sum(heavy_hitter_counts) + sum(frequent_counts) + sum(medium_counts)
+target_total = 1000000
+remaining = target_total - total_so_far
+
+# Generate rare IPs
+rare_ips = []
+rare_counts = []
+while sum(rare_counts) < remaining:
+    rare_ips.append(generate_ip())
+    rare_counts.append(random.randint(1, 100))
+
+# Adjust last count to hit exact target
+if sum(rare_counts) > remaining:
+    rare_counts[-1] -= (sum(rare_counts) - remaining)
+
+# Combine all IPs
+all_entries = []
+for ip, count in zip(heavy_hitters, heavy_hitter_counts):
+    all_entries.extend([ip] * count)
+for ip, count in zip(frequent_ips, frequent_counts):
+    all_entries.extend([ip] * count)
+for ip, count in zip(medium_ips, medium_counts):
+    all_entries.extend([ip] * count)
+for ip, count in zip(rare_ips, rare_counts):
+    all_entries.extend([ip] * count)
+
+# Shuffle to simulate realistic stream
+random.shuffle(all_entries)
+
+# Write to file
+for ip in all_entries:
+    print(ip)

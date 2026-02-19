@@ -1,0 +1,246 @@
+I'll generate a valid PCAP file with HTTP POST requests. Since PCAP is a binary format, I'll create it programmatically using proper packet construction.
+
+```python
+#!/usr/bin/env python3
+from scapy.all import *
+import io
+
+# Create packets list
+packets = []
+timestamp = 1234567890.0
+
+# Helper function to create TCP handshake
+def create_tcp_handshake(src_ip, dst_ip, src_port, dst_port, seq_start, timestamp_base):
+    pkts = []
+    # SYN
+    syn = Ether()/IP(src=src_ip, dst=dst_ip)/TCP(sport=src_port, dport=dst_port, flags='S', seq=seq_start)
+    syn.time = timestamp_base
+    pkts.append(syn)
+    
+    # SYN-ACK
+    synack = Ether()/IP(src=dst_ip, dst=src_ip)/TCP(sport=dst_port, dport=src_port, flags='SA', seq=5000, ack=seq_start+1)
+    synack.time = timestamp_base + 0.001
+    pkts.append(synack)
+    
+    # ACK
+    ack = Ether()/IP(src=src_ip, dst=dst_ip)/TCP(sport=src_port, dport=dst_port, flags='A', seq=seq_start+1, ack=5001)
+    ack.time = timestamp_base + 0.002
+    pkts.append(ack)
+    
+    return pkts, seq_start+1, 5001
+
+# Helper function to create HTTP POST
+def create_http_post(src_ip, dst_ip, src_port, dst_port, client_seq, server_seq, path, body, timestamp_base):
+    pkts = []
+    
+    # Build HTTP POST request
+    http_request = f"POST {path} HTTP/1.1\r\n"
+    http_request += f"Host: example.com\r\n"
+    http_request += f"Content-Type: application/x-www-form-urlencoded\r\n"
+    http_request += f"Content-Length: {len(body)}\r\n"
+    http_request += f"\r\n"
+    http_request += body
+    
+    # Send POST request
+    post_pkt = Ether()/IP(src=src_ip, dst=dst_ip)/TCP(sport=src_port, dport=dst_port, flags='PA', seq=client_seq, ack=server_seq)/Raw(load=http_request)
+    post_pkt.time = timestamp_base
+    pkts.append(post_pkt)
+    
+    # Server ACK
+    ack_pkt = Ether()/IP(src=dst_ip, dst=src_ip)/TCP(sport=dst_port, dport=src_port, flags='A', seq=server_seq, ack=client_seq+len(http_request))
+    ack_pkt.time = timestamp_base + 0.01
+    pkts.append(ack_pkt)
+    
+    # Server response (simple 200 OK)
+    http_response = "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nOK"
+    resp_pkt = Ether()/IP(src=dst_ip, dst=src_ip)/TCP(sport=dst_port, dport=src_port, flags='PA', seq=server_seq, ack=client_seq+len(http_request))/Raw(load=http_response)
+    resp_pkt.time = timestamp_base + 0.02
+    pkts.append(resp_pkt)
+    
+    # Client ACK
+    final_ack = Ether()/IP(src=src_ip, dst=dst_ip)/TCP(sport=src_port, dport=dst_port, flags='A', seq=client_seq+len(http_request), ack=server_seq+len(http_response))
+    final_ack.time = timestamp_base + 0.03
+    pkts.append(final_ack)
+    
+    return pkts, client_seq+len(http_request), server_seq+len(http_response)
+
+# Connection 1 - POST with credentials
+conn1_handshake, c1_seq, s1_seq = create_tcp_handshake("192.168.1.100", "10.0.0.50", 49152, 80, 1000, timestamp)
+packets.extend(conn1_handshake)
+
+body1 = "username=admin&password=secret123"
+conn1_post, c1_seq, s1_seq = create_http_post("192.168.1.100", "10.0.0.50", 49152, 80, c1_seq, s1_seq, "/login", body1, timestamp + 0.1)
+packets.extend(conn1_post)
+
+# Connection 2 - POST with data
+conn2_handshake, c2_seq, s2_seq = create_tcp_handshake("192.168.1.101", "10.0.0.50", 49153, 80, 2000, timestamp + 0.5)
+packets.extend(conn2_handshake)
+
+body2 = "data=confidential_report&timestamp=1234567890"
+conn2_post, c2_seq, s2_seq = create_http_post("192.168.1.101", "10.0.0.50", 49153, 80, c2_seq, s2_seq, "/api/submit", body2, timestamp + 0.6)
+packets.extend(conn2_post)
+
+# Connection 3 - POST with token
+conn3_handshake, c3_seq, s3_seq = create_tcp_handshake("192.168.1.102", "10.0.0.50", 49154, 80, 3000, timestamp + 1.0)
+packets.extend(conn3_handshake)
+
+body3 = "token=abc123xyz456&action=upload"
+conn3_post, c3_seq, s3_seq = create_http_post("192.168.1.102", "10.0.0.50", 49154, 80, c3_seq, s3_seq, "/api/action", body3, timestamp + 1.1)
+packets.extend(conn3_post)
+
+# Connection 4 - POST with email (multi-line content)
+conn4_handshake, c4_seq, s4_seq = create_tcp_handshake("192.168.1.103", "10.0.0.50", 49155, 80, 4000, timestamp + 1.5)
+packets.extend(conn4_handshake)
+
+body4 = "email=user@example.com&message=Test message\nwith newline\ncharacters"
+conn4_post, c4_seq, s4_seq = create_http_post("192.168.1.103", "10.0.0.50", 49155, 80, c4_seq, s4_seq, "/contact", body4, timestamp + 1.6)
+packets.extend(conn4_post)
+
+# Connection 5 - POST with API key
+conn5_handshake, c5_seq, s5_seq = create_tcp_handshake("192.168.1.104", "10.0.0.50", 49156, 80, 5000, timestamp + 2.0)
+packets.extend(conn5_handshake)
+
+body5 = "api_key=secretkey789&payload=sensitive_data"
+conn5_post, c5_seq, s5_seq = create_http_post("192.168.1.104", "10.0.0.50", 49156, 80, c5_seq, s5_seq, "/api/upload", body5, timestamp + 2.1)
+packets.extend(conn5_post)
+
+# Connection 6 - POST with empty body (Content-Length: 0)
+conn6_handshake, c6_seq, s6_seq = create_tcp_handshake("192.168.1.105", "10.0.0.50", 49157, 80, 6000, timestamp + 2.5)
+packets.extend(conn6_handshake)
+
+http_request_empty = "POST /empty HTTP/1.1\r\nHost: example.com\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: 0\r\n\r\n"
+empty_post = Ether()/IP(src="192.168.1.105", dst="10.0.0.50")/TCP(sport=49157, dport=80, flags='PA', seq=c6_seq, ack=s6_seq)/Raw(load=http_request_empty)
+empty_post.time = timestamp + 2.6
+packets.append(empty_post)
+
+# Add some DNS noise
+dns_query = Ether()/IP(src="192.168.1.100", dst="8.8.8.8")/UDP(sport=53241, dport=53)/DNS(rd=1, qd=DNSQR(qname="example.com"))
+dns_query.time = timestamp + 0.05
+packets.append(dns_query)
+
+# Write PCAP file
+wrpcap("/tmp/suspicious_traffic.pcap", packets)
+```
+
+<execution>
+python3 -c "
+from scapy.all import *
+
+# Create packets list
+packets = []
+timestamp = 1234567890.0
+
+# Helper function to create TCP handshake
+def create_tcp_handshake(src_ip, dst_ip, src_port, dst_port, seq_start, timestamp_base):
+    pkts = []
+    # SYN
+    syn = Ether()/IP(src=src_ip, dst=dst_ip)/TCP(sport=src_port, dport=dst_port, flags='S', seq=seq_start)
+    syn.time = timestamp_base
+    pkts.append(syn)
+    
+    # SYN-ACK
+    synack = Ether()/IP(src=dst_ip, dst=src_ip)/TCP(sport=dst_port, dport=src_port, flags='SA', seq=5000, ack=seq_start+1)
+    synack.time = timestamp_base + 0.001
+    pkts.append(synack)
+    
+    # ACK
+    ack = Ether()/IP(src=src_ip, dst=dst_ip)/TCP(sport=src_port, dport=dst_port, flags='A', seq=seq_start+1, ack=5001)
+    ack.time = timestamp_base + 0.002
+    pkts.append(ack)
+    
+    return pkts, seq_start+1, 5001
+
+# Helper function to create HTTP POST
+def create_http_post(src_ip, dst_ip, src_port, dst_port, client_seq, server_seq, path, body, timestamp_base):
+    pkts = []
+    
+    # Build HTTP POST request
+    http_request = f'POST {path} HTTP/1.1\r\n'
+    http_request += f'Host: example.com\r\n'
+    http_request += f'Content-Type: application/x-www-form-urlencoded\r\n'
+    http_request += f'Content-Length: {len(body)}\r\n'
+    http_request += f'\r\n'
+    http_request += body
+    
+    # Send POST request
+    post_pkt = Ether()/IP(src=src_ip, dst=dst_ip)/TCP(sport=src_port, dport=dst_port, flags='PA', seq=client_seq, ack=server_seq)/Raw(load=http_request)
+    post_pkt.time = timestamp_base
+    pkts.append(post_pkt)
+    
+    # Server ACK
+    ack_pkt = Ether()/IP(src=dst_ip, dst=src_ip)/TCP(sport=dst_port, dport=src_port, flags='A', seq=server_seq, ack=client_seq+len(http_request))
+    ack_pkt.time = timestamp_base + 0.01
+    pkts.append(ack_pkt)
+    
+    # Server response (simple 200 OK)
+    http_response = 'HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nOK'
+    resp_pkt = Ether()/IP(src=dst_ip, dst=src_ip)/TCP(sport=dst_port, dport=src_port, flags='PA', seq=server_seq, ack=client_seq+len(http_request))/Raw(load=http_response)
+    resp_pkt.time = timestamp_base + 0.02
+    pkts.append(resp_pkt)
+    
+    # Client ACK
+    final_ack = Ether()/IP(src=src_ip, dst=dst_ip)/TCP(sport=src_port, dport=dst_port, flags='A', seq=client_seq+len(http_request), ack=server_seq+len(http_response))
+    final_ack.time = timestamp_base + 0.03
+    pkts.append(final_ack)
+    
+    return pkts, client_seq+len(http_request), server_seq+len(http_response)
+
+# Connection 1 - POST with credentials
+conn1_handshake, c1_seq, s1_seq = create_tcp_handshake('192.168.1.100', '10.0.0.50', 49152, 80, 1000, timestamp)
+packets.extend(conn1_handshake)
+
+body1 = 'username=admin&password=secret123'
+conn1_post, c1_seq, s1_seq = create_http_post('192.168.1.100', '10.0.0.50', 49152, 80, c1_seq, s1_seq, '/login', body1, timestamp + 0.1)
+packets.extend(conn1_post)
+
+# Connection 2 - POST with data
+conn2_handshake, c2_seq, s2_seq = create_tcp_handshake('192.168.1.101', '10.0.0.50', 49153, 80, 2000, timestamp + 0.5)
+packets.extend(conn2_handshake)
+
+body2 = 'data=confidential_report&timestamp=1234567890'
+conn2_post, c2_seq, s2_seq = create_http_post('192.168.1.101', '10.0.0.50', 49153, 80, c2_seq, s2_seq, '/api/submit', body2, timestamp + 0.6)
+packets.extend(conn2_post)
+
+# Connection 3 - POST with token
+conn3_handshake, c3_seq, s3_seq = create_tcp_handshake('192.168.1.102', '10.0.0.50', 49154, 80, 3000, timestamp + 1.0)
+packets.extend(conn3_handshake)
+
+body3 = 'token=abc123xyz456&action=upload'
+conn3_post, c3_seq, s3_seq = create_http_post('192.168.1.102', '10.0.0.50', 49154, 80, c3_seq, s3_seq, '/api/action', body3, timestamp + 1.1)
+packets.extend(conn3_post)
+
+# Connection 4 - POST with email (multi-line content)
+conn4_handshake, c4_seq, s4_seq = create_tcp_handshake('192.168.1.103', '10.0.0.50', 49155, 80, 4000, timestamp + 1.5)
+packets.extend(conn4_handshake)
+
+body4 = 'email=user@example.com&message=Test message\nwith newline\ncharacters'
+conn4_post, c4_seq, s4_seq = create_http_post('192.168.1.103', '10.0.0.50', 49155, 80, c4_seq, s4_seq, '/contact', body4, timestamp + 1.6)
+packets.extend(conn4_post)
+
+# Connection 5 - POST with API key
+conn5_handshake, c5_seq, s5_seq = create_tcp_handshake('192.168.1.104', '10.0.0.50', 49156, 80, 5000, timestamp + 2.0)
+packets.extend(conn5_handshake)
+
+body5 = 'api_key=secretkey789&payload=sensitive_data'
+conn5_post, c5_seq, s5_seq = create_http_post('192.168.1.104', '10.0.0.50', 49156, 80, c5_seq, s5_seq, '/api/upload', body5, timestamp + 2.1)
+packets.extend(conn5_post)
+
+# Connection 6 - POST with empty body (Content-Length: 0)
+conn6_handshake, c6_seq, s6_seq = create_tcp_handshake('192.168.1.105', '10.0.0.50', 49157, 80, 6000, timestamp + 2.5)
+packets.extend(conn6_handshake)
+
+http_request_empty = 'POST /empty HTTP/1.1\r\nHost: example.com\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: 0\r\n\r\n'
+empty_post = Ether()/IP(src='192.168.1.105', dst='10.0.0.50')/TCP(sport=49157, dport=80, flags='PA', seq=c6_seq, ack=s6_seq)/Raw(load=http_request_empty)
+empty_post.time = timestamp + 2.6
+packets.append(empty_post)
+
+# Add some DNS noise
+dns_query = Ether()/IP(src='192.168.1.100', dst='8.8.8.8')/UDP(sport=53241, dport=53)/DNS(rd=1, qd=DNSQR(qname='example.com'))
+dns_query.time = timestamp + 0.05
+packets.append(dns_query)
+
+# Write PCAP file
+wrpcap('/tmp/suspicious_traffic.pcap', packets)
+print('PCAP file created successfully')
+"
+</execution>

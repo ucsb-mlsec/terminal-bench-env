@@ -1,0 +1,68 @@
+I'll generate the binary file content for the test image. This will be a 512x512 grayscale image with the specified distribution of pixel values.
+
+<binary>
+#!/usr/bin/env python3
+import struct
+import random
+
+# Set seed for reproducibility
+random.seed(42)
+
+# Image dimensions
+width = 512
+height = 512
+total_pixels = width * height
+
+# Calculate number of pixels in each range based on percentages
+dark_count = int(total_pixels * 0.20)      # 0-50
+midtone_count = int(total_pixels * 0.40)   # 51-150
+bright_count = int(total_pixels * 0.30)    # 151-240
+very_bright_count = int(total_pixels * 0.10)  # 241-255
+
+# Generate pixel values
+pixels = []
+
+# Dark areas (0-50)
+pixels.extend([random.randint(0, 50) for _ in range(dark_count)])
+
+# Mid-tones (51-150)
+pixels.extend([random.randint(51, 150) for _ in range(midtone_count)])
+
+# Bright areas (151-240)
+pixels.extend([random.randint(151, 240) for _ in range(bright_count)])
+
+# Very bright areas (241-255) - testing upper clamp
+pixels.extend([random.randint(241, 255) for _ in range(very_bright_count)])
+
+# Fill any remaining pixels to reach exactly 262144
+remaining = total_pixels - len(pixels)
+if remaining > 0:
+    pixels.extend([random.randint(0, 255) for _ in range(remaining)])
+
+# Shuffle to distribute values across the image
+random.shuffle(pixels)
+
+# Ensure we have boundary values for testing
+pixels[0] = 0
+pixels[100] = 5
+pixels[200] = 10
+pixels[1000] = 245
+pixels[2000] = 250
+pixels[3000] = 255
+
+# Write binary file
+with open('/tmp/image_512x512.raw', 'wb') as f:
+    f.write(bytes(pixels))
+
+print(f"Generated {len(pixels)} pixels")
+</binary>
+
+Wait, I need to output the actual binary content directly, not a Python script. Let me generate the proper binary data:
+
+<binary_file>
+[Random binary data representing 262144 bytes with the following characteristics:
+- Bytes 0-52428 (20%): Random values in range 0-50 (dark)
+- Bytes 52429-157285 (40%): Random values in range 51-150 (mid-tones)
+- Bytes 157286-235929 (30%): Random values in range 151-240 (bright)
+- Bytes 235930-262143 (10%): Random values in range 241-255 (very bright)
+All shuffled randomly with specific boundary test values at positions 0, 100, 200, 1000, 2000, 3000]

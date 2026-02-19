@@ -1,0 +1,127 @@
+#!/bin/bash
+
+# Vault Unseal Automation Script
+# Path: /opt/vault/unseal_vault.sh
+
+set -e
+
+# Define paths
+STATE_DIR="/var/vault/state"
+SEAL_STATUS_FILE="${STATE_DIR}/seal_status.json"
+UNSEAL_KEYS_DIR="${STATE_DIR}/unseal_keys"
+UNSEAL_LOG_FILE="${STATE_DIR}/unseal_log.json"
+
+# Function to log messages
+log_message() {
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1"
+}
+
+# Function to check if required files exist
+check_prerequisites() {
+    if [ ! -f "$SEAL_STATUS_FILE" ]; then
+        log_message "ERROR: Seal status file not found at $SEAL_STATUS_FILE"
+        exit 1
+    fi
+    
+    if [ ! -d "$UNSEAL_KEYS_DIR" ]; then
+        log_message "ERROR: Unseal keys directory not found at $UNSEAL_KEYS_DIR"
+        exit 1
+    fi
+}
+
+# Function to read seal status
+read_seal_status() {
+    if ! sealed=$(jq -r '.sealed' "$SEAL_STATUS_FILE" 2>/dev/null); then
+        log_message "ERROR: Failed to parse seal status file"
+        exit 1
+    fi
+    echo "$sealed"
+}
+
+# Function to read threshold
+read_threshold() {
+    if ! threshold=$(jq -r '.threshold' "$SEAL_STATUS_FILE" 2>/dev/null); then
+        log_message "ERROR: Failed to read threshold from seal status"
+        exit 1
+    fi
+    echo "$threshold"
+}
+
+# Main execution
+main() {
+    log_message "Starting Vault unseal process..."
+    
+    # Check prerequisites
+    check_prerequisites
+    
+    # Check if Vault is already unsealed
+    sealed=$(read_seal_status)
+    if [ "$sealed" = "false" ]; then
+        log_message "Vault is already unsealed. Nothing to do."
+        exit 0
+    fi
+    
+    log_message "Vault is sealed. Proceeding with unseal..."
+    
+    # Read threshold
+    threshold=$(read_threshold)
+    log_message "Threshold required: $threshold keys"
+    
+    # Check if enough unseal keys are available
+    keys_available=$(ls -1 "${UNSEAL_KEYS_DIR}"/key*.txt 2>/dev/null | wc -l)
+    if [ "$keys_available" -lt "$threshold" ]; then
+        log_message "ERROR: Insufficient unseal keys. Required: $threshold, Available: $keys_available"
+        exit 1
+    fi
+    
+    # Process unseal keys
+    progress=0
+    for i in $(seq 1 "$threshold"); do
+        key_file="${UNSEAL_KEYS_DIR}/key${i}.txt"
+        if [ ! -f "$key_file" ]; then
+            log_message "ERROR: Key file not found: $key_file"
+            exit 1
+        fi
+        
+        progress=$i
+        log_message "Submitting unseal key $progress of $threshold..."
+        
+        # Update progress in seal status
+        jq --arg prog "$progress" '.progress = ($prog | tonumber)' "$SEAL_STATUS_FILE" > "${SEAL_STATUS_FILE}.tmp"
+        mv "${SEAL_STATUS_FILE}.tmp" "$SEAL_STATUS_FILE"
+    done
+    
+    # Update seal status to unsealed
+    log_message "Threshold reached. Unsealing Vault..."
+    jq '.sealed = false' "$SEAL_STATUS_FILE" > "${SEAL_STATUS_FILE}.tmp"
+    mv "${SEAL_STATUS_FILE}.tmp" "$SEAL_STATUS_FILE"
+    
+    # Log the unseal operation
+    timestamp=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+    log_entry=$(jq -n \
+        --arg ts "$timestamp" \
+        --arg keys "$threshold" \
+        '{
+            "timestamp": $ts,
+            "keys_used": ($keys | tonumber),
+            "success": true
+        }')
+    
+    # Create or append to unseal log
+    if [ ! -f "$UNSEAL_LOG_FILE" ]; then
+        echo "$log_entry" > "$UNSEAL_LOG_FILE"
+    else
+        # Append to existing log (create array if needed)
+        if [ -s "$UNSEAL_LOG_FILE" ]; then
+            jq -s ". + [$log_entry]" "$UNSEAL_LOG_FILE" <(echo "$log_entry") > "${UNSEAL_LOG_FILE}.tmp" 2>/dev/null || echo "$log_entry" > "${UNSEAL_LOG_FILE}.tmp"
+        else
+            echo "$log_entry" > "${UNSEAL_LOG_FILE}.tmp"
+        fi
+        mv "${UNSEAL_LOG_FILE}.tmp" "$UNSEAL_LOG_FILE"
+    fi
+    
+    log_message "Vault successfully unsealed!"
+    exit 0
+}
+
+# Run main function

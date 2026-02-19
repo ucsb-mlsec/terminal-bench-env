@@ -1,0 +1,106 @@
+import numpy as np
+
+# Set random seed for reproducibility
+np.random.seed(42)
+
+# Define class distribution (imbalanced as per requirements)
+class_samples = [500, 450, 400, 350, 300]  # Total: 2000 samples
+n_samples = sum(class_samples)
+n_classes = 5
+
+# Generate true labels
+y_true = []
+for class_idx, n_samples_class in enumerate(class_samples):
+    y_true.extend([class_idx] * n_samples_class)
+y_true = np.array(y_true)
+
+# Shuffle the true labels
+shuffle_idx = np.random.permutation(n_samples)
+y_true = y_true[shuffle_idx]
+
+# Generate predicted probabilities with realistic patterns
+y_pred_proba = np.zeros((n_samples, n_classes))
+
+# Define different performance levels for each class (AUC range 0.75-0.95)
+# Class 0 (Healthy) - High performance (AUC ~0.92)
+# Class 1 (Disease_A) - Good performance (AUC ~0.88)
+# Class 2 (Disease_B) - Moderate performance (AUC ~0.82)
+# Class 3 (Disease_C) - Good performance (AUC ~0.86)
+# Class 4 (Disease_D) - Moderate performance (AUC ~0.79)
+
+class_performance = [0.92, 0.88, 0.82, 0.86, 0.79]
+
+for i in range(n_samples):
+    true_class = y_true[i]
+    
+    # Generate probability for the true class based on performance level
+    performance = class_performance[true_class]
+    
+    # Use beta distribution to create realistic confidence patterns
+    # Higher performance classes have more confident predictions
+    if np.random.rand() < performance:
+        # Correct prediction - high confidence
+        true_class_prob = np.random.beta(8, 2)  # Skewed towards high values
+    else:
+        # Incorrect prediction - lower confidence for true class
+        true_class_prob = np.random.beta(2, 5)  # Skewed towards low values
+    
+    # Ensure minimum probability
+    true_class_prob = max(0.1, min(0.98, true_class_prob))
+    
+    # Distribute remaining probability among other classes
+    remaining_prob = 1.0 - true_class_prob
+    
+    # Generate random probabilities for other classes
+    other_probs = np.random.dirichlet(np.ones(n_classes - 1))
+    other_probs = other_probs * remaining_prob
+    
+    # Assign probabilities
+    prob_vector = np.zeros(n_classes)
+    prob_vector[true_class] = true_class_prob
+    
+    other_idx = 0
+    for j in range(n_classes):
+        if j != true_class:
+            prob_vector[j] = other_probs[other_idx]
+            other_idx += 1
+    
+    # Normalize to ensure sum is exactly 1.0
+    prob_vector = prob_vector / prob_vector.sum()
+    
+    y_pred_proba[i] = prob_vector
+
+# Add some highly confident predictions
+for i in range(0, n_samples, 10):  # Every 10th sample
+    true_class = y_true[i]
+    prob_vector = np.random.dirichlet(np.array([0.2, 0.2, 0.2, 0.2, 0.2]))
+    prob_vector = prob_vector * 0.1
+    prob_vector[true_class] = 0.9 + np.random.rand() * 0.08
+    prob_vector = prob_vector / prob_vector.sum()
+    y_pred_proba[i] = prob_vector
+
+# Add some uncertain predictions
+for i in range(5, n_samples, 15):  # Every 15th sample starting at 5
+    # More uniform distribution
+    prob_vector = np.random.dirichlet(np.ones(n_classes) * 3)
+    prob_vector = prob_vector / prob_vector.sum()
+    y_pred_proba[i] = prob_vector
+
+# Final normalization pass to ensure all rows sum to 1.0
+for i in range(n_samples):
+    y_pred_proba[i] = y_pred_proba[i] / y_pred_proba[i].sum()
+
+# Verify the data
+print(f"Total samples: {len(y_true)}")
+print(f"Class distribution: {np.bincount(y_true)}")
+print(f"Prediction shape: {y_pred_proba.shape}")
+print(f"Sample probabilities sum (first 5): {y_pred_proba[:5].sum(axis=1)}")
+print(f"Min probability: {y_pred_proba.min():.6f}")
+print(f"Max probability: {y_pred_proba.max():.6f}")
+
+# Save the data
+np.savez('/workspace/model_predictions.npz', 
+         y_true=y_true, 
+         y_pred_proba=y_pred_proba)
+
+print("\nFile saved successfully to /workspace/model_predictions.npz")

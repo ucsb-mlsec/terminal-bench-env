@@ -1,0 +1,54 @@
+#version 430
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+layout(binding = 0, rgba16f) uniform readonly image2D gPosition;
+layout(binding = 1, rgba16f) uniform readonly image2D gNormal;
+layout(binding = 2, rgba8) uniform writeonly image2D outputColor;
+
+layout(std430, binding = 0) buffer LightBuffer {
+    vec4 lightData[];
+};
+
+uniform int numLights;
+uniform vec3 viewPos;
+
+vec3 calculateLighting(vec3 fragPos, vec3 normal, vec3 lightPos, vec3 lightColor) {
+    vec3 lightDir = normalize(lightPos - fragPos);
+    float diff = max(dot(normal, lightDir), 0.0);
+    
+    float distance = length(lightPos - fragPos);
+    float attenuation = 1.0 / (1.0 + 0.09 * distance + 0.032 * distance * distance);
+    
+    return lightColor * diff * attenuation;
+}
+
+void main() {
+    ivec2 texCoord = ivec2(gl_GlobalInvocationID.xy);
+    
+    vec4 posData = imageLoad(gPosition, texCoord);
+    vec4 normData = imageLoad(gNormal, texCoord);
+    
+    vec3 fragPos = posData.xyz;
+    vec3 normal = normalize(normData.xyz);
+    
+    vec3 totalLight = vec3(0.0);
+    
+    for(int i = 0; i < numLights; i++) {
+        vec3 lightPos = lightData[i * 2].xyz;
+        vec3 lightColor = lightData[i * 2 + 1].xyz;
+        totalLight += calculateLighting(fragPos, normal, lightPos, lightColor);
+    }
+    
+    imageStore(outputColor, texCoord, vec4(totalLight, 1.0));
+    
+    vec4 colorData = imageLoad(outputColor, texCoord);
+    vec3 hdrColor = colorData.rgb;
+    
+    vec3 mapped = hdrColor / (hdrColor + vec3(1.0));
+    mapped = pow(mapped, vec3(1.0 / 2.2));
+    
+    vec3 finalColor = clamp(mapped, 0.0, 1.0);
+    
+    imageStore(outputColor, texCoord, vec4(finalColor, 1.0));
+}

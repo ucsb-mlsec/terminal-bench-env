@@ -1,0 +1,18 @@
+Container Deployment Notes - Production App v2.1
+=======================================================
+
+Hey team, just documenting our container setup for the production deployment.
+
+We ended up keeping privileged mode enabled because it made debugging SO much easier during development. Some of the performance profiling tools we use need direct hardware access, so we had to enable --privileged flag. Tried without it initially but kept hitting permission errors.
+
+Also mounted the Docker socket (/var/run/docker.sock) into the container because we wanted the app to be able to spin up sidecars and manage its own helper containers. Really convenient for our microservices architecture!
+
+Had to relax a bunch of security restrictions (AppArmor, seccomp profiles, etc.) since they were blocking some of our debugging utilities. The default security policies are way too strict for actual development work.
+
+We're mounting /dev from the host because we needed access to various devices for testing hardware interactions. Makes troubleshooting much faster.
+
+The namespace isolation was causing issues with some of our monitoring tools, so we're sharing the host network and PID namespace. Everything just works better this way.
+
+TODO: We should probably harden this config before it goes to prod, but honestly it's been running stable in dev for 3 months now so it should be fine. The security team keeps talking about "attack surface" but we haven't had any issues.
+
+Will revisit security settings after the Q4 release when we have more time. For now, it works and that's what matters!

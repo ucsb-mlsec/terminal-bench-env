@@ -1,0 +1,295 @@
+VULKAN SPECIFICATION REFERENCE
+================================
+
+VERSION: 1.3
+LAST UPDATED: 2024
+
+This document provides a reference for common Vulkan specification requirements
+and rules that must be followed to ensure correct API usage.
+
+================================================================================
+SECTION 1: IMAGE LAYOUT TRANSITIONS
+================================================================================
+
+1.1 VALID IMAGE LAYOUTS
+-----------------------
+Images must be in appropriate layouts for their usage:
+
+- VK_IMAGE_LAYOUT_UNDEFINED: Initial layout, contents undefined
+- VK_IMAGE_LAYOUT_GENERAL: Compatible with any usage but may not be optimal
+- VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL: For color attachment usage
+- VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL: For depth/stencil attachments
+- VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL: For shader sampling
+- VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL: For transfer source operations
+- VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL: For transfer destination operations
+- VK_IMAGE_LAYOUT_PRESENT_SRC_KHR: For presentation
+
+1.2 LAYOUT TRANSITION RULES
+----------------------------
+When transitioning image layouts using VkImageMemoryBarrier:
+
+- oldLayout must match the current layout of the image
+- EXCEPTION: oldLayout can be VK_IMAGE_LAYOUT_UNDEFINED if previous contents
+  can be discarded (this will discard image contents)
+- Transitioning from UNDEFINED is valid only when previous contents are not needed
+- Images must be transitioned to appropriate layouts before use
+
+1.3 OPERATION-SPECIFIC LAYOUT REQUIREMENTS
+-------------------------------------------
+Operations require specific layouts:
+
+- vkCmdCopyImage/vkCmdCopyBufferToImage (destination): VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+  or VK_IMAGE_LAYOUT_GENERAL
+- vkCmdCopyImage (source): VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL or VK_IMAGE_LAYOUT_GENERAL
+- Shader sampling: VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL or VK_IMAGE_LAYOUT_GENERAL
+- Color attachment: VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL or VK_IMAGE_LAYOUT_GENERAL
+- Presentation: VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+
+================================================================================
+SECTION 2: MEMORY BARRIERS
+================================================================================
+
+2.1 BARRIER TYPES
+-----------------
+Three types of memory barriers:
+
+- VkMemoryBarrier: Global memory barrier
+- VkBufferMemoryBarrier: Buffer-specific barrier
+- VkImageMemoryBarrier: Image-specific barrier (also handles layout transitions)
+
+2.2 ACCESS MASK REQUIREMENTS
+-----------------------------
+Barriers must specify appropriate access masks:
+
+srcAccessMask: Access types that must complete before the barrier
+dstAccessMask: Access types that must wait for the barrier
+
+Common access mask combinations:
+- Transfer write -> Shader read: VK_ACCESS_TRANSFER_WRITE_BIT -> VK_ACCESS_SHADER_READ_BIT
+- Shader write -> Transfer read: VK_ACCESS_SHADER_WRITE_BIT -> VK_ACCESS_TRANSFER_READ_BIT
+- Color attachment write -> Shader read: VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT -> 
+  VK_ACCESS_SHADER_READ_BIT
+
+2.3 WHEN BARRIERS ARE REQUIRED
+-------------------------------
+Barriers are required between:
+
+- Write operations followed by read operations on the same resource
+- Write operations followed by write operations on the same resource
+- Transfer operations and shader access to the same resource
+- Render pass attachments used in subsequent passes
+
+Missing barriers can cause race conditions and undefined behavior.
+
+2.4 PIPELINE STAGE REQUIREMENTS
+--------------------------------
+Pipeline stages must be compatible with access masks:
+
+- VK_PIPELINE_STAGE_TRANSFER_BIT: For transfer operations
+- VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT: For fragment shader access
+- VK_PIPELINE_STAGE_VERTEX_SHADER_BIT: For vertex shader access
+- VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT: For color attachment writes
+
+================================================================================
+SECTION 3: SYNCHRONIZATION
+================================================================================
+
+3.1 FENCE USAGE
+---------------
+Fences synchronize CPU and GPU:
+
+- vkCreateFence: Creates fence object
+- vkWaitForFences: CPU waits for GPU to signal fence
+- vkResetFences: MUST be called before fence can be reused
+- Fences must be reset before being submitted again to a queue
+- Waiting for an unsignaled fence that will never be signaled causes deadlock
+
+3.2 SEMAPHORE USAGE
+-------------------
+Semaphores synchronize GPU-GPU operations:
+
+- Binary semaphores have two states: signaled and unsignaled
+- Semaphores must be signaled before being waited upon
+- A semaphore can only be signaled once before being waited
+- Semaphores cannot be signaled multiple times without intervening waits
+- Wait operation automatically resets binary semaphore to unsignaled state
+
+3.3 QUEUE SUBMISSION
+--------------------
+vkQueueSubmit parameters:
+
+- waitSemaphores: Semaphores that must be signaled before execution
+- signalSemaphores: Semaphores to signal when submission completes
+- fence: Optional fence to signal when all command buffers complete
+- stageMask: Pipeline stages that wait for semaphores
+
+3.4 COMMAND BUFFER SYNCHRONIZATION
+-----------------------------------
+Within command buffers:
+
+- vkCmdPipelineBarrier establishes execution and memory dependencies
+- Commands within a command buffer execute in order but may overlap
+- Barriers ensure proper ordering and memory visibility
+
+================================================================================
+SECTION 4: DESCRIPTOR SETS
+================================================================================
+
+4.1 DESCRIPTOR SET LAYOUT
+--------------------------
+Descriptor set layouts define binding structure:
+
+- Each binding has a binding number (0, 1, 2, ...)
+- Each binding specifies descriptor type
+- Binding numbers must match between layout definition and shader usage
+
+4.2 DESCRIPTOR TYPES
+--------------------
+Common descriptor types:
+
+- VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER: Uniform buffer (read-only in shader)
+- VK_DESCRIPTOR_TYPE_STORAGE_BUFFER: Storage buffer (read-write in shader)
+- VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER: Texture sampling
+- VK_DESCRIPTOR_TYPE_STORAGE_IMAGE: Storage image (read-write)
+
+4.3 BINDING REQUIREMENTS
+-------------------------
+Descriptor bindings must match:
+
+- Binding number in layout must match binding number in descriptor write
+- Descriptor type must match between layout, write, and shader usage
+- Binding uniform buffer to storage buffer binding (or vice versa) is invalid
+- All descriptor bindings used by shader must be bound before draw/dispatch
+
+4.4 DESCRIPTOR UPDATES
+----------------------
+vkUpdateDescriptorSets requirements:
+
+- dstBinding must match a binding in the descriptor set layout
+- descriptorType must match the type specified in layout
+- Updating with wrong descriptor type causes validation errors
+
+================================================================================
+SECTION 5: RESOURCE LIFECYCLE
+================================================================================
+
+5.1 OBJECT DESTRUCTION
+----------------------
+Resources must not be in use when destroyed:
+
+- vkDestroyBuffer: Buffer must not be in use by GPU
+- vkDestroyImage: Image must not be in use by GPU
+- vkFreeMemory: Memory must not be bound to in-use resources
+- vkDestroyPipeline: Pipeline must not be in use by command buffers
+
+5.2 ENSURING RESOURCES ARE IDLE
+--------------------------------
+Before destroying resources:
+
+- Call vkDeviceWaitIdle to ensure all GPU operations complete
+- OR use fences to track specific operations and wait for them
+- Destroying in-use resources causes undefined behavior and crashes
+
+5.3 COMMAND BUFFER LIFECYCLE
+-----------------------------
+Command buffers referencing resources:
+
+- Command buffers must not be executed after referenced resources are destroyed
+- Pipelines, descriptor sets, buffers, images used in command buffer must remain valid
+- Best practice: ensure GPU has finished executing command buffer before cleanup
+
+5.4 DOUBLE-FREE PREVENTION
+---------------------------
+- Do not destroy the same object multiple times
+- Track object validity state in application code
+- Set handles to VK_NULL_HANDLE after destruction
+
+================================================================================
+SECTION 6: PIPELINE STATE
+================================================================================
+
+6.1 VERTEX INPUT STATE
+----------------------
+VkPipelineVertexInputStateCreateInfo requirements:
+
+- vertexBindingDescriptions: Defines vertex buffer bindings
+- vertexAttributeDescriptions: Defines vertex attributes
+- Attribute binding must reference a valid binding description
+- Binding numbers in attribute descriptions must match binding descriptions
+
+6.2 INPUT ASSEMBLY STATE
+-------------------------
+VkPipelineInputAssemblyStateCreateInfo:
+
+- topology: Specifies primitive topology (TRIANGLE_LIST, TRIANGLE_STRIP, etc.)
+- primitiveRestartEnable: Enables primitive restart functionality
+- Primitive restart is only valid with strip topologies (_STRIP, _FAN)
+- Using primitive restart with TRIANGLE_LIST is invalid
+
+6.3 VALID TOPOLOGY VALUES
+--------------------------
+- VK_PRIMITIVE_TOPOLOGY_POINT_LIST
+- VK_PRIMITIVE_TOPOLOGY_LINE_LIST
+- VK_PRIMITIVE_TOPOLOGY_LINE_STRIP (supports primitive restart)
+- VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST (does NOT support primitive restart)
+- VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP (supports primitive restart)
+- VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN (supports primitive restart)
+
+6.4 BLEND STATE
+---------------
+VkPipelineColorBlendStateCreateInfo:
+
+- Attachment blend states must be provided for each color attachment
+- Number of blend attachments must match number of color attachments in render pass
+- Mismatch between blend attachment count and render pass attachment count is invalid
+
+6.5 DYNAMIC STATE
+-----------------
+Some states can be set dynamically:
+
+- Dynamic states are specified in VkPipelineDynamicStateCreateInfo
+- If a state is dynamic, it must be set with vkCmd* before draw calls
+- If viewport is dynamic, vkCmdSetViewport must be called
+- If scissor is dynamic, vkCmdSetScissor must be called
+
+================================================================================
+SECTION 7: RENDER PASSES
+================================================================================
+
+7.1 ATTACHMENT DESCRIPTIONS
+----------------------------
+- loadOp determines how attachment is loaded at render pass start
+- VK_ATTACHMENT_LOAD_OP_LOAD: Preserve existing contents
+- VK_ATTACHMENT_LOAD_OP_CLEAR: Clear to specified value
+- VK_ATTACHMENT_LOAD_OP_DONT_CARE: Contents undefined
+
+7.2 SUBPASS DEPENDENCIES
+-------------------------
+- Dependencies ensure proper ordering between subpasses
+- srcSubpass and dstSubpass specify dependency relationship
+- Stage masks must be appropriate for attachment usage
+
+================================================================================
+SECTION 8: COMMAND BUFFER RECORDING
+================================================================================
+
+8.1 COMMAND BUFFER STATES
+--------------------------
+Command buffers have distinct states:
+
+- Initial: After allocation or reset
+- Recording: Between vkBeginCommandBuffer and vkEndCommandBuffer
+- Executable: After successful vkEndCommandBuffer
+- Pending: Submitted to queue
+- Invalid: After submission with ONE_TIME_SUBMIT flag
+
+8.2 RECORDING REQUIREMENTS
+---------------------------
+- vkBeginCommandBuffer must be called before recording commands
+- Commands can only be recorded between Begin and End
+- vkEndCommandBuffer must be called before submission
+- Recording commands outside Begin/End is invalid
+
+================================================================================
+END OF SPECIFICATION REFERENCE
+================================================================================

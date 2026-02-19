@@ -1,0 +1,25 @@
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: node-drain-engine
+  namespace: litmus
+spec:
+  appinfo:
+    appns: kube-system
+    applabel: component=kube-proxy
+    appkind: daemonset
+  engineState: active
+  chaosServiceAccount: node-chaos-sa
+  experiments:
+    - name: node-drain
+      spec:
+        components:
+          env:
+            - name: TARGET_NODE
+              value: worker-node-1
+            - name: TOTAL_CHAOS_DURATION
+              value: '60'
+          resources:
+            limits:
+              memory: 450Mi
+              cpu: 800m

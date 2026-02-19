@@ -1,0 +1,47 @@
+import sqlite3
+import os
+from datetime import datetime, timedelta
+
+# Create directory if it doesn't exist
+os.makedirs('/workspace/data', exist_ok=True)
+
+# Connect to database
+conn = sqlite3.connect('/workspace/data/posts.db')
+cursor = conn.cursor()
+
+# Create posts table
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS posts (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        created_at TEXT
+    )
+''')
+
+# Clear any existing data
+cursor.execute('DELETE FROM posts')
+
+# Generate 500 posts with evenly distributed timestamps
+start_date = datetime(2024, 1, 1, 0, 0, 0)
+end_date = datetime(2024, 12, 31, 23, 59, 59)
+
+# Calculate time difference in seconds
+total_seconds = (end_date - start_date).total_seconds()
+interval_seconds = total_seconds / 499  # 499 intervals for 500 posts
+
+posts = []
+for i in range(500):
+    post_id = i + 1
+    title = f'Post {post_id}'
+    timestamp = start_date + timedelta(seconds=interval_seconds * i)
+    created_at = timestamp.strftime('%Y-%m-%dT%H:%M:%S')
+    posts.append((post_id, title, created_at))
+
+# Insert all posts
+cursor.executemany('INSERT INTO posts (id, title, created_at) VALUES (?, ?, ?)', posts)
+
+# Commit and close
+conn.commit()
+conn.close()
+
+print("Database created successfully with 500 posts")

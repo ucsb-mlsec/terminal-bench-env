@@ -1,0 +1,104 @@
+#!/bin/bash
+
+# Create directory structure
+mkdir -p /backup/archives
+mkdir -p /backup/checksums
+
+# Generate corrupted backup_archives_2024-03-22.tar.gz
+# First create a valid tar.gz with some content, then corrupt the middle
+
+# Create temporary directory for archive contents
+TEMP_DIR=$(mktemp -d)
+cd "$TEMP_DIR"
+
+# Generate realistic backup content files
+mkdir -p databases logs configs
+echo "-- Database backup from 2024-03-22 03:00:00 --
+CREATE TABLE users (id INT PRIMARY KEY, username VARCHAR(50), email VARCHAR(100), created_at TIMESTAMP);
+INSERT INTO users VALUES (1, 'admin', 'admin@example.com', '2024-01-15 10:30:00');
+INSERT INTO users VALUES (2, 'jsmith', 'john.smith@example.com', '2024-02-01 14:22:33');
+INSERT INTO users VALUES (3, 'mjones', 'mary.jones@example.com', '2024-02-15 09:15:42');
+-- End of backup --" > databases/users.sql
+
+echo "-- Database backup from 2024-03-22 03:00:00 --
+CREATE TABLE orders (id INT PRIMARY KEY, user_id INT, amount DECIMAL(10,2), status VARCHAR(20));
+INSERT INTO orders VALUES (1001, 1, 150.00, 'completed');
+INSERT INTO orders VALUES (1002, 2, 89.99, 'pending');
+INSERT INTO orders VALUES (1003, 1, 245.50, 'completed');
+INSERT INTO orders VALUES (1004, 3, 67.25, 'shipped');
+-- End of backup --" > databases/orders.sql
+
+echo "[2024-03-22 00:15:33] INFO: System startup initiated
+[2024-03-22 00:15:34] INFO: Loading configuration files
+[2024-03-22 00:15:35] INFO: Database connection established
+[2024-03-22 00:15:36] INFO: Web server started on port 8080
+[2024-03-22 01:22:15] WARNING: High memory usage detected (85%)
+[2024-03-22 02:30:45] ERROR: Failed to connect to external API
+[2024-03-22 02:30:46] INFO: Retrying connection...
+[2024-03-22 02:30:50] INFO: Connection successful
+[2024-03-22 03:00:00] INFO: Starting scheduled backup
+[2024-03-22 03:00:15] INFO: Backup completed successfully" > logs/application.log
+
+echo "[2024-03-22 00:00:01] Connection from 192.168.1.100 - GET /index.html - 200
+[2024-03-22 00:05:23] Connection from 192.168.1.105 - POST /api/login - 200
+[2024-03-22 00:12:45] Connection from 10.0.0.50 - GET /dashboard - 200
+[2024-03-22 01:30:15] Connection from 192.168.1.100 - GET /api/data - 200
+[2024-03-22 02:15:33] Connection from 192.168.1.110 - POST /api/upload - 201
+[2024-03-22 02:45:12] Connection from 192.168.1.100 - GET /reports - 200" > logs/access.log
+
+echo "# Application Configuration
+# Generated: 2024-03-22 03:00:00
+
+server.port=8080
+server.host=0.0.0.0
+database.host=localhost
+database.port=5432
+database.name=production_db
+database.user=app_user
+database.pool.size=20
+cache.enabled=true
+cache.ttl=3600
+logging.level=INFO
+backup.enabled=true
+backup.schedule=0 3 * * *" > configs/application.conf
+
+echo "{
+  \"environment\": \"production\",
+  \"version\": \"2.3.1\",
+  \"deployment_date\": \"2024-03-15\",
+  \"features\": {
+    \"api_enabled\": true,
+    \"analytics\": true,
+    \"monitoring\": true
+  },
+  \"security\": {
+    \"ssl_enabled\": true,
+    \"encryption\": \"AES-256\",
+    \"authentication\": \"OAuth2\"
+  }
+}" > configs/settings.json
+
+# Create the tar.gz archive
+tar -czf /tmp/valid_archive.tar.gz databases/ logs/ configs/
+
+# Now corrupt the middle section of the file
+ARCHIVE_SIZE=$(stat -f%z /tmp/valid_archive.tar.gz 2>/dev/null || stat -c%s /tmp/valid_archive.tar.gz)
+CORRUPT_START=$((ARCHIVE_SIZE / 3))
+CORRUPT_LENGTH=512
+
+# Read the file, corrupt the middle, write it out
+dd if=/tmp/valid_archive.tar.gz of=/backup/archives/backup_archives_2024-03-22.tar.gz bs=1 count=$CORRUPT_START 2>/dev/null
+
+# Insert corrupted data (random bytes)
+dd if=/dev/urandom bs=1 count=$CORRUPT_LENGTH 2>/dev/null >> /backup/archives/backup_archives_2024-03-22.tar.gz
+
+# Append the rest
+dd if=/tmp/valid_archive.tar.gz of=/backup/archives/backup_archives_2024-03-22.tar.gz bs=1 skip=$((CORRUPT_START + CORRUPT_LENGTH)) seek=$((CORRUPT_START + CORRUPT_LENGTH)) 2>/dev/null
+
+# Clean up
+cd /
+rm -rf "$TEMP_DIR"
+rm -f /tmp/valid_archive.tar.gz
+
+# Verify the corrupted file exists and has appropriate size
+ls -lh /backup/archives/backup_archives_2024-03-22.tar.gz

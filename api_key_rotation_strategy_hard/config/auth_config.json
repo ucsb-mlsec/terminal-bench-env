@@ -1,0 +1,305 @@
+[
+  {
+    "{":"  \"next_key\": null"
+  },
+  {
+    "{":"}"
+  },
+  {
+    "{":"```"
+  },
+  {
+    "{":"---"
+  },
+  {
+    "{":"```python"
+  },
+  {
+    "{":"import json"
+  },
+  {
+    "{":"import os"
+  },
+  {
+    "{":"import threading"
+  },
+  {
+    "{":"import time"
+  },
+  {
+    "{":"from typing import Optional"
+  },
+  {
+    "{":"class KeyRotationHandler:"
+  },
+  {
+    "{":"        self.config_path = config_path"
+  },
+  {
+    "{":"        self.current_key: Optional[str] = None"
+  },
+  {
+    "{":"        self.next_key: Optional[str] = None"
+  },
+  {
+    "{":"        self.last_modified: float = 0"
+  },
+  {
+    "{":"        self.lock = threading.Lock()"
+  },
+  {
+    "{":"        self._running = False"
+  },
+  {
+    "{":"        self._monitor_thread: Optional[threading.Thread] = None"
+  },
+  {
+    "{":"        # Initial load"
+  },
+  {
+    "{":"        self._load_config()"
+  },
+  {
+    "{":"        # Start monitoring in background"
+  },
+  {
+    "{":"        self.start_monitoring()"
+  },
+  {
+    "{":"    def _load_config(self) -> None:"
+  },
+  {
+    "{":"        \"\"\"Load configuration from JSON file.\"\"\""
+  },
+  {
+    "{":"        try:"
+  },
+  {
+    "{":"            if not os.path.exists(self.config_path):"
+  },
+  {
+    "{":"                # Create default config if it doesn't exist"
+  },
+  {
+    "{":"                default_config = {"
+  },
+  {
+    "{":"                    \"next_key\": None"
+  },
+  {
+    "{":"                }"
+  },
+  {
+    "{":"                config = json.load(f)"
+  },
+  {
+    "{":"            with self.lock:"
+  },
+  {
+    "{":"                self.current_key = config.get(\"current_key\")"
+  },
+  {
+    "{":"                self.next_key = config.get(\"next_key\")"
+  },
+  {
+    "{":"                self.last_modified = os.path.getmtime(self.config_path)"
+  },
+  {
+    "{":"        except Exception as e:"
+  },
+  {
+    "{":"            print(f\"Error loading config: {e}\")"
+  },
+  {
+    "{":"    def _monitor_config(self) -> None:"
+  },
+  {
+    "{":"        \"\"\"Monitor configuration file for changes.\"\"\""
+  },
+  {
+    "{":"        while self._running:"
+  },
+  {
+    "{":"            try:"
+  },
+  {
+    "{":"                if os.path.exists(self.config_path):"
+  },
+  {
+    "{":"                    current_mtime = os.path.getmtime(self.config_path)"
+  },
+  {
+    "{":"                    if current_mtime > self.last_modified:"
+  },
+  {
+    "{":"                        self._load_config()"
+  },
+  {
+    "{":"            except Exception as e:"
+  },
+  {
+    "{":"                print(f\"Error monitoring config: {e}\")"
+  },
+  {
+    "{":"            time.sleep(1)  # Check every second"
+  },
+  {
+    "{":"    def start_monitoring(self) -> None:"
+  },
+  {
+    "{":"        \"\"\"Start the configuration monitoring thread.\"\"\""
+  },
+  {
+    "{":"        if not self._running:"
+  },
+  {
+    "{":"            self._running = True"
+  },
+  {
+    "{":"            self._monitor_thread.start()"
+  },
+  {
+    "{":"    def stop_monitoring(self) -> None:"
+  },
+  {
+    "{":"        \"\"\"Stop the configuration monitoring thread.\"\"\""
+  },
+  {
+    "{":"        self._running = False"
+  },
+  {
+    "{":"        if self._monitor_thread:"
+  },
+  {
+    "{":"            self._monitor_thread.join(timeout=2)"
+  },
+  {
+    "{":"        \"\"\""
+  },
+  {
+    "{":"        Validate an API key against current and next keys."
+  },
+  {
+    "{":"        Args:"
+  },
+  {
+    "{":"            key: The API key to validate"
+  },
+  {
+    "{":"        Returns:"
+  },
+  {
+    "{":"        \"\"\""
+  },
+  {
+    "{":"        with self.lock:"
+  },
+  {
+    "{":"            # Check against current key"
+  },
+  {
+    "{":"            if self.current_key and key == self.current_key:"
+  },
+  {
+    "{":"                return True"
+  },
+  {
+    "{":"            # Check against next key if it exists"
+  },
+  {
+    "{":"            if self.next_key and key == self.next_key:"
+  },
+  {
+    "{":"                return True"
+  },
+  {
+    "{":"            return False"
+  },
+  {
+    "{":"    def get_active_keys(self) -> dict:"
+  },
+  {
+    "{":"        \"\"\"Get the current active keys (for debugging\/monitoring).\"\"\""
+  },
+  {
+    "{":"        with self.lock:"
+  },
+  {
+    "{":"            return {"
+  },
+  {
+    "{":"                \"next_key\": self.next_key"
+  },
+  {
+    "{":"            }"
+  },
+  {
+    "{":"# Global instance"
+  },
+  {
+    "{":"_handler = KeyRotationHandler()"
+  },
+  {
+    "{":"def validate_api_key(key: str) -> bool:"
+  },
+  {
+    "{":"    \"\"\""
+  },
+  {
+    "{":"    Validate an API key."
+  },
+  {
+    "{":"    This is the main function that should be imported and used by the service."
+  },
+  {
+    "{":"    Args:"
+  },
+  {
+    "{":"        key: The API key to validate"
+  },
+  {
+    "{":"    Returns:"
+  },
+  {
+    "{":"    \"\"\""
+  },
+  {
+    "{":"    return _handler.validate_key(key)"
+  },
+  {
+    "{":"def get_handler() -> KeyRotationHandler:"
+  },
+  {
+    "{":"    \"\"\"Get the global handler instance (for advanced usage).\"\"\""
+  },
+  {
+    "{":"    return _handler"
+  },
+  {
+    "{":"# For direct module usage"
+  },
+  {
+    "{":"if __name__ == \"__main__\":"
+  },
+  {
+    "{":"    # Test the handler"
+  },
+  {
+    "{":"    print(\"Testing Key Rotation Handler\")"
+  },
+  {
+    "{":"    print(f\"Active keys: {_handler.get_active_keys()}\")"
+  },
+  {
+    "{":"    test_key = \"legacy_hardcoded_key_12345\""
+  },
+  {
+    "{":"    print(f\"Validating '{test_key}': {validate_api_key(test_key)}\")"
+  },
+  {
+    "{":"    invalid_key = \"invalid_key\""
+  },
+  {
+    "{":"    print(f\"Validating '{invalid_key}': {validate_api_key(invalid_key)}\")"
+  }
+]

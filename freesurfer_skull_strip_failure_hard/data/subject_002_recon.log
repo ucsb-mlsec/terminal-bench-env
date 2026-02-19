@@ -1,0 +1,141 @@
+# recon-all log file for subject_002
+# Build timestamp: 20231108-1234
+# FreeSurfer version: freesurfer-linux-centos7_x86_64-7.3.2
+# $Id: recon-all,v 1.580.2.3 2023/11/08 12:34:56 greve Exp $
+# cmdline: recon-all -s subject_002 -all -openmp 4
+#
+# Started at: Mon Jan 15 16:22:18 UTC 2024
+# Subject: subject_002
+# SUBJECTS_DIR: /data/freesurfer/subjects
+# Processor: 4 threads
+# FREESURFER_HOME: /usr/local/freesurfer
+#
+#---------------------------------
+# Checking for required input files
+#---------------------------------
+# Found: /data/freesurfer/subjects/subject_002/mri/orig/001.mgz
+# Input volume dimensions: 256 x 256 x 256
+# Voxel size: 1.0000 x 1.0000 x 1.0000 mm
+#
+#---------------------------------
+# Motion Correction and Conform
+#---------------------------------
+# Mon Jan 15 16:22:19 UTC 2024
+# mri_convert /data/freesurfer/subjects/subject_002/mri/orig/001.mgz /data/freesurfer/subjects/subject_002/mri/rawavg.mgz
+# conform orientation to standard: LIA
+# resample to 256^3 with voxel size 1mm isotropic
+mri_convert: reading input volume...
+mri_convert: processing...
+mri_convert: writing output volume...
+mri_convert: finished without error
+#
+#---------------------------------
+# mri_motion_cor
+#---------------------------------
+# Mon Jan 15 16:22:35 UTC 2024
+mri_motion_cor -i /data/freesurfer/subjects/subject_002/mri/rawavg.mgz -o /data/freesurfer/subjects/subject_002/mri/orig.mgz
+mri_motion_cor: reading source volume
+mri_motion_cor: source volume dimensions: 256 256 256
+mri_motion_cor: performing registration
+mri_motion_cor: iteration 1/5, cost = 0.0234
+mri_motion_cor: iteration 2/5, cost = 0.0198
+mri_motion_cor: iteration 3/5, cost = 0.0187
+mri_motion_cor: iteration 4/5, cost = 0.0183
+mri_motion_cor: iteration 5/5, cost = 0.0182
+mri_motion_cor: registration complete
+mri_motion_cor: writing output volume
+mri_motion_cor: finished without error
+# Mon Jan 15 16:23:42 UTC 2024
+#
+#---------------------------------
+# Talairach Registration
+#---------------------------------
+# Mon Jan 15 16:23:42 UTC 2024
+talairach_avi --i /data/freesurfer/subjects/subject_002/mri/orig.mgz --xfm /data/freesurfer/subjects/subject_002/mri/transforms/talairach.auto.xfm
+talairach_avi: loading volume...
+talairach_avi: computing transform...
+talairach_avi: initial alignment
+talairach_avi: estimating translation
+talairach_avi: estimating rotation
+talairach_avi: estimating scale
+talairach_avi: fine tuning (1/3)
+talairach_avi: fine tuning (2/3)
+talairach_avi: fine tuning (3/3)
+talairach_avi: final cost = 0.1456
+talairach_avi: transform matrix:
+talairach_avi:   0.9876  -0.0234   0.0198  -1.2345
+talairach_avi:   0.0245   0.9912  -0.0187   4.5678
+talairach_avi:  -0.0189   0.0195   0.9934  -2.3456
+talairach_avi:   0.0000   0.0000   0.0000   1.0000
+talairach_avi: writing transform file
+talairach_avi: finished without error
+# Mon Jan 15 16:25:18 UTC 2024
+#
+#---------------------------------
+# Talairach Registration with Skull
+#---------------------------------
+# Mon Jan 15 16:25:18 UTC 2024
+mri_nu_correct.mni --i /data/freesurfer/subjects/subject_002/mri/orig.mgz --o /data/freesurfer/subjects/subject_002/mri/orig_nu.mgz --n 2 --proto-iters 1000 --distance 50
+mri_nu_correct.mni: starting bias field correction
+mri_nu_correct.mni: iteration 1 of 2
+mri_nu_correct.mni: running nu_correct with distance=50
+mri_nu_correct.mni: iteration 2 of 2
+mri_nu_correct.mni: running nu_correct with distance=50
+mri_nu_correct.mni: bias field correction complete
+mri_nu_correct.mni: finished without error
+# Mon Jan 15 16:28:54 UTC 2024
+#
+#---------------------------------
+# Intensity Normalization
+#---------------------------------
+# Mon Jan 15 16:28:54 UTC 2024
+mri_normalize -g 1 -seed 1234 -mprage /data/freesurfer/subjects/subject_002/mri/orig_nu.mgz /data/freesurfer/subjects/subject_002/mri/T1.mgz
+mri_normalize: reading input volume
+mri_normalize: volume dimensions: 256 x 256 x 256
+mri_normalize: computing intensity statistics
+mri_normalize: mean intensity = 89.34, std = 45.67
+mri_normalize: computing control points (pass 1)
+mri_normalize: found 8432 control points
+mri_normalize: computing control points (pass 2)
+mri_normalize: found 7891 control points
+mri_normalize: estimating bias field
+mri_normalize: applying normalization
+mri_normalize: normalized mean = 110.00, std = 25.34
+mri_normalize: writing output volume
+mri_normalize: finished without error
+# Mon Jan 15 16:31:22 UTC 2024
+#
+#---------------------------------
+# Skull Stripping
+#---------------------------------
+# Mon Jan 15 16:31:22 UTC 2024
+# skull stripping stage - using mri_watershed algorithm
+mri_watershed -useSRAS -surf /data/freesurfer/subjects/subject_002/surf/lh.seghead -brain_atlas /usr/local/freesurfer/average/RB_all_withskull_2020_01_02.gca /data/freesurfer/subjects/subject_002/mri/transforms/talairach_with_skull.lta /data/freesurfer/subjects/subject_002/mri/T1.mgz /data/freesurfer/subjects/subject_002/mri/brainmask.auto.mgz
+mri_watershed: starting skull stripping
+mri_watershed: reading input volume /data/freesurfer/subjects/subject_002/mri/T1.mgz
+mri_watershed: volume dimensions: 256 x 256 x 256
+mri_watershed: voxel size: 1.000 x 1.000 x 1.000 mm
+mri_watershed: reading atlas /usr/local/freesurfer/average/RB_all_withskull_2020_01_02.gca
+mri_watershed: reading transform /data/freesurfer/subjects/subject_002/mri/transforms/talairach_with_skull.lta
+mri_watershed: applying atlas registration
+mri_watershed: allocating memory for processing buffers
+mri_watershed: Requested: 4096 MB for template matching
+ERROR: Unable to allocate memory buffer
+ERROR: malloc failed: Cannot allocate memory
+ERROR: system reports available memory insufficient for operation
+ERROR: tried to allocate 4294967296 bytes
+mri_watershed: skull stripping FAILED
+# Mon Jan 15 16:31:45 UTC 2024
+# ERROR: mri_watershed exited with ERROR code 137
+#
+#---------------------------------
+# Processing terminated with errors
+#---------------------------------
+# Total processing time: 0 hours 9 minutes 27 seconds
+# recon-all -s subject_002 exited with ERRORS at Mon Jan 15 16:31:45 UTC 2024
+#
+# ERROR SUMMARY:
+# Stage: Skull Stripping (mri_watershed)
+# Error: Memory allocation failure
+# Exit code: 137 (Out of Memory)
+#

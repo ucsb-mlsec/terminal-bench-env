@@ -1,0 +1,41 @@
+Notes on CPAchecker Configuration - Project Status
+=============================================================
+Date: January 15, 2024
+Contractor: Mike R.
+
+Current Situation:
+------------------
+Been working on getting CPAchecker setup for the automotive embedded verification project. Hit some roadblocks with the config and had to move on to other contract work. Leaving notes for whoever picks this up.
+
+Key Points:
+-----------
+* Need predicate abstraction for the target.c assertions - value analysis isn't powerful enough
+  Tried ValueAnalysis first (that's what reference.properties uses) but it can't handle the control flow complexity in target.c
+
+* CEGAR refinement is critical for this complexity level, saw it work on similar projects
+  Without refinement, the analysis either gives up or takes forever. CEGAR = counterexample-guided abstraction refinement
+
+* Property file for assertions should be in the CPAchecker standard set, check documentation
+  Something like AssertionProperty.spc or similar? CPAchecker ships with standard property files for common checks (assertions, memory safety, etc.)
+
+* SMT solver - team mentioned Z3 or MATHSAT5, need to pick one that works with predicate analysis
+  Both should work but need to verify which one is actually installed and configured properly on the build server
+  Predicate abstraction needs SMT solving for the constraint problems
+
+* Reference config uses wrong algorithm (ValueAnalysis) but shows correct syntax
+  Good for understanding the .properties file format but don't copy the analysis type!
+
+* Incomplete.properties has the right structure, just need the ??? placeholders filled
+  Left comments in there showing what needs to be set
+
+* Target program has complex loops and array operations - needs refinement
+  Simple abstract interpretation won't cut it, predicates + refinement is the way
+
+TODO for next person:
+---------------------
+- Check CPAchecker docs for exact algorithm names (PredicateAnalysis? PREDICATE? something else?)
+- Verify which .spc files are available in the config/specification directory
+- Confirm SMT solver availability (Z3 vs MATHSAT5)
+- Test configuration before deploying to CI pipeline
+
+Good luck!

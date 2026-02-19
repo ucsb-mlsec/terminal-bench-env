@@ -1,0 +1,55 @@
+I'll complete this task in two parts: first creating the valid zone file, then analyzing all zone files and generating the validation report.
+
+Let me start by creating the secure.zone file:
+
+$TTL	3600
+@	IN	SOA	ns1.secure.example. admin.secure.example. (
+			2024010101	; Serial
+			10800		; Refresh
+			3600		; Retry
+			604800		; Expire
+			86400 )		; Minimum
+
+; Name servers
+@	IN	NS	ns1.secure.example.
+@	IN	NS	ns2.secure.example.
+
+; A records
+@	IN	A	192.0.2.10
+ns1	IN	A	192.0.2.11
+ns2	IN	A	192.0.2.12
+www	IN	A	192.0.2.20
+mail	IN	A	192.0.2.30
+ftp	IN	A	192.0.2.40
+
+; AAAA records
+@	IN	AAAA	2001:db8:1::10
+ns1	IN	AAAA	2001:db8:1::11
+ns2	IN	AAAA	2001:db8:1::12
+www	IN	AAAA	2001:db8:1::20
+mail	IN	AAAA	2001:db8:1::30
+
+; MX records
+@	IN	MX	10	mail.secure.example.
+
+; TXT records
+@	IN	TXT	"v=spf1 ip4:192.0.2.0/24 ip6:2001:db8:1::/48 -all"
+@	IN	TXT	"google-site-verification=abcdefghijklmnopqrstuvwxyz123456"
+_dmarc	IN	TXT	"v=DMARC1; p=quarantine; rua=mailto:dmarc@secure.example"
+
+; SRV records
+_ldap._tcp	IN	SRV	10	60	389	ldap.secure.example.
+_sip._tcp	IN	SRV	10	70	5060	sip.secure.example.
+_xmpp-server._tcp	IN	SRV	5	50	5269	xmpp.secure.example.
+_imaps._tcp	IN	SRV	0	1	993	mail.secure.example.
+
+; CAA records
+@	IN	CAA	0	issue	"letsencrypt.org"
+@	IN	CAA	0	issuewild	";"
+@	IN	CAA	0	iodef	"mailto:security@secure.example"
+
+; CNAME records
+webmail	IN	CNAME	mail.secure.example.
+blog	IN	CNAME	www
+
+Now I need to analyze all zone files in /var/dns/zones and generate the validation report. Let me examine what files exist and validate them:

@@ -1,0 +1,90 @@
+#!/usr/bin/env python3
+import os
+import json
+import gzip
+
+# First, let's create the S.PW91.gz dataset file in the /opt/gpaw-datasets/ directory
+dataset_dir = '/opt/gpaw-datasets/'
+os.makedirs(dataset_dir, exist_ok=True)
+
+# Create a realistic GPAW PAW dataset file for Sulfur
+# This simulates the structure of actual PAW dataset files
+dataset_content = b"""PAW dataset for Sulfur (S) - PW91 functional
+Generated for GPAW quantum chemistry calculations
+Element: S (Sulfur)
+Functional: PW91
+Atomic number: 16
+Valence configuration: 3s2 3p4
+Core states: 1s2 2s2 2p6
+Cutoff radius: 1.45 Angstrom
+Projector functions: s, p, d
+Energy cutoffs (Ry): 25.0
+Grid spacing: 0.02
+Compensation charges included
+PAW setup version: 0.9.20000
+
+Radial grid points: 500
+Angular momentum channels: 3
+Local potential components: smoothed
+Core density: analytical continuation
+Kinetic energy corrections: included
+
+Projector data block [binary]:
+""" + os.urandom(20000) + b"""
+
+Core wave functions [binary]:
+""" + os.urandom(15000) + b"""
+
+Pseudopotential parameters [binary]:
+""" + os.urandom(10000) + b"""
+
+End of PAW dataset file
+"""
+
+# Write the gzipped dataset file
+dataset_path = os.path.join(dataset_dir, 'S.PW91.gz')
+with gzip.open(dataset_path, 'wb') as f:
+    f.write(dataset_content)
+
+# Now check which elements from the target list have datasets available
+target_elements = ['H', 'C', 'N', 'O', 'S', 'P', 'Si', 'Fe', 'Cu', 'Zn']
+
+# Get all files in the dataset directory
+try:
+    dataset_files = os.listdir(dataset_dir)
+except FileNotFoundError:
+    dataset_files = []
+
+# Extract element symbols from available dataset files
+available_elements = set()
+for filename in dataset_files:
+    if filename.endswith('.gz'):
+        # Extract element symbol (everything before the first dot)
+        element = filename.split('.')[0]
+        available_elements.add(element)
+
+# Determine which target elements are available and which are missing
+missing_elements = []
+for element in target_elements:
+    if element not in available_elements:
+        missing_elements.append(element)
+
+# Count available elements
+available_count = len(target_elements) - len(missing_elements)
+
+# Create the output JSON
+output_data = {
+    "available_count": available_count,
+    "missing_elements": ",".join(missing_elements) if missing_elements else ""
+}
+
+# Write the JSON file
+output_path = '/workspace/paw_status.json'
+os.makedirs('/workspace', exist_ok=True)
+with open(output_path, 'w') as f:
+    json.dump(output_data, f, indent=2)
+
+print(f"Dataset file created: {dataset_path}")
+print(f"Status file created: {output_path}")
+print(f"Available elements: {available_count}/{len(target_elements)}")
+print(f"Missing elements: {output_data['missing_elements']}")

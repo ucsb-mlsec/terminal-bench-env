@@ -1,0 +1,17 @@
+/var/log/webapp/*.log {
+    daily
+    rotate 14
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0640 www-data www-data
+    sharedscripts
+    postrotate
+        if [ -f /var/run/webapp.pid ]; then
+            kill -USR1 `cat /var/run/webapp.pid`
+        fi
+    prerotate
+        echo "Rotating logs at $(date)" >> /var/log/webapp/rotation.log
+    endscript
+}

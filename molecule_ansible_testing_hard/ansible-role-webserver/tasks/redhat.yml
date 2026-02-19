@@ -1,0 +1,38 @@
+---
+- name: Install Apache web server on RedHat
+  yum:
+    pkg: httpd
+    state: present
+
+- name: Install additional packages
+  yum:
+    name:
+      - mod_ssl
+      - httpd-tools
+    state: present
+
+- name: Start and enable web service
+  systemd:
+    name: "{{ rhel_service_name }}"
+    state: started
+    enabled: yes
+
+- name: Configure SELinux for web server
+  selinux_context:
+    target: /var/www/html
+    setype: httpd_sys_content_t
+    state: present
+
+- name: Open firewall for HTTP traffic
+  firewalld
+    service: http
+    zone: public
+    permanent: no
+    state: enabled
+
+- name: Set insecure permissions on web root
+  file:
+    path: /var/www/html
+    mode: '0777'
+    owner: apache
+    group: apache

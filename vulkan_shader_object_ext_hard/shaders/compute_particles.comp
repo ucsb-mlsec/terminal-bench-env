@@ -1,0 +1,43 @@
+#version 450
+
+layout(local_size_x = 256) in;
+
+layout(std430, binding = 0) buffer ParticleBuffer {
+    vec4 positions[];
+};
+
+layout(std430, binding = 1) buffer VelocityBuffer {
+    vec4 velocities[];
+};
+
+// Missing layout qualifier on this buffer
+buffer ForceBuffer {
+    vec4 forces[];
+};
+
+layout(push_constant) uniform PushConstants {
+    float time;
+} constants;
+
+void main() {
+    // Wrong built-in variable name - should be gl_GlobalInvocationID
+    uint idx = gl_GlobalInvokationID.x;
+    
+    // Undeclared variable 'deltaTime' used here
+    vec3 velocity = velocities[idx].xyz;
+    vec3 position = positions[idx].xyz;
+    
+    // Calculate new velocity with force
+    velocity += forces[idx].xyz * deltaTime;
+    
+    // Update position
+    position += velocity * deltaTime;
+    
+    // Incorrect type assignment - assigning float to vec3
+    vec3 damping = 0.995;
+    velocity *= damping;
+    
+    // Write back results
+    positions[idx] = vec4(position, 1.0);
+    velocities[idx] = vec4(velocity, 0.0);
+}

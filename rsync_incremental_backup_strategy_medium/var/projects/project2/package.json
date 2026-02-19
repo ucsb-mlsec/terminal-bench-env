@@ -1,0 +1,128 @@
+[
+  {
+    "#!\/bin\/bash":"# Backup Configuration"
+  },
+  {
+    "#!\/bin\/bash":"SOURCE_DIR=\"\/var\/projects\""
+  },
+  {
+    "#!\/bin\/bash":"BACKUP_ROOT=\"\/backup\/storage\""
+  },
+  {
+    "#!\/bin\/bash":"RETENTION_DAYS=7"
+  },
+  {
+    "#!\/bin\/bash":"TIMESTAMP=$(date +%Y-%m-%d-%H%M%S)"
+  },
+  {
+    "#!\/bin\/bash":"BACKUP_DIR=\"${BACKUP_ROOT}\/backup-${TIMESTAMP}\""
+  },
+  {
+    "#!\/bin\/bash":"# Create backup root if it doesn't exist"
+  },
+  {
+    "#!\/bin\/bash":"mkdir -p \"${BACKUP_ROOT}\""
+  },
+  {
+    "#!\/bin\/bash":"# Find the most recent backup for hard linking"
+  },
+  {
+    "#!\/bin\/bash":"LATEST_BACKUP=$(find \"${BACKUP_ROOT}\" -maxdepth 1 -type d -name \"backup-*\" | sort -r | head -n 1)"
+  },
+  {
+    "#!\/bin\/bash":"# Perform the backup"
+  },
+  {
+    "#!\/bin\/bash":"if [ -n \"${LATEST_BACKUP}\" ] && [ -d \"${LATEST_BACKUP}\" ]; then"
+  },
+  {
+    "#!\/bin\/bash":"    # Incremental backup with hard links"
+  },
+  {
+    "#!\/bin\/bash":"    rsync -a --delete --link-dest=\"${LATEST_BACKUP}\" \"${SOURCE_DIR}\/\" \"${BACKUP_DIR}\/\""
+  },
+  {
+    "#!\/bin\/bash":"else"
+  },
+  {
+    "#!\/bin\/bash":"    # First full backup"
+  },
+  {
+    "#!\/bin\/bash":"    rsync -a \"${SOURCE_DIR}\/\" \"${BACKUP_DIR}\/\""
+  },
+  {
+    "#!\/bin\/bash":"fi"
+  },
+  {
+    "#!\/bin\/bash":"# Remove backups older than RETENTION_DAYS"
+  },
+  {
+    "#!\/bin\/bash":"find \"${BACKUP_ROOT}\" -maxdepth 1 -type d -name \"backup-*\" -mtime +${RETENTION_DAYS} -exec rm -rf {} \\;"
+  },
+  {
+    "#!\/bin\/bash":"# Keep only the last 7 backups (by count)"
+  },
+  {
+    "#!\/bin\/bash":"BACKUP_COUNT=$(find \"${BACKUP_ROOT}\" -maxdepth 1 -type d -name \"backup-*\" | wc -l)"
+  },
+  {
+    "#!\/bin\/bash":"if [ ${BACKUP_COUNT} -gt 7 ]; then"
+  },
+  {
+    "#!\/bin\/bash":"    find \"${BACKUP_ROOT}\" -maxdepth 1 -type d -name \"backup-*\" | sort | head -n $((BACKUP_COUNT - 7)) | xargs rm -rf"
+  },
+  {
+    "#!\/bin\/bash":"fi"
+  },
+  {
+    "#!\/bin\/bash":"exit 0"
+  },
+  {
+    "#!\/bin\/bash":"```"
+  },
+  {
+    "#!\/bin\/bash":"```json"
+  },
+  {
+    "#!\/bin\/bash":"{"
+  },
+  {
+    "#!\/bin\/bash":"  \"scripts\": {"
+  },
+  {
+    "#!\/bin\/bash":"    \"build\": \"npm run clean && npm run compile\""
+  },
+  {
+    "#!\/bin\/bash":"  \"dependencies\": {"
+  },
+  {
+    "#!\/bin\/bash":"    \"morgan\": \"^1.10.0\""
+  },
+  {
+    "#!\/bin\/bash":"  \"devDependencies\": {"
+  },
+  {
+    "#!\/bin\/bash":"    \"supertest\": \"^6.3.3\""
+  },
+  {
+    "#!\/bin\/bash":"  \"license\": \"MIT\""
+  },
+  {
+    "#!\/bin\/bash":"}"
+  },
+  {
+    "#!\/bin\/bash":"```"
+  },
+  {
+    "#!\/bin\/bash":"```"
+  },
+  {
+    "#!\/bin\/bash":"SCRIPT_PATH=\/root\/backup_solution.sh"
+  },
+  {
+    "#!\/bin\/bash":"BACKUP_DESTINATION=\/backup\/storage"
+  },
+  {
+    "#!\/bin\/bash":"RETENTION_DAYS=7"
+  }
+]

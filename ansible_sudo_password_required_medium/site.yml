@@ -1,0 +1,40 @@
+---
+- name: Configure web servers with elevated privileges
+  hosts: all
+  become: yes
+  
+  tasks:
+    - name: Install nginx web server
+      apt:
+        name: nginx
+        state: present
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+    
+    - name: Install nginx web server on RedHat systems
+      yum:
+        name: nginx
+        state: present
+      when: ansible_os_family == "RedHat"
+    
+    - name: Ensure nginx service is running and enabled
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+    
+    - name: Create custom configuration directory
+      file:
+        path: /etc/nginx/custom-configs
+        state: directory
+        mode: '0755'
+        owner: root
+        group: root
+    
+    - name: Copy custom configuration file
+      copy:
+        content: "# Custom nginx configuration\n"
+        dest: /etc/nginx/custom-configs/custom.conf
+        mode: '0644'
+        owner: root
+        group: root

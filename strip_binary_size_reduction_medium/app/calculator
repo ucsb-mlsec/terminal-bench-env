@@ -1,0 +1,209 @@
+#!/usr/bin/env python3
+import os
+import subprocess
+import tempfile
+import shutil
+
+# Create the calculator C source code with debug symbols
+calculator_source = """
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+/* Debug function for tracing */
+void debug_trace(const char* function_name, const char* message) {
+    // This is for debugging purposes only
+    fprintf(stderr, "[DEBUG] %s: %s\\n", function_name, message);
+}
+
+/* Helper function to validate input */
+int validate_number(const char* str) {
+    debug_trace("validate_number", "Validating input number");
+    if (str == NULL || strlen(str) == 0) {
+        return 0;
+    }
+    return 1;
+}
+
+/* Addition operation */
+double add(double a, double b) {
+    debug_trace("add", "Performing addition");
+    return a + b;
+}
+
+/* Subtraction operation */
+double subtract(double a, double b) {
+    debug_trace("subtract", "Performing subtraction");
+    return a - b;
+}
+
+/* Multiplication operation */
+double multiply(double a, double b) {
+    debug_trace("multiply", "Performing multiplication");
+    return a * b;
+}
+
+/* Division operation */
+double divide(double a, double b) {
+    debug_trace("divide", "Performing division");
+    if (b == 0) {
+        fprintf(stderr, "Error: Division by zero\\n");
+        return 0;
+    }
+    return a / b;
+}
+
+/* Power operation */
+double power(double base, double exp) {
+    debug_trace("power", "Performing power operation");
+    double result = 1.0;
+    for (int i = 0; i < (int)exp; i++) {
+        result *= base;
+    }
+    return result;
+}
+
+/* Modulo operation */
+int mod(int a, int b) {
+    debug_trace("mod", "Performing modulo operation");
+    if (b == 0) {
+        fprintf(stderr, "Error: Modulo by zero\\n");
+        return 0;
+    }
+    return a % b;
+}
+
+/* Interactive mode */
+void interactive_mode() {
+    char operator;
+    double num1, num2;
+    
+    printf("=== Calculator Interactive Mode ===\\n");
+    printf("Enter operation (e.g., 5 + 3): ");
+    
+    if (scanf("%lf %c %lf", &num1, &operator, &num2) != 3) {
+        fprintf(stderr, "Invalid input format\\n");
+        return;
+    }
+    
+    double result;
+    switch(operator) {
+        case '+':
+            result = add(num1, num2);
+            printf("Result: %.2f\\n", result);
+            break;
+        case '-':
+            result = subtract(num1, num2);
+            printf("Result: %.2f\\n", result);
+            break;
+        case '*':
+        case 'x':
+            result = multiply(num1, num2);
+            printf("Result: %.2f\\n", result);
+            break;
+        case '/':
+            result = divide(num1, num2);
+            printf("Result: %.2f\\n", result);
+            break;
+        case '^':
+            result = power(num1, num2);
+            printf("Result: %.2f\\n", result);
+            break;
+        case '%':
+            printf("Result: %d\\n", mod((int)num1, (int)num2));
+            break;
+        default:
+            fprintf(stderr, "Unknown operator: %c\\n", operator);
+    }
+}
+
+/* Command line mode */
+void command_line_mode(int argc, char* argv[]) {
+    debug_trace("command_line_mode", "Processing command line arguments");
+    
+    if (argc != 4) {
+        fprintf(stderr, "Usage: %s <num1> <operator> <num2>\\n", argv[0]);
+        fprintf(stderr, "Operators: +, -, *, /, ^, %%\\n");
+        exit(1);
+    }
+    
+    double num1 = atof(argv[1]);
+    char operator = argv[2][0];
+    double num2 = atof(argv[3]);
+    
+    validate_number(argv[1]);
+    validate_number(argv[3]);
+    
+    double result;
+    switch(operator) {
+        case '+':
+            result = add(num1, num2);
+            printf("%.2f\\n", result);
+            break;
+        case '-':
+            result = subtract(num1, num2);
+            printf("%.2f\\n", result);
+            break;
+        case '*':
+        case 'x':
+            result = multiply(num1, num2);
+            printf("%.2f\\n", result);
+            break;
+        case '/':
+            result = divide(num1, num2);
+            printf("%.2f\\n", result);
+            break;
+        case '^':
+            result = power(num1, num2);
+            printf("%.2f\\n", result);
+            break;
+        case '%':
+            printf("%d\\n", mod((int)num1, (int)num2));
+            break;
+        default:
+            fprintf(stderr, "Unknown operator: %c\\n", operator);
+            exit(1);
+    }
+}
+
+int main(int argc, char* argv[]) {
+    debug_trace("main", "Starting calculator application");
+    
+    if (argc == 1) {
+        interactive_mode();
+    } else {
+        command_line_mode(argc, argv);
+    }
+    
+    debug_trace("main", "Calculator execution completed");
+    return 0;
+}
+"""
+
+# Create workspace directory structure
+os.makedirs('/workspace/app', exist_ok=True)
+
+# Write source file
+source_file = '/tmp/calculator.c'
+with open(source_file, 'w') as f:
+    f.write(calculator_source)
+
+# Compile with full debug symbols (-g flag), no optimization to increase size
+compile_cmd = [
+    'gcc',
+    '-g',           # Full debug symbols
+    '-O0',          # No optimization (larger binary)
+    '-o', '/workspace/app/calculator',
+    source_file,
+    '-lm'           # Math library
+]
+
+subprocess.run(compile_cmd, check=True)
+
+# Make it executable
+os.chmod('/workspace/app/calculator', 0o755)
+
+# Clean up source file
+os.remove(source_file)
+
+print("Calculator binary created successfully at /workspace/app/calculator")

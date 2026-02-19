@@ -1,0 +1,53 @@
+MODULE main
+VAR
+    ns_light : {RED, YELLOW, GREEN};
+    ew_light : {RED, YELLOW, GREEN};
+    timer : 0..10;
+
+ASSIGN
+    init(ns_light) := RED;
+    init(ew_light) := GREEN;
+    init(timer) := 0;
+
+    next(timer) := 
+        case
+            timer < 10 : timer + 1;
+            TRUE : 0;
+        esac;
+
+    next(ns_light) :=
+        case
+            ns_light = GREEN & timer >= 6 : YELLOW;
+            ns_light = YELLOW & timer >= 2 : RED;
+            ns_light = RED & ew_light = RED : GREEN;
+            TRUE : ns_light;
+        esac;
+
+    next(ew_light) :=
+        case
+            ew_light = GREEN & timer >= 6 : YELLOW;
+            ew_light = YELLOW & timer >= 2 : RED;
+            ew_light = RED & ns_light = RED : GREEN;
+            TRUE : ew_light;
+        esac;
+
+-- Safety Property 1: Mutual Exclusion - both lights never green simultaneously
+SPEC AG(!(ns_light = GREEN & ew_light = GREEN))
+
+-- Safety Property 2: At least one light must always be red
+SPEC AG(ns_light = RED | ew_light = RED)
+
+-- Safety Property 3: North-South light eventually gets green
+SPEC AG(AF(ns_light = GREEN))
+
+-- Safety Property 4: East-West light eventually gets green
+SPEC AG(AF(ew_light = GREEN))
+
+-- Safety Property 5: Yellow always transitions to red in the next state
+SPEC AG(ns_light = YELLOW -> AX(ns_light = RED))
+
+-- Safety Property 6: Yellow always transitions to red in the next state for EW
+SPEC AG(ew_light = YELLOW -> AX(ew_light = RED))
+
+-- Safety Property 7: Never both lights yellow at the same time
+SPEC AG(!(ns_light = YELLOW & ew_light = YELLOW))

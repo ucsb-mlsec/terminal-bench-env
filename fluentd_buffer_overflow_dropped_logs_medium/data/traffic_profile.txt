@@ -1,0 +1,73 @@
+Production Traffic Profile - Log Volume Analysis
+================================================================
+
+Report Date: 2024-01-15
+Environment: Production Cluster
+Monitoring Period: 30 days (Dec 15, 2023 - Jan 14, 2024)
+
+OVERALL TRAFFIC STATISTICS
+================================================================
+Average logs per second (normal hours): 2,000-3,000 logs/sec
+Peak traffic (business hours): 8,000-12,000 logs/sec
+Peak duration: typically 2-4 hours (11:00-15:00 UTC)
+Average log entry size: 512 bytes
+Peak log entry size: up to 2KB for detailed audit logs
+
+BREAKDOWN BY LOG TYPE
+================================================================
+Application logs (app.**):
+  - Volume: 60% of total traffic
+  - Average entry size: 800 bytes per entry
+  - Peak rate: ~7,200 logs/sec during afternoon peak
+
+System metrics (system.**):
+  - Volume: 25% of total traffic
+  - Average entry size: 256 bytes per entry
+  - Peak rate: ~3,000 logs/sec during afternoon peak
+
+Audit logs (audit.**):
+  - Volume: 15% of total traffic
+  - Average entry size: 1.5KB per entry
+  - Peak rate: ~1,800 logs/sec during afternoon peak
+
+DAILY TRAFFIC PATTERNS
+================================================================
+Morning spike: 08:00-09:00 UTC (3x normal baseline)
+  - Typical rate: 6,000-9,000 logs/sec
+
+Lunch peak: 11:00-13:00 UTC (4x normal baseline)
+  - Typical rate: 8,000-12,000 logs/sec
+
+Afternoon peak: 14:00-16:00 UTC (5x normal baseline - HIGHEST LOAD)
+  - Typical rate: 10,000-15,000 logs/sec
+  - This is the critical period for buffer sizing
+
+Evening decline: after 18:00 UTC (0.5x normal baseline)
+  - Typical rate: 1,000-1,500 logs/sec
+
+Overnight: 22:00-06:00 UTC (0.2x normal baseline)
+  - Typical rate: 400-600 logs/sec
+
+BURST CHARACTERISTICS
+================================================================
+Sudden traffic bursts can reach 15,000 logs/sec for 30-60 seconds
+These bursts occur 3-5 times per day during peak hours
+Bursts are typically triggered by:
+  - Batch job completions
+  - Automated deployment processes
+  - Database maintenance operations
+
+MEMORY CONSTRAINTS
+================================================================
+Total buffer memory allocation must not exceed 512MB across all buffers
+Recommended: allocate more to high-volume app logs, less to audit logs
+Suggested distribution:
+  - Application logs: ~60% of buffer memory (307MB)
+  - System metrics: ~25% of buffer memory (128MB)
+  - Audit logs: ~15% of buffer memory (77MB)
+
+RETENTION REQUIREMENTS
+================================================================
+Buffers should hold at least 5 minutes of peak traffic to handle downstream slowdowns
+No log loss is acceptable during normal peak periods
+Buffer overflow protection is critical during burst events

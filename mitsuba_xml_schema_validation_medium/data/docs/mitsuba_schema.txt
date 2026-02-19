@@ -1,0 +1,382 @@
+# Mitsuba 3 XML Scene Schema Reference
+
+## Version: 3.0.0
+
+This document describes the XML schema requirements for Mitsuba 3 scene files.
+
+---
+
+## 1. ROOT ELEMENT
+
+**Element:** `<scene>`
+
+**Required Attributes:**
+- `version` (string): Must be "3.0.0"
+
+**Description:** The root element of every Mitsuba scene file. All scene components must be children of this element.
+
+**Example:**
+```xml
+<scene version="3.0.0">
+  <!-- scene contents -->
+</scene>
+```
+
+---
+
+## 2. INTEGRATOR
+
+**Element:** `<integrator>`
+
+**Parent:** `<scene>` (direct child)
+
+**Required Attributes:**
+- `type` (string): Specifies the integration algorithm
+  - Valid values: "path", "direct", "volpath", "volpathmis", "ptracer", "aov", "prb"
+
+**Optional Properties:**
+- `max_depth` (integer): Maximum path depth for light transport
+- `hide_emitters` (boolean): Whether to hide emitters from camera rays
+- `rr_depth` (integer): Depth to start Russian roulette
+
+**Description:** Defines the rendering algorithm used for light transport simulation.
+
+**Example:**
+```xml
+<integrator type="path">
+  <integer name="max_depth" value="8"/>
+  <boolean name="hide_emitters" value="false"/>
+</integrator>
+```
+
+---
+
+## 3. SENSOR
+
+**Element:** `<sensor>`
+
+**Parent:** `<scene>` (direct child)
+
+**Required Attributes:**
+- `type` (string): Camera type
+  - Valid values: "perspective", "orthographic", "thinlens", "telecentric"
+
+**Required Children:**
+- `<film>`: Film/output specification
+- `<sampler>`: Sampling strategy
+- `<transform>`: Camera transformation
+
+**Optional Properties:**
+- `fov` (float): Field of view in degrees (perspective cameras)
+- `near_clip` (float): Near clipping plane distance
+- `far_clip` (float): Far clipping plane distance
+- `focus_distance` (float): Focus distance (thinlens)
+- `aperture_radius` (float): Aperture size (thinlens)
+
+**Example:**
+```xml
+<sensor type="perspective">
+  <float name="fov" value="45"/>
+  <film type="hdrfilm">
+    <integer name="width" value="1920"/>
+    <integer name="height" value="1080"/>
+  </film>
+  <sampler type="independent">
+    <integer name="sample_count" value="256"/>
+  </sampler>
+  <transform name="to_world">
+    <lookat origin="0, 0, 5" target="0, 0, 0" up="0, 1, 0"/>
+  </transform>
+</sensor>
+```
+
+---
+
+## 4. FILM
+
+**Element:** `<film>`
+
+**Parent:** `<sensor>`
+
+**Required Attributes:**
+- `type` (string): Film type
+  - Valid values: "hdrfilm", "specfilm"
+
+**Required Properties:**
+- `width` (integer): Image width in pixels
+- `height` (integer): Image height in pixels
+
+**Optional Properties:**
+- `pixel_format` (string): Output pixel format ("rgb", "rgba", "luminance")
+- `component_format` (string): Component data type ("float16", "float32", "uint32")
+- `file_format` (string): Output file format ("openexr", "png", "jpeg")
+- `crop_width` (integer): Crop region width
+- `crop_height` (integer): Crop region height
+
+---
+
+## 5. SAMPLER
+
+**Element:** `<sampler>`
+
+**Parent:** `<sensor>`
+
+**Required Attributes:**
+- `type` (string): Sampling strategy
+  - Valid values: "independent", "stratified", "multijitter", "orthogonal", "ldsampler"
+
+**Required Properties:**
+- `sample_count` (integer): Number of samples per pixel
+
+**Optional Properties:**
+- `seed` (integer): Random seed for reproducibility
+- `jitter` (boolean): Enable sample jittering
+
+---
+
+## 6. SHAPE
+
+**Element:** `<shape>`
+
+**Parent:** `<scene>` (direct child)
+
+**Required Attributes:**
+- `type` (string): Geometry type
+  - Valid values: "sphere", "rectangle", "cube", "cylinder", "disk", "obj", "ply", "serialized"
+
+**Required Children:**
+- `<bsdf>`: Material specification (inline or reference)
+
+**Optional Children:**
+- `<emitter>`: Light emission properties
+- `<transform>`: Geometric transformation
+
+**Optional Properties:**
+- `filename` (string): Required for "obj", "ply", "serialized" types - path to geometry file
+- `radius` (float): For sphere, cylinder, disk
+- `flip_normals` (boolean): Reverse normal orientation
+- `face_normals` (boolean): Use face normals instead of vertex normals
+
+**Example:**
+```xml
+<shape type="obj">
+  <string name="filename" value="meshes/model.obj"/>
+  <bsdf type="diffuse">
+    <rgb name="reflectance" value="0.8, 0.8, 0.8"/>
+  </bsdf>
+  <transform name="to_world">
+    <scale value="2"/>
+  </transform>
+</shape>
+```
+
+---
+
+## 7. BSDF
+
+**Element:** `<bsdf>`
+
+**Parent:** `<shape>` or `<scene>` (when defined with id)
+
+**Required Attributes:**
+- `type` (string): Material model
+  - Valid values: "diffuse", "conductor", "dielectric", "plastic", "roughconductor", "roughdielectric", "roughplastic", "principled", "twosided", "blendbsdf"
+
+**Optional Attributes:**
+- `id` (string): Identifier for reuse via `<ref>`
+
+**Properties by Type:**
+
+**diffuse:**
+- `reflectance` (rgb): Diffuse albedo color
+
+**conductor:**
+- `material` (string): Preset material ("Cu", "Al", "Ag", "Au", etc.)
+- `eta` (rgb): Real component of IOR
+- `k` (rgb): Imaginary component of IOR
+
+**dielectric:**
+- `int_ior` (float): Interior index of refraction
+- `ext_ior` (float): Exterior index of refraction
+
+**plastic:**
+- `diffuse_reflectance` (rgb): Diffuse component
+- `int_ior` (float): Interior IOR
+- `ext_ior` (float): Exterior IOR
+
+**roughconductor:**
+- `material` (string): Preset material
+- `alpha` (float): Roughness parameter
+- `distribution` (string): Microfacet distribution ("beckmann", "ggx")
+
+---
+
+## 8. EMITTER
+
+**Element:** `<emitter>`
+
+**Parent:** `<shape>` or `<scene>` (direct child)
+
+**Required Attributes:**
+- `type` (string): Light source type
+  - Valid values: "constant", "envmap", "point", "area", "spot", "directional"
+
+**Properties by Type:**
+
+**constant (environment):**
+- `radiance` (rgb): Uniform sky radiance
+
+**envmap:**
+- `filename` (string): Path to environment map image (HDR)
+- `scale` (float): Intensity multiplier
+
+**point:**
+- `intensity` (rgb): Light intensity
+- `position` (string): Light position (deprecated - use transform)
+
+**area (attached to shape):**
+- `radiance` (rgb): Emitted radiance
+
+**spot:**
+- `intensity` (rgb): Light intensity
+- `cutoff_angle` (float): Cone cutoff angle in degrees
+- `beam_width` (float): Beam width in degrees
+
+**directional:**
+- `irradiance` (rgb): Incident irradiance
+- `direction` (string): Light direction (deprecated - use transform)
+
+---
+
+## 9. TRANSFORM
+
+**Element:** `<transform>`
+
+**Parent:** `<sensor>`, `<shape>`, `<emitter>`
+
+**Required Attributes:**
+- `name` (string): Must be "to_world"
+
+**Children (one or more):**
+
+**matrix:**
+- 16 space-separated float values representing a 4x4 transformation matrix in row-major order
+
+**lookat:**
+- `origin` (string): Camera/object position as "x, y, z"
+- `target` (string): Look-at target as "x, y, z"
+- `up` (string): Up vector as "x, y, z"
+
+**translate:**
+- `value` (string): Translation vector as "x, y, z"
+- OR individual `x`, `y`, `z` (float) attributes
+
+**rotate:**
+- `axis` (string): Rotation axis as "x, y, z"
+- `angle` (float): Rotation angle in degrees
+- OR individual `x`, `y`, `z`, `angle` (float) attributes
+
+**scale:**
+- `value` (string): Uniform or non-uniform scale as "x, y, z" or single value
+- OR individual `x`, `y`, `z` (float) attributes
+
+**Note:** Multiple transform operations can be chained and are applied in order.
+
+---
+
+## 10. PROPERTY TYPES
+
+Properties are specified using typed elements:
+
+**integer:**
+```xml
+<integer name="property_name" value="123"/>
+```
+- Value must be a valid integer (positive, negative, or zero)
+
+**float:**
+```xml
+<float name="property_name" value="1.5"/>
+```
+- Value must be a valid decimal number
+
+**rgb:**
+```xml
+<rgb name="property_name" value="1.0, 0.5, 0.25"/>
+```
+- Value must be three comma-separated floats (typically 0.0 to 1.0 range)
+
+**string:**
+```xml
+<string name="property_name" value="some_text"/>
+```
+- Value can be any text
+
+**boolean:**
+```xml
+<boolean name="property_name" value="true"/>
+```
+- Value must be exactly "true" or "false" (case-sensitive)
+
+---
+
+## 11. REFERENCES
+
+Elements can be defined once and reused throughout the scene using the ID/reference system.
+
+**Definition:**
+```xml
+<bsdf type="diffuse" id="white_material">
+  <rgb name="reflectance" value="0.9, 0.9, 0.9"/>
+</bsdf>
+```
+
+**Reference:**
+```xml
+<shape type="sphere">
+  <ref id="white_material"/>
+</shape>
+```
+
+**Rules:**
+- The `id` attribute must be unique within the scene
+- Referenced elements must be defined before use or as siblings
+- Common use cases: BSDFs, emitters, textures
+
+---
+
+## 12. VALIDATION RULES
+
+**Required Attributes:**
+- All elements must have their required attributes present
+- The `type` attribute values must be from the valid set for that element
+
+**Type Constraints:**
+- Integer properties must contain only integer values (no decimals)
+- Float properties must be valid numeric values
+- RGB properties must have exactly three comma-separated numeric values
+- Boolean properties must be exactly "true" or "false"
+
+**Element Hierarchy:**
+- Elements must be nested according to parent-child relationships defined above
+- The scene element must be the root
+- Sensor must contain film, sampler, and transform
+- Shape must contain bsdf (inline or ref)
+
+**References:**
+- Any `<ref id="..."/>` must reference an `id` that exists in the scene
+- The referenced element must be of the appropriate type for its context
+
+**Transform Validation:**
+- Transform element must have `name="to_world"`
+- Matrix transforms must contain exactly 16 numeric values
+- Lookat transforms must specify origin, target, and up attributes
+- Rotate transforms must specify axis and angle
+- All transform values must be valid numeric values
+
+**File References:**
+- Shape types "obj", "ply", "serialized" must have a `filename` property
+- Emitter type "envmap" must have a `filename` property
+
+**Completeness:**
+- At minimum, a valid scene should contain: integrator, sensor (with film and sampler), and at least one shape or emitter

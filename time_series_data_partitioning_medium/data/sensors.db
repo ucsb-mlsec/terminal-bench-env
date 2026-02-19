@@ -1,0 +1,102 @@
+#!/usr/bin/env python3
+import sqlite3
+import random
+from datetime import datetime, timedelta
+
+# Create database
+conn = sqlite3.connect('/home/user/sensors.db')
+cursor = conn.cursor()
+
+# Create table
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS sensor_readings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp TEXT,
+    sensor_id TEXT,
+    temperature REAL,
+    humidity REAL
+)
+''')
+
+# Sensor IDs
+sensor_ids = ['SENSOR_001', 'SENSOR_002', 'SENSOR_003', 'SENSOR_004', 'SENSOR_005']
+
+# Generate data for each month of 2023
+start_date = datetime(2023, 1, 1, 0, 0, 0)
+end_date = datetime(2023, 12, 31, 23, 59, 59)
+
+records = []
+total_records = 52000  # Target around 52,000 records
+records_per_month = total_records // 12
+
+print("Generating sensor data...")
+
+for month in range(1, 13):
+    month_start = datetime(2023, month, 1, 0, 0, 0)
+    
+    # Calculate month end
+    if month == 12:
+        month_end = datetime(2023, 12, 31, 23, 59, 59)
+    else:
+        month_end = datetime(2023, month + 1, 1, 0, 0, 0) - timedelta(seconds=1)
+    
+    # Generate records for this month
+    month_records = random.randint(4200, 4800)
+    
+    for _ in range(month_records):
+        # Random timestamp within the month
+        time_delta = (month_end - month_start).total_seconds()
+        random_seconds = random.uniform(0, time_delta)
+        timestamp = month_start + timedelta(seconds=random_seconds)
+        
+        # Random sensor
+        sensor_id = random.choice(sensor_ids)
+        
+        # Realistic temperature (with seasonal variation)
+        base_temp = 15.0
+        if month in [6, 7, 8]:  # Summer months
+            base_temp = 25.0
+        elif month in [12, 1, 2]:  # Winter months
+            base_temp = 5.0
+        
+        temperature = round(base_temp + random.uniform(-15.0, 15.0), 2)
+        temperature = max(-10.0, min(40.0, temperature))
+        
+        # Realistic humidity
+        humidity = round(random.uniform(20.0, 95.0), 2)
+        
+        records.append((
+            timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+            sensor_id,
+            temperature,
+            humidity
+        ))
+    
+    print(f"Generated {month_records} records for {timestamp.strftime('%B %Y')}")
+
+# Insert all records
+print(f"\nInserting {len(records)} records into database...")
+cursor.executemany(
+    'INSERT INTO sensor_readings (timestamp, sensor_id, temperature, humidity) VALUES (?, ?, ?, ?)',
+    records
+)
+
+conn.commit()
+
+# Verify
+cursor.execute('SELECT COUNT(*) FROM sensor_readings')
+count = cursor.fetchone()[0]
+print(f"Total records in database: {count}")
+
+# Show sample data
+cursor.execute('SELECT * FROM sensor_readings ORDER BY timestamp LIMIT 5')
+print("\nSample records:")
+for row in cursor.fetchall():
+    print(row)
+
+cursor.execute('SELECT MIN(timestamp), MAX(timestamp) FROM sensor_readings')
+min_ts, max_ts = cursor.fetchone()
+print(f"\nDate range: {min_ts} to {max_ts}")
+
+conn.close()
+print("\nDatabase created successfully at /home/user/sensors.db")

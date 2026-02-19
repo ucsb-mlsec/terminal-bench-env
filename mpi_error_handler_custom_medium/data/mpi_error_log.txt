@@ -1,0 +1,60 @@
+import random
+
+# Configuration for realistic data generation
+error_types = ["COMM_FAILURE", "TIMEOUT", "INVALID_RANK", "BUFFER_OVERFLOW", "NETWORK_ERROR"]
+handlers = ["DEFAULT", "ABORT", "RETRY", "IGNORE", "CHECKPOINT"]
+
+# Weight distributions to create realistic patterns
+# COMM_FAILURE will be most common
+error_weights = [0.35, 0.25, 0.15, 0.15, 0.10]
+
+# Handler success rates (RETRY and CHECKPOINT should be better)
+handler_success_rates = {
+    "DEFAULT": 0.30,
+    "ABORT": 0.10,
+    "RETRY": 0.75,
+    "IGNORE": 0.40,
+    "CHECKPOINT": 0.70
+}
+
+# Generate 700 log entries
+num_entries = 700
+start_timestamp = 1704067200
+end_timestamp = 1704153600
+
+# Create process pool with some processes appearing more frequently
+process_pool = list(range(100))
+# Some processes are more error-prone
+frequent_processes = random.sample(process_pool, 20)
+
+log_entries = []
+
+for i in range(num_entries):
+    # Generate timestamp (mostly ascending with some variance)
+    base_time = start_timestamp + int((end_timestamp - start_timestamp) * (i / num_entries))
+    timestamp = base_time + random.randint(-300, 300)
+    timestamp = max(start_timestamp, min(end_timestamp, timestamp))
+    
+    # Select process (favor frequent processes)
+    if random.random() < 0.6:
+        process_id = random.choice(frequent_processes)
+    else:
+        process_id = random.choice(process_pool)
+    
+    # Select error type with weights
+    error_type = random.choices(error_types, weights=error_weights)[0]
+    
+    # Select handler
+    handler_used = random.choice(handlers)
+    
+    # Determine recovery status based on handler success rate
+    success_rate = handler_success_rates[handler_used]
+    recovery_status = "RECOVERED" if random.random() < success_rate else "FAILED"
+    
+    log_entries.append(f"{timestamp},{process_id},{error_type},{handler_used},{recovery_status}")
+
+# Sort by timestamp to maintain realistic log order
+log_entries.sort(key=lambda x: int(x.split(',')[0]))
+
+# Output the log file content
+print('\n'.join(log_entries))

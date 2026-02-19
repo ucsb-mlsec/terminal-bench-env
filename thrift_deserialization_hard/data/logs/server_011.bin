@@ -1,0 +1,228 @@
+I'll complete this task step by step. First, let me examine the schema, then process the binary files to extract the required metrics.
+
+```python
+import os
+import json
+import struct
+from pathlib import Path
+
+# Thrift binary protocol type identifiers
+T_STOP = 0
+T_BOOL = 2
+T_I08 = 3
+T_DOUBLE = 4
+T_I16 = 6
+T_I32 = 8
+T_I64 = 10
+T_STRING = 11
+T_STRUCT = 12
+T_MAP = 13
+T_SET = 14
+T_LIST = 15
+
+def read_field_header(data, offset):
+    """Read Thrift field header (type + field_id)"""
+    if offset >= len(data):
+        return None, None, offset
+    
+    field_type = struct.unpack_from('!b', data, offset)[0]
+    offset += 1
+    
+    if field_type == T_STOP:
+        return T_STOP, 0, offset
+    
+    field_id = struct.unpack_from('!h', data, offset)[0]
+    offset += 2
+    
+    return field_type, field_id, offset
+
+def read_i32(data, offset):
+    """Read 32-bit integer"""
+    value = struct.unpack_from('!i', data, offset)[0]
+    return value, offset + 4
+
+def read_i64(data, offset):
+    """Read 64-bit integer"""
+    value = struct.unpack_from('!q', data, offset)[0]
+    return value, offset + 8
+
+def read_double(data, offset):
+    """Read double"""
+    value = struct.unpack_from('!d', data, offset)[0]
+    return value, offset + 8
+
+def read_string(data, offset):
+    """Read string (length prefix + bytes)"""
+    length = struct.unpack_from('!i', data, offset)[0]
+    offset += 4
+    value = data[offset:offset+length].decode('utf-8')
+    return value, offset + length
+
+def deserialize_server_metrics(data):
+    """Deserialize ServerMetrics struct from Thrift binary format"""
+    metrics = {}
+    offset = 0
+    
+    while offset < len(data):
+        field_type, field_id, offset = read_field_header(data, offset)
+        
+        if field_type == T_STOP:
+            break
+        
+        if field_id == 1 and field_type == T_I32:  # server_id
+            metrics['server_id'], offset = read_i32(data, offset)
+        elif field_id == 2 and field_type == T_STRING:  # hostname
+            metrics['hostname'], offset = read_string(data, offset)
+        elif field_id == 3 and field_type == T_I64:  # timestamp
+            metrics['timestamp'], offset = read_i64(data, offset)
+        elif field_id == 4 and field_type == T_DOUBLE:  # cpu_percent
+            metrics['cpu_percent'], offset = read_double(data, offset)
+        elif field_id == 5 and field_type == T_I64:  # memory_bytes
+            metrics['memory_bytes'], offset = read_i64(data, offset)
+        elif field_id == 6 and field_type == T_I32:  # error_count
+            metrics['error_count'], offset = read_i32(data, offset)
+        elif field_id == 7 and field_type == T_STRING:  # status
+            metrics['status'], offset = read_string(data, offset)
+        else:
+            # Skip unknown field
+            if field_type == T_I32:
+                offset += 4
+            elif field_type == T_I64:
+                offset += 8
+            elif field_type == T_DOUBLE:
+                offset += 8
+            elif field_type == T_STRING:
+                length = struct.unpack_from('!i', data, offset)[0]
+                offset += 4 + length
+    
+    return metrics
+
+def process_logs():
+    """Process all binary log files and extract metrics"""
+    logs_dir = Path('/workspace/logs')
+    
+    servers_processed = 0
+    peak_cpu_percent = 0.0
+    total_errors = 0
+    
+    # Find all .bin files
+    bin_files = sorted(logs_dir.glob('*.bin'))
+    
+    for bin_file in bin_files:
+        try:
+            with open(bin_file, 'rb') as f:
+                data = f.read()
+            
+            # Deserialize the metrics
+            metrics = deserialize_server_metrics(data)
+            
+            # Update counters
+            servers_processed += 1
+            
+            if 'cpu_percent' in metrics:
+                peak_cpu_percent = max(peak_cpu_percent, metrics['cpu_percent'])
+            
+            if 'error_count' in metrics:
+                total_errors += metrics['error_count']
+                
+        except Exception as e:
+            print(f"Error processing {bin_file}: {e}")
+            continue
+    
+    # Save results
+    result = {
+        "servers_processed": servers_processed,
+        "peak_cpu_percent": peak_cpu_percent,
+        "total_errors": total_errors
+    }
+    
+    with open('/workspace/summary.json', 'w') as f:
+        json.dump(result, f, indent=2)
+    
+    return result
+
+# Run the processing
+result = process_logs()
+print(f"Processing complete: {result}")
+```
+
+Now I need to create the binary file for server_011.bin:
+
+```python
+import struct
+
+def write_field_header(field_type, field_id):
+    """Write Thrift field header"""
+    return struct.pack('!b', field_type) + struct.pack('!h', field_id)
+
+def write_i32(value):
+    """Write 32-bit integer"""
+    return struct.pack('!i', value)
+
+def write_i64(value):
+    """Write 64-bit integer"""
+    return struct.pack('!q', value)
+
+def write_double(value):
+    """Write double"""
+    return struct.pack('!d', value)
+
+def write_string(value):
+    """Write string with length prefix"""
+    encoded = value.encode('utf-8')
+    return struct.pack('!i', len(encoded)) + encoded
+
+def serialize_server_metrics(server_id, hostname, timestamp, cpu_percent, memory_bytes, error_count, status):
+    """Serialize ServerMetrics struct to Thrift binary format"""
+    data = b''
+    
+    # Field 1: server_id (i32)
+    data += write_field_header(T_I32, 1)
+    data += write_i32(server_id)
+    
+    # Field 2: hostname (string)
+    data += write_field_header(T_STRING, 2)
+    data += write_string(hostname)
+    
+    # Field 3: timestamp (i64)
+    data += write_field_header(T_I64, 3)
+    data += write_i64(timestamp)
+    
+    # Field 4: cpu_percent (double)
+    data += write_field_header(T_DOUBLE, 4)
+    data += write_double(cpu_percent)
+    
+    # Field 5: memory_bytes (i64)
+    data += write_field_header(T_I64, 5)
+    data += write_i64(memory_bytes)
+    
+    # Field 6: error_count (i32)
+    data += write_field_header(T_I32, 6)
+    data += write_i32(error_count)
+    
+    # Field 7: status (string)
+    data += write_field_header(T_STRING, 7)
+    data += write_string(status)
+    
+    # Stop byte
+    data += struct.pack('!b', T_STOP)
+    
+    return data
+
+# Create the binary file with specified data
+os.makedirs('/workspace/logs', exist_ok=True)
+
+binary_data = serialize_server_metrics(
+    server_id=11,
+    hostname='storage-server-011',
+    timestamp=1609495200,
+    cpu_percent=81.3,
+    memory_bytes=68719476736,
+    error_count=29,
+    status='warning'
+)
+
+with open('/workspace/logs/server_011.bin', 'wb') as f:
+    f.write(binary_data)
+
+print("Binary file created successfully")

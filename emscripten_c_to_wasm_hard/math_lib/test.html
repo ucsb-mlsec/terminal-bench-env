@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebAssembly Math Utils Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        #output {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            min-height: 200px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .success {
+            color: #4CAF50;
+        }
+        .error {
+            color: #f44336;
+        }
+        .test-case {
+            margin: 10px 0;
+            padding: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>WebAssembly Math Library Test</h1>
+    <div id="output">Loading WebAssembly module...</div>
+
+    <script>
+        var Module = {
+            onRuntimeInitialized: function() {
+                const output = document.getElementById('output');
+                let results = '';
+                
+                try {
+                    results += '=== WebAssembly Module Loaded Successfully ===\n\n';
+                    
+                    // Test factorial function
+                    results += '<span class="test-case">Testing factorial function:</span>\n';
+                    try {
+                        const fact5 = Module._factorial(5);
+                        results += `  factorial(5) = ${fact5} <span class="success">✓</span>\n`;
+                        
+                        const fact10 = Module._factorial(10);
+                        results += `  factorial(10) = ${fact10} <span class="success">✓</span>\n`;
+                    } catch (e) {
+                        results += `  <span class="error">Error calling factorial: ${e.message}</span>\n`;
+                    }
+                    results += '\n';
+                    
+                    // Test power function
+                    results += '<span class="test-case">Testing power function:</span>\n';
+                    try {
+                        const pow23 = Module._power(2, 3);
+                        results += `  power(2, 3) = ${pow23} <span class="success">✓</span>\n`;
+                        
+                        const pow54 = Module._power(5, 4);
+                        results += `  power(5, 4) = ${pow54} <span class="success">✓</span>\n`;
+                    } catch (e) {
+                        results += `  <span class="error">Error calling power: ${e.message}</span>\n`;
+                    }
+                    results += '\n';
+                    
+                    // Test is_prime function
+                    results += '<span class="test-case">Testing is_prime function:</span>\n';
+                    try {
+                        const prime7 = Module._is_prime(7);
+                        results += `  is_prime(7) = ${prime7 ? 'true' : 'false'} <span class="success">✓</span>\n`;
+                        
+                        const prime10 = Module._is_prime(10);
+                        results += `  is_prime(10) = ${prime10 ? 'true' : 'false'} <span class="success">✓</span>\n`;
+                        
+                        const prime17 = Module._is_prime(17);
+                        results += `  is_prime(17) = ${prime17 ? 'true' : 'false'} <span class="success">✓</span>\n`;
+                    } catch (e) {
+                        results += `  <span class="error">Error calling is_prime: ${e.message}</span>\n`;
+                    }
+                    results += '\n';
+                    
+                    // Test fibonacci function
+                    results += '<span class="test-case">Testing fibonacci function:</span>\n';
+                    try {
+                        const fib10 = Module._fibonacci(10);
+                        results += `  fibonacci(10) = ${fib10} <span class="success">✓</span>\n`;
+                        
+                        const fib15 = Module._fibonacci(15);
+                        results += `  fibonacci(15) = ${fib15} <span class="success">✓</span>\n`;
+                    } catch (e) {
+                        results += `  <span class="error">Error calling fibonacci: ${e.message}</span>\n`;
+                    }
+                    results += '\n';
+                    
+                    // Test gcd function
+                    results += '<span class="test-case">Testing gcd function:</span>\n';
+                    try {
+                        const gcd_48_18 = Module._gcd(48, 18);
+                        results += `  gcd(48, 18) = ${gcd_48_18} <span class="success">✓</span>\n`;
+                        
+                        const gcd_100_50 = Module._gcd(100, 50);
+                        results += `  gcd(100, 50) = ${gcd_100_50} <span class="success">✓</span>\n`;
+                    } catch (e) {
+                        results += `  <span class="error">Error calling gcd: ${e.message}</span>\n`;
+                    }
+                    results += '\n';
+                    
+                    results += '=== All Tests Complete ===\n';
+                    
+                } catch (error) {
+                    results += `<span class="error">Fatal Error: ${error.message}</span>\n`;
+                    results += 'Make sure the WebAssembly module was compiled with EXPORTED_FUNCTIONS.\n';
+                }
+                
+                output.innerHTML = results;
+            },
+            onAbort: function(what) {
+                document.getElementById('output').innerHTML = 
+                    `<span class="error">Failed to load WebAssembly module: ${what}</span>`;
+            }
+        };
+    </script>
+    <script src="mathutils.js"></script>
+</body>
+</html>

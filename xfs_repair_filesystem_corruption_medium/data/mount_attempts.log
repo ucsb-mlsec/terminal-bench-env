@@ -1,0 +1,76 @@
+[2024-01-15 14:23:45] ========================================
+[2024-01-15 14:23:45] XFS Filesystem Mount Attempts Log
+[2024-01-15 14:23:45] Device: /dev/sdb1
+[2024-01-15 14:23:45] Target Mount Point: /mnt/data_partition
+[2024-01-15 14:23:45] ========================================
+
+[2024-01-15 14:24:12] # Attempt 1 - standard mount
+[2024-01-15 14:24:12] Command: mount /dev/sdb1 /mnt/data_partition
+[2024-01-15 14:24:13] mount: /mnt/data_partition: can't read superblock on /dev/sdb1
+[2024-01-15 14:24:13] Result: FAILED
+
+[2024-01-15 14:24:15] dmesg output:
+[2024-01-15 14:24:15] XFS (sdb1): Mounting V5 Filesystem
+[2024-01-15 14:24:15] XFS (sdb1): Starting recovery (logdev: internal)
+[2024-01-15 14:24:15] XFS (sdb1): Metadata corruption detected at xfs_agf_read_verify+0x5a/0x100
+[2024-01-15 14:24:15] XFS (sdb1): Unmount and run xfs_repair
+[2024-01-15 14:24:15] XFS (sdb1): First 128 bytes of corrupted metadata buffer:
+[2024-01-15 14:24:15] XFS (sdb1): ffffffff81a3c6e0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[2024-01-15 14:24:15] XFS (sdb1): metadata I/O error in "xfs_trans_read_buf_map" at daddr 0x1 len 8 error 117
+
+[2024-01-15 14:26:34] # Attempt 2 - read-only mount
+[2024-01-15 14:26:34] Command: mount -o ro /dev/sdb1 /mnt/data_partition
+[2024-01-15 14:26:35] mount: /mnt/data_partition: wrong fs type, bad option, bad superblock on /dev/sdb1
+[2024-01-15 14:26:35] Result: FAILED
+
+[2024-01-15 14:26:37] dmesg output:
+[2024-01-15 14:26:37] XFS (sdb1): Mounting V5 Filesystem
+[2024-01-15 14:26:37] XFS (sdb1): Starting recovery (logdev: internal)
+[2024-01-15 14:26:37] XFS (sdb1): AGF buffer has invalid length, expected 224 got 0
+[2024-01-15 14:26:37] XFS (sdb1): Metadata corruption detected at xfs_agf_read_verify+0x5a/0x100
+[2024-01-15 14:26:37] XFS (sdb1): Failed to recover AGF
+[2024-01-15 14:26:37] XFS (sdb1): log mount/recovery failed: error -117
+[2024-01-15 14:26:37] XFS (sdb1): log mount failed
+
+[2024-01-15 14:28:56] # Attempt 3 - read-only with norecovery option
+[2024-01-15 14:28:56] Command: mount -o ro,norecovery /dev/sdb1 /mnt/data_partition
+[2024-01-15 14:28:57] mount: /mnt/data_partition: can't read superblock on /dev/sdb1
+[2024-01-15 14:28:57] Result: FAILED
+
+[2024-01-15 14:28:59] dmesg output:
+[2024-01-15 14:28:59] XFS (sdb1): Mounting V5 Filesystem
+[2024-01-15 14:28:59] XFS (sdb1): Mounting filesystem with norecovery option - log will not be processed
+[2024-01-15 14:28:59] XFS (sdb1): AGF buffer magic number mismatch, expected 0x58414746 got 0x00000000
+[2024-01-15 14:28:59] XFS (sdb1): Metadata corruption detected at xfs_agf_read_verify+0x5a/0x100
+[2024-01-15 14:28:59] XFS (sdb1): Structure needs cleaning
+[2024-01-15 14:28:59] XFS (sdb1): metadata I/O error in "xfs_buf_iodone_callback_error" at daddr 0x1 len 8 error 117
+
+[2024-01-15 14:31:22] # Attempt 4 - force mount with rw,norecovery
+[2024-01-15 14:31:22] Command: mount -o rw,norecovery /dev/sdb1 /mnt/data_partition
+[2024-01-15 14:31:23] mount: /mnt/data_partition: Structure needs cleaning
+[2024-01-15 14:31:23] Result: FAILED
+
+[2024-01-15 14:31:25] dmesg output:
+[2024-01-15 14:31:25] XFS (sdb1): Mounting V5 Filesystem
+[2024-01-15 14:31:25] XFS (sdb1): Filesystem has not been cleanly unmounted, readonly mount required
+[2024-01-15 14:31:25] XFS (sdb1): log mount/recovery failed: error -30
+[2024-01-15 14:31:25] XFS (sdb1): log mount failed
+
+[2024-01-15 14:33:48] # Attempt 5 - trying nouuid option with ro
+[2024-01-15 14:33:48] Command: mount -o ro,nouuid /dev/sdb1 /mnt/data_partition
+[2024-01-15 14:33:49] mount: /mnt/data_partition: can't read superblock on /dev/sdb1
+[2024-01-15 14:33:49] Result: FAILED
+
+[2024-01-15 14:33:51] dmesg output:
+[2024-01-15 14:33:51] XFS (sdb1): Mounting V5 Filesystem
+[2024-01-15 14:33:51] XFS (sdb1): Starting recovery (logdev: internal)
+[2024-01-15 14:33:51] XFS (sdb1): AGF: bad magic number 0x00000000
+[2024-01-15 14:33:51] XFS (sdb1): Metadata corruption detected at xfs_agf_read_verify+0x5a/0x100
+[2024-01-15 14:33:51] XFS (sdb1): Unmount and run xfs_repair
+[2024-01-15 14:33:51] XFS (sdb1): metadata I/O error in "xfs_trans_read_buf_map" at daddr 0x1 len 8 error 117
+
+[2024-01-15 14:36:14] ========================================
+[2024-01-15 14:36:14] SUMMARY: All mount attempts FAILED
+[2024-01-15 14:36:14] Common error pattern: AGF metadata corruption
+[2024-01-15 14:36:14] Recommendation: System offline, awaiting recovery analysis
+[2024-01-15 14:36:14] ========================================

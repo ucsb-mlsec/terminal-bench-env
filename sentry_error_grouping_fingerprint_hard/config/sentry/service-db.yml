@@ -1,0 +1,102 @@
+fingerprinting_rules:
+  # VALID: Database connection error rule using message matcher
+  - matchers:
+      - - message
+        - "Database connection failed*"
+    fingerprint:
+      - "db-connection-error"
+      - "{{ transaction }}"
+
+  # VALID: Type matcher for DatabaseError
+  - matchers:
+      - - type
+        - "DatabaseError"
+    fingerprint:
+      - "database-error"
+      - "{{ type }}"
+
+  # VALID: Using module variable in fingerprint
+  - matchers:
+      - - message
+        - "*timeout*"
+      - - type
+        - "TimeoutError"
+    fingerprint:
+      - "{{ module }}"
+      - "timeout"
+
+  # VALID: Path matcher for SQL query endpoints
+  - matchers:
+      - - path
+        - "*/api/v1/query/*"
+    fingerprint:
+      - "sql-query-endpoint"
+      - "{{ path }}"
+
+  # VALID: Multiple valid matchers (type + message)
+  - matchers:
+      - - type
+        - "OperationalError"
+      - - message
+        - "*deadlock*"
+    fingerprint:
+      - "db-deadlock"
+      - "{{ type }}"
+
+  # VALID: Value matcher with pattern matching
+  - matchers:
+      - - value
+        - "*connection pool exhausted*"
+    fingerprint:
+      - "pool-exhausted"
+      - "{{ transaction }}"
+
+  # VALID: Transaction isolation error
+  - matchers:
+      - - message
+        - "Transaction isolation level conflict"
+    fingerprint:
+      - "isolation-conflict"
+      - "{{ module }}"
+
+  # INVALID: Using 'database' as matcher type (not valid per spec)
+  - matchers:
+      - - database
+        - "postgres"
+    fingerprint:
+      - "postgres-error"
+
+  # INVALID: Fingerprint as single string instead of array
+  - matchers:
+      - - type
+        - "IntegrityError"
+    fingerprint: "integrity-error"
+
+  # INVALID: Using {{ query }} variable (not in spec)
+  - matchers:
+      - - message
+        - "*syntax error*"
+    fingerprint:
+      - "sql-syntax"
+      - "{{ query }}"
+
+  # INVALID: Using deprecated 'app' attribute
+  - matchers:
+      - - type
+        - "ConnectionError"
+    app: database
+    fingerprint:
+      - "connection-failed"
+
+  # INVALID: Only fingerprint field, missing matchers
+  - fingerprint:
+      - "orphan-rule"
+      - "no-matcher"
+
+  # INVALID: Unclosed variable syntax
+  - matchers:
+      - - message
+        - "*function call failed*"
+    fingerprint:
+      - "function-error"
+      - "{{ function"

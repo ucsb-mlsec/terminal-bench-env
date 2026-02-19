@@ -1,0 +1,54 @@
+server:
+  port: 8080
+  host: 0.0.0.0
+  name: user-authentication-service
+  environment: production
+  shutdown_timeout: 30
+
+database:
+  url: jdbc:postgresql://db-prod-01.internal:5432/userdb
+  username: service_user
+  password: ${DB_PASSWORD}
+  pool_size: 20
+  connection_timeout: 5000
+  idle_timeout: 600000
+
+logging:
+  level: INFO
+  format: json
+  output: stdout
+  max_file_size: 100MB
+  retention_days: 30
+  loggers:
+    - name: com.company.auth
+      level: DEBUG
+    - name: org.hibernate
+      level: WARN
+
+features:
+  enable_registration: true
+  enable_oauth: true
+  enable_2fa: false
+  enable_rate_limiting: true
+  enable_metrics: true
+
+security:
+  session_timeout: 3600
+  max_login_attempts: 5
+  lockout_duration: 900
+
+performance:
+  request_timeout: 30000
+  max_concurrent_requests: 1000
+  thread_pool_size: 50
+
+cache:
+  provider: redis
+  host: redis-prod.internal
+  port: 6379
+  ttl: 300
+
+metrics:
+  enabled: true
+  endpoint: /metrics
+  port: 9090

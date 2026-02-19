@@ -1,0 +1,121 @@
+# Social Media Platform GraphQL Schema
+
+# Core Types
+
+type User {
+  id: ID!
+  username: String!
+  email: String!
+  name: String!
+  bio: String
+  avatarUrl: String
+  followers: [User!]!
+  following: [User!]!
+  posts: [Post!]!
+  createdAt: String!
+  followerCount: Int!
+  followingCount: Int!
+}
+
+type Post {
+  id: ID!
+  author: User!
+  content: String!
+  imageUrl: String
+  likes: Int!
+  comments: [Comment!]!
+  createdAt: String!
+  updatedAt: String!
+}
+
+type Comment {
+  id: ID!
+  author: User!
+  post: Post!
+  content: String!
+  likes: Int!
+  createdAt: String!
+}
+
+type Follow {
+  id: ID!
+  follower: User!
+  following: User!
+  createdAt: String!
+}
+
+type AuthPayload {
+  token: String!
+  user: User!
+}
+
+type FollowResult {
+  success: Boolean!
+  message: String!
+  follow: Follow
+}
+
+type UnfollowResult {
+  success: Boolean!
+  message: String!
+}
+
+type PostResult {
+  success: Boolean!
+  message: String!
+  post: Post
+}
+
+# Query Operations
+
+type Query {
+  # Get a single user by ID or username
+  getUserProfile(id: ID, username: String): User
+  
+  # Get list of all users
+  users(limit: Int, offset: Int): [User!]!
+  
+  # Get current authenticated user
+  me: User
+  
+  # Get a single post by ID
+  post(id: ID!): Post
+  
+  # Get feed of posts from followed users
+  feed(limit: Int, offset: Int): [Post!]!
+  
+  # Get all posts by a specific user
+  userPosts(userId: ID!, limit: Int, offset: Int): [Post!]!
+  
+  # Search users by username or name
+  searchUsers(query: String!, limit: Int): [User!]!
+  
+  # Get comments for a post
+  postComments(postId: ID!, limit: Int, offset: Int): [Comment!]!
+}
+
+# Mutation Operations
+
+type Mutation {
+  # Authentication
+  signup(username: String!, email: String!, password: String!, name: String!): AuthPayload!
+  login(email: String!, password: String!): AuthPayload!
+  
+  # User operations
+  updateProfile(name: String, bio: String, avatarUrl: String): User!
+  
+  # Follow operations
+  followUser(userId: ID!): FollowResult!
+  unfollowUser(userId: ID!): UnfollowResult!
+  
+  # Post operations
+  createPost(content: String!, imageUrl: String): PostResult!
+  deletePost(postId: ID!): Boolean!
+  likePost(postId: ID!): Post!
+  unlikePost(postId: ID!): Post!
+  
+  # Comment operations
+  createComment(postId: ID!, content: String!): Comment!
+  deleteComment(commentId: ID!): Boolean!
+  likeComment(commentId: ID!): Comment!
+}

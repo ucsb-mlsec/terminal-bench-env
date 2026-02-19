@@ -1,0 +1,90 @@
+I'll analyze the Go boards to find stones in atari (with exactly one liberty). Let me start by reading the board files and implementing the solution.
+
+<solve>
+import os
+from collections import deque
+
+def read_board(filepath):
+    """Read a board from file and return as 2D list."""
+    with open(filepath, 'r') as f:
+        lines = f.readlines()
+    return [list(line.strip()) for line in lines if line.strip()]
+
+def get_neighbors(row, col, size=9):
+    """Get valid neighboring coordinates."""
+    neighbors = []
+    for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+        nr, nc = row + dr, col + dc
+        if 0 <= nr < size and 0 <= nc < size:
+            neighbors.append((nr, nc))
+    return neighbors
+
+def find_group(board, row, col, visited):
+    """Find all stones in a connected group using BFS."""
+    color = board[row][col]
+    if color == '.':
+        return set()
+    
+    group = set()
+    queue = deque([(row, col)])
+    group.add((row, col))
+    
+    while queue:
+        r, c = queue.popleft()
+        for nr, nc in get_neighbors(r, c):
+            if (nr, nc) not in group and board[nr][nc] == color:
+                group.add((nr, nc))
+                queue.append((nr, nc))
+    
+    return group
+
+def count_liberties(board, group):
+    """Count liberties for a group of stones."""
+    liberties = set()
+    for r, c in group:
+        for nr, nc in get_neighbors(r, c):
+            if board[nr][nc] == '.':
+                liberties.add((nr, nc))
+    return len(liberties)
+
+def find_atari_stones(board):
+    """Find all stones that have exactly one liberty."""
+    visited = set()
+    atari_stones = []
+    
+    for row in range(9):
+        for col in range(9):
+            if board[row][col] in ['B', 'W'] and (row, col) not in visited:
+                group = find_group(board, row, col, visited)
+                visited.update(group)
+                
+                if count_liberties(board, group) == 1:
+                    # All stones in this group are in atari
+                    for r, c in group:
+                        atari_stones.append((r + 1, c + 1, board[r][c]))  # Convert to 1-indexed
+    
+    return atari_stones
+
+# Process all board files
+boards_dir = '/home/agent/boards/'
+results = []
+
+for i in range(1, 16):
+    filename = f'board_{i:02d}.txt'
+    filepath = os.path.join(boards_dir, filename)
+    
+    if os.path.exists(filepath):
+        board = read_board(filepath)
+        atari_stones = find_atari_stones(board)
+        
+        for row, col, color in atari_stones:
+            results.append((filename, row, col, color))
+
+# Sort results by board name, then row, then column
+results.sort(key=lambda x: (x[0], x[1], x[2]))
+
+# Write output
+with open('/home/agent/atari_stones.txt', 'w') as f:
+    for filename, row, col, color in results:
+        f.write(f'{filename} {row} {col} {color}\n')
+</solve>

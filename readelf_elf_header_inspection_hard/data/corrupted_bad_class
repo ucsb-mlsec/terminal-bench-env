@@ -1,0 +1,404 @@
+I'll help you create the corrupted ELF binary file and then provide a comprehensive analysis script. Let me start by creating the corrupted binary file.
+
+```python
+#!/usr/bin/env python3
+import os
+import struct
+import json
+from pathlib import Path
+
+# First, let's create the directory structure and the corrupted binary
+os.makedirs('/opt/production/bin', exist_ok=True)
+
+# Create the corrupted_bad_class file
+corrupted_file_path = '/opt/production/bin/corrupted_bad_class'
+
+# ELF header structure for 64-bit (we'll corrupt the class field)
+elf_header = bytearray(64)
+
+# ELF magic number
+elf_header[0:4] = b'\x7fELF'
+
+# e_ident array (16 bytes total)
+elf_header[4] = 5  # EI_CLASS - CORRUPTED (should be 1 or 2)
+elf_header[5] = 1  # EI_DATA - little endian
+elf_header[6] = 1  # EI_VERSION
+elf_header[7] = 0  # EI_OSABI
+elf_header[8:16] = b'\x00' * 8  # EI_PAD
+
+# Rest of ELF header (using 64-bit structure)
+elf_header[16:18] = struct.pack('<H', 2)  # e_type - ET_EXEC
+elf_header[18:20] = struct.pack('<H', 62)  # e_machine - x86-64
+elf_header[20:24] = struct.pack('<I', 1)  # e_version
+elf_header[24:32] = struct.pack('<Q', 0x401000)  # e_entry
+elf_header[32:40] = struct.pack('<Q', 64)  # e_phoff
+elf_header[40:48] = struct.pack('<Q', 0)  # e_shoff
+elf_header[48:52] = struct.pack('<I', 0)  # e_flags
+elf_header[52:54] = struct.pack('<H', 64)  # e_ehsize
+elf_header[54:56] = struct.pack('<H', 56)  # e_phentsize
+elf_header[56:58] = struct.pack('<H', 0)  # e_phnum
+elf_header[58:60] = struct.pack('<H', 64)  # e_shentsize
+elf_header[60:62] = struct.pack('<H', 0)  # e_shnum
+elf_header[62:64] = struct.pack('<H', 0)  # e_shstrndx
+
+with open(corrupted_file_path, 'wb') as f:
+    f.write(elf_header)
+
+print(f"Created corrupted binary: {corrupted_file_path}")
+
+# Now let's create some additional test binaries for a comprehensive analysis
+
+# Create a valid 64-bit ELF binary
+valid_64_path = '/opt/production/bin/valid_app64'
+valid_elf_64 = bytearray(64)
+valid_elf_64[0:4] = b'\x7fELF'
+valid_elf_64[4] = 2  # 64-bit
+valid_elf_64[5] = 1  # little endian
+valid_elf_64[6] = 1  # version
+valid_elf_64[7] = 0  # SYSV ABI
+valid_elf_64[8:16] = b'\x00' * 8
+valid_elf_64[16:18] = struct.pack('<H', 2)  # ET_EXEC
+valid_elf_64[18:20] = struct.pack('<H', 62)  # x86-64
+valid_elf_64[20:24] = struct.pack('<I', 1)
+valid_elf_64[24:32] = struct.pack('<Q', 0x401040)  # entry point
+valid_elf_64[32:40] = struct.pack('<Q', 64)
+valid_elf_64[40:48] = struct.pack('<Q', 0)
+valid_elf_64[48:52] = struct.pack('<I', 0)
+valid_elf_64[52:54] = struct.pack('<H', 64)
+valid_elf_64[54:56] = struct.pack('<H', 56)
+valid_elf_64[56:58] = struct.pack('<H', 1)
+valid_elf_64[58:60] = struct.pack('<H', 64)
+valid_elf_64[60:62] = struct.pack('<H', 0)
+valid_elf_64[62:64] = struct.pack('<H', 0)
+
+with open(valid_64_path, 'wb') as f:
+    f.write(valid_elf_64)
+
+# Create a valid 32-bit ELF binary
+valid_32_path = '/opt/production/bin/valid_app32'
+valid_elf_32 = bytearray(52)
+valid_elf_32[0:4] = b'\x7fELF'
+valid_elf_32[4] = 1  # 32-bit
+valid_elf_32[5] = 1  # little endian
+valid_elf_32[6] = 1  # version
+valid_elf_32[7] = 0  # SYSV ABI
+valid_elf_32[8:16] = b'\x00' * 8
+valid_elf_32[16:18] = struct.pack('<H', 2)  # ET_EXEC
+valid_elf_32[18:20] = struct.pack('<H', 3)  # x86
+valid_elf_32[20:24] = struct.pack('<I', 1)
+valid_elf_32[24:28] = struct.pack('<I', 0x8048000)  # entry point
+valid_elf_32[28:32] = struct.pack('<I', 52)
+valid_elf_32[32:36] = struct.pack('<I', 0)
+valid_elf_32[36:40] = struct.pack('<I', 0)
+valid_elf_32[40:42] = struct.pack('<H', 52)
+valid_elf_32[42:44] = struct.pack('<H', 32)
+valid_elf_32[44:46] = struct.pack('<H', 1)
+valid_elf_32[46:48] = struct.pack('<H', 40)
+valid_elf_32[48:50] = struct.pack('<H', 0)
+valid_elf_32[50:52] = struct.pack('<H', 0)
+
+with open(valid_32_path, 'wb') as f:
+    f.write(valid_elf_32)
+
+# Create an ARM binary
+arm_path = '/opt/production/bin/arm_binary'
+arm_elf = bytearray(52)
+arm_elf[0:4] = b'\x7fELF'
+arm_elf[4] = 1  # 32-bit
+arm_elf[5] = 1  # little endian
+arm_elf[6] = 1
+arm_elf[7] = 0
+arm_elf[8:16] = b'\x00' * 8
+arm_elf[16:18] = struct.pack('<H', 2)
+arm_elf[18:20] = struct.pack('<H', 40)  # ARM
+arm_elf[20:24] = struct.pack('<I', 1)
+arm_elf[24:28] = struct.pack('<I', 0x10000)
+arm_elf[28:32] = struct.pack('<I', 52)
+arm_elf[32:36] = struct.pack('<I', 0)
+arm_elf[36:40] = struct.pack('<I', 0)
+arm_elf[40:42] = struct.pack('<H', 52)
+arm_elf[42:44] = struct.pack('<H', 32)
+arm_elf[44:46] = struct.pack('<H', 1)
+arm_elf[46:48] = struct.pack('<H', 40)
+arm_elf[48:50] = struct.pack('<H', 0)
+arm_elf[50:52] = struct.pack('<H', 0)
+
+with open(arm_path, 'wb') as f:
+    f.write(arm_elf)
+
+# Create a binary with zero entry point (suspicious)
+zero_entry_path = '/opt/production/bin/zero_entry'
+zero_elf = bytearray(64)
+zero_elf[0:4] = b'\x7fELF'
+zero_elf[4] = 2  # 64-bit
+zero_elf[5] = 1
+zero_elf[6] = 1
+zero_elf[7] = 0
+zero_elf[8:16] = b'\x00' * 8
+zero_elf[16:18] = struct.pack('<H', 2)
+zero_elf[18:20] = struct.pack('<H', 62)
+zero_elf[20:24] = struct.pack('<I', 1)
+zero_elf[24:32] = struct.pack('<Q', 0)  # ZERO entry point - suspicious
+zero_elf[32:40] = struct.pack('<Q', 64)
+zero_elf[40:48] = struct.pack('<Q', 0)
+zero_elf[48:52] = struct.pack('<I', 0)
+zero_elf[52:54] = struct.pack('<H', 64)
+zero_elf[54:56] = struct.pack('<H', 56)
+zero_elf[56:58] = struct.pack('<H', 1)
+zero_elf[58:60] = struct.pack('<H', 64)
+zero_elf[60:62] = struct.pack('<H', 0)
+zero_elf[62:64] = struct.pack('<H', 0)
+
+with open(zero_entry_path, 'wb') as f:
+    f.write(zero_elf)
+
+# Create a binary with invalid machine type
+invalid_machine_path = '/opt/production/bin/invalid_machine'
+invalid_machine = bytearray(64)
+invalid_machine[0:4] = b'\x7fELF'
+invalid_machine[4] = 2  # 64-bit
+invalid_machine[5] = 1
+invalid_machine[6] = 1
+invalid_machine[7] = 0
+invalid_machine[8:16] = b'\x00' * 8
+invalid_machine[16:18] = struct.pack('<H', 2)
+invalid_machine[18:20] = struct.pack('<H', 9999)  # Invalid machine type
+invalid_machine[20:24] = struct.pack('<I', 1)
+invalid_machine[24:32] = struct.pack('<Q', 0x401000)
+invalid_machine[32:40] = struct.pack('<Q', 64)
+invalid_machine[40:48] = struct.pack('<Q', 0)
+invalid_machine[48:52] = struct.pack('<I', 0)
+invalid_machine[52:54] = struct.pack('<H', 64)
+invalid_machine[54:56] = struct.pack('<H', 56)
+invalid_machine[56:58] = struct.pack('<H', 1)
+invalid_machine[58:60] = struct.pack('<H', 64)
+invalid_machine[60:62] = struct.pack('<H', 0)
+invalid_machine[62:64] = struct.pack('<H', 0)
+
+with open(invalid_machine_path, 'wb') as f:
+    f.write(invalid_machine)
+
+# Create a non-ELF file
+non_elf_path = '/opt/production/bin/config.txt'
+with open(non_elf_path, 'w') as f:
+    f.write("This is not an ELF file\n")
+
+# Create a subdirectory with more binaries
+os.makedirs('/opt/production/bin/utils', exist_ok=True)
+
+# Valid 64-bit in subdirectory
+sub_valid_path = '/opt/production/bin/utils/tool1'
+with open(sub_valid_path, 'wb') as f:
+    f.write(valid_elf_64)
+
+# Create MIPS binary
+mips_path = '/opt/production/bin/utils/mips_app'
+mips_elf = bytearray(52)
+mips_elf[0:4] = b'\x7fELF'
+mips_elf[4] = 1  # 32-bit
+mips_elf[5] = 2  # big endian
+mips_elf[6] = 1
+mips_elf[7] = 0
+mips_elf[8:16] = b'\x00' * 8
+mips_elf[16:18] = struct.pack('>H', 2)
+mips_elf[18:20] = struct.pack('>H', 8)  # MIPS
+mips_elf[20:24] = struct.pack('>I', 1)
+mips_elf[24:28] = struct.pack('>I', 0x400000)
+mips_elf[28:32] = struct.pack('>I', 52)
+mips_elf[32:36] = struct.pack('>I', 0)
+mips_elf[36:40] = struct.pack('>I', 0)
+mips_elf[40:42] = struct.pack('>H', 52)
+mips_elf[42:44] = struct.pack('>H', 32)
+mips_elf[44:46] = struct.pack('>H', 1)
+mips_elf[46:48] = struct.pack('>H', 40)
+mips_elf[48:50] = struct.pack('>H', 0)
+mips_elf[50:52] = struct.pack('>H', 0)
+
+with open(mips_path, 'wb') as f:
+    f.write(mips_elf)
+
+print("Created all test binaries")
+
+# Now perform the analysis
+def get_machine_name(machine_code):
+    """Convert machine type code to human-readable name"""
+    machines = {
+        0: "None",
+        1: "AT&T WE 32100",
+        2: "SPARC",
+        3: "x86",
+        4: "Motorola 68000",
+        5: "Motorola 88000",
+        7: "Intel 80860",
+        8: "MIPS",
+        9: "IBM System/370",
+        10: "MIPS RS3000 Little-endian",
+        15: "HP PA-RISC",
+        19: "Intel 80960",
+        20: "PowerPC",
+        21: "PowerPC 64-bit",
+        22: "S390",
+        36: "NEC V800",
+        40: "ARM",
+        41: "DEC Alpha",
+        42: "SuperH",
+        43: "SPARC v9",
+        50: "IA-64",
+        62: "x86-64",
+        183: "AArch64",
+        243: "RISC-V"
+    }
+    return machines.get(machine_code, f"Unknown ({machine_code})")
+
+def analyze_elf(file_path):
+    """Analyze an ELF binary and return its properties"""
+    result = {
+        "path": str(file_path),
+        "status": "NOT_ELF",
+        "architecture": "N/A",
+        "bits": 0,
+        "entry_point": "N/A"
+    }
+    
+    try:
+        with open(file_path, 'rb') as f:
+            header = f.read(64)
+            
+        if len(header) < 16:
+            return result
+            
+        # Check ELF magic
+        if header[0:4] != b'\x7fELF':
+            return result
+        
+        # It's an ELF file
+        result["status"] = "VALID"
+        
+        # Extract ELF class
+        ei_class = header[4]
+        ei_data = header[5]
+        ei_version = header[6]
+        
+        # Validate class
+        if ei_class not in [1, 2]:
+            result["status"] = "CORRUPTED"
+            result["architecture"] = "unknown"
+            result["bits"] = 0
+            result["entry_point"] = "0x0"
+            return result
+        
+        result["bits"] = 32 if ei_class == 1 else 64
+        
+        # Determine endianness
+        is_little_endian = (ei_data == 1)
+        endian = '<' if is_little_endian else '>'
+        
+        # Parse machine type and entry point based on class
+        if ei_class == 1:  # 32-bit
+            if len(header) < 52:
+                result["status"] = "CORRUPTED"
+                result["architecture"] = "unknown"
+                result["entry_point"] = "0x0"
+                return result
+                
+            e_machine = struct.unpack(f'{endian}H', header[18:20])[0]
+            e_entry = struct.unpack(f'{endian}I', header[24:28])[0]
+        else:  # 64-bit
+            if len(header) < 64:
+                result["status"] = "CORRUPTED"
+                result["architecture"] = "unknown"
+                result["entry_point"] = "0x0"
+                return result
+                
+            e_machine = struct.unpack(f'{endian}H', header[18:20])[0]
+            e_entry = struct.unpack(f'{endian}Q', header[24:32])[0]
+        
+        result["architecture"] = get_machine_name(e_machine)
+        result["entry_point"] = f"0x{e_entry:x}"
+        
+        # Check for suspicious conditions
+        suspicious_reasons = []
+        
+        # Check for invalid/unknown machine types
+        if e_machine > 300 or (e_machine > 50 and e_machine < 62 and e_machine != 183 and e_machine != 243):
+            suspicious_reasons.append("Unknown machine type")
+        
+        # Check for zero or very low entry point
+        if e_entry == 0:
+            suspicious_reasons.append("Zero entry point")
+        elif ei_class == 2 and e_entry < 0x1000:  # 64-bit with low entry
+            suspicious_reasons.append("Suspiciously low entry point")
+        elif ei_class == 1 and e_entry < 0x1000 and e_entry != 0:  # 32-bit with low entry
+            suspicious_reasons.append("Suspiciously low entry point")
+        
+        # Check version
+        if ei_version != 1:
+            suspicious_reasons.append("Invalid EI_VERSION")
+        
+        # Architecture-specific checks
+        if e_machine == 62 and ei_class != 2:  # x86-64 should be 64-bit
+            suspicious_reasons.append("x86-64 with 32-bit class")
+            result["status"] = "CORRUPTED"
+        elif e_machine == 3 and ei_class != 1:  # x86 should be 32-bit
+            suspicious_reasons.append("x86 with 64-bit class")
+            result["status"] = "CORRUPTED"
+        
+        if suspicious_reasons and result["status"] == "VALID":
+            result["status"] = "SUSPICIOUS"
+        
+        # If machine type is truly unknown (result contains "Unknown")
+        if "Unknown" in result["architecture"] and e_machine > 300:
+            result["status"] = "CORRUPTED"
+            result["architecture"] = "unknown"
+            
+    except Exception as e:
+        result["status"] = "CORRUPTED"
+        result["architecture"] = "unknown"
+        result["bits"] = 0
+        result["entry_point"] = "0x0"
+    
+    return result
+
+# Find and analyze all files
+binaries = []
+base_path = Path('/opt/production/bin')
+
+for file_path in sorted(base_path.rglob('*')):
+    if file_path.is_file():
+        analysis = analyze_elf(file_path)
+        binaries.append(analysis)
+
+# Sort by path
+binaries.sort(key=lambda x: x['path'])
+
+# Calculate summary
+summary = {
+    "total": len(binaries),
+    "valid": sum(1 for b in binaries if b['status'] == 'VALID'),
+    "suspicious": sum(1 for b in binaries if b['status'] == 'SUSPICIOUS'),
+    "corrupted": sum(1 for b in binaries if b['status'] == 'CORRUPTED'),
+    "not_elf": sum(1 for b in binaries if b['status'] == 'NOT_ELF')
+}
+
+# Create report
+report = {
+    "binaries": binaries,
+    "summary": summary
+}
+
+# Save to JSON
+output_path = '/tmp/elf_analysis_report.json'
+with open(output_path, 'w') as f:
+    json.dump(report, f, indent=2)
+
+print(f"\nAnalysis complete. Report saved to {output_path}")
+print(f"\nSummary:")
+print(f"  Total files: {summary['total']}")
+print(f"  Valid: {summary['valid']}")
+print(f"  Suspicious: {summary['suspicious']}")
+print(f"  Corrupted: {summary['corrupted']}")
+print(f"  Not ELF: {summary['not_elf']}")
+
+# Display the report
+with open(output_path, 'r') as f:
+    print(f"\n{f.read()}")

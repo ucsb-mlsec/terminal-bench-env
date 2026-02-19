@@ -1,0 +1,120 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: web-app
+  namespace: dev
+spec:
+  serviceAccountName: dev-viewer
+  automountServiceAccountToken: true
+  containers:
+  - name: nginx
+    image: nginx:latest
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: api-service
+  namespace: dev
+spec:
+  serviceAccountName: pod-manager
+  automountServiceAccountToken: true
+  containers:
+  - name: api
+    image: node:14
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: database-client
+  namespace: dev
+spec:
+  serviceAccountName: db-access
+  automountServiceAccountToken: true
+  containers:
+  - name: psql
+    image: postgres:13
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: frontend
+  namespace: prod
+spec:
+  serviceAccountName: prod-app
+  automountServiceAccountToken: true
+  containers:
+  - name: react
+    image: nginx:alpine
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: backend-api
+  namespace: prod
+spec:
+  serviceAccountName: prod-service
+  automountServiceAccountToken: false
+  containers:
+  - name: backend
+    image: python:3.9
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: metrics-collector
+  namespace: monitoring
+spec:
+  serviceAccountName: metrics-reader
+  automountServiceAccountToken: true
+  containers:
+  - name: prometheus
+    image: prom/prometheus:latest
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: log-aggregator
+  namespace: monitoring
+spec:
+  serviceAccountName: log-collector
+  automountServiceAccountToken: true
+  containers:
+  - name: fluentd
+    image: fluentd:latest
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: debug-pod
+  namespace: dev
+spec:
+  serviceAccountName: dev-debug
+  automountServiceAccountToken: true
+  containers:
+  - name: busybox
+    image: busybox:latest
+    command: ['sh', '-c', 'sleep 3600']
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: batch-processor
+  namespace: prod
+spec:
+  serviceAccountName: batch-worker
+  automountServiceAccountToken: true
+  containers:
+  - name: worker
+    image: busybox:latest
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: alert-manager
+  namespace: monitoring
+spec:
+  serviceAccountName: alert-service
+  automountServiceAccountToken: true
+  containers:
+  - name: alertmanager
+    image: prom/alertmanager:latest

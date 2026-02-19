@@ -1,0 +1,163 @@
+import gzip
+import json
+from datetime import datetime, timedelta
+import random
+
+# Generate CloudTrail events
+events = []
+
+# IP addresses (mix of repeating and new ones)
+ip_addresses = [
+    "203.0.113.42",
+    "198.51.100.78",
+    "192.0.2.156",
+    "203.0.113.89",
+    "198.51.100.201",
+    "192.0.2.45",
+    "203.0.113.167",
+    "198.51.100.34",
+    "192.0.2.223",
+    "203.0.113.99"
+]
+
+# AWS API calls
+successful_events = [
+    "DescribeInstances",
+    "ListBuckets",
+    "GetObject",
+    "PutObject",
+    "DescribeVolumes",
+    "GetUser",
+    "ListUsers",
+    "DescribeSecurityGroups",
+    "GetBucketPolicy",
+    "DescribeSnapshots"
+]
+
+failed_events = [
+    "ConsoleLogin",
+    "TerminateInstances",
+    "DeleteUser",
+    "DeleteBucket",
+    "RunInstances",
+    "ModifyInstanceAttribute",
+    "GetSessionToken",
+    "CreateAccessKey",
+    "PutBucketPolicy",
+    "AttachUserPolicy"
+]
+
+error_codes = [
+    "AccessDenied",
+    "UnauthorizedOperation",
+    "FailedAuthentication",
+    "InvalidClientTokenId"
+]
+
+error_messages = {
+    "AccessDenied": "User is not authorized to perform this operation",
+    "UnauthorizedOperation": "You are not authorized to perform this operation",
+    "FailedAuthentication": "Authentication failed due to invalid credentials",
+    "InvalidClientTokenId": "The security token included in the request is invalid"
+}
+
+# Generate 12 failed authentication/authorization events
+for i in range(12):
+    hour = random.randint(0, 23)
+    minute = random.randint(0, 59)
+    second = random.randint(0, 59)
+    timestamp = f"2024-01-16T{hour:02d}:{minute:02d}:{second:02d}Z"
+    
+    event_name = random.choice(failed_events)
+    error_code = random.choice(error_codes)
+    source_ip = random.choice(ip_addresses)
+    
+    event = {
+        "eventVersion": "1.08",
+        "userIdentity": {
+            "type": "IAMUser",
+            "principalId": f"AIDA{''.join(random.choices('ABCDEFGHIJKLMNOPQRSTUVWXYZ234567', k=16))}",
+            "arn": f"arn:aws:iam::123456789012:user/user{random.randint(1,20)}",
+            "accountId": "123456789012",
+            "accessKeyId": f"AKIA{''.join(random.choices('ABCDEFGHIJKLMNOPQRSTUVWXYZ234567', k=16))}"
+        },
+        "eventTime": timestamp,
+        "eventSource": "signin.amazonaws.com" if event_name == "ConsoleLogin" else f"{event_name.lower()}.amazonaws.com",
+        "eventName": event_name,
+        "awsRegion": "us-east-1",
+        "sourceIPAddress": source_ip,
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "errorCode": error_code,
+        "errorMessage": error_messages[error_code],
+        "requestParameters": {
+            "instanceId": f"i-{''.join(random.choices('0123456789abcdef', k=17))}" if "Instance" in event_name else None,
+            "bucketName": f"my-bucket-{random.randint(1,100)}" if "Bucket" in event_name else None
+        },
+        "responseElements": None,
+        "requestID": f"{''.join(random.choices('0123456789abcdef-', k=36))}",
+        "eventID": f"{''.join(random.choices('0123456789abcdef-', k=36))}",
+        "readOnly": False,
+        "eventType": "AwsApiCall",
+        "managementEvent": True,
+        "recipientAccountId": "123456789012"
+    }
+    events.append(event)
+
+# Generate 35 successful events
+for i in range(35):
+    hour = random.randint(0, 23)
+    minute = random.randint(0, 59)
+    second = random.randint(0, 59)
+    timestamp = f"2024-01-16T{hour:02d}:{minute:02d}:{second:02d}Z"
+    
+    event_name = random.choice(successful_events)
+    source_ip = random.choice(ip_addresses)
+    
+    event = {
+        "eventVersion": "1.08",
+        "userIdentity": {
+            "type": "IAMUser",
+            "principalId": f"AIDA{''.join(random.choices('ABCDEFGHIJKLMNOPQRSTUVWXYZ234567', k=16))}",
+            "arn": f"arn:aws:iam::123456789012:user/admin{random.randint(1,5)}",
+            "accountId": "123456789012",
+            "accessKeyId": f"AKIA{''.join(random.choices('ABCDEFGHIJKLMNOPQRSTUVWXYZ234567', k=16))}"
+        },
+        "eventTime": timestamp,
+        "eventSource": f"ec2.amazonaws.com" if "Instance" in event_name or "Volume" in event_name or "SecurityGroup" in event_name or "Snapshot" in event_name else "s3.amazonaws.com" if "Bucket" in event_name or "Object" in event_name else "iam.amazonaws.com",
+        "eventName": event_name,
+        "awsRegion": "us-east-1",
+        "sourceIPAddress": source_ip,
+        "userAgent": "aws-cli/2.13.0 Python/3.11.4 Linux/5.15.0",
+        "errorCode": None,
+        "errorMessage": None,
+        "requestParameters": {
+            "maxResults": 100 if "Describe" in event_name or "List" in event_name else None,
+            "instanceId": f"i-{''.join(random.choices('0123456789abcdef', k=17))}" if "Instance" in event_name else None,
+            "bucketName": f"production-bucket-{random.randint(1,20)}" if "Bucket" in event_name or "Object" in event_name else None
+        },
+        "responseElements": {
+            "requestId": f"{''.join(random.choices('0123456789ABCDEF', k=16))}",
+            "instancesSet": {"items": []} if "Describe" in event_name else None
+        },
+        "requestID": f"{''.join(random.choices('0123456789abcdef-', k=36))}",
+        "eventID": f"{''.join(random.choices('0123456789abcdef-', k=36))}",
+        "readOnly": "Describe" in event_name or "List" in event_name or "Get" in event_name,
+        "eventType": "AwsApiCall",
+        "managementEvent": True,
+        "recipientAccountId": "123456789012"
+    }
+    events.append(event)
+
+# Sort events by timestamp
+events.sort(key=lambda x: x["eventTime"])
+
+# Create the CloudTrail log structure
+cloudtrail_log = {
+    "Records": events
+}
+
+# Write to gzip compressed JSON file
+with gzip.open('/tmp/cloudtrail_2024_01_16.json.gz', 'wt', encoding='utf-8') as f:
+    json.dump(cloudtrail_log, f, indent=2)
+
+print("File generated successfully")

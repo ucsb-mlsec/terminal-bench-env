@@ -1,0 +1,299 @@
+I need to analyze the task and create a fuzzing-ready version of the image processor. Let me start by examining the existing code and then create the necessary components.
+
+First, let me check what exists:
+
+```bash
+cd /home/benchmark/imgproc
+ls -la
+cat processor.c
+```
+
+Now I need to:
+1. Create a fuzzing harness that reads from stdin instead of files
+2. Compile with coverage instrumentation (using AFL++ or similar)
+3. Test it works with sample images
+4. Generate the required BMP file
+
+Let me create a fuzzing harness wrapper:
+
+```c
+// processor_fuzz.c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+// External functions from processor.c
+extern int process_image_data(unsigned char *data, size_t size);
+
+#ifdef __AFL_FUZZ_TESTCASE_LEN
+__AFL_FUZZ_INIT();
+#endif
+
+int main(int argc, char **argv) {
+    unsigned char *buf;
+    size_t len;
+
+#ifdef __AFL_FUZZ_TESTCASE_LEN
+    // AFL persistent mode
+    __AFL_INIT();
+    buf = __AFL_FUZZ_TESTCASE_BUF;
+    while (__AFL_LOOP(1000)) {
+        len = __AFL_FUZZ_TESTCASE_LEN;
+        if (len > 0) {
+            process_image_data(buf, len);
+        }
+    }
+#else
+    // Read from stdin for standard fuzzing
+    buf = NULL;
+    len = 0;
+    size_t capacity = 4096;
+    buf = malloc(capacity);
+    
+    if (!buf) {
+        return 1;
+    }
+
+    size_t n;
+    while ((n = fread(buf + len, 1, capacity - len, stdin)) > 0) {
+        len += n;
+        if (len >= capacity) {
+            capacity *= 2;
+            unsigned char *new_buf = realloc(buf, capacity);
+            if (!new_buf) {
+                free(buf);
+                return 1;
+            }
+            buf = new_buf;
+        }
+    }
+
+    if (len > 0) {
+        process_image_data(buf, len);
+    }
+
+    free(buf);
+#endif
+
+    return 0;
+}
+```
+
+Now let me check if AFL++ is available and compile:
+
+```bash
+which afl-clang-fast
+which afl-gcc
+```
+
+Let me create the modified processor that exposes the processing function and compile everything:
+
+First, create the BMP test file:
+
+```python
+#!/usr/bin/env python3
+import struct
+
+# BMP File Header (14 bytes)
+width = 10
+height = 10
+bits_per_pixel = 24
+row_size = ((bits_per_pixel * width + 31) // 32) * 4
+pixel_data_size = row_size * height
+file_size = 14 + 40 + pixel_data_size
+
+bmp_data = bytearray()
+
+# BMP signature
+bmp_data += b'BM'
+# File size
+bmp_data += struct.pack('<I', file_size)
+# Reserved
+bmp_data += struct.pack('<HH', 0, 0)
+# Pixel data offset
+bmp_data += struct.pack('<I', 54)
+
+# DIB Header (BITMAPINFOHEADER - 40 bytes)
+bmp_data += struct.pack('<I', 40)  # Header size
+bmp_data += struct.pack('<i', width)  # Width
+bmp_data += struct.pack('<i', height)  # Height
+bmp_data += struct.pack('<H', 1)  # Color planes
+bmp_data += struct.pack('<H', bits_per_pixel)  # Bits per pixel
+bmp_data += struct.pack('<I', 0)  # Compression (none)
+bmp_data += struct.pack('<I', pixel_data_size)  # Image size
+bmp_data += struct.pack('<i', 2835)  # X pixels per meter
+bmp_data += struct.pack('<i', 2835)  # Y pixels per meter
+bmp_data += struct.pack('<I', 0)  # Colors in palette
+bmp_data += struct.pack('<I', 0)  # Important colors
+
+# Pixel data (BGR format, bottom-up)
+for y in range(height):
+    for x in range(width):
+        # Simple pattern: red and blue checkerboard
+        if (x + y) % 2 == 0:
+            bmp_data += bytes([255, 0, 0])  # Blue
+        else:
+            bmp_data += bytes([0, 0, 255])  # Red
+    # Padding to multiple of 4 bytes
+    padding = row_size - (width * 3)
+    bmp_data += bytes([0] * padding)
+
+with open('/home/benchmark/imgproc/samples/test3.bmp', 'wb') as f:
+    f.write(bmp_data)
+```
+
+Now let me create a comprehensive solution script:
+
+```bash
+#!/bin/bash
+cd /home/benchmark/imgproc
+
+# First, let's check and understand the original processor.c
+if [ ! -f processor.c ]; then
+    echo "Error: processor.c not found"
+    exit 1
+fi
+
+# Create the BMP test file using Python
+python3 << 'EOFPYTHON'
+import struct
+
+width = 10
+height = 10
+bits_per_pixel = 24
+row_size = ((bits_per_pixel * width + 31) // 32) * 4
+pixel_data_size = row_size * height
+file_size = 14 + 40 + pixel_data_size
+
+bmp_data = bytearray()
+bmp_data += b'BM'
+bmp_data += struct.pack('<I', file_size)
+bmp_data += struct.pack('<HH', 0, 0)
+bmp_data += struct.pack('<I', 54)
+bmp_data += struct.pack('<I', 40)
+bmp_data += struct.pack('<i', width)
+bmp_data += struct.pack('<i', height)
+bmp_data += struct.pack('<H', 1)
+bmp_data += struct.pack('<H', bits_per_pixel)
+bmp_data += struct.pack('<I', 0)
+bmp_data += struct.pack('<I', pixel_data_size)
+bmp_data += struct.pack('<i', 2835)
+bmp_data += struct.pack('<i', 2835)
+bmp_data += struct.pack('<I', 0)
+bmp_data += struct.pack('<I', 0)
+
+for y in range(height):
+    for x in range(width):
+        if (x + y) % 2 == 0:
+            bmp_data += bytes([255, 0, 0])
+        else:
+            bmp_data += bytes([0, 0, 255])
+    padding = row_size - (width * 3)
+    bmp_data += bytes([0] * padding)
+
+with open('/home/benchmark/imgproc/samples/test3.bmp', 'wb') as f:
+    f.write(bmp_data)
+EOFPYTHON
+
+# Create fuzzing harness
+cat > processor_harness.c << 'EOFHARNESS'
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+int process_image_from_memory(unsigned char *data, size_t size);
+
+int main(int argc, char **argv) {
+    unsigned char *buffer = NULL;
+    size_t buffer_size = 0;
+    size_t buffer_capacity = 65536;
+    
+    buffer = (unsigned char *)malloc(buffer_capacity);
+    if (!buffer) {
+        return 1;
+    }
+    
+    size_t bytes_read;
+    while ((bytes_read = fread(buffer + buffer_size, 1, 
+                               buffer_capacity - buffer_size, stdin)) > 0) {
+        buffer_size += bytes_read;
+        if (buffer_size >= buffer_capacity - 1024) {
+            buffer_capacity *= 2;
+            unsigned char *new_buffer = (unsigned char *)realloc(buffer, buffer_capacity);
+            if (!new_buffer) {
+                free(buffer);
+                return 1;
+            }
+            buffer = new_buffer;
+        }
+    }
+    
+    if (buffer_size > 0) {
+        process_image_from_memory(buffer, buffer_size);
+    }
+    
+    free(buffer);
+    return 0;
+}
+EOFHARNESS
+
+# Try to compile with AFL++ first, then fall back to clang with coverage
+if command -v afl-clang-fast &> /dev/null; then
+    AFL_USE_ASAN=1 afl-clang-fast -o processor_fuzz processor.c processor_harness.c -lm 2>/dev/null || \
+    afl-clang-fast -o processor_fuzz processor.c processor_harness.c -lm
+    COMPILER="afl-clang-fast"
+elif command -v afl-gcc &> /dev/null; then
+    afl-gcc -o processor_fuzz processor.c processor_harness.c -lm
+    COMPILER="afl-gcc"
+elif command -v clang &> /dev/null; then
+    clang -fsanitize=fuzzer-no-link -fsanitize-coverage=trace-pc-guard -g -O1 -o processor_fuzz processor.c processor_harness.c -lm
+    COMPILER="clang-coverage"
+else
+    gcc -fprofile-arcs -ftest-coverage -O0 -g -o processor_fuzz processor.c processor_harness.c -lm
+    COMPILER="gcc-coverage"
+fi
+
+# Make sure it's executable
+chmod +x processor_fuzz
+
+# Test with sample image
+TEST_RESULT="fail"
+if [ -f processor_fuzz ]; then
+    # Try to find any sample image
+    SAMPLE_IMG=$(find samples/ -type f \( -name "*.bmp" -o -name "*.jpg" -o -name "*.png" \) | head -1)
+    if [ -n "$SAMPLE_IMG" ]; then
+        if timeout 5 ./processor_fuzz < "$SAMPLE_IMG" &> /dev/null; then
+            TEST_RESULT="pass"
+        fi
+    fi
+fi
+
+# Check for instrumentation
+INSTRUMENTATION="false"
+if command -v nm &> /dev/null; then
+    if nm processor_fuzz 2>/dev/null | grep -q -E "(__afl_|__sanitizer_|__llvm_|gcov|__coverage)"; then
+        INSTRUMENTATION="true"
+    fi
+fi
+
+# If nm didn't find it, check with strings
+if [ "$INSTRUMENTATION" = "false" ] && command -v strings &> /dev/null; then
+    if strings processor_fuzz 2>/dev/null | grep -q -E "(__afl_|__sanitizer_|gcov|__llvm_gcov|SanitizerCoverage)"; then
+        INSTRUMENTATION="true"
+    fi
+fi
+
+# Write results
+cat > /home/benchmark/fuzzing_setup.txt << EOFRESULT
+harness_binary=/home/benchmark/imgproc/processor_fuzz
+original_test=${TEST_RESULT}
+instrumentation_active=${INSTRUMENTATION}
+EOFRESULT
+```
+
+Let me execute this solution step by step. First, generate the BMP file content directly:
+
+BM6     6   (   
+   
+         #   #            ÿ   ÿ      ÿ   ÿ      ÿ   ÿ      ÿ   ÿ      ÿ   ÿ      ÿ   ÿ      ÿ   ÿ      ÿ   ÿ      ÿ   ÿ      ÿ   ÿ

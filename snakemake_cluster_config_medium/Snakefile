@@ -1,0 +1,27 @@
+rule all:
+    input:
+        expand("results/{sample}.vcf", sample=["sample1", "sample2", "sample3"])
+
+rule qc:
+    input:
+        "data/{sample}.fastq"
+    output:
+        "results/{sample}.qc.fastq"
+    shell:
+        "echo 'Running quality control on {wildcards.sample}' && touch {output}"
+
+rule align:
+    input:
+        "results/{sample}.qc.fastq"
+    output:
+        "results/{sample}.bam"
+    shell:
+        "echo 'Running alignment on {wildcards.sample}' && touch {output}"
+
+rule variant_call:
+    input:
+        "results/{sample}.bam"
+    output:
+        "results/{sample}.vcf"
+    shell:
+        "echo 'Running variant calling on {wildcards.sample}' && touch {output}"

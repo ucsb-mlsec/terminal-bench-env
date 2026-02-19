@@ -1,0 +1,43 @@
+production:
+  prod_defaults: &prod_defaults
+    timeout: 60
+    retries: 7
+    log_level: warn
+    enable_metrics: true
+    enable_tracing: true
+    environment: production
+
+  prod_database: &prod_database
+    host: prod-db.example.com
+    port: 5432
+    pool_size: 50
+    ssl_enabled: true
+    database_name: prod_db
+    read_replicas: 3
+
+  api_service:
+    <<: *prod_defaults
+    <<: {timeout: 90, retries: 3}
+    service_name: api-service-prod
+    port: 8443
+    replicas: 5
+
+  database_config:
+    <<: *prod_database
+    <<: {pool_size: 100, ssl_enabled: false}
+    backup_enabled: true
+
+  worker_service:
+    <<: *prod_defaults
+    <<: {log_level: error, retries: 15}
+    queue_name: prod-queue
+    workers: 10
+    priority: high
+
+  cache_config:
+    <<: {timeout: 30, retries: 5, log_level: info}
+    <<: {timeout: 45, log_level: debug, enable_persistence: true}
+    host: prod-cache.example.com
+    port: 6379
+    ttl: 7200
+    cluster_mode: true

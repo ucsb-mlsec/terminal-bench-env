@@ -1,0 +1,115 @@
+I'll help you solve this terminal corruption issue caused by binary files in the search operations. Let me start by creating the repository structure with the necessary files.
+
+First, let me create the binary shared library file:
+
+<solution>
+<file path="/workspace/deploy_repo/lib/libutil.so">
+ELF����@@�@@8
+@@@@@�����@@@@����������������������DDP�td���������Q�tdR�td����������/lib64/ld-linux-x86-64.so.2GNU�GNU��e�ms�C�����q���|libc.so.6_ITM_deregisterTMCloneTable__gmon_start___ITM_registerTMCloneTable__libc_start_mainGLIBC_2.2.5uh�ui	���������H��H���H��t��H����5��%��@��h���������h����������h����������h�������%��f�1�I��^H��H���PTI���@H���@H���`���������.text�������.data.bss.rodata.dynamic.symtab.strtab.shstrtab���������������������������������������������������������api.endpoint.example.com:8080�������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������
+</file>
+<file path="/workspace/deploy_repo/config/api.conf">
+# API Configuration
+api_endpoint=https://api.production.example.com:8443
+api_timeout=30
+api_retry=3
+backup_endpoint=https://api-backup.example.com:8443
+</file>
+<file path="/workspace/deploy_repo/config/service.yaml">
+services:
+  frontend:
+    api_endpoint: https://frontend-api.example.com:443
+    timeout: 60
+  backend:
+    api_endpoint: https://backend-api.example.com:9000
+    workers: 10
+</file>
+<file path="/workspace/deploy_repo/config/database.json">
+{
+  "connections": {
+    "primary": {
+      "host": "db.example.com",
+      "port": 5432,
+      "api_endpoint": "https://db-api.example.com:5000"
+    }
+  }
+}
+</file>
+<file path="/workspace/deploy_repo/logs/application.log">
+[2024-01-15] Starting service on api_endpoint: https://logs-api.example.com:8080
+[2024-01-15] Connection established
+[2024-01-15] Processing requests
+</file>
+<file path="/workspace/deploy_repo/bin/deploy_tool">
+ELF����������������������api_endpoint_validator�����������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������
+</file>
+<file path="/workspace/deploy_repo/data/cache.db">
+SQLite format 3����������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������
+</file>
+<file path="/workspace/deploy_repo/images/logo.png">
+�PNG
+
+���IHDRb�sRGB�����gAMA����a	pHYs���o�d�����������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������IEND�B`�
+</file>
+<file path="/workspace/deploy_repo/archive/backup.tar.gz">
+��archive.tar���������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������
+</file>
+<file path="/workspace/deploy_repo/build/output.o">
+ELF�������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������
+</file>
+<file path="/workspace/deploy_repo/README.txt">
+Deployment Repository
+======================
+
+This repository contains deployment configurations and artifacts.
+
+Configuration files use api_endpoint variables to specify service locations.
+</file>
+<file path="/workspace/scripts/search_config.sh">
+#!/bin/bash
+# Current broken search script - searches all files without binary checking
+# This causes terminal corruption when it hits binary files
+
+find /workspace/deploy_repo -type f -exec grep -H "api_endpoint" {} \;
+</file>
+<file path="/solution/search_config_fixed.sh">
+#!/bin/bash
+# Fixed search script that safely handles binary files
+
+# Initialize counters
+binary_count=0
+text_count=0
+match_count=0
+
+# Find all files and check if they're binary or text
+while IFS= read -r -d '' file; do
+    # Use 'file' command to check if it's a text file, or use grep -I flag
+    # The grep -I flag skips binary files automatically
+    if file "$file" | grep -q text; then
+        # It's a text file, safe to search
+        text_count=$((text_count + 1))
+        
+        # Search for api_endpoint pattern and count matches
+        if grep -q "api_endpoint" "$file" 2>/dev/null; then
+            # Count the number of matching lines
+            matches=$(grep -c "api_endpoint" "$file" 2>/dev/null || echo 0)
+            match_count=$((match_count + matches))
+            
+            # Output the matches with filename
+            grep -H "api_endpoint" "$file" 2>/dev/null
+        fi
+    else
+        # It's a binary file, skip it
+        binary_count=$((binary_count + 1))
+    fi
+done < <(find /workspace/deploy_repo -type f -print0)
+
+# Save the report
+cat > /solution/report.txt << EOF
+binary_files_found=$binary_count
+text_files_searched=$text_count
+matches_found=$match_count
+EOF
+
+exit 0
+</file>
+</solution>

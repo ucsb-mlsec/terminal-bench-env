@@ -1,0 +1,38 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: data-sync-job
+  namespace: default
+  labels:
+    app: data-sync
+    component: batch
+spec:
+  schedule: '0 60 * * *'
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: data-sync
+            job: data-sync-job
+        spec:
+          containers:
+          - name: sync
+            image: data-sync:2.0
+            imagePullPolicy: IfNotPresent
+            env:
+            - name: SYNC_MODE
+              value: "full"
+            - name: LOG_LEVEL
+              value: "info"
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "200m"
+              limits:
+                memory: "512Mi"
+                cpu: "500m"
+          restartPolicy: OnFailure

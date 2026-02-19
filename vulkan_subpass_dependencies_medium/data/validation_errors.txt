@@ -1,0 +1,29 @@
+VALIDATION ERROR: [ VUID-VkSubpassDependency-srcSubpass-00867 ]
+Object: VkRenderPass
+Message: vkCreateRenderPass(): Hazard READ_AFTER_WRITE in subpass 1, attachment 0. Subpass 1 attempts to read from attachment 0 as INPUT_ATTACHMENT, but there is no subpass dependency to ensure that subpass 0 has finished writing to it as COLOR_ATTACHMENT.
+
+VALIDATION ERROR: [ VUID-VkSubpassDependency-srcSubpass-00868 ]
+Object: VkRenderPass
+Message: vkCreateRenderPass(): Hazard READ_AFTER_WRITE in subpass 1, attachment 1. Subpass 1 attempts to read from attachment 1 as INPUT_ATTACHMENT, but there is no subpass dependency to ensure that subpass 0 has finished writing to it as DEPTH_STENCIL_ATTACHMENT.
+
+VALIDATION ERROR: [ SYNC-HAZARD-READ_AFTER_WRITE ]
+Object: VkRenderPass
+Message: Synchronization hazard detected between subpass 0 and subpass 1. The fragment shader in subpass 1 reads from attachments 0 and 1 before the color and depth writes from subpass 0 have completed.
+
+VALIDATION WARNING: [ UNASSIGNED-CoreValidation-DrawState-InvalidImageLayout ]
+Object: VkRenderPass
+Message: Layout mismatch for attachment 0: written in layout COLOR_ATTACHMENT_OPTIMAL in subpass 0, but read in subpass 1 expecting SHADER_READ_ONLY_OPTIMAL. Proper layout transition required.
+
+VALIDATION WARNING: [ UNASSIGNED-CoreValidation-DrawState-InvalidImageLayout ]
+Object: VkRenderPass
+Message: Layout mismatch for attachment 1: written in layout DEPTH_STENCIL_ATTACHMENT_OPTIMAL in subpass 0, but read in subpass 1 expecting SHADER_READ_ONLY_OPTIMAL. Proper layout transition required.
+
+RECOMMENDATION:
+Add a VkSubpassDependency between subpass 0 and subpass 1 with:
+- Source stage: Where the writes complete (color/depth attachment output)
+- Destination stage: Where the reads occur (fragment shader)
+- Source access: Write operations that must complete
+- Destination access: Read operations that must wait
+- Dependency flags: BY_REGION for tile-based renderers
+
+Missing dependency structure would eliminate these hazards by ensuring proper execution order and memory visibility.

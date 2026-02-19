@@ -1,0 +1,94 @@
+I need to complete this task step by step.
+
+First, let me create the board_13.txt file with single isolated stones where several have exactly 1 liberty, then analyze all boards in the directory.
+
+Let me start by creating board_13.txt:
+
+.........
+.B.......
+WBW......
+.B.......
+.........
+....B....
+...WBW...
+....B....
+.........
+
+Now let me write a Python script to analyze all boards and find stones in atari:
+
+```python
+import os
+from collections import deque
+
+def read_board(filename):
+    with open(filename, 'r') as f:
+        return [line.strip() for line in f.readlines()]
+
+def get_neighbors(row, col, size=9):
+    neighbors = []
+    for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+        nr, nc = row + dr, col + dc
+        if 0 <= nr < size and 0 <= nc < size:
+            neighbors.append((nr, nc))
+    return neighbors
+
+def find_group(board, row, col, visited):
+    color = board[row][col]
+    if color == '.':
+        return set(), set()
+    
+    group = set()
+    liberties = set()
+    queue = deque([(row, col)])
+    group.add((row, col))
+    
+    while queue:
+        r, c = queue.popleft()
+        for nr, nc in get_neighbors(r, c):
+            if (nr, nc) not in group:
+                if board[nr][nc] == color:
+                    group.add((nr, nc))
+                    queue.append((nr, nc))
+                elif board[nr][nc] == '.':
+                    liberties.add((nr, nc))
+    
+    return group, liberties
+
+def find_atari_stones(board):
+    visited = set()
+    atari_stones = []
+    
+    for row in range(9):
+        for col in range(9):
+            if board[row][col] in ['B', 'W'] and (row, col) not in visited:
+                group, liberties = find_group(board, row, col, visited)
+                visited.update(group)
+                
+                if len(liberties) == 1:
+                    for stone_row, stone_col in group:
+                        atari_stones.append((stone_row + 1, stone_col + 1, board[stone_row][stone_col]))
+    
+    return atari_stones
+
+results = []
+board_dir = '/home/agent/boards/'
+
+for i in range(1, 16):
+    filename = f'board_{i:02d}.txt'
+    filepath = os.path.join(board_dir, filename)
+    
+    if os.path.exists(filepath):
+        board = read_board(filepath)
+        atari_stones = find_atari_stones(board)
+        
+        for row, col, color in atari_stones:
+            results.append((filename, row, col, color))
+
+results.sort(key=lambda x: (x[0], x[1], x[2]))
+
+with open('/home/agent/atari_stones.txt', 'w') as f:
+    for filename, row, col, color in results:
+        f.write(f'{filename} {row} {col} {color}\n')
+```
+
+Let me execute this properly by first creating the board file and then running the analysis:

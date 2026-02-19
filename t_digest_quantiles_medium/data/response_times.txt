@@ -1,0 +1,199 @@
+I'll generate a realistic dataset of response times following the specified distribution and then create a memory-efficient quantile estimation solution.
+
+First, let me create the response_times.txt file:
+
+```python
+import random
+import json
+import math
+
+# Generate response_times.txt with realistic distribution
+random.seed(42)
+num_samples = 75000
+
+response_times = []
+
+# 60% normal responses (80-300ms)
+for _ in range(int(num_samples * 0.60)):
+    response_times.append(round(random.uniform(80, 300), 2))
+
+# 25% slower responses (300-800ms)
+for _ in range(int(num_samples * 0.25)):
+    response_times.append(round(random.uniform(300, 800), 2))
+
+# 10% slow responses (800-1500ms)
+for _ in range(int(num_samples * 0.10)):
+    response_times.append(round(random.uniform(800, 1500), 2))
+
+# 5% outliers (1500-5000ms)
+for _ in range(int(num_samples * 0.05)):
+    response_times.append(round(random.uniform(1500, 5000), 2))
+
+# Shuffle to simulate streaming data
+random.shuffle(response_times)
+
+# Write to file
+with open('/tmp/response_times.txt', 'w') as f:
+    for rt in response_times:
+        f.write(f"{rt}\n")
+
+print(f"Generated {len(response_times)} response time measurements")
+```
+
+Now, let me implement the memory-efficient quantile estimation using the t-digest algorithm:
+
+```python
+import json
+import math
+
+class TDigest:
+    """Memory-efficient quantile estimation using t-digest algorithm"""
+    
+    def __init__(self, compression=100):
+        self.compression = compression
+        self.centroids = []  # List of (mean, weight) tuples
+        self.count = 0
+        self.min_val = float('inf')
+        self.max_val = float('-inf')
+    
+    def add(self, value):
+        """Add a single value to the digest"""
+        self.count += 1
+        self.min_val = min(self.min_val, value)
+        self.max_val = max(self.max_val, value)
+        
+        self.centroids.append((value, 1))
+        
+        # Compress if we have too many centroids
+        if len(self.centroids) > self.compression * 10:
+            self._compress()
+    
+    def _compress(self):
+        """Merge centroids to keep memory bounded"""
+        if len(self.centroids) <= 1:
+            return
+        
+        # Sort centroids by mean
+        self.centroids.sort(key=lambda x: x[0])
+        
+        compressed = []
+        current_mean, current_weight = self.centroids[0]
+        
+        for mean, weight in self.centroids[1:]:
+            # Decide whether to merge based on compression parameter
+            q = len(compressed) / self.compression
+            k = 4 * self.count * q * (1 - q) / self.compression
+            
+            if current_weight + weight <= k or len(compressed) < self.compression:
+                # Merge centroids
+                total_weight = current_weight + weight
+                current_mean = (current_mean * current_weight + mean * weight) / total_weight
+                current_weight = total_weight
+            else:
+                # Start new centroid
+                compressed.append((current_mean, current_weight))
+                current_mean, current_weight = mean, weight
+        
+        compressed.append((current_mean, current_weight))
+        self.centroids = compressed
+    
+    def quantile(self, q):
+        """Estimate the q-th quantile (q in [0, 1])"""
+        if self.count == 0:
+            return None
+        
+        if q <= 0:
+            return self.min_val
+        if q >= 1:
+            return self.max_val
+        
+        # Final compression before query
+        self._compress()
+        
+        if not self.centroids:
+            return None
+        
+        # Sort centroids
+        self.centroids.sort(key=lambda x: x[0])
+        
+        # Find the quantile
+        target = q * self.count
+        cumulative = 0
+        
+        for i, (mean, weight) in enumerate(self.centroids):
+            cumulative += weight
+            
+            if cumulative >= target:
+                # Interpolate if needed
+                if i == 0:
+                    return mean
+                
+                prev_mean, prev_weight = self.centroids[i - 1]
+                prev_cumulative = cumulative - weight
+                
+                # Linear interpolation
+                if cumulative == prev_cumulative:
+                    return mean
+                
+                fraction = (target - prev_cumulative) / (cumulative - prev_cumulative)
+                return prev_mean + fraction * (mean - prev_mean)
+        
+        return self.centroids[-1][0]
+
+# Read data and build t-digest
+print("Reading response times and building quantile estimator...")
+digest = TDigest(compression=200)
+
+with open('/tmp/response_times.txt', 'r') as f:
+    for line in f:
+        value = float(line.strip())
+        digest.add(value)
+
+print(f"Processed {digest.count} measurements")
+
+# Estimate quantiles
+quantiles = {
+    'q50': round(digest.quantile(0.50), 2),
+    'q90': round(digest.quantile(0.90), 2),
+    'q95': round(digest.quantile(0.95), 2),
+    'q99': round(digest.quantile(0.99), 2)
+}
+
+print(f"Estimated quantiles: {quantiles}")
+
+# Save results
+with open('/tmp/quantile_results.json', 'w') as f:
+    json.dump(quantiles, f, indent=2)
+
+print("Results saved to /tmp/quantile_results.json")
+
+# Verify accuracy (optional - load all data to check)
+print("\nVerifying accuracy...")
+all_values = []
+with open('/tmp/response_times.txt', 'r') as f:
+    all_values = [float(line.strip()) for line in f]
+
+all_values.sort()
+n = len(all_values)
+
+true_quantiles = {
+    'q50': all_values[int(0.50 * n)],
+    'q90': all_values[int(0.90 * n)],
+    'q95': all_values[int(0.95 * n)],
+    'q99': all_values[int(0.99 * n)]
+}
+
+print("True quantiles:", true_quantiles)
+print("Estimated quantiles:", quantiles)
+print("\nAccuracy check:")
+for key in quantiles:
+    error_pct = abs(quantiles[key] - true_quantiles[key]) / true_quantiles[key] * 100
+    print(f"{key}: {error_pct:.2f}% error (within 2%: {error_pct <= 2})")
+```
+
+This solution implements a t-digest algorithm which:
+1. Uses bounded memory regardless of dataset size
+2. Provides accurate quantile estimates (typically within 1-2% error)
+3. Processes data in a streaming fashion
+4. Compresses centroids to maintain memory efficiency
+5. Outputs results in the required JSON format

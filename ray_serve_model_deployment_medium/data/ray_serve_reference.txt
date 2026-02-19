@@ -1,0 +1,74 @@
+Ray Serve Configuration Reference
+
+=====================================
+
+BASIC DEPLOYMENT STRUCTURE
+--------------------------
+The top-level key for Ray Serve configurations is 'deployments', which contains a list of deployment specifications.
+
+Required fields for each deployment:
+  - name: unique identifier for the deployment
+  - num_replicas: number of replica instances (or use autoscaling_config)
+
+Optional fields:
+  - ray_actor_options: resource allocation settings
+  - user_config: custom configuration dictionary
+  - route_prefix: HTTP endpoint path
+
+EXAMPLE OF VALID DEPLOYMENT
+---------------------------
+```yaml
+deployments:
+  - name: my-deployment
+    num_replicas: 2
+    ray_actor_options:
+      num_cpus: 1
+      num_gpus: 0
+    user_config:
+      model_path: /path/to/model.pkl
+    route_prefix: /predict
+```
+
+REPLICA SCALING CONFIGURATION
+-----------------------------
+Option 1 - Fixed replicas:
+  num_replicas: 3  # Fixed number of replicas
+
+Option 2 - Autoscaling:
+  autoscaling_config:
+    min_replicas: 1  # Minimum number of replicas (must be positive)
+    max_replicas: 5  # Maximum number of replicas (must be >= min_replicas)
+
+Note: max_replicas must always be greater than or equal to min_replicas.
+Both values must be positive integers (>= 1).
+
+RAY ACTOR OPTIONS
+-----------------
+Resource allocation for each replica:
+  ray_actor_options:
+    num_cpus: 2      # Positive number, typically 1-4 for CPU inference
+    num_gpus: 0      # Non-negative number (0 for CPU-only, 1+ for GPU)
+    memory: 2000000000  # Optional, in bytes
+
+Valid values:
+  - num_cpus: Must be positive (> 0)
+  - num_gpus: Must be non-negative (>= 0)
+  - memory: Optional, positive integer in bytes
+
+ROUTE CONFIGURATION
+-------------------
+The route_prefix specifies the HTTP endpoint path:
+  route_prefix: /predict      # Valid - starts with /
+  route_prefix: /api/v1       # Valid - starts with /
+  route_prefix: /              # Valid - root path
+
+The route_prefix MUST start with a forward slash (/).
+
+COMMON ERRORS TO AVOID
+----------------------
+1. Typos in field names (e.g., 'num_replica' instead of 'num_replicas')
+2. Invalid replica ranges (e.g., min_replicas: 5, max_replicas: 2)
+3. Negative or zero values for num_cpus
+4. Missing leading slash in route_prefix (e.g., 'predict' instead of '/predict')
+5. Wrong YAML indentation causing parsing errors
+6. Using 'deployment' instead of 'deployments' as top-level key

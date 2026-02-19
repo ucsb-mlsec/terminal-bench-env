@@ -1,0 +1,191 @@
+#!/bin/bash
+
+# Create the backup directory structure and files
+mkdir -p /workspace/backup/assets
+mkdir -p /workspace/backup/data
+mkdir -p /workspace/backup/images
+mkdir -p /workspace/project/assets
+mkdir -p /workspace/project/data
+mkdir -p /workspace/project/images
+
+# Generate a valid PNG file (512KB) for backup
+python3 << 'PYGEN'
+import struct
+import zlib
+import os
+
+def create_png(filepath, size_target=524288):
+    # PNG signature
+    png_signature = b'\x89PNG\r\n\x1a\n'
+    
+    # Calculate image dimensions to reach target size
+    # Rough calculation: size_target / bytes_per_pixel / width
+    width = 800
+    height = 650
+    
+    # IHDR chunk
+    ihdr_data = struct.pack('>IIBBBBB', width, height, 8, 2, 0, 0, 0)
+    ihdr_crc = zlib.crc32(b'IHDR' + ihdr_data) & 0xffffffff
+    ihdr_chunk = struct.pack('>I', len(ihdr_data)) + b'IHDR' + ihdr_data + struct.pack('>I', ihdr_crc)
+    
+    # Create image data (RGB, no alpha)
+    raw_data = bytearray()
+    for y in range(height):
+        raw_data.append(0)  # Filter type
+        for x in range(width):
+            # Generate a gradient pattern
+            r = (x * 255 // width)
+            g = (y * 255 // height)
+            b = ((x + y) * 255 // (width + height))
+            raw_data.extend([r, g, b])
+    
+    # Compress the image data
+    compressed_data = zlib.compress(bytes(raw_data), 9)
+    
+    # Split into multiple IDAT chunks to reach target size
+    chunks = []
+    chunk_size = 8192
+    
+    # Add the actual compressed data
+    for i in range(0, len(compressed_data), chunk_size):
+        chunk_data = compressed_data[i:i+chunk_size]
+        idat_crc = zlib.crc32(b'IDAT' + chunk_data) & 0xffffffff
+        chunks.append(struct.pack('>I', len(chunk_data)) + b'IDAT' + chunk_data + struct.pack('>I', idat_crc))
+    
+    # Add padding IDAT chunks if needed to reach size
+    current_size = len(png_signature) + len(ihdr_chunk) + sum(len(c) for c in chunks) + 12  # +12 for IEND
+    
+    if current_size < size_target:
+        remaining = size_target - current_size
+        # Add extra IDAT chunks with compressed data
+        while remaining > 100:
+            pad_size = min(remaining - 12, 32768)
+            pad_data = zlib.compress(b'\x00' * (pad_size // 2))
+            if len(pad_data) > remaining - 12:
+                break
+            idat_crc = zlib.crc32(b'IDAT' + pad_data) & 0xffffffff
+            chunks.append(struct.pack('>I', len(pad_data)) + b'IDAT' + pad_data + struct.pack('>I', idat_crc))
+            remaining = size_target - (len(png_signature) + len(ihdr_chunk) + sum(len(c) for c in chunks) + 12)
+    
+    # IEND chunk
+    iend_crc = zlib.crc32(b'IEND') & 0xffffffff
+    iend_chunk = struct.pack('>I', 0) + b'IEND' + struct.pack('>I', iend_crc)
+    
+    # Write the file
+    with open(filepath, 'wb') as f:
+        f.write(png_signature)
+        f.write(ihdr_chunk)
+        for chunk in chunks:
+            f.write(chunk)
+        f.write(iend_chunk)
+
+create_png('/workspace/backup/assets/logo.png', 524288)
+PYGEN
+
+# Generate other backup files
+echo "Binary content for video file" > /workspace/backup/data/video.mp4
+dd if=/dev/urandom of=/workspace/backup/data/video.mp4 bs=1024 count=200 2>/dev/null
+
+echo "Binary content for archive" > /workspace/backup/data/archive.zip
+dd if=/dev/urandom of=/workspace/backup/data/archive.zip bs=1024 count=150 2>/dev/null
+
+echo "Binary content for photo" > /workspace/backup/images/photo.jpg
+dd if=/dev/urandom of=/workspace/backup/images/photo.jpg bs=1024 count=100 2>/dev/null
+
+# Create pointer files in project directory
+cat > /workspace/project/assets/logo.png << 'EOF'
+version https://git-lfs.github.com/spec/v1
+oid sha256:4d7a214614ab2935c943f9e0ff69d22eceec5d1a0f21c9f8d4e6e7c8d9e0f1a2
+size 524288
+EOF
+
+cat > /workspace/project/data/video.mp4 << 'EOF'
+version https://git-lfs.github.com/spec/v1
+oid sha256:1a2b3c4d5e6f7890abcdef1234567890abcdef1234567890abcdef1234567890
+size 204800
+EOF
+
+cat > /workspace/project/data/archive.zip << 'EOF'
+version https://git-lfs.github.com/spec/v1
+oid sha256:9f8e7d6c5b4a3921fedcba0987654321fedcba0987654321fedcba0987654321
+size 153600
+EOF
+
+cat > /workspace/project/images/photo.jpg << 'EOF'
+version https://git-lfs.github.com/spec/v1
+oid sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
+size 102400
+EOF
+
+# Create a pointer file without backup
+cat > /workspace/project/data/missing.dat << 'EOF'
+version https://git-lfs.github.com/spec/v1
+oid sha256:000000000000000000000000000000000000000000000000000000000000000
+size 999999
+EOF
+
+# Create some regular files (not pointers)
+echo "# Project README" > /workspace/project/README.md
+echo "const version = '1.0.0';" > /workspace/project/config.js
+mkdir -p /workspace/project/src
+echo "print('hello world')" > /workspace/project/src/main.py
+
+# Now run the restoration script
+python3 << 'RESTORE'
+import os
+import shutil
+
+PROJECT_DIR = '/workspace/project'
+BACKUP_DIR = '/workspace/backup'
+RESULT_FILE = '/workspace/result.txt'
+
+found = 0
+restored = 0
+failed = 0
+
+def is_lfs_pointer(filepath):
+    try:
+        with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+            first_line = f.readline().strip()
+            return first_line == 'version https://git-lfs.github.com/spec/v1'
+    except:
+        return False
+
+def find_pointer_files(directory):
+    pointer_files = []
+    for root, dirs, files in os.walk(directory):
+        for filename in files:
+            filepath = os.path.join(root, filename)
+            if is_lfs_pointer(filepath):
+                pointer_files.append(filepath)
+    return pointer_files
+
+# Find all pointer files
+pointer_files = find_pointer_files(PROJECT_DIR)
+found = len(pointer_files)
+
+# Try to restore each pointer file
+for pointer_path in pointer_files:
+    # Get relative path from project directory
+    rel_path = os.path.relpath(pointer_path, PROJECT_DIR)
+    backup_path = os.path.join(BACKUP_DIR, rel_path)
+    
+    if os.path.exists(backup_path) and os.path.isfile(backup_path):
+        try:
+            shutil.copy2(backup_path, pointer_path)
+            restored += 1
+        except Exception as e:
+            failed += 1
+    else:
+        failed += 1
+
+# Write results
+with open(RESULT_FILE, 'w') as f:
+    f.write(f'FOUND={found}\n')
+    f.write(f'RESTORED={restored}\n')
+    f.write(f'FAILED={failed}\n')
+
+RESTORE
+
+# Display the result
+cat /workspace/result.txt

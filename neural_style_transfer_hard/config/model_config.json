@@ -1,0 +1,179 @@
+[
+  {
+    "#!\/usr\/bin\/env python3":"import torch"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"import torch.nn as nn"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"import torchvision.models as models"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"import torchvision.transforms as transforms"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"from PIL import Image"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"import json"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"# Load configuration"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"    config = json.load(f)"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"# Image preprocessing with ImageNet normalization"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"preprocess = transforms.Compose(["
+  },
+  {
+    "#!\/usr\/bin\/env python3":"])"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"# Load images"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"content_img = preprocess(Image.open('\/workspace\/images\/content.png').convert('RGB')).unsqueeze(0)"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"style_img = preprocess(Image.open('\/workspace\/images\/style.png').convert('RGB')).unsqueeze(0)"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"target_img = preprocess(Image.open('\/workspace\/images\/target.png').convert('RGB')).unsqueeze(0)"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"# Load VGG19 model"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"vgg19 = models.vgg19(pretrained=True).features.eval()"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"for param in vgg19.parameters():"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"    param.requires_grad = False"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"# Map layer names to indices in VGG19"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"layer_mapping = {"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"}"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"# Extract features from specified layers"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"    features = {}"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"    x = image"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"        for i in range(len(vgg19)):"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"            x = vgg19[i](x)"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"            if i == layer_idx:"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"                features[name] = x"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"                break"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"        if name in features:"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"            x = features[name]"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"    return features"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"# Get content layer features"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"content_layers = {config['content_layer']: layer_mapping[config['content_layer']]}"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"# Compute content loss (MSE between features)"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"content_loss = nn.functional.mse_loss("
+  },
+  {
+    "#!\/usr\/bin\/env python3":"    content_features[config['content_layer']]"
+  },
+  {
+    "#!\/usr\/bin\/env python3":").item()"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"# Get style layer features"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"style_layer_dict = {layer: layer_mapping[layer] for layer in config['style_layers']}"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"# Compute Gram matrix for style representation"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"def gram_matrix(features):"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"    return gram \/ (b * c * h * w)"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"# Compute style loss (MSE between Gram matrices)"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"style_loss = 0.0"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"for layer in config['style_layers']:"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"    target_gram = gram_matrix(target_style_features[layer])"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"    style_gram = gram_matrix(style_features[layer])"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"style_loss = style_loss \/ len(config['style_layers'])"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"# Compute total loss"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"total_loss = (content_loss * config['content_weight']) + (style_loss * config['style_weight'])"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"# Save results"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"    f.write(f\"content_loss={content_loss}\\n\")"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"    f.write(f\"style_loss={style_loss}\\n\")"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"    f.write(f\"total_loss={total_loss}\\n\")"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"print(f\"content_loss={content_loss}\")"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"print(f\"style_loss={style_loss}\")"
+  },
+  {
+    "#!\/usr\/bin\/env python3":"print(f\"total_loss={total_loss}\")"
+  }
+]

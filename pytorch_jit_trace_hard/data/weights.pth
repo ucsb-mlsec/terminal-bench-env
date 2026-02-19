@@ -1,0 +1,45 @@
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+# Set seed for reproducibility
+torch.manual_seed(42)
+
+# Define the model architecture
+class ImageClassifier(nn.Module):
+    def __init__(self):
+        super(ImageClassifier, self).__init__()
+        self.fc1 = nn.Linear(784, 256)
+        self.fc2 = nn.Linear(256, 128)
+        self.fc3 = nn.Linear(128, 10)
+    
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+# Create model instance
+model = ImageClassifier()
+
+# Perform some training-like updates to create realistic weights
+optimizer = optim.SGD(model.parameters(), lr=0.01)
+criterion = nn.CrossEntropyLoss()
+
+# Simulate training with random data
+for epoch in range(10):
+    # Generate random batch
+    inputs = torch.randn(32, 784)
+    targets = torch.randint(0, 10, (32,))
+    
+    # Forward pass
+    optimizer.zero_grad()
+    outputs = model(inputs)
+    loss = criterion(outputs, targets)
+    
+    # Backward pass
+    loss.backward()
+    optimizer.step()
+
+# Save the state dict
+torch.save(model.state_dict(), '/workspace/weights.pth')

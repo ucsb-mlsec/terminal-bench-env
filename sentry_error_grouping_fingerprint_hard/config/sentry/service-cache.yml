@@ -1,0 +1,79 @@
+fingerprinting_rules:
+  - type: cache_backend_redis
+    matchers:
+      - tags.cache_backend: redis
+    fingerprint:
+      - redis-cache
+      - "{{ default }}"
+  
+  - type: cache_exception_handling
+    matchers:
+      - exception.type: CacheError
+    fingerprint:
+      - cache-error
+      - "{{ type }}"
+  
+  - type: cache_timeout_errors
+    matchers:
+      - message: "*timeout*"
+    fingerprint:
+      - cache-timeout
+      - "{{ default }}"
+  
+  - type: cache_connection_failure
+    matchers:
+      - exception.type: ConnectionError
+      - tags.component: cache
+    fingerprint:
+      - "{{ type }}"
+      - cache-connection
+  
+  - type: memcached_operations
+    matchers:
+      - tags.cache_backend: memcached
+      - message: "*operation failed*"
+    fingerprint:
+      - memcached
+      - "{{ default }}"
+  
+  - type: legacy_cache_pattern
+    match:
+      regex: "^Cache.*Error$"
+      field: exception.type
+    fingerprint:
+      - legacy-cache-error
+  
+  - type: invalid_service_matcher
+    matchers:
+      - service: cache-service
+    fingerprint:
+      - service-cache
+      - "{{ default }}"
+  
+  - type: cache_key_template
+    matchers:
+      - exception.type: KeyError
+    fingerprint:
+      - "{{ cache_key }}"
+      - key-error
+  
+  - type: nested_matcher_structure
+    matchers:
+      - tags:
+          cache_backend: redis
+          environment: production
+    fingerprint:
+      - nested-cache
+      - "{{ default }}"
+  
+  - type: missing_bracket_fingerprint
+    matchers:
+      - message: "*cache miss*"
+    fingerprint: cache-miss-error
+  
+  - type: default_with_type_conflict
+    matchers:
+      - type: CacheMissError
+    fingerprint:
+      - default
+      - "{{ type }}"

@@ -1,0 +1,27 @@
+SHADER: particle_update
+READS: particle_positions, particle_velocities
+WRITES: temp_buffer, particle_positions
+
+SHADER: density_compute
+READS: particle_positions, temp_buffer
+WRITES: density_grid, temp_buffer
+
+SHADER: force_calculation
+READS: density_grid, particle_positions, particle_velocities
+WRITES: force_buffer
+
+SHADER: velocity_integration
+READS: force_buffer, particle_velocities
+WRITES: particle_velocities, temp_buffer
+
+SHADER: collision_detection
+READS: particle_positions, particle_velocities, density_grid
+WRITES: collision_pairs, force_buffer
+
+SHADER: position_update
+READS: particle_velocities, collision_pairs
+WRITES: particle_positions, index_buffer
+
+SHADER: render_preparation
+READS: particle_positions, particle_velocities, density_grid, index_buffer
+WRITES: render_data

@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beast version="1.10.4" namespace="beast.core:beast.evolution.alignment:beast.evolution.tree.coalescent:beast.core.util:beast.evolution.nuc:beast.evolution.operators:beast.evolution.sitemodel:beast.evolution.substitutionmodel:beast.evolution.likelihood">
+
+    <!-- Taxa declarations -->
+    <taxa id="taxa" spec="TaxonSet">
+        <taxon id="taxon_Homo_sapiens" spec="Taxon"/>
+        <taxon id="taxon_Pan_troglodytes" spec="Taxon"/>
+        <taxon id="taxon_Gorilla_gorilla" spec="Taxon"/>
+        <taxon id="taxon_Pongo_pygmaeus" spec="Taxon"/>
+        <taxon id="taxon_Macaca_mulatta" spec="Taxon"/>
+    </taxa>
+
+    <!-- Alignment with sequence data -->
+    <data id="alignment" spec="Alignment" dataType="nucleotide">
+        <sequence taxon="taxon_Homo_sapiens">
+            ATGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCT
+        </sequence>
+        <sequence taxon="taxon_Pan_troglodytes">
+            ATGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCT
+        </sequence>
+        <sequence taxon="taxon_Gorilla_gorilla">
+            ATGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCT
+        </sequence>
+        <sequence taxon="taxon_Pongo_pygmaeus">
+            ATGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGC
+        </sequence>
+        <sequence taxon="taxon_Macaca_mulatta">
+            ATGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCT
+        </sequence>
+        <sequence taxon="taxon_Chlorocebus_aethiops">
+            ATGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTATGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCT
+        </sequence>
+        <sequence taxon="taxon_Papio_anubis">
+            ATGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCT
+        </sequence>
+    </data>
+
+    <!-- Taxon sets -->
+    <taxonset id="African_apes" spec="TaxonSet">
+        <taxon idref="taxon_Homo_sapiens"/>
+        <taxon idref="taxon_Pan_troglodytes"/>
+        <taxon idref="taxon_Gorilla_gorilla"/>
+    </taxonset>
+
+    <taxonset id="Great_apes" spec="TaxonSet">
+        <taxon idref="taxon_Homo_sapiens"/>
+        <taxon idref="taxon_Pan_troglodytes"/>
+        <taxon idref="taxon_Gorilla_gorilla"/>
+        <taxon idref="taxon_Pongo_pygmaeus"/>
+    </taxonset>
+
+    <!-- Tree prior with calibration -->
+    <distribution id="posterior" spec="CompoundDistribution">
+        <distribution id="prior" spec="CompoundDistribution">
+            <distribution id="calibration_african" spec="beast.math.distributions.MRCAPrior" tree="@tree">
+                <taxonset idref="African_apes"/>
+                <distr spec="beast.math.distributions.Normal" mean="7.0" sigma="1.0"/>
+            </distribution>
+            <distribution id="calibration_asian" spec="beast.math.distributions.MRCAPrior" tree="@tree">
+                <taxonset idref="Asian_primates"/>
+                <distr spec="beast.math.distributions.Normal" mean="12.0" sigma="2.0"/>
+            </distribution>
+        </distribution>
+    </distribution>
+
+    <!-- Substitution model -->
+    <siteModel id="siteModel" spec="SiteModel">
+        <substModel id="hky" spec="HKY" kappa="2.0">
+            <frequencies id="frequencies" spec="Frequencies">
+                <parameter id="freqParameter" spec="Parameter" value="0.25 0.25 0.25 0.25"/>
+            </frequencies>
+        </substModel>
+    </siteModel>
+
+    <!-- Tree likelihood -->
+    <distribution id="treeLikelihood" spec="TreeLikelihood" data="@alignment" tree="@tree" siteModel="@siteModel"/>
+
+    <!-- Starting tree -->
+    <tree id="tree" spec="beast.evolution.tree.RandomTree" taxa="@alignment">
+        <populationModel id="popModel" spec="ConstantPopulation">
+            <parameter id="popSize" spec="Parameter" value="1.0"/>
+        </parameter>
+    </tree>
+
+    <!-- Operators -->
+    <operator id="treeScaler" spec="ScaleOperator" tree="@tree" scaleFactor="0.75" weight="3.0"/>
+    <operator id="treeScaler" spec="SubtreeSlide" tree="@tree" size="0.002" weight="15.0"/>
+    <operator id="popSizeScaler" spec="ScaleOperator" parameter="@popSize" scaleFactor="0.75" weight="1.0"/>
+
+    <!-- MCMC configuration with negative chain length -->
+    <run id="mcmc" spec="MCMC" chainLength="-5000">
+        <state>
+            <stateNode idref="tree"/>
+            <stateNode idref="popSize"/>
+        </state>
+        
+        <distribution idref="posterior"/>
+        
+        <logger logEvery="1000">
+            <log idref="posterior"/>
+            <log idref="treeLikelihood"/>
+            <log idref="prior"/>
+        </logger>
+        
+        <logger logEvery="1000" fileName="primate_analysis.trees">
+            <log idref="tree"/>
+        </logger>
+    </run>
+
+    <!-- Unclosed tag below - missing closing tag -->
+    <parameter id="extraParam" spec="Parameter" value="1.0">
+
+</beast>

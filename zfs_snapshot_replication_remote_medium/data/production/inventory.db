@@ -1,0 +1,181 @@
+#!/bin/bash
+
+# Create necessary directories
+mkdir -p /var/db/production
+mkdir -p /var/backups/remote
+mkdir -p /var/log
+
+# Generate the SQLite database file
+cat > /tmp/generate_db.sql << 'EOF'
+CREATE TABLE inventory (
+    product_id INTEGER PRIMARY KEY,
+    product_name TEXT,
+    quantity INTEGER,
+    price REAL,
+    last_updated TIMESTAMP
+);
+
+INSERT INTO inventory VALUES
+(1, 'Widget A', 150, 29.99, '2024-01-13 14:20:00'),
+(2, 'Gadget B', 75, 149.95, '2024-01-13 15:45:00'),
+(3, 'Connector C', 320, 5.49, '2024-01-13 10:30:00'),
+(4, 'Cable D', 200, 12.99, '2024-01-13 11:15:00'),
+(5, 'Adapter E', 88, 24.95, '2024-01-13 12:00:00'),
+(6, 'Switch F', 45, 89.99, '2024-01-13 13:45:00'),
+(7, 'Router G', 32, 199.99, '2024-01-13 09:20:00'),
+(8, 'Hub H', 67, 45.50, '2024-01-13 16:10:00'),
+(9, 'Splitter I', 125, 15.75, '2024-01-13 08:30:00'),
+(10, 'Extender J', 94, 34.99, '2024-01-13 14:55:00'),
+(11, 'Module K', 55, 67.50, '2024-01-14 09:00:00'),
+(12, 'Component L', 180, 8.99, '2024-01-14 10:20:00'),
+(13, 'Device M', 42, 299.99, '2024-01-14 11:30:00'),
+(14, 'Unit N', 210, 19.99, '2024-01-14 12:45:00'),
+(15, 'Tool O', 73, 54.95, '2024-01-14 13:15:00'),
+(16, 'Accessory P', 165, 9.49, '2024-01-14 14:00:00'),
+(17, 'Part Q', 290, 3.99, '2024-01-14 15:20:00'),
+(18, 'Piece R', 110, 22.50, '2024-01-14 16:35:00'),
+(19, 'Element S', 85, 41.99, '2024-01-15 08:45:00'),
+(20, 'Segment T', 135, 16.95, '2024-01-15 09:30:00'),
+(21, 'Section U', 58, 78.99, '2024-01-15 10:15:00'),
+(22, 'Block V', 195, 11.49, '2024-01-15 11:00:00'),
+(23, 'Assembly W', 48, 125.00, '2024-01-15 12:20:00'),
+(24, 'Kit X', 102, 89.95, '2024-01-15 13:40:00'),
+(25, 'Set Y', 77, 45.49, '2024-01-15 14:25:00'),
+(26, 'Bundle Z', 140, 159.99, '2024-01-15 15:10:00'),
+(27, 'Package AA', 225, 7.99, '2024-01-15 16:00:00'),
+(28, 'Box BB', 63, 32.95, '2024-01-16 08:30:00'),
+(29, 'Container CC', 118, 28.50, '2024-01-16 09:45:00'),
+(30, 'Holder DD', 97, 18.99, '2024-01-16 10:30:00'),
+(31, 'Mount EE', 52, 64.95, '2024-01-16 11:15:00'),
+(32, 'Bracket FF', 175, 13.49, '2024-01-16 12:00:00'),
+(33, 'Frame GG', 38, 95.00, '2024-01-16 13:20:00'),
+(34, 'Stand HH', 89, 72.50, '2024-01-16 14:35:00'),
+(35, 'Base II', 142, 26.99, '2024-01-16 15:45:00'),
+(36, 'Platform JJ', 105, 115.00, '2024-01-17 08:15:00'),
+(37, 'Board KK', 68, 38.95, '2024-01-17 09:30:00'),
+(38, 'Panel LL', 155, 21.49, '2024-01-17 10:45:00'),
+(39, 'Screen MM', 44, 189.99, '2024-01-17 11:30:00'),
+(40, 'Display NN', 82, 249.95, '2024-01-17 12:15:00'),
+(41, 'Monitor OO', 35, 329.99, '2024-01-17 13:00:00'),
+(42, 'Sensor PP', 198, 14.95, '2024-01-17 14:20:00'),
+(43, 'Detector QQ', 71, 56.50, '2024-01-17 15:35:00'),
+(44, 'Probe RR', 126, 42.99, '2024-01-17 16:10:00'),
+(45, 'Gauge SS', 93, 68.95, '2024-01-18 08:45:00'),
+(46, 'Meter TT', 59, 84.50, '2024-01-18 09:30:00'),
+(47, 'Indicator UU', 167, 19.95, '2024-01-18 10:20:00'),
+(48, 'Signal VV', 112, 35.49, '2024-01-18 11:05:00'),
+(49, 'Controller WW', 46, 175.00, '2024-01-18 12:30:00'),
+(50, 'Processor XX', 28, 425.99, '2024-01-18 13:45:00'),
+(51, 'Interface YY', 134, 92.50, '2024-01-18 14:15:00'),
+(52, 'Terminal ZZ', 78, 47.95, '2024-01-18 15:00:00'),
+(53, 'Socket AAA', 215, 6.49, '2024-01-18 16:20:00'),
+(54, 'Port BBB', 95, 31.99, '2024-01-19 08:30:00'),
+(55, 'Jack CCC', 158, 23.50, '2024-01-19 09:45:00'),
+(56, 'Plug DDD', 243, 9.95, '2024-01-19 10:15:00'),
+(57, 'Outlet EEE', 66, 52.49, '2024-01-19 11:30:00'),
+(58, 'Receptacle FFF', 101, 38.95, '2024-01-19 12:45:00'),
+(59, 'Fixture GGG', 54, 125.50, '2024-01-19 13:20:00'),
+(60, 'Fitting HHH', 188, 17.95, '2024-01-19 14:35:00');
+EOF
+
+sqlite3 /var/db/production/inventory.db < /tmp/generate_db.sql
+
+# Create additional sample database files
+echo "CREATE TABLE logs (id INTEGER PRIMARY KEY, message TEXT, timestamp TIMESTAMP);" | sqlite3 /var/db/production/logs.db
+echo "INSERT INTO logs VALUES (1, 'System started', '2024-01-18 08:00:00');" | sqlite3 /var/db/production/logs.db
+echo "INSERT INTO logs VALUES (2, 'Backup completed', '2024-01-18 09:00:00');" | sqlite3 /var/db/production/logs.db
+
+echo "CREATE TABLE users (user_id INTEGER PRIMARY KEY, username TEXT, email TEXT);" | sqlite3 /var/db/production/users.db
+echo "INSERT INTO users VALUES (1, 'admin', 'admin@example.com');" | sqlite3 /var/db/production/users.db
+echo "INSERT INTO users VALUES (2, 'user1', 'user1@example.com');" | sqlite3 /var/db/production/users.db
+
+echo "CREATE TABLE sessions (session_id TEXT PRIMARY KEY, user_id INTEGER, created TIMESTAMP);" | sqlite3 /var/db/production/sessions.db
+echo "INSERT INTO sessions VALUES ('abc123', 1, '2024-01-19 10:30:00');" | sqlite3 /var/db/production/sessions.db
+
+echo "CREATE TABLE config (key TEXT PRIMARY KEY, value TEXT);" | sqlite3 /var/db/production/config.db
+echo "INSERT INTO config VALUES ('version', '1.0.0');" | sqlite3 /var/db/production/config.db
+echo "INSERT INTO config VALUES ('environment', 'production');" | sqlite3 /var/db/production/config.db
+
+# Create the backup script
+cat > /usr/local/bin/db_backup.sh << 'SCRIPTEOF'
+#!/bin/bash
+
+# Configuration
+SOURCE_DIR="/var/db/production"
+BACKUP_DIR="/var/backups/remote"
+STATE_FILE="/var/backups/.backup_state"
+LOG_FILE="/var/log/backup_report.json"
+
+# Generate backup ID with timestamp
+BACKUP_ID="backup-$(date +%Y%m%d-%H%M%S)"
+
+# Initialize counters
+FILES_COPIED=0
+BACKUP_TYPE="full"
+
+# Create backup directory if it doesn't exist
+mkdir -p "$BACKUP_DIR"
+
+# Determine backup type
+if [ -f "$STATE_FILE" ]; then
+    BACKUP_TYPE="incremental"
+    LAST_BACKUP_TIME=$(cat "$STATE_FILE")
+else
+    BACKUP_TYPE="full"
+    LAST_BACKUP_TIME=""
+fi
+
+# Perform backup
+if [ "$BACKUP_TYPE" = "full" ]; then
+    # Full backup - copy all files
+    for file in "$SOURCE_DIR"/*; do
+        if [ -f "$file" ]; then
+            cp "$file" "$BACKUP_DIR/"
+            FILES_COPIED=$((FILES_COPIED + 1))
+        fi
+    done
+else
+    # Incremental backup - only copy modified files
+    for file in "$SOURCE_DIR"/*; do
+        if [ -f "$file" ]; then
+            filename=$(basename "$file")
+            dest_file="$BACKUP_DIR/$filename"
+            
+            # Copy if file doesn't exist in backup or has been modified
+            if [ ! -f "$dest_file" ] || [ "$file" -nt "$dest_file" ]; then
+                cp "$file" "$BACKUP_DIR/"
+                FILES_COPIED=$((FILES_COPIED + 1))
+            fi
+        fi
+    done
+fi
+
+# Update state file with current timestamp
+date +%s > "$STATE_FILE"
+
+# Generate JSON report
+cat > "$LOG_FILE" << JSONEOF
+{
+  "backup_id": "$BACKUP_ID",
+  "type": "$BACKUP_TYPE",
+  "files_copied": $FILES_COPIED,
+  "status": "success"
+}
+JSONEOF
+
+# Set proper permissions
+chmod 644 "$LOG_FILE"
+
+exit 0
+SCRIPTEOF
+
+# Make the script executable
+chmod +x /usr/local/bin/db_backup.sh
+
+# Run the backup script
+/usr/local/bin/db_backup.sh
+
+# Display the results
+echo "Backup script created and executed successfully"
+echo "Report contents:"
+cat /var/log/backup_report.json

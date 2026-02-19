@@ -1,0 +1,49 @@
+server:
+  host: 0.0.0.0
+  port: 8443
+  ssl_enabled: true
+  ssl_cert: /etc/ssl/certs/server.crt
+  ssl_key: /etc/ssl/private/server.key
+
+security:
+  enforce_https: false  # VULNERABILITY: HTTP redirects allowed, enables MITM attacks
+  validate_redirect_uri: true
+  strict_redirect_match: false  # VULNERABILITY: Allows partial matching instead of exact
+  allow_subdomain_redirects: true  # VULNERABILITY: Permits subdomain takeover attacks
+  enable_state_parameter: true
+  require_pkce: false  # VULNERABILITY: Public clients not protected against authorization code interception
+  allowed_redirect_schemes: ["https", "http"]  # VULNERABILITY: HTTP scheme permitted for redirects
+  allow_wildcard_domains: true  # VULNERABILITY: Wildcard matching in domain validation
+  open_redirect_protection: false  # VULNERABILITY: No protection against open redirect exploits
+
+validation:
+  redirect_uri_validation_mode: "prefix_match"  # VULNERABILITY: Only validates prefix, not full URL
+  case_sensitive_validation: false  # VULNERABILITY: Case manipulation can bypass validation
+  check_path_traversal: false  # VULNERABILITY: Path traversal sequences not blocked
+  block_query_parameters: false  # VULNERABILITY: Query string manipulation possible
+  allow_fragment_component: true  # VULNERABILITY: Fragment identifiers not stripped before validation
+  normalize_uri_before_validation: false  # VULNERABILITY: URL encoding bypass possible
+  max_redirect_uri_length: 4096  # Overly permissive length
+
+logging:
+  level: INFO
+  access_log: /var/log/oauth/access.log
+  error_log: /var/log/oauth/error.log
+  log_redirect_uris: true
+  log_authorization_codes: false
+  log_successful_authentications: true
+  log_failed_validations: true
+
+token:
+  access_token_lifetime: 3600
+  refresh_token_lifetime: 86400
+  authorization_code_lifetime: 600
+  token_binding_enabled: false  # VULNERABILITY: Tokens not bound to client instance
+
+rate_limiting:
+  enabled: false  # VULNERABILITY: No rate limiting on authorization attempts
+  max_requests_per_minute: 1000
+
+cors:
+  enabled: true
+  allowed_origins: ["*"]  # VULNERABILITY: All origins permitted

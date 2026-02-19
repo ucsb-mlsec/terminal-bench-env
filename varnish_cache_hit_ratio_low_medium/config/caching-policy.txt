@@ -1,0 +1,120 @@
+E-COMMERCE PLATFORM CACHING POLICY
+=====================================
+Version: 2.1
+Last Updated: 2024-01-15
+Effective Date: 2024-01-20
+
+OVERVIEW
+--------
+This document defines the caching policy for our e-commerce platform's Varnish
+cache layer. All VCL configurations must implement these requirements exactly.
+
+BACKEND CONFIGURATION
+---------------------
+- Backend Server: localhost:8080
+- Protocol: HTTP/1.1
+- Connection Timeout: 5 seconds
+- First Byte Timeout: 30 seconds
+- Between Bytes Timeout: 10 seconds
+
+COOKIE HANDLING RULES
+----------------------
+The following cookie handling rules must be implemented:
+
+DO NOT CACHE if these cookies are present:
+- sessionid (user session identifier)
+- user_token (authentication token)
+- csrf_token (CSRF protection token)
+- logged_in (login status indicator)
+
+REMOVE before caching (analytics cookies):
+- _ga (Google Analytics)
+- _gid (Google Analytics)
+- _gat (Google Analytics)
+- _gat_* (Google Analytics variants)
+
+REMOVE before caching (marketing cookies):
+- All utm_* parameters (utm_source, utm_medium, utm_campaign, etc.)
+- fbclid (Facebook click identifier)
+- gclid (Google click identifier)
+
+SPECIAL HANDLING:
+- Shopping cart cookies (cart_id, cart_token) should be allowed but stripped
+  for static content requests
+
+URL PATH CACHING RULES
+-----------------------
+Implement the following TTL values for different URL patterns:
+
+STATIC ASSETS (Cache for 7 days = 604800 seconds):
+- /static/*
+- /images/*
+- /css/*
+- /js/*
+- /fonts/*
+- /media/*
+- *.jpg, *.png, *.gif, *.ico, *.svg, *.woff, *.woff2
+
+PRODUCT PAGES:
+- /products* - Cache for 1 hour (3600 seconds)
+- /category/* - Cache for 1 hour (3600 seconds)
+- /product/* - Cache for 30 minutes (1800 seconds)
+
+HOMEPAGE:
+- / (exact match) - Cache for 15 minutes (900 seconds)
+
+DO NOT CACHE (must pass through to backend):
+- /search* (search results)
+- /checkout* (checkout process)
+- /cart* (shopping cart)
+- /account* (user account pages)
+- /profile* (user profile pages)
+- /api/* (API endpoints)
+- /admin/* (administrative interface)
+
+HTTP METHOD RULES
+------------------
+- CACHE: GET and HEAD requests only
+- PASS THROUGH: POST, PUT, DELETE, PATCH, OPTIONS
+- All non-GET/HEAD requests must bypass cache entirely
+
+CACHE CONTROL HEADERS
+----------------------
+Respect the following backend Cache-Control directives:
+- Cache-Control: no-cache - Do not cache the response
+- Cache-Control: no-store - Do not cache the response
+- Cache-Control: private - Do not cache the response
+- Cache-Control: max-age=0 - Do not cache the response
+
+Override backend TTL when:
+- Backend sends cacheable response without specific TTL
+- Backend TTL is longer than policy maximum for the URL pattern
+- Apply policy-defined TTL values as specified in URL PATH CACHING RULES
+
+ADDITIONAL REQUIREMENTS
+------------------------
+1. Set-Cookie Header Handling:
+   - Remove Set-Cookie headers from all cached static content responses
+   - Preserve Set-Cookie headers for dynamic content
+
+2. Response Headers:
+   - Add X-Cache: HIT header when serving from cache
+   - Add X-Cache: MISS header when fetching from backend
+
+3. Grace Mode:
+   - Enable grace period of 1 hour (3600 seconds)
+   - Serve stale content if backend is unavailable
+   - Continue serving stale content during backend recovery
+
+4. Compression:
+   - Support gzip and deflate compression
+   - Vary cache on Accept-Encoding header for compressible content
+
+5. Error Handling:
+   - Return cached content during backend errors if available
+   - Set appropriate grace period for error recovery
+
+COMPLIANCE
+----------
+All Varnish VCL configurations must be validated against this policy before
+deployment. Non-compliant configurations will be rejected during code review.

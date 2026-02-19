@@ -1,0 +1,103 @@
+# IoT SENSOR MONITORING SYSTEM - QUERY WORKLOAD DOCUMENTATION
+
+## Overview
+This document describes the query access patterns for the production IoT sensor monitoring system tracking 15,000+ sensors across multiple data centers. Each sensor reports temperature, humidity, and pressure readings every 30 seconds.
+
+---
+
+## QUERY PATTERNS (by frequency)
+
+### 1. Single Sensor Time Range Query - MOST FREQUENT (80% of queries)
+**Pattern:** Retrieve all readings for a specific sensor over a defined time range
+**Example:** 
+- sensor_id='SENSOR_12345', timestamp between '2024-01-15 00:00:00' and '2024-01-16 00:00:00'
+- sensor_id='SENSOR_08921', timestamp between '2024-01-14 12:00:00' and '2024-01-14 18:00:00'
+**Frequency:** ~40,000 queries/minute during peak hours
+**Latency Requirement:** < 100ms (P99)
+**Typical Time Range:** Last 24 hours (most common), but can be 1 hour to 7 days
+
+### 2. Latest Reading from Specific Sensor - FREQUENT (10% of queries)
+**Pattern:** Retrieve the most recent reading for a specific sensor
+**Example:**
+- sensor_id='SENSOR_03456', LIMIT 1 ORDER BY timestamp DESC
+- sensor_id='SENSOR_11203', get latest value
+**Frequency:** ~5,000 queries/minute during peak hours
+**Latency Requirement:** < 50ms (P99)
+**Notes:** Dashboard widgets and monitoring alerts use this pattern heavily
+
+### 3. Data Center Latest Readings - MODERATE (5% of queries)
+**Pattern:** Retrieve latest reading from all sensors in a specific data center
+**Example:**
+- data_center='DC_EAST', get latest reading for each sensor
+- data_center='DC_WEST', current status of all sensors
+**Frequency:** ~2,500 queries/minute
+**Latency Requirement:** < 500ms (P99)
+**Notes:** Used for data center health dashboards and status pages
+
+### 4. Single Sensor 7-Day Time Range - COMMON (3% of queries)
+**Pattern:** Retrieve all readings for a specific sensor over 7-day period
+**Example:**
+- sensor_id='SENSOR_05678', timestamp between NOW() - 7 days and NOW()
+**Frequency:** ~1,500 queries/minute
+**Latency Requirement:** < 200ms (P99)
+**Notes:** Weekly trend analysis and reporting
+
+### 5. Single Sensor 30-Day Time Range - OCCASIONAL (1.5% of queries)
+**Pattern:** Retrieve all readings for a specific sensor over 30-day period
+**Example:**
+- sensor_id='SENSOR_09234', timestamp between NOW() - 30 days and NOW()
+**Frequency:** ~750 queries/minute
+**Latency Requirement:** < 500ms (P99)
+**Notes:** Monthly reports and historical analysis
+
+### 6. Single Sensor 90-Day Time Range - RARE (0.5% of queries)
+**Pattern:** Retrieve all readings for a specific sensor over maximum retention period
+**Example:**
+- sensor_id='SENSOR_02891', timestamp between NOW() - 90 days and NOW()
+**Frequency:** ~250 queries/minute
+**Latency Requirement:** < 1000ms (P99)
+**Notes:** Quarterly analysis, compliance reporting, maximum supported time range
+
+### 7. Data Center Reading Type Query - RARE (<0.1% of queries)
+**Pattern:** Retrieve readings of specific type from all sensors in a data center
+**Example:**
+- data_center='DC_CENTRAL', reading_type='temperature', time range last 1 hour
+**Frequency:** ~50 queries/minute
+**Latency Requirement:** < 2000ms (P99)
+**Notes:** Administrative queries, ad-hoc analysis only
+
+---
+
+## CRITICAL REQUIREMENTS AND CONSTRAINTS
+
+### Sorting Requirements
+- ALL query results MUST be sorted by timestamp DESCENDING (newest first)
+- This is non-negotiable for application compatibility
+- Users expect most recent data to appear first
+
+### Query Characteristics
+- Single sensor queries account for 94.5% of all traffic
+- NO queries require joining data across multiple sensors (except data center aggregations)
+- Time range queries are common - schema must efficiently support time-based filtering
+- Queries are read-heavy: 95% reads, 5% writes by operation count
+- However, write throughput is very high: 50,000 writes/second at peak (500,000+ sensors * reading every 30 seconds)
+
+### Data Access Patterns
+- Queries predominantly access recent data (80% of queries target last 24 hours)
+- Older data accessed less frequently but must remain performant
+- No full table scans acceptable
+- All queries must use partition key in WHERE clause
+
+### Performance Notes
+- Single sensor queries are the most latency-sensitive workload
+- Any performance degradation in the 80% most frequent query pattern is unacceptable
+- Data center queries can tolerate slightly higher latency but must stay under 500ms
+- Time range queries over 90 days are acceptable edge cases with relaxed requirements
+
+### Scale Characteristics
+- 15,000+ active sensors (growing)
+- Each sensor reports 3 readings (temperature, humidity, pressure) every 30 seconds
+- ~1,500,000 data points written every 30 seconds
+- Peak load: 50,000 writes/second
+- Data retention: 90 days (automatic expiration required)
+- Query load: ~50,000 queries/minute during peak hours

@@ -1,0 +1,82 @@
+import numpy as np
+
+# Set random seed for reproducibility
+np.random.seed(42)
+
+# Generate test data
+batch_size = 2
+seq_len = 4
+d_k = 8
+
+# Create random tensors from normal distribution
+Q = np.random.randn(batch_size, seq_len, d_k).astype(np.float32)
+K = np.random.randn(batch_size, seq_len, d_k).astype(np.float32)
+V = np.random.randn(batch_size, seq_len, d_k).astype(np.float32)
+
+# Save to npz file
+np.savez('/workspace/test_data.npz', Q=Q, K=K, V=V)
+
+# Now create the fixed attention implementation
+fixed_attention_code = '''import numpy as np
+
+class ScaledDotProductAttention:
+    def __init__(self, d_k):
+        self.d_k = d_k
+    
+    def forward(self, Q, K, V):
+        # Compute attention scores
+        scores = np.matmul(Q, K.transpose(0, 2, 1))
+        # FIX: Add scaling factor
+        scores = scores / np.sqrt(self.d_k)
+        
+        # FIX: Softmax applied on correct axis (last axis for key dimension)
+        attention_weights = self.softmax(scores, axis=-1)
+        
+        # Compute weighted sum
+        output = np.matmul(attention_weights, V)
+        return output, attention_weights
+    
+    def softmax(self, x, axis):
+        exp_x = np.exp(x - np.max(x, axis=axis, keepdims=True))
+        return exp_x / np.sum(exp_x, axis=axis, keepdims=True)
+'''
+
+with open('/workspace/attention_fixed.py', 'w') as f:
+    f.write(fixed_attention_code)
+
+# Run the fixed implementation and generate results
+import sys
+sys.path.insert(0, '/workspace')
+from attention_fixed import ScaledDotProductAttention
+
+# Load test data
+data = np.load('/workspace/test_data.npz')
+Q_test = data['Q']
+K_test = data['K']
+V_test = data['V']
+
+# Initialize attention layer
+d_k = Q_test.shape[-1]
+attention = ScaledDotProductAttention(d_k)
+
+# Run forward pass
+output, attention_weights = attention.forward(Q_test, K_test, V_test)
+
+# Compute scaled scores for max magnitude check
+scores = np.matmul(Q_test, K_test.transpose(0, 2, 1))
+scaled_scores = scores / np.sqrt(d_k)
+max_score_magnitude = np.max(np.abs(scaled_scores))
+
+# Verify results
+# 1. Check if attention weights sum to 1.0 along key dimension (axis=-1)
+weights_sum = np.sum(attention_weights, axis=-1)
+weights_sum_correct = np.allclose(weights_sum, 1.0, atol=0.001)
+
+# 2. Check output shape
+output_shape_correct = output.shape == V_test.shape
+
+# Write results
+with open('/workspace/results.txt', 'w') as f:
+    f.write(f'weights_sum_correct={str(weights_sum_correct).lower()}\n')
+    f.write(f'output_shape_correct={str(output_shape_correct).lower()}\n')
+    f.write(f'max_score_magnitude={max_score_magnitude:.2f}\n')
