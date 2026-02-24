@@ -8,9 +8,10 @@ Official implementation and datasets for **TermiGen**, a framework for training 
 
 ---
 
-## News
+## 📰 News
 
-- TermiGen has integrated with the [harbor framework](https://harborframework.com/registry)! Simply install harbor and run `uvx harbor run -d termigen-environments@1.0`!
+- [2026/02/23] TermiGen has integrated with the [harbor framework](https://harborframework.com/registry)! Simply install harbor and run `uvx harbor run -d termigen-environments@1.0`!
+- [2026/02/10] Grateful to be selected as the #2 [Huggingface Daily Papers](https://huggingface.co/papers/2602.07274)!
 
 ## 🎯 What's Included
 
