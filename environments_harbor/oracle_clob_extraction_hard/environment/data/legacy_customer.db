@@ -1,0 +1,310 @@
+import sqlite3
+import json
+import os
+import random
+import string
+
+# Create the database
+db_path = '/data/legacy_customer.db'
+os.makedirs('/data', exist_ok=True)
+
+conn = sqlite3.connect(db_path)
+cursor = conn.cursor()
+
+# Create tables
+cursor.execute('''
+CREATE TABLE customer_feedback (
+    feedback_id INTEGER PRIMARY KEY,
+    feedback_text TEXT
+)
+''')
+
+cursor.execute('''
+CREATE TABLE support_tickets (
+    ticket_id INTEGER PRIMARY KEY,
+    description TEXT,
+    resolution_notes TEXT
+)
+''')
+
+cursor.execute('''
+CREATE TABLE audit_logs (
+    log_id INTEGER PRIMARY KEY,
+    action_details TEXT
+)
+''')
+
+# Helper functions
+def generate_large_text(size_kb):
+    """Generate text of approximately size_kb kilobytes"""
+    text = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. " * 1000
+    while len(text.encode('utf-8')) < size_kb * 1024:
+        text += text
+    return text[:size_kb * 1024]
+
+def generate_binary_content():
+    """Generate text with binary/corrupted content"""
+    normal_text = "Customer reported issue with "
+    binary_part = b'\x00\xff\xfe\xfd\x01\x02\x03\x89\x50\x4e\x47'
+    more_text = " system functionality"
+    return normal_text + binary_part.decode('latin-1', errors='ignore') + more_text
+
+def generate_encoding_issue():
+    """Generate text with UTF-8 encoding problems (mojibake)"""
+    texts = [
+        "The customer said: â€œThis is frustratingly difficultâ€",
+        "CafÃ© service was poor, couldnâ€™t connect",
+        "naÃ¯ve approach to handling Ã©mail addresses",
+        "Resume shows â€" excellent qualifications Ã© Ã§Ã ",
+        "User couldnâ€™t access fiancÃ©e account settings"
+    ]
+    return random.choice(texts)
+
+def generate_malformed_xml():
+    """Generate malformed XML"""
+    malformed = [
+        '<root><customer>John Doe</customer><issue>Login problem</root>',
+        '<ticket><id>12345<status>open</status></ticket>',
+        '<data><entry>Text here</entry>',
+        '<response><message>Error occurred</response><code>500',
+        '<log><timestamp>2024-01-01</timestamp><action>update</log'
+    ]
+    return random.choice(malformed)
+
+def generate_malformed_json():
+    """Generate malformed JSON"""
+    malformed = [
+        '{"customer": "Jane Smith", "issue": "billing problem"',
+        '{"status": "pending", "priority": high, "assignee": ""}',
+        '{"ticket_id": 789, "description": "Network issue",',
+        '{"user": {"name": "Bob", "email": "bob@example.com"}',
+        '{"data": [{"id": 1, "value": "test"}, {"id": 2]'
+    ]
+    return random.choice(malformed)
+
+# Populate customer_feedback table (45 records)
+feedback_data = []
+
+# 12 normal records
+for i in range(1, 13):
+    feedback_data.append((i, f"Great service! Very satisfied with the product quality and customer support. Order #{1000+i}"))
+
+# 7 binary/corrupted records
+for i in range(13, 20):
+    feedback_data.append((i, generate_binary_content()))
+
+# 7 malformed XML records
+for i in range(20, 27):
+    feedback_data.append((i, generate_malformed_xml()))
+
+# 7 malformed JSON records
+for i in range(27, 34):
+    feedback_data.append((i, generate_malformed_json()))
+
+# 4 large records (120KB, 140KB, 160KB, 180KB)
+for i, size in enumerate([120, 140, 160, 180], 34):
+    feedback_data.append((i, generate_large_text(size)))
+
+# 7 encoding issue records
+for i in range(38, 45):
+    feedback_data.append((i, generate_encoding_issue()))
+
+cursor.executemany('INSERT INTO customer_feedback VALUES (?, ?)', feedback_data)
+
+# Populate support_tickets table (48 records)
+ticket_data = []
+
+# 14 normal records
+for i in range(1, 15):
+    ticket_data.append((i, 
+        f"Customer reported login issue on mobile app. Account ID: {5000+i}",
+        f"Issue resolved by resetting password and clearing cache. Ticket closed on 2024-01-{i:02d}."))
+
+# 7 binary content records
+for i in range(15, 22):
+    ticket_data.append((i, generate_binary_content(), "Resolution pending"))
+
+# 7 malformed JSON records
+for i in range(22, 29):
+    ticket_data.append((i, generate_malformed_json(), "In progress"))
+
+# 7 malformed XML records
+for i in range(29, 36):
+    ticket_data.append((i, "Standard issue reported", generate_malformed_xml()))
+
+# 4 large records (110KB, 130KB, 150KB, 170KB)
+for i, size in enumerate([110, 130, 150, 170], 36):
+    ticket_data.append((i, generate_large_text(size), "Detailed resolution notes"))
+
+# 7 encoding issue records
+for i in range(40, 47):
+    ticket_data.append((i, generate_encoding_issue(), "Resolved"))
+
+# 1 extra normal record
+ticket_data.append((47, "Final ticket for testing", "All good"))
+
+cursor.executemany('INSERT INTO support_tickets VALUES (?, ?, ?)', ticket_data)
+
+# Populate audit_logs table (47 records)
+log_data = []
+
+# 13 normal records
+for i in range(1, 14):
+    log_data.append((i, f'{{"timestamp": "2024-01-{i:02d}T10:00:00Z", "user": "admin", "action": "UPDATE", "resource": "customer_{i}"}}'))
+
+# 7 binary content records
+for i in range(14, 21):
+    log_data.append((i, generate_binary_content()))
+
+# 7 malformed XML records
+for i in range(21, 28):
+    log_data.append((i, generate_malformed_xml()))
+
+# 7 malformed JSON records
+for i in range(28, 35):
+    log_data.append((i, generate_malformed_json()))
+
+# 4 large records (115KB, 135KB, 155KB, 190KB)
+for i, size in enumerate([115, 135, 155, 190], 35):
+    log_data.append((i, generate_large_text(size)))
+
+# 8 encoding issue records
+for i in range(39, 47):
+    log_data.append((i, generate_encoding_issue()))
+
+cursor.executemany('INSERT INTO audit_logs VALUES (?, ?)', log_data)
+
+conn.commit()
+conn.close()
+
+# Now analyze the database
+conn = sqlite3.connect(db_path)
+cursor = conn.cursor()
+
+total_records = 0
+problematic_records = 0
+largest_field_bytes = 0
+
+def is_binary_content(text):
+    """Check if text contains binary/non-printable characters"""
+    if text is None:
+        return False
+    for char in text:
+        if ord(char) < 32 and char not in '\n\r\t':
+            return True
+        if ord(char) > 127 and ord(char) < 160:
+            return True
+    return False
+
+def has_encoding_issues(text):
+    """Check for common encoding problems"""
+    if text is None:
+        return False
+    markers = ['Ã©', 'Ã§', 'Ã ', 'â€', 'â€™', 'â€œ', 'Ã¼', 'Ã«']
+    return any(marker in text for marker in markers)
+
+def is_malformed_xml(text):
+    """Check if text appears to be malformed XML"""
+    if text is None:
+        return False
+    if '<' in text and '>' in text:
+        # Simple check for unclosed tags
+        open_tags = text.count('<')
+        close_tags = text.count('>')
+        if open_tags != close_tags:
+            return True
+        # Check for specific malformed patterns
+        if '</' in text and text.count('</') * 2 != text.count('<'):
+            return True
+    return False
+
+def is_malformed_json(text):
+    """Check if text appears to be malformed JSON"""
+    if text is None:
+        return False
+    if text.strip().startswith('{') or text.strip().startswith('['):
+        try:
+            json.loads(text)
+            return False
+        except:
+            return True
+    return False
+
+def is_problematic(text):
+    """Check if text has any issues"""
+    if text is None:
+        return False
+    
+    size = len(text.encode('utf-8'))
+    if size > 100 * 1024:
+        return True
+    
+    if is_binary_content(text):
+        return True
+    
+    if has_encoding_issues(text):
+        return True
+    
+    if is_malformed_xml(text):
+        return True
+    
+    if is_malformed_json(text):
+        return True
+    
+    return False
+
+# Analyze customer_feedback
+cursor.execute('SELECT feedback_id, feedback_text FROM customer_feedback')
+for row in cursor.fetchall():
+    total_records += 1
+    text = row[1]
+    if text:
+        size = len(text.encode('utf-8'))
+        largest_field_bytes = max(largest_field_bytes, size)
+    
+    if is_problematic(text):
+        problematic_records += 1
+
+# Analyze support_tickets
+cursor.execute('SELECT ticket_id, description, resolution_notes FROM support_tickets')
+for row in cursor.fetchall():
+    total_records += 1
+    has_problem = False
+    
+    for text in [row[1], row[2]]:
+        if text:
+            size = len(text.encode('utf-8'))
+            largest_field_bytes = max(largest_field_bytes, size)
+            
+            if is_problematic(text):
+                has_problem = True
+    
+    if has_problem:
+        problematic_records += 1
+
+# Analyze audit_logs
+cursor.execute('SELECT log_id, action_details FROM audit_logs')
+for row in cursor.fetchall():
+    total_records += 1
+    text = row[1]
+    if text:
+        size = len(text.encode('utf-8'))
+        largest_field_bytes = max(largest_field_bytes, size)
+    
+    if is_problematic(text):
+        problematic_records += 1
+
+conn.close()
+
+# Create output
+os.makedirs('/output', exist_ok=True)
+output = {
+    "total_records_analyzed": total_records,
+    "problematic_records": problematic_records,
+    "largest_field_bytes": largest_field_bytes
+}
+
+with open('/output/analysis_results.json', 'w') as f:
+    json.dump(output, f, indent=2)
+
+print(json.dumps(output, indent=2))

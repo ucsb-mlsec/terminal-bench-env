@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Catalog</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        #products {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto 40px;
+            min-height: 400px;
+        }
+
+        .product-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .product-id {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 8px;
+        }
+
+        .product-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .product-price {
+            font-size: 1.1em;
+            color: #27ae60;
+            font-weight: bold;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        .pagination button {
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+
+        .pagination button:disabled {
+            background: #e9ecef;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .pagination button.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-size: 1.1em;
+        }
+    </style>
+</head>
+<body>
+    <h1>Product Catalog</h1>
+    <div id="products"></div>
+    <div class="pagination">
+        <button id="prevBtn">Previous</button>
+        <button class="page-btn" data-page="1">1</button>
+        <button class="page-btn" data-page="2">2</button>
+        <button class="page-btn" data-page="3">3</button>
+        <button class="page-btn" data-page="4">4</button>
+        <button class="page-btn" data-page="5">5</button>
+        <button id="nextBtn">Next</button>
+    </div>
+
+    <script>
+        let currentPage = 1;
+        const totalPages = 5;
+
+        async function loadProducts(page) {
+            const productsContainer = document.getElementById('products');
+            productsContainer.innerHTML = '<div class="loading">Loading products...</div>';
+
+            try {
+                const response = await fetch(`/api/products?page=${page}`);
+                const data = await response.json();
+                
+                setTimeout(() => {
+                    renderProducts(data.products);
+                    updatePagination();
+                }, 300);
+            } catch (error) {
+                productsContainer.innerHTML = '<div class="loading">Error loading products</div>';
+                console.error('Error loading products:', error);
+            }
+        }
+
+        function renderProducts(products) {
+            const productsContainer = document.getElementById('products');
+            productsContainer.innerHTML = '';
+
+            products.forEach(product => {
+                const card = document.createElement('div');
+                card.className = 'product-card';
+                card.setAttribute('data-id', product.id);
+                card.setAttribute('data-name', product.name);
+                card.setAttribute('data-price', product.price);
+
+                card.innerHTML = `
+                    <div class="product-id">ID: ${product.id}</div>
+                    <div class="product-name">${product.name}</div>
+                    <div class="product-price">$${product.price.toFixed(2)}</div>
+                `;
+
+                productsContainer.appendChild(card);
+            });
+        }
+
+        function updatePagination() {
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const pageButtons = document.querySelectorAll('.page-btn');
+
+            prevBtn.disabled = currentPage === 1;
+            nextBtn.disabled = currentPage === totalPages;
+
+            pageButtons.forEach(btn => {
+                const page = parseInt(btn.getAttribute('data-page'));
+                if (page === currentPage) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+
+        document.getElementById('prevBtn').addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                loadProducts(currentPage);
+            }
+        });
+
+        document.getElementById('nextBtn').addEventListener('click', () => {
+            if (currentPage < totalPages) {
+                currentPage++;
+                loadProducts(currentPage);
+            }
+        });
+
+        document.querySelectorAll('.page-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const page = parseInt(btn.getAttribute('data-page'));
+                currentPage = page;
+                loadProducts(currentPage);
+            });
+        });
+
+        loadProducts(currentPage);
+    </script>
+</body>
+</html>

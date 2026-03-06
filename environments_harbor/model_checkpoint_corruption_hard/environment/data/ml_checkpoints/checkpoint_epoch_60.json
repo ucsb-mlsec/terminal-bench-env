@@ -1,0 +1,206 @@
+[
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"1. I need to examine checkpoint files in `\/workspace\/ml_checkpoints\/`"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"2. Validate each checkpoint file"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"3. Find the best valid checkpoint based on validation accuracy"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"4. Write the results to `\/workspace\/recovery_result.txt`"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"Let me create a solution script:"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"```python"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"import json"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"import os"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"import math"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"checkpoint_dir = '\/workspace\/ml_checkpoints\/'"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"output_file = '\/workspace\/recovery_result.txt'"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"def is_valid_number(value):"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"    \"\"\"Check if a value is a finite number\"\"\""
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"    try:"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"    except:"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"        return False"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"def validate_checkpoint(filepath):"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"    try:"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"            data = json.load(f)"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"        # Check required fields exist"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"        if not all(field in data for field in required_fields):"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"            return None"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"        # Check model_state is non-empty array"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"            return None"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"        # Check all numeric values are finite"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"        if not is_valid_number(data['epoch']):"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"            return None"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"        if not is_valid_number(data['train_loss']):"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"            return None"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"        if not is_valid_number(data['val_accuracy']):"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"            return None"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"        # Check all model_state values are finite"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"        for value in data['model_state']:"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"            if not is_valid_number(value):"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"                return None"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"        return data"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"        return None"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"# Find all checkpoint files"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"best_checkpoint = None"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"best_filename = None"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"best_epoch = 0"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"best_val_accuracy = 0.0"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"if os.path.exists(checkpoint_dir):"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"    for filename in os.listdir(checkpoint_dir):"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"        if filename.startswith('checkpoint_epoch_') and filename.endswith('.json'):"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"            checkpoint_data = validate_checkpoint(filepath)"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"            if checkpoint_data:"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"                val_acc = checkpoint_data['val_accuracy']"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"                if best_checkpoint is None or val_acc > best_val_accuracy:"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"                    best_checkpoint = checkpoint_data"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"                    best_filename = filename"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"                    best_epoch = checkpoint_data['epoch']"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"                    best_val_accuracy = val_acc"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"# Write results"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"    if best_checkpoint is None:"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"        f.write('best_checkpoint=none\\n')"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"        f.write('epoch=0\\n')"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"        f.write('val_accuracy=0.0\\n')"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"    else:"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"        f.write(f'best_checkpoint={best_filename}\\n')"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"        f.write(f'epoch={best_epoch}\\n')"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"        f.write(f'val_accuracy={best_val_accuracy}\\n')"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"```"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"This script will:"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"1. Iterate through all checkpoint files in the directory"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"2. Validate each one according to the criteria"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"3. Track the best valid checkpoint by validation accuracy"
+  },
+  {
+    "I need to analyze the task and provide a solution. Let me break this down:":"4. Write the results to the output file in the required format"
+  }
+]

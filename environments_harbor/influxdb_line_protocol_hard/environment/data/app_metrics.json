@@ -1,0 +1,302 @@
+[
+  {
+    "I'll complete this task step by step.":"**File 1: \/var\/metrics\/app_metrics.json**"
+  },
+  {
+    "I'll complete this task step by step.":"```json"
+  },
+  {
+    "I'll complete this task step by step.":"["
+  },
+  {
+    "I'll complete this task step by step.":"  {"
+  },
+  {
+    "I'll complete this task step by step.":"    \"memory_mb\": 4096"
+  },
+  {
+    "I'll complete this task step by step.":"  {"
+  },
+  {
+    "I'll complete this task step by step.":"    \"memory_mb\": 8192"
+  },
+  {
+    "I'll complete this task step by step.":"  }"
+  },
+  {
+    "I'll complete this task step by step.":"]"
+  },
+  {
+    "I'll complete this task step by step.":"```"
+  },
+  {
+    "I'll complete this task step by step.":"**File 2: \/var\/metrics\/system_metrics.csv**"
+  },
+  {
+    "I'll complete this task step by step.":"```"
+  },
+  {
+    "I'll complete this task step by step.":"```"
+  },
+  {
+    "I'll complete this task step by step.":"```python"
+  },
+  {
+    "I'll complete this task step by step.":"#!\/usr\/bin\/env python3"
+  },
+  {
+    "I'll complete this task step by step.":"import json"
+  },
+  {
+    "I'll complete this task step by step.":"import csv"
+  },
+  {
+    "I'll complete this task step by step.":"from datetime import datetime"
+  },
+  {
+    "I'll complete this task step by step.":"import os"
+  },
+  {
+    "I'll complete this task step by step.":"def parse_timestamp(ts):"
+  },
+  {
+    "I'll complete this task step by step.":"    \"\"\"Convert timestamp to nanosecond Unix epoch\"\"\""
+  },
+  {
+    "I'll complete this task step by step.":"        # Already Unix timestamp in seconds"
+  },
+  {
+    "I'll complete this task step by step.":"        return int(ts * 1000000000)"
+  },
+  {
+    "I'll complete this task step by step.":"        try:"
+  },
+  {
+    "I'll complete this task step by step.":"            # Try parsing ISO8601 format"
+  },
+  {
+    "I'll complete this task step by step.":"            return int(dt.timestamp() * 1000000000)"
+  },
+  {
+    "I'll complete this task step by step.":"        except:"
+  },
+  {
+    "I'll complete this task step by step.":"            return None"
+  },
+  {
+    "I'll complete this task step by step.":"    return None"
+  },
+  {
+    "I'll complete this task step by step.":"def process_json_metrics(filepath):"
+  },
+  {
+    "I'll complete this task step by step.":"    \"\"\"Process app_metrics.json file\"\"\""
+  },
+  {
+    "I'll complete this task step by step.":"    metrics = []"
+  },
+  {
+    "I'll complete this task step by step.":"    try:"
+  },
+  {
+    "I'll complete this task step by step.":"            data = json.load(f)"
+  },
+  {
+    "I'll complete this task step by step.":"        for record in data:"
+  },
+  {
+    "I'll complete this task step by step.":"            # Check for required fields"
+  },
+  {
+    "I'll complete this task step by step.":"            if 'timestamp' not in record:"
+  },
+  {
+    "I'll complete this task step by step.":"                continue"
+  },
+  {
+    "I'll complete this task step by step.":"            ts = parse_timestamp(record.get('timestamp'))"
+  },
+  {
+    "I'll complete this task step by step.":"            if ts is None:"
+  },
+  {
+    "I'll complete this task step by step.":"                continue"
+  },
+  {
+    "I'll complete this task step by step.":"            # Check if at least one metric value exists"
+  },
+  {
+    "I'll complete this task step by step.":"            cpu = record.get('cpu_percent')"
+  },
+  {
+    "I'll complete this task step by step.":"            mem = record.get('memory_mb')"
+  },
+  {
+    "I'll complete this task step by step.":"            if cpu is None and mem is None:"
+  },
+  {
+    "I'll complete this task step by step.":"                continue"
+  },
+  {
+    "I'll complete this task step by step.":"            # Build InfluxDB line protocol"
+  },
+  {
+    "I'll complete this task step by step.":"            fields = []"
+  },
+  {
+    "I'll complete this task step by step.":"            if cpu is not None:"
+  },
+  {
+    "I'll complete this task step by step.":"                fields.append(f\"cpu_percent={cpu}\")"
+  },
+  {
+    "I'll complete this task step by step.":"            if mem is not None:"
+  },
+  {
+    "I'll complete this task step by step.":"                fields.append(f\"memory_mb={mem}\")"
+  },
+  {
+    "I'll complete this task step by step.":"    except Exception as e:"
+  },
+  {
+    "I'll complete this task step by step.":"        print(f\"Error processing JSON: {e}\")"
+  },
+  {
+    "I'll complete this task step by step.":"    return metrics"
+  },
+  {
+    "I'll complete this task step by step.":"def process_csv_metrics(filepath):"
+  },
+  {
+    "I'll complete this task step by step.":"    \"\"\"Process system_metrics.csv file\"\"\""
+  },
+  {
+    "I'll complete this task step by step.":"    metrics = []"
+  },
+  {
+    "I'll complete this task step by step.":"    try:"
+  },
+  {
+    "I'll complete this task step by step.":"            reader = csv.DictReader(f)"
+  },
+  {
+    "I'll complete this task step by step.":"            for record in reader:"
+  },
+  {
+    "I'll complete this task step by step.":"                # Check for required fields"
+  },
+  {
+    "I'll complete this task step by step.":"                if 'timestamp' not in record or not record['timestamp']:"
+  },
+  {
+    "I'll complete this task step by step.":"                    continue"
+  },
+  {
+    "I'll complete this task step by step.":"                ts = parse_timestamp(record['timestamp'])"
+  },
+  {
+    "I'll complete this task step by step.":"                if ts is None:"
+  },
+  {
+    "I'll complete this task step by step.":"                    continue"
+  },
+  {
+    "I'll complete this task step by step.":"                # Check if at least one metric value exists"
+  },
+  {
+    "I'll complete this task step by step.":"                if not disk and not network:"
+  },
+  {
+    "I'll complete this task step by step.":"                    continue"
+  },
+  {
+    "I'll complete this task step by step.":"                # Build InfluxDB line protocol"
+  },
+  {
+    "I'll complete this task step by step.":"                fields = []"
+  },
+  {
+    "I'll complete this task step by step.":"                if disk:"
+  },
+  {
+    "I'll complete this task step by step.":"                    try:"
+  },
+  {
+    "I'll complete this task step by step.":"                        fields.append(f\"disk_used_gb={float(disk)}\")"
+  },
+  {
+    "I'll complete this task step by step.":"                    except ValueError:"
+  },
+  {
+    "I'll complete this task step by step.":"                        pass"
+  },
+  {
+    "I'll complete this task step by step.":"                if network:"
+  },
+  {
+    "I'll complete this task step by step.":"                    try:"
+  },
+  {
+    "I'll complete this task step by step.":"                        fields.append(f\"network_mbps={float(network)}\")"
+  },
+  {
+    "I'll complete this task step by step.":"                    except ValueError:"
+  },
+  {
+    "I'll complete this task step by step.":"                        pass"
+  },
+  {
+    "I'll complete this task step by step.":"                if not fields:"
+  },
+  {
+    "I'll complete this task step by step.":"                    continue"
+  },
+  {
+    "I'll complete this task step by step.":"    except Exception as e:"
+  },
+  {
+    "I'll complete this task step by step.":"        print(f\"Error processing CSV: {e}\")"
+  },
+  {
+    "I'll complete this task step by step.":"    return metrics"
+  },
+  {
+    "I'll complete this task step by step.":"# Create directories if they don't exist"
+  },
+  {
+    "I'll complete this task step by step.":"# Process both files"
+  },
+  {
+    "I'll complete this task step by step.":"json_metrics = process_json_metrics('\/var\/metrics\/app_metrics.json')"
+  },
+  {
+    "I'll complete this task step by step.":"csv_metrics = process_csv_metrics('\/var\/metrics\/system_metrics.csv')"
+  },
+  {
+    "I'll complete this task step by step.":"# Combine and sort by timestamp"
+  },
+  {
+    "I'll complete this task step by step.":"all_metrics = json_metrics + csv_metrics"
+  },
+  {
+    "I'll complete this task step by step.":"all_metrics.sort(key=lambda x: x[0])"
+  },
+  {
+    "I'll complete this task step by step.":"# Write to output file"
+  },
+  {
+    "I'll complete this task step by step.":"        f.write(line + '\\n')"
+  },
+  {
+    "I'll complete this task step by step.":"print(f\"Successfully processed {len(all_metrics)} metrics\")"
+  },
+  {
+    "I'll complete this task step by step.":"```"
+  },
+  {
+    "I'll complete this task step by step.":"**Expected output in \/output\/metrics.txt:**"
+  },
+  {
+    "I'll complete this task step by step.":"```"
+  }
+]

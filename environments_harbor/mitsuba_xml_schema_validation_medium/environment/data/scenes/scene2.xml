@@ -1,0 +1,264 @@
+I'll help you complete this task. Let me start by examining the schema documentation and then validating the scene files.
+
+First, let me read the schema documentation:
+
+<python>
+with open('/workspace/docs/mitsuba_schema.txt', 'r') as f:
+    schema_doc = f.read()
+print(schema_doc)
+</python>
+
+Now let me check what scene files exist:
+
+<python>
+import os
+files = sorted([f for f in os.listdir('/workspace/scenes/') if f.endswith('.xml')])
+print(f"Found {len(files)} XML files:")
+for f in files:
+    print(f"  - {f}")
+</python>
+
+Now let me examine each scene file and validate it:
+
+<python>
+import xml.etree.ElementTree as ET
+import json
+
+def validate_scene(filepath):
+    """Validate a Mitsuba scene file against schema requirements."""
+    errors = []
+    
+    try:
+        tree = ET.parse(filepath)
+        root = tree.getroot()
+        
+        # Check root element
+        if root.tag != 'scene':
+            errors.append("Root element must be 'scene'")
+        
+        if root.get('version') != '3.0.0':
+            errors.append("Scene version must be '3.0.0'")
+        
+        # Check for required integrator
+        integrators = root.findall('integrator')
+        if len(integrators) == 0:
+            errors.append("Missing required integrator element")
+        
+        for integrator in integrators:
+            if not integrator.get('type'):
+                errors.append("Integrator missing required 'type' attribute")
+        
+        # Check sensors
+        sensors = root.findall('sensor')
+        for sensor in sensors:
+            if not sensor.get('type'):
+                errors.append("Sensor missing required 'type' attribute")
+            
+            # Check for required film child
+            films = sensor.findall('film')
+            if len(films) == 0:
+                errors.append("Sensor missing required film child")
+            
+            for film in films:
+                if not film.get('type'):
+                    errors.append("Film missing required 'type' attribute")
+            
+            # Check for required sampler child
+            samplers = sensor.findall('sampler')
+            if len(samplers) == 0:
+                errors.append("Sensor missing required sampler child")
+            
+            for sampler in samplers:
+                if not sampler.get('type'):
+                    errors.append("Sampler missing required 'type' attribute")
+        
+        # Check shapes
+        shapes = root.findall('shape')
+        for shape in shapes:
+            if not shape.get('type'):
+                errors.append("Shape missing required 'type' attribute")
+        
+        # Check properties have correct type attributes
+        for prop in root.iter():
+            if prop.tag in ['integer', 'float', 'string', 'rgb', 'spectrum', 'boolean', 'transform']:
+                if not prop.get('name'):
+                    errors.append(f"{prop.tag} property missing required 'name' attribute")
+            
+            # Check integer values are valid
+            if prop.tag == 'integer':
+                try:
+                    int(prop.get('value', ''))
+                except ValueError:
+                    errors.append(f"Integer property '{prop.get('name')}' has invalid value")
+            
+            # Check float values are valid
+            if prop.tag == 'float':
+                try:
+                    float(prop.get('value', ''))
+                except ValueError:
+                    errors.append(f"Float property '{prop.get('name')}' has invalid value")
+        
+        # Check for undefined references
+        for ref in root.iter('ref'):
+            ref_id = ref.get('id')
+            if ref_id:
+                # Check if referenced ID exists
+                found = False
+                for elem in root.iter():
+                    if elem.get('id') == ref_id:
+                        found = True
+                        break
+                if not found:
+                    errors.append(f"Reference to undefined id '{ref_id}'")
+        
+    except ET.ParseError as e:
+        errors.append(f"XML parsing error: {str(e)}")
+    except Exception as e:
+        errors.append(f"Validation error: {str(e)}")
+    
+    return len(errors) == 0, errors
+
+# Validate all files
+valid_files = []
+invalid_files = []
+
+for filename in files:
+    filepath = os.path.join('/workspace/scenes/', filename)
+    is_valid, errors = validate_scene(filepath)
+    
+    if is_valid:
+        valid_files.append(filename)
+        print(f"✓ {filename}: VALID")
+    else:
+        invalid_files.append(filename)
+        print(f"✗ {filename}: INVALID")
+        for error in errors[:3]:  # Show first 3 errors
+            print(f"    - {error}")
+
+# Create validation report
+report = {
+    "valid_files": sorted(valid_files),
+    "invalid_files": sorted(invalid_files),
+    "total_validated": len(files)
+}
+
+with open('/workspace/validation_report.json', 'w') as f:
+    json.dump(report, f, indent=2)
+
+print(f"\n✓ Validation report saved to /workspace/validation_report.json")
+print(f"Summary: {len(valid_files)} valid, {len(invalid_files)} invalid, {len(files)} total")
+</python>
+
+Now let me create the scene2.xml file as requested:
+
+<python>
+scene2_content = '''<scene version="3.0.0">
+    <!-- Direct lighting integrator with shadow rays -->
+    <integrator type="direct">
+        <integer name="emitter_samples" value="4"/>
+        <integer name="bsdf_samples" value="2"/>
+    </integrator>
+
+    <!-- Perspective camera sensor -->
+    <sensor type="perspective">
+        <float name="fov" value="45.0"/>
+        
+        <!-- HDR film output -->
+        <film type="hdrfilm">
+            <integer name="width" value="1920"/>
+            <integer name="height" value="1080"/>
+            <string name="pixel_format" value="rgb"/>
+        </film>
+        
+        <!-- Independent sampler -->
+        <sampler type="independent">
+            <integer name="sample_count" value="64"/>
+        </sampler>
+        
+        <!-- Camera transform -->
+        <transform name="to_world">
+            <matrix value="0.707107 -0.408248 0.577350 4.0
+                          0.000000  0.816497 0.577350 4.0
+                         -0.707107 -0.408248 0.577350 4.0
+                          0.000000  0.000000 0.000000 1.0"/>
+        </transform>
+    </sensor>
+
+    <!-- Diffuse sphere -->
+    <shape type="sphere">
+        <float name="radius" value="1.0"/>
+        <transform name="to_world">
+            <translate x="0.0" y="0.0" z="1.0"/>
+        </transform>
+        
+        <bsdf type="diffuse">
+            <rgb name="reflectance" value="0.8 0.2 0.2"/>
+        </bsdf>
+    </shape>
+
+    <!-- Mesh with conductor BSDF -->
+    <shape type="obj">
+        <string name="filename" value="meshes/floor.obj"/>
+        
+        <bsdf type="conductor">
+            <string name="material" value="Au"/>
+            <rgb name="eta" value="0.143 0.374 1.442"/>
+            <rgb name="k" value="3.982 2.386 1.603"/>
+        </bsdf>
+    </shape>
+
+    <!-- Point light emitter -->
+    <emitter type="point">
+        <rgb name="intensity" value="100.0 100.0 100.0"/>
+        <transform name="to_world">
+            <translate x="5.0" y="5.0" z="8.0"/>
+        </transform>
+    </emitter>
+</scene>'''
+
+with open('/workspace/scenes/scene2.xml', 'w') as f:
+    f.write(scene2_content)
+
+print("✓ Created scene2.xml")
+</python>
+
+Now let me re-run the validation to include the newly created file:
+
+<python>
+# Re-scan files
+files = sorted([f for f in os.listdir('/workspace/scenes/') if f.endswith('.xml')])
+
+# Validate all files again
+valid_files = []
+invalid_files = []
+
+for filename in files:
+    filepath = os.path.join('/workspace/scenes/', filename)
+    is_valid, errors = validate_scene(filepath)
+    
+    if is_valid:
+        valid_files.append(filename)
+    else:
+        invalid_files.append(filename)
+
+# Create final validation report
+report = {
+    "valid_files": sorted(valid_files),
+    "invalid_files": sorted(invalid_files),
+    "total_validated": len(files)
+}
+
+with open('/workspace/validation_report.json', 'w') as f:
+    json.dump(report, f, indent=2)
+
+print(f"✓ Final validation complete")
+print(f"Valid files: {len(valid_files)}")
+print(f"Invalid files: {len(invalid_files)}")
+print(f"Total validated: {len(files)}")
+</python>
+
+<python>
+# Display the final report
+with open('/workspace/validation_report.json', 'r') as f:
+    print(f.read())
+</python>

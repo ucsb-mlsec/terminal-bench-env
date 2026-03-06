@@ -1,0 +1,48 @@
+apiVersion: sparkoperator.k8s.io/v1beta2
+kind: SparkApplication
+metadata:
+  name: batch-processor
+  namespace: analytics
+spec:
+  type: Scala
+  mode: cluster
+  image: "spark:3.2.0"
+  mainClass: com.example.DataProcessor
+  mainApplicationFile: "local:///opt/spark/examples/jars/app.jar"
+  sparkVersion: "3.2.0"
+  driver:
+    cores: 1
+    memory: "2Gi"
+    labels:
+      version: "3.2.0"
+    serviceAccount: spark
+  executor:
+    cores: 2
+    memory: "4Gi"
+    instances: 2
+    labels:
+      version: "3.2.0"
+    coreRequest: "2"
+    coreLimit: "2"
+    memoryOverhead: "512m"
+  dynamicAllocation:
+    enabled: true
+    initialExecutors: 2
+    minExecutors: 2
+    maxExecutors: 8
+    shuffleTrackingTimeout: 60s
+  sparkConf:
+    "spark.dynamicAllocation.enabled": "true"
+    "spark.dynamicAllocation.shuffleTracking.enabled": "true"
+    "spark.dynamicAllocation.executorIdleTimeout": "60s"
+    "spark.dynamicAllocation.cachedExecutorIdleTimeout": "120s"
+    "spark.dynamicAllocation.initialExecutors": "2"
+    "spark.dynamicAllocation.minExecutors": "2"
+    "spark.dynamicAllocation.maxExecutors": "8"
+    "spark.kubernetes.allocation.batch.size": "5"
+  restartPolicy:
+    type: OnFailure
+    onFailureRetries: 3
+    onFailureRetryInterval: 10
+    onSubmissionFailureRetries: 5
+    onSubmissionFailureRetryInterval: 20

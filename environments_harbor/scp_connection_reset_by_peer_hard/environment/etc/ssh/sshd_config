@@ -1,0 +1,88 @@
+# SSH Server Configuration File
+# Applied security hardening on 2024-01-15
+# Changes made by operations team
+
+# Network settings
+Port 22
+AddressFamily any
+ListenAddress 0.0.0.0
+
+# Protocol version
+Protocol 2
+
+# Host keys
+HostKey /etc/ssh/ssh_host_rsa_key
+HostKey /etc/ssh/ssh_host_ecdsa_key
+HostKey /etc/ssh/ssh_host_ed25519_key
+
+# Logging
+SyslogFacility AUTH
+LogLevel INFO
+
+# Authentication settings
+LoginGraceTime 2m
+PermitRootLogin no
+StrictModes yes
+MaxAuthTries 4
+MaxSessions 10
+
+# Public key authentication
+PubkeyAuthentication yes
+AuthorizedKeysFile .ssh/authorized_keys
+
+# Password authentication - disabled for security
+PasswordAuthentication no
+PermitEmptyPasswords no
+
+# Challenge-response authentication
+ChallengeResponseAuthentication no
+
+# Kerberos options
+KerberosAuthentication no
+
+# GSSAPI options
+GSSAPIAuthentication no
+
+# PAM authentication
+UsePAM yes
+
+# Disable forwarding for security
+AllowAgentForwarding no
+AllowTcpForwarding no
+GatewayPorts no
+X11Forwarding no
+PermitTTY yes
+PrintMotd no
+PrintLastLog yes
+TCPKeepAlive yes
+
+# Client alive settings - keep connections monitored
+# Send keepalive messages every 120 seconds
+ClientAliveInterval 120
+
+# Maximum number of client alive messages sent without response
+# Set to 1 for strict timeout enforcement
+ClientAliveCountMax 1
+
+# Connection settings
+Compression delayed
+UseDNS no
+
+# Security banners
+Banner /etc/ssh/banner.txt
+
+# Allow client to pass locale environment variables
+AcceptEnv LANG LC_*
+
+# Subsystem configuration
+Subsystem sftp /usr/lib/openssh/sftp-server
+
+# Override default of no subsystems
+# Restrict user access
+AllowUsers backup-user admin sysadmin
+
+# Connection rate limiting
+MaxStartups 10:30:60
+
+# Privilege separation
+UsePrivilegeSeparation sandbox

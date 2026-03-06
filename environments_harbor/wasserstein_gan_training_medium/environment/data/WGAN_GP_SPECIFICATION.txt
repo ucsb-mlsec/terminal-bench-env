@@ -1,0 +1,87 @@
+WGAN-GP Critic Loss Specification
+==========================================
+
+1. OVERVIEW
+-----------
+This document specifies the mathematical formulation for computing the critic loss
+in a Wasserstein GAN with Gradient Penalty (WGAN-GP) architecture.
+
+2. MATHEMATICAL FORMULA
+-----------------------
+The critic loss function is defined as:
+
+    L_critic = E[D(x_fake)] - E[D(x_real)] + λ * GP
+
+Where:
+    - L_critic: The total critic loss (scalar value)
+    - D(x_real): Critic scores for real images from the dataset
+    - D(x_fake): Critic scores for generated/fake images
+    - E[]: Expected value operator (implemented as mean)
+    - λ (lambda): Gradient penalty coefficient (hyperparameter)
+    - GP: Gradient penalty term (pre-computed value)
+
+3. COMPONENT BREAKDOWN
+----------------------
+
+3.1 Wasserstein Distance Estimate
+----------------------------------
+The first component estimates the Wasserstein distance between real and fake distributions:
+
+    W_distance = E[D(x_fake)] - E[D(x_real)]
+               = mean(fake_scores) - mean(real_scores)
+
+This represents how well the critic distinguishes between real and fake samples.
+
+3.2 Gradient Penalty Term
+--------------------------
+The gradient penalty enforces the Lipschitz constraint on the critic:
+
+    GP_term = λ * GP
+
+Where:
+    - GP is provided as a pre-computed gradient penalty value
+    - λ scales the penalty contribution to the total loss
+
+3.3 Final Loss Computation
+---------------------------
+The complete critic loss combines both components:
+
+    L_critic = W_distance + GP_term
+             = [mean(fake_scores) - mean(real_scores)] + [λ * GP]
+
+4. IMPLEMENTATION GUIDELINES
+-----------------------------
+
+4.1 Input Parameters
+--------------------
+The loss function should accept:
+    - real_scores: Array/tensor of critic scores for real images
+    - fake_scores: Array/tensor of critic scores for generated images
+    - gradient_penalty: Pre-computed gradient penalty value (scalar)
+    - lambda_gp: Gradient penalty coefficient (scalar)
+
+4.2 Computation Steps
+---------------------
+Step 1: Compute mean of fake_scores
+Step 2: Compute mean of real_scores
+Step 3: Calculate Wasserstein distance (Step 1 - Step 2)
+Step 4: Calculate weighted gradient penalty (lambda_gp * gradient_penalty)
+Step 5: Sum components from Steps 3 and 4 to get final loss
+
+4.3 Output
+----------
+The function should return a single scalar value representing the critic loss.
+
+5. MATHEMATICAL PROPERTIES
+---------------------------
+- The critic aims to maximize the Wasserstein distance (distinguish real from fake)
+- The gradient penalty term regularizes the critic to satisfy Lipschitz continuity
+- Higher loss values indicate the critic is performing well at discrimination
+- During training, the critic minimizes the negative of this loss
+
+6. NUMERICAL CONSIDERATIONS
+----------------------------
+- All operations should use floating-point arithmetic
+- The mean operation aggregates scores across the batch dimension
+- Standard numerical precision (float32 or float64) is sufficient
+- Results should be deterministic given the same inputs

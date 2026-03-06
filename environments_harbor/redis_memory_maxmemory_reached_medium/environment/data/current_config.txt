@@ -1,0 +1,56 @@
+# Redis Configuration - Current Production Settings
+# Generated from: CONFIG GET *
+
+# Network settings
+bind 0.0.0.0
+port 6379
+tcp-backlog 511
+timeout 0
+tcp-keepalive 300
+
+# General settings
+daemonize no
+pidfile /var/run/redis_6379.pid
+loglevel notice
+databases 16
+
+# Snapshotting (RDB)
+save 900 1
+save 300 10
+save 60 10000
+stop-writes-on-bgsave-error yes
+rdbcompression yes
+dbfilename dump.rdb
+dir /data
+
+# Memory Management - PROBLEMATIC SETTINGS
+maxmemory 0
+maxmemory-policy noeviction
+maxmemory-samples 5
+
+# Append Only File (AOF)
+appendonly no
+appendfsync everysec
+
+# Client settings
+maxclients 10000
+
+# Slow log
+slowlog-log-slower-than 10000
+slowlog-max-len 128
+
+# Advanced config
+hash-max-ziplist-entries 512
+hash-max-ziplist-value 64
+list-max-ziplist-size -2
+set-max-intset-entries 512
+zset-max-ziplist-entries 128
+zset-max-ziplist-value 64
+
+# Active rehashing
+activerehashing yes
+
+# Comments explaining the problem:
+# ISSUE: maxmemory is set to 0 (no limit)
+# ISSUE: maxmemory-policy is noeviction - causes connection failures when memory full
+# ISSUE: No protection for critical session data

@@ -1,0 +1,68 @@
+modules:
+  default:
+    enable:
+      - tcl
+      - lmod
+    tcl:
+      hash_length: 7
+      all:
+        conflict:
+          - '{name}'
+        suffixes:
+          compiler@version: compiler-version
+      projections:
+        all: '{name}/{version}'
+        ^mpi: '{name}/{version}-mpi'
+      openmpi:
+        environment:
+          set:
+            OMPI_ROOT: '{prefix}'
+      hdf5%intel@2099.1.0:
+        suffixes:
+          +mpi: mpi
+      invalid-package-@name:
+        autoload: direct
+    lmod:
+      core_compilers:
+        - gcc@11.2.0
+        - intel@2099.1.0
+      hash_length: 7
+      hierarchy:
+        - mpi
+      all:
+        environment:
+          set:
+            '{name}_ROOT': '{prefix}'
+      openmpi%nonexistent@1.0:
+        environment:
+      prepend_path:
+            PATH: '{prefix}/bin'
+      python:
+        autoload: all
+        enviornment:
+          set:
+            PYTHON_HOME: '{prefix}'
+      netcdf+mpi%gcc@99.9.9:
+        suffixes:
+          +parallel: parallel
+      invalidsyntax
+        conflict:
+          - netcdf-fortran
+      boost:
+        load_cmds:
+          - module load gcc/11.2.0
+    defaults:
+      - tcl
+    prefix_inspections:
+      bin:
+        - PATH
+      lib:
+        - LIBRARY_PATH
+        - LD_LIBRARY_PATH
+      include:
+        - CPATH
+    whitelist:
+      - gcc
+      - intel
+    blacklist:
+      - '%gcc@4.8.5'

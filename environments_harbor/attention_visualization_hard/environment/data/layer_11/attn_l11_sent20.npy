@@ -1,0 +1,180 @@
+I'll analyze the workspace to find attention weight files, calculate variance for each head, and identify pruning candidates.
+
+```python
+import numpy as np
+import os
+from pathlib import Path
+from scipy.stats import entropy
+
+def find_attention_files(root_dir='/tmp/data'):
+    """Find all .npy files in root and subdirectories."""
+    npy_files = []
+    if os.path.exists(root_dir):
+        for root, dirs, files in os.walk(root_dir):
+            for file in files:
+                if file.endswith('.npy'):
+                    npy_files.append(os.path.join(root, file))
+    return npy_files
+
+def calculate_head_variances():
+    """Calculate variance of entropy distributions for each attention head."""
+    
+    # Find all attention weight files
+    files = find_attention_files()
+    
+    # Store entropy values for each head across all sentences
+    # head_entropies[layer][head] = list of entropy values
+    head_entropies = {}
+    for layer in range(12):
+        head_entropies[layer] = {head: [] for head in range(12)}
+    
+    valid_files = 0
+    
+    for file_path in files:
+        try:
+            # Load attention weights
+            attn_weights = np.load(file_path)
+            
+            # Validate shape - should be [12, seq_len, seq_len]
+            if len(attn_weights.shape) != 3 or attn_weights.shape[0] != 12:
+                continue
+            
+            seq_len = attn_weights.shape[1]
+            if attn_weights.shape[2] != seq_len:
+                continue
+            
+            # Extract layer number from filename or path
+            filename = os.path.basename(file_path)
+            path_parts = file_path.split(os.sep)
+            
+            layer_num = None
+            # Try to extract from filename patterns like attn_l3_sent42.npy or sentence_8_layer_11.npy
+            if '_l' in filename:
+                parts = filename.split('_l')
+                if len(parts) > 1:
+                    layer_str = parts[1].split('_')[0]
+                    if layer_str.isdigit():
+                        layer_num = int(layer_str)
+            elif 'layer_' in filename:
+                parts = filename.split('layer_')
+                if len(parts) > 1:
+                    layer_str = parts[1].split('.')[0].split('_')[0]
+                    if layer_str.isdigit():
+                        layer_num = int(layer_str)
+            
+            # Try to extract from directory name like layer_0/
+            if layer_num is None:
+                for part in path_parts:
+                    if part.startswith('layer_'):
+                        layer_str = part.replace('layer_', '')
+                        if layer_str.isdigit():
+                            layer_num = int(layer_str)
+                            break
+            
+            if layer_num is None or layer_num < 0 or layer_num >= 12:
+                continue
+            
+            valid_files += 1
+            
+            # Process each head
+            for head in range(12):
+                head_attn = attn_weights[head]  # [seq_len, seq_len]
+                
+                # Calculate entropy for each attention distribution (each row)
+                for i in range(seq_len):
+                    attn_dist = head_attn[i]
+                    # Skip if distribution doesn't sum to ~1 or has invalid values
+                    if np.any(attn_dist < 0) or np.any(attn_dist > 1):
+                        continue
+                    dist_sum = np.sum(attn_dist)
+                    if dist_sum < 0.95 or dist_sum > 1.05:
+                        continue
+                    
+                    # Calculate entropy
+                    # Add small epsilon to avoid log(0)
+                    attn_dist_safe = attn_dist + 1e-10
+                    ent = entropy(attn_dist_safe)
+                    head_entropies[layer_num][head].append(ent)
+        
+        except Exception as e:
+            # Skip corrupted files
+            continue
+    
+    # Calculate variance for each head
+    head_variances = []
+    for layer in range(12):
+        for head in range(12):
+            if len(head_entropies[layer][head]) > 1:
+                var = np.var(head_entropies[layer][head])
+                head_variances.append((layer, head, var))
+    
+    # Sort by variance (ascending - lowest variance first)
+    head_variances.sort(key=lambda x: x[2])
+    
+    return head_variances, valid_files
+
+# Run analysis
+head_variances, total_files = calculate_head_variances()
+
+# Get top 3 pruning candidates (lowest variance)
+top_3 = head_variances[:3]
+
+# Format output
+candidates_str = ','.join([f"{layer}-{head}" for layer, head, var in top_3])
+
+# Write results
+output = f"TOP_PRUNING_CANDIDATES={candidates_str}\nTOTAL_FILES_ANALYZED={total_files}\n"
+
+with open('/tmp/pruning_candidates.txt', 'w') as f:
+    f.write(output)
+
+print(f"Analysis complete. Found {total_files} valid files.")
+print(f"Top pruning candidates: {candidates_str}")
+```
+
+Now let me create the sample attention weight file for layer 11:
+
+```python
+import numpy as np
+import os
+
+# Create directory structure
+os.makedirs('/tmp/data/layer_11', exist_ok=True)
+
+# Set random seed for reproducibility
+np.random.seed(42)
+
+# Create attention weights for layer 11, sentence 20
+seq_len = 19  # Between 10-20 tokens
+num_heads = 12
+
+# Initialize array
+attn_weights = np.zeros((num_heads, seq_len, seq_len), dtype=np.float32)
+
+# Generate realistic attention patterns for each head
+for head in range(num_heads):
+    for i in range(seq_len):
+        # Create different attention patterns for variety
+        if head % 4 == 0:
+            # Focused attention (low entropy)
+            attn = np.random.exponential(0.5, seq_len)
+            attn[i] += 3.0  # Strong self-attention
+        elif head % 4 == 1:
+            # Distributed attention (high entropy)
+            attn = np.random.uniform(0.5, 1.5, seq_len)
+        elif head % 4 == 2:
+            # Forward-looking attention
+            attn = np.zeros(seq_len)
+            attn[i:] = np.random.exponential(1.0, seq_len - i)
+        else:
+            # Mixed pattern
+            attn = np.random.gamma(2, 1, seq_len)
+            attn[max(0, i-2):min(seq_len, i+3)] += 1.0
+        
+        # Normalize to sum to 1.0
+        attn = np.maximum(attn, 1e-10)
+        attn = attn / np.sum(attn)
+        attn_weights[head, i, :] = attn
+
+# Save the file
+np.save('/tmp/data/layer_11/attn_l11_sent20.npy', attn_weights)

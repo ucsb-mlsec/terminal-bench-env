@@ -1,0 +1,228 @@
+I'll complete this task step by step. First, let me create the compressed archive file, then perform the BorgBackup compression benchmark.
+
+Let me start by creating the necessary directory structure and the compressed archive file:
+
+```bash
+# Create directory structure
+mkdir -p /opt/backup_test/sample_data/data/archives
+mkdir -p /opt/backup_test/repos
+
+# Generate the bzip2-compressed tar archive
+python3 << 'PYEOF'
+import os
+import struct
+import random
+
+output_path = "/opt/backup_test/sample_data/data/archives/release_notes.tar.bz2"
+target_size = random.randint(350000, 450000)
+
+with open(output_path, 'wb') as f:
+    # Write bzip2 magic bytes
+    f.write(b'BZh9')  # BZh9 indicates bzip2 with 900k block size
+    
+    # Generate pseudo-random data that simulates compressed bzip2 stream
+    # Bzip2 compressed data has specific characteristics - uses Burrows-Wheeler transform
+    bytes_written = 4
+    
+    while bytes_written < target_size:
+        # Generate blocks that simulate bzip2 compressed data
+        # Use varied entropy to simulate real compressed content
+        block_size = min(8192, target_size - bytes_written)
+        
+        # Mix different entropy levels to simulate real bzip2 data
+        chunk_type = random.randint(0, 3)
+        
+        if chunk_type == 0:
+            # High entropy pseudo-random data
+            chunk = bytes(random.getrandbits(8) for _ in range(block_size))
+        elif chunk_type == 1:
+            # Medium entropy with some structure
+            base = random.randint(0, 255)
+            chunk = bytes((base + random.randint(-50, 50)) % 256 for _ in range(block_size))
+        elif chunk_type == 2:
+            # Low entropy blocks (simulating compressed repetitive sections)
+            pattern = bytes(random.randint(0, 255) for _ in range(16))
+            chunk = (pattern * (block_size // 16 + 1))[:block_size]
+        else:
+            # Mixed entropy with CRC-like patterns (common in bzip2)
+            chunk = bytearray()
+            for _ in range(block_size):
+                if random.random() < 0.3:
+                    chunk.append(random.randint(0, 15))
+                else:
+                    chunk.append(random.randint(0, 255))
+            chunk = bytes(chunk)
+        
+        f.write(chunk)
+        bytes_written += len(chunk)
+
+print(f"Created {output_path} with {bytes_written} bytes")
+PYEOF
+
+# Create other sample data files to match the requirements
+# Application logs (40%)
+mkdir -p /opt/backup_test/sample_data/logs
+for i in {1..5}; do
+    python3 << 'PYEOF'
+import sys
+import random
+import datetime
+
+log_size = random.randint(200000, 300000)
+with open(f"/opt/backup_test/sample_data/logs/app_{sys.argv[1]}.log", 'w') as f:
+    bytes_written = 0
+    log_entries = [
+        "INFO: Application started successfully",
+        "DEBUG: Processing request from user",
+        "WARN: High memory usage detected",
+        "ERROR: Failed to connect to database",
+        "INFO: Cache refresh completed",
+        "DEBUG: Transaction completed in {} ms",
+        "INFO: User authentication successful",
+        "WARN: Slow query detected: SELECT * FROM users",
+        "ERROR: Timeout waiting for response",
+        "INFO: Scheduled backup completed"
+    ]
+    
+    while bytes_written < log_size:
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        entry = random.choice(log_entries)
+        if '{}' in entry:
+            entry = entry.format(random.randint(10, 5000))
+        line = f"[{timestamp}] {entry}\n"
+        f.write(line)
+        bytes_written += len(line)
+PYEOF
+done
+
+# Configuration files (10%)
+mkdir -p /opt/backup_test/sample_data/config
+cat > /opt/backup_test/sample_data/config/database.conf << 'EOF'
+# Database Configuration
+[database]
+host = localhost
+port = 5432
+name = production_db
+username = dbuser
+max_connections = 100
+timeout = 30
+pool_size = 20
+
+[logging]
+level = INFO
+file = /var/log/database.log
+rotate = daily
+max_size = 100MB
+
+[backup]
+enabled = true
+schedule = 0 2 * * *
+retention = 30
+compression = true
+EOF
+
+cat > /opt/backup_test/sample_data/config/app.yaml << 'EOF'
+version: "3.8"
+services:
+  web:
+    image: nginx:latest
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./config:/etc/nginx
+      - ./logs:/var/log/nginx
+    environment:
+      - ENV=production
+      - DEBUG=false
+  
+  api:
+    image: api-server:v2.1
+    ports:
+      - "8080:8080"
+    depends_on:
+      - database
+    environment:
+      - DB_HOST=database
+      - DB_PORT=5432
+      - CACHE_ENABLED=true
+  
+  database:
+    image: postgres:13
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=secure_password
+      - POSTGRES_DB=appdb
+
+volumes:
+  pgdata:
+EOF
+
+# JPEG images (35%)
+mkdir -p /opt/backup_test/sample_data/images
+for i in {1..8}; do
+    python3 << 'PYEOF'
+import sys
+import random
+
+# Generate minimal valid JPEG files
+jpeg_size = random.randint(100000, 150000)
+with open(f"/opt/backup_test/sample_data/images/photo_{sys.argv[1]}.jpg", 'wb') as f:
+    # JPEG SOI marker
+    f.write(b'\xFF\xD8')
+    
+    # JPEG APP0 marker (JFIF)
+    f.write(b'\xFF\xE0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00')
+    
+    # Generate pseudo-JPEG data (high entropy)
+    bytes_written = 20
+    while bytes_written < jpeg_size - 2:
+        chunk_size = min(4096, jpeg_size - bytes_written - 2)
+        # JPEG compressed data has high entropy
+        chunk = bytes(random.randint(0, 255) for _ in range(chunk_size))
+        # Avoid accidental markers
+        chunk = chunk.replace(b'\xFF\xD9', b'\xFF\x00')
+        f.write(chunk)
+        bytes_written += len(chunk)
+    
+    # JPEG EOI marker
+    f.write(b'\xFF\xD9')
+PYEOF
+done
+
+# Now perform the BorgBackup compression benchmark
+cd /opt/backup_test
+
+# Get original size
+ORIGINAL_SIZE=$(du -sb sample_data | cut -f1)
+ORIGINAL_MB=$(echo "scale=2; $ORIGINAL_SIZE / 1048576" | bc)
+
+# Test 1: No compression
+borg init --encryption=none repos/repo_none
+borg create --compression=none repos/repo_none::test-backup sample_data/
+NONE_SIZE=$(du -sb repos/repo_none | cut -f1)
+NONE_MB=$(echo "scale=2; $NONE_SIZE / 1048576" | bc)
+
+# Test 2: LZ4 compression
+borg init --encryption=none repos/repo_lz4
+borg create --compression=lz4 repos/repo_lz4::test-backup sample_data/
+LZ4_SIZE=$(du -sb repos/repo_lz4 | cut -f1)
+LZ4_MB=$(echo "scale=2; $LZ4_SIZE / 1048576" | bc)
+
+# Test 3: ZSTD,6 compression
+borg init --encryption=none repos/repo_zstd
+borg create --compression=zstd,6 repos/repo_zstd::test-backup sample_data/
+ZSTD_SIZE=$(du -sb repos/repo_zstd | cut -f1)
+ZSTD_MB=$(echo "scale=2; $ZSTD_SIZE / 1048576" | bc)
+
+# Write results
+cat > /root/compression_benchmark.txt << EOF
+original_size_mb: $ORIGINAL_MB
+no_compression_mb: $NONE_MB
+lz4_compression_mb: $LZ4_MB
+zstd_compression_mb: $ZSTD_MB
+EOF
+
+echo "Benchmark completed. Results saved to /root/compression_benchmark.txt"
+cat /root/compression_benchmark.txt

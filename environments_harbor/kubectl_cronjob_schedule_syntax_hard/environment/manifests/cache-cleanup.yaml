@@ -1,0 +1,35 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cache-cleanup
+  namespace: default
+  labels:
+    app: cache-cleanup
+    component: maintenance
+spec:
+  schedule: '*/15 * * * * *'
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: cache-cleanup
+            job: cache-cleanup
+        spec:
+          containers:
+          - name: cleanup
+            image: cache-cleanup:v1
+            imagePullPolicy: IfNotPresent
+            env:
+            - name: CACHE_TYPE
+              value: "redis"
+            - name: CLEANUP_THRESHOLD
+              value: "80"
+            resources:
+              requests:
+                memory: "64Mi"
+                cpu: "100m"
+              limits:
+                memory: "128Mi"
+                cpu: "200m"
+          restartPolicy: OnFailure

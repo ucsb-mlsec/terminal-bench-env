@@ -1,0 +1,58 @@
+% Problem: Shader transformation equality verification
+% Type: equality_reasoning
+% Description: Verifies equivalence of shader transformations
+% Characteristics: Heavy use of equality axioms, reflexivity, symmetry, transitivity
+
+fof(reflexivity, axiom, ![X]: X = X).
+
+fof(symmetry, axiom, ![X,Y]: (X = Y => Y = X)).
+
+fof(transitivity, axiom, ![X,Y,Z]: ((X = Y & Y = Z) => X = Z)).
+
+fof(equality_substitution_1, axiom, 
+    ![X,Y,Z]: ((X = Y & shader_transform(X,Z)) => shader_transform(Y,Z))).
+
+fof(equality_substitution_2, axiom,
+    ![X,Y,Z]: ((X = Y & shader_transform(Z,X)) => shader_transform(Z,Y))).
+
+fof(equality_substitution_color, axiom,
+    ![X,Y,Z]: ((X = Y & color_value(X,Z)) => color_value(Y,Z))).
+
+fof(equality_substitution_pixel, axiom,
+    ![X,Y,Z]: ((X = Y & pixel(X,Z)) => pixel(Y,Z))).
+
+fof(transform_associativity, axiom,
+    ![T1,T2,T3,P,R]: ((shader_transform(T1,T2) & shader_transform(T2,T3) & pixel(P,T1)) => pixel(P,T3))).
+
+fof(color_preservation, axiom,
+    ![P,T1,T2,C]: ((pixel(P,T1) & shader_transform(T1,T2) & color_value(T1,C)) => color_value(T2,C))).
+
+fof(identity_transform, axiom,
+    ![T]: shader_transform(T,T)).
+
+fof(transform_composition, axiom,
+    ![T1,T2,T3]: ((shader_transform(T1,T2) & shader_transform(T2,T3)) => shader_transform(T1,T3))).
+
+fof(pixel_uniqueness, axiom,
+    ![P,T1,T2]: ((pixel(P,T1) & pixel(P,T2)) => T1 = T2)).
+
+fof(color_deterministic, axiom,
+    ![T,C1,C2]: ((color_value(T,C1) & color_value(T,C2)) => C1 = C2)).
+
+fof(initial_state, axiom,
+    shader_transform(transform_a, transform_b)).
+
+fof(intermediate_state, axiom,
+    shader_transform(transform_b, transform_c)).
+
+fof(pixel_exists, axiom,
+    pixel(pixel_0, transform_a)).
+
+fof(initial_color, axiom,
+    color_value(transform_a, color_red)).
+
+fof(congruence_axiom, axiom,
+    ![X,Y]: ((X = Y) => (shader_transform(X,transform_c) <=> shader_transform(Y,transform_c)))).
+
+fof(prove_equivalence, conjecture,
+    shader_transform(transform_a, transform_c)).

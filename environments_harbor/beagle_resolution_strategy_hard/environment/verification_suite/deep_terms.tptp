@@ -1,0 +1,43 @@
+% Problem: Nested transformation pipeline verification
+% Type: deep_term_structures
+% Description: Verifies complex nested shader pipeline operations
+% Characteristics: Terms nested 5-7 levels deep, requires unit resolution
+% Unit clauses present: Multiple unit clauses available for simplification
+
+% Unit clauses for simplification
+cnf(unit1, axiom, transform(identity)).
+cnf(unit2, axiom, compose(identity, X) = X).
+cnf(unit3, axiom, compose(X, identity) = X).
+cnf(unit4, axiom, rotate(zero) = identity).
+cnf(unit5, axiom, scale(one) = identity).
+cnf(unit6, axiom, translate(origin) = identity).
+
+% Deeply nested transformation axioms
+cnf(compose_assoc, axiom, compose(compose(X, Y), Z) = compose(X, compose(Y, Z))).
+cnf(transform_compose, axiom, transform(compose(X, Y)) = pipeline(transform(X), transform(Y))).
+cnf(nested_pipeline1, axiom, pipeline(stage1(stage2(stage3(X)))) = optimized_pipeline(X) | invalid(X)).
+cnf(nested_pipeline2, axiom, ~optimized_pipeline(X) | valid_output(stage1(stage2(stage3(X))))).
+
+% Complex nested term structures
+cnf(deep_nest1, axiom, ~transform(compose(rotate(X), compose(scale(Y), translate(Z)))) | intermediate_result(compose(rotate(X), compose(scale(Y), translate(Z))))).
+cnf(deep_nest2, axiom, intermediate_result(compose(rotate(X), compose(scale(Y), translate(Z)))) | error_state(X, Y, Z)).
+cnf(deep_nest3, axiom, pipeline(stage1(stage2(stage3(stage4(input(data)))))) = complete_pipeline).
+cnf(deep_nest4, axiom, ~pipeline(stage1(stage2(stage3(stage4(stage5(X)))))) | depth_limit_exceeded).
+
+% Transformation composition rules
+cnf(compose_rotate_scale, axiom, compose(rotate(A), scale(B)) = combined_transform(A, B)).
+cnf(compose_scale_translate, axiom, compose(scale(X), translate(Y)) = offset_scaled(X, Y)).
+cnf(full_composition, axiom, transform(compose(rotate(R), compose(scale(S), compose(translate(T), identity)))) = full_transform(R, S, T)).
+
+% Pipeline verification rules
+cnf(pipeline_stage1, axiom, ~valid_input(X) | pipeline(stage1(X)) = processed(X, level1)).
+cnf(pipeline_stage2, axiom, pipeline(stage1(stage2(X))) = processed(X, level2) | ~valid_input(X)).
+cnf(pipeline_stage3, axiom, ~pipeline(stage1(stage2(stage3(X)))) | final_output(X) | processing_error(X)).
+
+% Additional nested structures
+cnf(nested_compose1, axiom, compose(compose(compose(A, B), compose(C, D)), compose(E, F)) = complex_composition(A, B, C, D, E, F)).
+cnf(nested_compose2, axiom, ~complex_composition(A, B, C, D, E, F) | transform(compose(compose(A, B), compose(compose(C, D), compose(E, F))))).
+cnf(deep_verification, axiom, transform(compose(rotate(alpha), compose(scale(beta), compose(translate(gamma), compose(rotate(delta), scale(epsilon)))))) = deep_result).
+
+% Conjecture to prove
+cnf(conjecture, negated_conjecture, ~final_output(input(data)) | ~valid_output(stage1(stage2(stage3(input(data)))))).

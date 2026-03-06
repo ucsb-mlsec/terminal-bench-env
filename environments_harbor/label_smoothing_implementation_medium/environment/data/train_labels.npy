@@ -1,0 +1,151 @@
+import numpy as np
+
+# Generate train_labels.npy
+# Shape: (5000, 10) - 5000 samples, 10 classes
+# One-hot encoded labels with variety across classes
+
+np.random.seed(42)  # For reproducibility
+
+# Generate class labels with reasonable distribution
+n_samples = 5000
+n_classes = 10
+
+# Create random class assignments (integers 0-9)
+class_indices = np.random.randint(0, n_classes, size=n_samples)
+
+# Convert to one-hot encoding
+train_labels = np.zeros((n_samples, n_classes), dtype=np.float32)
+train_labels[np.arange(n_samples), class_indices] = 1.0
+
+# Save the array
+np.save('/workspace/data/train_labels.npy', train_labels)
+
+print(f"Generated train_labels.npy with shape {train_labels.shape}")
+print(f"Class distribution: {np.bincount(class_indices)}")
+print(f"Sample rows:")
+print(train_labels[:5])
+```
+
+```python
+import numpy as np
+
+# Generate val_labels.npy
+# Shape: (1000, 10) - 1000 samples, 10 classes
+# One-hot encoded labels with variety across classes
+
+np.random.seed(123)  # Different seed for validation set
+
+# Generate class labels with reasonable distribution
+n_samples = 1000
+n_classes = 10
+
+# Create random class assignments (integers 0-9)
+class_indices = np.random.randint(0, n_classes, size=n_samples)
+
+# Convert to one-hot encoding
+val_labels = np.zeros((n_samples, n_classes), dtype=np.float32)
+val_labels[np.arange(n_samples), class_indices] = 1.0
+
+# Save the array
+np.save('/workspace/data/val_labels.npy', val_labels)
+
+print(f"Generated val_labels.npy with shape {val_labels.shape}")
+print(f"Class distribution: {np.bincount(class_indices)}")
+print(f"Sample rows:")
+print(val_labels[:5])
+```
+
+```python
+import numpy as np
+import json
+import os
+
+def smooth_labels(labels, epsilon=0.1):
+    """
+    Apply label smoothing to one-hot encoded labels.
+    
+    Args:
+        labels: NumPy array of shape (N, C) containing one-hot encoded labels
+        epsilon: Smoothing factor (default: 0.1)
+    
+    Returns:
+        Smoothed labels of the same shape as input
+    """
+    n_classes = labels.shape[1]
+    
+    # Calculate smoothed probabilities
+    # Correct class: 1 - epsilon
+    # Incorrect classes: epsilon / (n_classes - 1) each... but we distribute across all classes
+    # Formula: y_smooth = y * (1 - epsilon) + epsilon / n_classes
+    
+    smoothed = labels * (1.0 - epsilon) + epsilon / n_classes
+    
+    return smoothed
+
+def main():
+    # Create solution directory if it doesn't exist
+    os.makedirs('/workspace/solution', exist_ok=True)
+    
+    # Load training labels
+    train_labels = np.load('/workspace/data/train_labels.npy')
+    print(f"Loaded training labels with shape: {train_labels.shape}")
+    
+    # Load validation labels
+    val_labels = np.load('/workspace/data/val_labels.npy')
+    print(f"Loaded validation labels with shape: {val_labels.shape}")
+    
+    # Apply label smoothing with epsilon = 0.1
+    epsilon = 0.1
+    train_labels_smoothed = smooth_labels(train_labels, epsilon)
+    val_labels_smoothed = smooth_labels(val_labels, epsilon)
+    
+    # Save smoothed labels
+    np.save('/workspace/solution/train_labels_smoothed.npy', train_labels_smoothed)
+    np.save('/workspace/solution/val_labels_smoothed.npy', val_labels_smoothed)
+    
+    print(f"Saved smoothed training labels to /workspace/solution/train_labels_smoothed.npy")
+    print(f"Saved smoothed validation labels to /workspace/solution/val_labels_smoothed.npy")
+    
+    # Verification
+    # Find a sample with class label = 1 in original
+    sample_idx = np.where(train_labels[:, 0] == 1.0)[0][0]
+    correct_class_idx = np.argmax(train_labels[sample_idx])
+    
+    # Get probabilities
+    original_correct_prob = float(train_labels[sample_idx, correct_class_idx])
+    smoothed_correct_prob = float(train_labels_smoothed[sample_idx, correct_class_idx])
+    
+    # Get an incorrect class probability
+    incorrect_class_idx = (correct_class_idx + 1) % train_labels.shape[1]
+    smoothed_incorrect_prob = float(train_labels_smoothed[sample_idx, incorrect_class_idx])
+    
+    # Check if sums are valid (close to 1.0)
+    sample_sums = np.sum(train_labels_smoothed, axis=1)
+    sample_sum_valid = bool(np.allclose(sample_sums, 1.0))
+    
+    # Create verification dictionary
+    verification = {
+        "original_correct_class_prob": round(original_correct_prob, 4),
+        "smoothed_correct_class_prob": round(smoothed_correct_prob, 4),
+        "smoothed_incorrect_class_prob": round(smoothed_incorrect_prob, 4),
+        "sample_sum_valid": sample_sum_valid
+    }
+    
+    # Save verification
+    with open('/workspace/solution/verification.json', 'w') as f:
+        json.dump(verification, f, indent=2)
+    
+    print(f"\nVerification results:")
+    print(f"Original correct class probability: {verification['original_correct_class_prob']}")
+    print(f"Smoothed correct class probability: {verification['smoothed_correct_class_prob']}")
+    print(f"Smoothed incorrect class probability: {verification['smoothed_incorrect_class_prob']}")
+    print(f"All samples sum to 1.0: {verification['sample_sum_valid']}")
+    
+    # Print example
+    print(f"\nExample smoothing:")
+    print(f"Original label: {train_labels[sample_idx]}")
+    print(f"Smoothed label: {train_labels_smoothed[sample_idx]}")
+    print(f"Sum of smoothed label: {np.sum(train_labels_smoothed[sample_idx])}")
+
+if __name__ == "__main__":
+    main()

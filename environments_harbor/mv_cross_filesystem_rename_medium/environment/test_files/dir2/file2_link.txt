@@ -1,0 +1,67 @@
+I need to investigate the behavior of `mv` command with hard links. Let me start by exploring the test_files directory structure and identifying files with hard links.
+
+First, let me examine the directory structure and find files with hard links:
+
+```bash
+cd /workspace/test_files
+find . -type f -links +1 -exec ls -li {} \;
+```
+
+This will show me files that have more than one hard link. Let me look for file2.txt and file2_link.txt specifically since they should be hard linked:
+
+```bash
+ls -li test_files/dir1/file2.txt test_files/dir2/file2_link.txt 2>/dev/null || echo "Files need to be checked"
+stat test_files/dir1/file2.txt test_files/dir2/file2_link.txt 2>/dev/null
+```
+
+Now let me record the initial state:
+- Check inode number of the original file
+- Check link count
+- Note the location
+
+Then perform the move operation:
+```bash
+cd /workspace
+# Record initial inode and link count
+INITIAL_INODE=$(stat -c %i test_files/dir1/file2.txt)
+INITIAL_LINKS=$(stat -c %h test_files/dir1/file2.txt)
+
+# Move the file to a different directory (e.g., dir2 or a new location)
+mv test_files/dir1/file2.txt test_files/dir1/file2_moved.txt
+
+# Check if hard link still works
+if [ -f test_files/dir2/file2_link.txt ]; then
+    LINK_INODE=$(stat -c %i test_files/dir2/file2_link.txt)
+    MOVED_INODE=$(stat -c %i test_files/dir1/file2_moved.txt)
+    FINAL_LINKS=$(stat -c %h test_files/dir1/file2_moved.txt)
+    
+    # Check if content is still accessible through the link
+    if cmp -s test_files/dir1/file2_moved.txt test_files/dir2/file2_link.txt; then
+        HARDLINKS_SURVIVE="true"
+    else
+        HARDLINKS_SURVIVE="false"
+    fi
+    
+    # Check if inode changed
+    if [ "$INITIAL_INODE" = "$MOVED_INODE" ]; then
+        INODE_CHANGES="false"
+    else
+        INODE_CHANGES="true"
+    fi
+    
+    echo "hardlinks_survive_move=$HARDLINKS_SURVIVE" > /workspace/mv_behavior.txt
+    echo "inode_changes_after_move=$INODE_CHANGES" >> /workspace/mv_behavior.txt
+    echo "link_count_after_move=$FINAL_LINKS" >> /workspace/mv_behavior.txt
+fi
+```
+
+Based on Unix/Linux filesystem behavior, when you move a file within the same filesystem:
+- Hard links remain valid (they point to the same inode)
+- The inode number does NOT change
+- The link count remains the same
+
+The output should be:
+
+hardlinks_survive_move=true
+inode_changes_after_move=false
+link_count_after_move=2

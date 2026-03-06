@@ -1,0 +1,131 @@
+#!/bin/bash
+
+# Traffic Shaping Configuration Script
+# This script configures tc (traffic control) rules based on server_config.txt
+
+set -e
+set -u
+
+CONFIG_FILE="/root/server_config.txt"
+
+# Function to log errors
+log_error() {
+    echo "ERROR: $1" >&2
+}
+
+# Function to log info
+log_info() {
+    echo "INFO: $1"
+}
+
+# Check if config file exists
+if [ ! -f "$CONFIG_FILE" ]; then
+    log_error "Configuration file $CONFIG_FILE not found"
+    exit 1
+fi
+
+# Read configuration
+log_info "Reading configuration from $CONFIG_FILE"
+
+line_num=0
+while IFS= read -r line || [ -n "$line" ]; do
+    line_num=$((line_num + 1))
+    case $line_num in
+        1) INTERFACE="$line" ;;
+        2) TOTAL_BW="$line" ;;
+        3) PRIORITY_SUBNET="$line" ;;
+        4) PRIORITY_BW="$line" ;;
+    esac
+done < "$CONFIG_FILE"
+
+# Validate all parameters were read
+if [ -z "${INTERFACE:-}" ] || [ -z "${TOTAL_BW:-}" ] || [ -z "${PRIORITY_SUBNET:-}" ] || [ -z "${PRIORITY_BW:-}" ]; then
+    log_error "Configuration file is incomplete or malformed"
+    exit 1
+fi
+
+# Normalize bandwidth values (ensure they have mbit suffix)
+TOTAL_BW=$(echo "$TOTAL_BW" | sed 's/Mbit\/s//g' | sed 's/mbit//gi' | tr -d ' ')
+PRIORITY_BW=$(echo "$PRIORITY_BW" | sed 's/Mbit\/s//g' | sed 's/mbit//gi' | tr -d ' ')
+
+# Validate numeric values
+if ! [[ "$TOTAL_BW" =~ ^[0-9]+$ ]]; then
+    log_error "Total bandwidth must be numeric"
+    exit 1
+fi
+
+if ! [[ "$PRIORITY_BW" =~ ^[0-9]+$ ]]; then
+    log_error "Priority bandwidth must be numeric"
+    exit 1
+fi
+
+# Validate priority bandwidth doesn't exceed total
+if [ "$PRIORITY_BW" -ge "$TOTAL_BW" ]; then
+    log_error "Priority bandwidth ($PRIORITY_BW) must be less than total bandwidth ($TOTAL_BW)"
+    exit 1
+fi
+
+log_info "Configuration loaded:"
+log_info "  Interface: $INTERFACE"
+log_info "  Total Bandwidth: ${TOTAL_BW}mbit"
+log_info "  Priority Subnet: $PRIORITY_SUBNET"
+log_info "  Priority Guaranteed Bandwidth: ${PRIORITY_BW}mbit"
+
+# Step 1: Clear existing rules (idempotent - won't fail if no rules exist)
+log_info "Clearing existing tc rules on $INTERFACE"
+tc qdisc del dev "$INTERFACE" root 2>/dev/null || true
+
+# Step 2: Create root qdisc with HTB (Hierarchical Token Bucket)
+log_info "Creating root qdisc with total bandwidth limit"
+if ! tc qdisc add dev "$INTERFACE" root handle 1: htb default 20; then
+    log_error "Failed to create root qdisc"
+    exit 1
+fi
+
+# Step 3: Create root class with total bandwidth
+log_info "Setting total bandwidth limit to ${TOTAL_BW}mbit"
+if ! tc class add dev "$INTERFACE" parent 1: classid 1:1 htb rate "${TOTAL_BW}mbit" ceil "${TOTAL_BW}mbit"; then
+    log_error "Failed to create root class"
+    exit 1
+fi
+
+# Step 4: Create priority class for priority subnet
+log_info "Creating priority class with guaranteed ${PRIORITY_BW}mbit"
+if ! tc class add dev "$INTERFACE" parent 1:1 classid 1:10 htb rate "${PRIORITY_BW}mbit" ceil "${TOTAL_BW}mbit" prio 1; then
+    log_error "Failed to create priority class"
+    exit 1
+fi
+
+# Step 5: Create default class for other traffic
+REMAINING_BW=$((TOTAL_BW - PRIORITY_BW))
+log_info "Creating default class with ${REMAINING_BW}mbit for other traffic"
+if ! tc class add dev "$INTERFACE" parent 1:1 classid 1:20 htb rate "${REMAINING_BW}mbit" ceil "${TOTAL_BW}mbit" prio 2; then
+    log_error "Failed to create default class"
+    exit 1
+fi
+
+# Step 6: Add SFQ qdisc to each class for fair queuing
+log_info "Adding fair queuing to priority class"
+if ! tc qdisc add dev "$INTERFACE" parent 1:10 handle 10: sfq perturb 10; then
+    log_error "Failed to add SFQ to priority class"
+    exit 1
+fi
+
+log_info "Adding fair queuing to default class"
+if ! tc qdisc add dev "$INTERFACE" parent 1:20 handle 20: sfq perturb 10; then
+    log_error "Failed to add SFQ to default class"
+    exit 1
+fi
+
+# Step 7: Create filter to match priority subnet
+log_info "Creating filter for priority subnet $PRIORITY_SUBNET"
+if ! tc filter add dev "$INTERFACE" protocol ip parent 1:0 prio 1 u32 match ip dst "$PRIORITY_SUBNET" flowid 1:10; then
+    log_error "Failed to create filter for priority subnet"
+    exit 1
+fi
+
+log_info "Traffic shaping configuration applied successfully"
+log_info "Priority traffic to $PRIORITY_SUBNET: guaranteed ${PRIORITY_BW}mbit, max ${TOTAL_BW}mbit"
+log_info "Other traffic: guaranteed ${REMAINING_BW}mbit, max ${TOTAL_BW}mbit"
+
+exit 0

@@ -1,0 +1,37 @@
+# Required S3 Operations for Application Access
+# Bucket: company-data-bucket
+# IAM Role: arn:aws:iam::123456789012:role/AppRole
+
+This document lists all S3 operations that the application must be able to perform
+on the company-data-bucket to function correctly.
+
+## Section 1: data/ prefix operations
+Operation: s3:GetObject
+Purpose: Read customer and reference data files stored in the data/ prefix
+Example: Reading data/customer-info.json for application processing
+Use Case: Application needs to fetch configuration and reference data on startup
+
+## Section 2: uploads/ prefix operations
+Operation: s3:PutObject
+Purpose: Write newly uploaded files from users to the uploads/ prefix
+Example: Uploading user-submitted file to uploads/new-data.csv
+Use Case: Users submit data files through the web interface that need to be stored
+
+## Section 3: reports/ prefix operations
+Operation: s3:ListBucket
+Purpose: List and discover all report files available in the reports/ prefix
+Example: Listing all files under reports/ to display available reports to users
+Use Case: Application dashboard shows list of available reports for download
+Note: ListBucket is a bucket-level operation that requires a Condition to filter by prefix
+
+## Section 4: temp/ prefix operations
+Operation: s3:DeleteObject
+Purpose: Clean up temporary cache files and expired data from temp/ prefix
+Example: Deleting temp/cache-12345.tmp after processing completes
+Use Case: Background job removes temporary files older than 24 hours
+
+## Additional Notes:
+- All operations should be restricted to the specific prefixes to follow least privilege
+- The IAM role AppRole must be granted these permissions via bucket policy
+- ListBucket requires special handling as it operates on the bucket, not objects
+- Current issues: Some operations are being denied due to policy misconfigurations

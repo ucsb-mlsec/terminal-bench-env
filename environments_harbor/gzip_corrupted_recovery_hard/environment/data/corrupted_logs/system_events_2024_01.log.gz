@@ -1,0 +1,101 @@
+I'll generate the corrupted gzip file content. First, let me create the log entries and then simulate corruption.
+
+```python
+import gzip
+import random
+from datetime import datetime, timedelta
+
+# Generate log entries for system_events_2024_01.log.gz
+entries = []
+components = ["SystemMonitor", "ProcessManager", "ResourceAllocator", "HealthCheck"]
+levels = ["INFO", "WARNING", "ERROR", "DEBUG"]
+
+messages = {
+    "SystemMonitor": [
+        "CPU usage at {}%",
+        "Memory usage at {}%",
+        "Disk I/O operations: {}",
+        "Network bandwidth: {} Mbps",
+        "System temperature: {}°C",
+        "Active processes: {}",
+        "System uptime: {} hours"
+    ],
+    "ProcessManager": [
+        "Process started: PID {}",
+        "Process terminated: PID {}",
+        "Process {} completed successfully",
+        "Process scheduling updated",
+        "Thread pool size adjusted to {}",
+        "Process priority changed for PID {}",
+        "Zombie process cleanup completed"
+    ],
+    "ResourceAllocator": [
+        "Memory allocation successful: {} MB",
+        "Memory deallocated: {} MB",
+        "Resource pool expanded",
+        "Cache size adjusted to {} MB",
+        "Buffer allocation completed",
+        "Memory fragmentation at {}%",
+        "Resource limits updated"
+    ],
+    "HealthCheck": [
+        "Health check passed",
+        "Health check failed: retry scheduled",
+        "Service status: operational",
+        "Heartbeat received from all nodes",
+        "Service degradation detected",
+        "Recovery procedure initiated",
+        "All services responding normally"
+    ]
+}
+
+# Generate 95 complete entries
+start_date = datetime(2024, 1, 1, 0, 0, 0)
+for i in range(95):
+    timestamp = start_date + timedelta(hours=random.randint(0, 744), minutes=random.randint(0, 59), seconds=random.randint(0, 59))
+    level = random.choice(levels)
+    component = random.choice(components)
+    
+    message_template = random.choice(messages[component])
+    if '{}' in message_template:
+        if 'PID' in message_template or 'processes' in message_template:
+            message = message_template.format(random.randint(1000, 9999))
+        elif '%' in message_template or 'usage' in message_template:
+            message = message_template.format(random.randint(10, 95))
+        elif 'MB' in message_template:
+            message = message_template.format(random.randint(64, 2048))
+        elif 'Mbps' in message_template:
+            message = message_template.format(random.randint(10, 1000))
+        elif '°C' in message_template:
+            message = message_template.format(random.randint(35, 75))
+        elif 'hours' in message_template:
+            message = message_template.format(random.randint(1, 720))
+        else:
+            message = message_template.format(random.randint(1, 100))
+    else:
+        message = message_template
+    
+    entry = f"{timestamp.strftime('%Y-%m-%d %H:%M:%S')}|{level}|{component}|{message}\n"
+    entries.append((timestamp, entry))
+
+# Sort by timestamp
+entries.sort(key=lambda x: x[0])
+
+# Create the file content
+content = ''.join([entry[1] for entry in entries])
+
+# Compress and corrupt at 65% mark
+compressed_data = gzip.compress(content.encode('utf-8'))
+corruption_point = int(len(compressed_data) * 0.65)
+
+# Corrupt the data from corruption_point onwards
+corrupted_data = compressed_data[:corruption_point]
+# Add random bytes to simulate corruption
+corrupted_data += bytes([random.randint(0, 255) for _ in range(50)])
+
+# Write to file
+with open('/data/corrupted_logs/system_events_2024_01.log.gz', 'wb') as f:
+    f.write(corrupted_data)
+```
+
+Since I need to output the actual file content directly, I'll provide the binary content in a way that can be written to the file:

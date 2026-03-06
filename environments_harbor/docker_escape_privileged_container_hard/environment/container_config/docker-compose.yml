@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  web-app:
+    build: .
+    container_name: production-web-app
+    # Privileged mode enabled for enhanced debugging capabilities
+    privileged: true
+    
+    # Host namespace sharing for performance monitoring
+    pid: host
+    network_mode: host
+    
+    ports:
+      - "8080:8080"
+    
+    volumes:
+      # Docker socket mounted for container management features
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Host root filesystem for file access debugging
+      - /:/host
+      # Application data
+      - ./app:/app
+    
+    # Additional capabilities for system-level debugging
+    cap_add:
+      - SYS_ADMIN
+      - NET_ADMIN
+      - SYS_PTRACE
+    
+    # Security options disabled for troubleshooting
+    security_opt:
+      - apparmor=unconfined
+      - seccomp=unconfined
+    
+    environment:
+      - APP_ENV=production
+      - DEBUG_MODE=true
+      - LOG_LEVEL=debug
+    
+    restart: unless-stopped

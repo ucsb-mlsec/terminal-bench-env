@@ -1,0 +1,45 @@
+user nginx;
+worker_processes {{ worker_processes }};
+error_log /var/log/nginx/error.log warn;
+pid /var/run/nginx.pid;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+
+    log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                    '$status $body_bytes_sent "$http_referer" '
+                    '"$http_user_agent" "$http_x_forwarded_for"';
+
+    access_log /var/log/nginx/access.log main;
+
+    sendfile on;
+    keepalive_timeout 65;
+
+    {% if ssl_enabled }
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+
+    for item in items
+        proxy_pass http://{{ item }};
+    
+    server {
+        listen {{ nginx_port }};
+        server_name {{ server_name }};
+        root {{ document_root }};
+
+        location / {
+            try_files $uri $uri/ =404;
+            index index.html index.htm;
+        }
+
+        location /static {
+            alias /var/www/static;
+            expires 30d;
+        }
+    }
+}

@@ -1,0 +1,103 @@
+import pickle
+import numpy as np
+from sklearn.pipeline import Pipeline
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+
+# Set random seed for reproducibility
+np.random.seed(42)
+
+# Create a large vocabulary TfidfVectorizer to reach ~38MB
+# With max_features around 70000, we can reach the target size
+vectorizer = TfidfVectorizer(
+    max_features=70000,
+    ngram_range=(1, 3),
+    min_df=1,
+    max_df=0.95,
+    sublinear_tf=True,
+    strip_accents='unicode',
+    analyzer='word',
+    token_pattern=r'\w{1,}',
+    stop_words='english'
+)
+
+# Create a logistic regression classifier
+classifier = LogisticRegression(
+    C=1.0,
+    max_iter=1000,
+    solver='liblinear',
+    random_state=42,
+    class_weight='balanced'
+)
+
+# Create the pipeline
+teacher_model = Pipeline([
+    ('vectorizer', vectorizer),
+    ('classifier', classifier)
+])
+
+# Generate synthetic training data to fit the model
+# This ensures the model is properly trained and has the right size
+synthetic_reviews = []
+synthetic_labels = []
+
+# Positive review templates
+positive_words = ['excellent', 'amazing', 'wonderful', 'fantastic', 'great', 'love', 
+                  'perfect', 'best', 'awesome', 'outstanding', 'superb', 'brilliant',
+                  'highly recommend', 'impressed', 'satisfied', 'quality', 'worth',
+                  'delighted', 'exceptional', 'incredible', 'pleased', 'happy']
+
+negative_words = ['terrible', 'awful', 'horrible', 'worst', 'disappointed', 'poor',
+                  'waste', 'bad', 'useless', 'garbage', 'broken', 'defective',
+                  'never again', 'avoid', 'disaster', 'cheap', 'frustrating',
+                  'unsatisfied', 'regret', 'money back', 'misleading', 'pathetic']
+
+neutral_words = ['product', 'item', 'purchased', 'received', 'delivery', 'package',
+                 'order', 'price', 'shipping', 'arrived', 'seems', 'looks', 'feels',
+                 'service', 'customer', 'store', 'seller', 'description', 'expected']
+
+# Generate positive reviews
+for i in range(3000):
+    review_parts = []
+    for _ in range(np.random.randint(10, 30)):
+        if np.random.random() > 0.3:
+            review_parts.append(np.random.choice(positive_words))
+        else:
+            review_parts.append(np.random.choice(neutral_words))
+    synthetic_reviews.append(' '.join(review_parts))
+    synthetic_labels.append(1)
+
+# Generate negative reviews
+for i in range(3000):
+    review_parts = []
+    for _ in range(np.random.randint(10, 30)):
+        if np.random.random() > 0.3:
+            review_parts.append(np.random.choice(negative_words))
+        else:
+            review_parts.append(np.random.choice(neutral_words))
+    synthetic_reviews.append(' '.join(review_parts))
+    synthetic_labels.append(0)
+
+# Add some more diverse vocabulary to expand feature space
+additional_vocab = []
+for i in range(10000):
+    words = []
+    num_words = np.random.randint(5, 20)
+    for _ in range(num_words):
+        word_len = np.random.randint(3, 12)
+        word = ''.join(np.random.choice(list('abcdefghijklmnopqrstuvwxyz'), word_len))
+        words.append(word)
+    additional_vocab.append(' '.join(words))
+    additional_vocab.append(' '.join(words[::-1]))  # Add reversed versions
+    
+synthetic_reviews.extend(additional_vocab)
+synthetic_labels.extend([np.random.randint(0, 2) for _ in range(len(additional_vocab))])
+
+# Fit the model
+teacher_model.fit(synthetic_reviews, synthetic_labels)
+
+# Save the model
+with open('/tmp/teacher_model.pkl', 'wb') as f:
+    pickle.dump(teacher_model, f, protocol=4)
+
+print("Teacher model created and saved successfully")

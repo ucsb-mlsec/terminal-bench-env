@@ -1,0 +1,184 @@
+import numpy as np
+from scipy import ndimage
+import random
+
+# Set random seed for reproducibility
+np.random.seed(42)
+random.seed(42)
+
+def create_base_digit(digit, size=28):
+    """Create a simple representation of a digit"""
+    img = np.zeros((size, size), dtype=np.uint8)
+    center = size // 2
+    
+    if digit == 0:
+        # Draw a circle
+        y, x = np.ogrid[:size, :size]
+        mask = ((x - center)**2 + (y - center)**2 <= 64) & ((x - center)**2 + (y - center)**2 >= 36)
+        img[mask] = 255
+    elif digit == 1:
+        # Draw a vertical line
+        img[4:24, center-1:center+2] = 255
+        img[4:8, center-3:center] = 200
+    elif digit == 2:
+        # Draw a 2
+        img[6:10, 8:20] = 255
+        img[6:14, 18:22] = 255
+        img[12:16, 10:20] = 255
+        img[14:22, 8:12] = 255
+        img[20:24, 8:20] = 255
+    elif digit == 3:
+        # Draw a 3
+        img[6:10, 8:20] = 255
+        img[6:18, 18:22] = 255
+        img[12:16, 12:20] = 255
+        img[18:22, 18:22] = 255
+        img[20:24, 8:20] = 255
+    elif digit == 4:
+        # Draw a 4
+        img[6:16, 8:12] = 255
+        img[14:18, 8:20] = 255
+        img[6:24, 18:22] = 255
+    elif digit == 5:
+        # Draw a 5
+        img[6:10, 8:20] = 255
+        img[6:16, 8:12] = 255
+        img[12:16, 8:20] = 255
+        img[14:22, 18:22] = 255
+        img[20:24, 8:20] = 255
+    elif digit == 6:
+        # Draw a 6
+        img[6:22, 8:12] = 255
+        img[6:10, 8:20] = 255
+        img[14:18, 8:20] = 255
+        img[14:22, 18:22] = 255
+        img[20:24, 8:20] = 255
+    elif digit == 7:
+        # Draw a 7
+        img[6:10, 8:20] = 255
+        img[6:24, 18:22] = 255
+    elif digit == 8:
+        # Draw an 8
+        img[6:12, 10:18] = 255
+        img[6:22, 8:12] = 255
+        img[6:22, 18:22] = 255
+        img[16:22, 10:18] = 255
+        img[12:16, 10:18] = 200
+    elif digit == 9:
+        # Draw a 9
+        img[6:16, 8:12] = 255
+        img[6:10, 8:20] = 255
+        img[12:16, 8:20] = 255
+        img[6:22, 18:22] = 255
+        img[20:24, 8:20] = 255
+    
+    return img
+
+def add_noise(img, noise_level):
+    """Add random noise to image"""
+    noise = np.random.randint(-noise_level, noise_level, img.shape, dtype=np.int16)
+    noisy = np.clip(img.astype(np.int16) + noise, 0, 255).astype(np.uint8)
+    return noisy
+
+def rotate_image(img, angle):
+    """Rotate image by given angle"""
+    return ndimage.rotate(img, angle, reshape=False, cval=0, order=1).astype(np.uint8)
+
+def shift_image(img, shift_x, shift_y):
+    """Shift image by given offset"""
+    return ndimage.shift(img, [shift_y, shift_x], cval=0, order=1).astype(np.uint8)
+
+def adjust_contrast(img, factor):
+    """Adjust image contrast"""
+    mean = img.mean()
+    adjusted = mean + factor * (img - mean)
+    return np.clip(adjusted, 0, 255).astype(np.uint8)
+
+def create_digit_image(digit, difficulty):
+    """Create a digit image with specified difficulty level"""
+    img = create_base_digit(digit)
+    
+    if difficulty == 'easy':
+        # Clean, centered, good contrast
+        img = add_noise(img, 10)
+        if random.random() < 0.3:
+            img = rotate_image(img, random.uniform(-5, 5))
+        if random.random() < 0.2:
+            img = shift_image(img, random.randint(-2, 2), random.randint(-2, 2))
+    
+    elif difficulty == 'moderate':
+        # Slightly rotated, off-center, or lower contrast
+        img = add_noise(img, 25)
+        if random.random() < 0.6:
+            img = rotate_image(img, random.uniform(-15, 15))
+        if random.random() < 0.5:
+            img = shift_image(img, random.randint(-4, 4), random.randint(-4, 4))
+        if random.random() < 0.4:
+            img = adjust_contrast(img, random.uniform(0.6, 0.9))
+    
+    elif difficulty == 'hard':
+        # Heavily degraded, extreme rotations, poor quality
+        img = add_noise(img, 50)
+        if random.random() < 0.7:
+            img = rotate_image(img, random.uniform(-30, 30))
+        if random.random() < 0.6:
+            img = shift_image(img, random.randint(-6, 6), random.randint(-6, 6))
+        if random.random() < 0.5:
+            img = adjust_contrast(img, random.uniform(0.4, 0.7))
+        # Additional degradation
+        if random.random() < 0.3:
+            mask = np.random.random(img.shape) < 0.1
+            img[mask] = np.random.randint(0, 100, np.sum(mask))
+    
+    return img
+
+# Generate dataset
+num_samples = 5000
+samples_per_class = 500
+
+# Difficulty distribution
+easy_ratio = 0.4
+moderate_ratio = 0.35
+hard_ratio = 0.25
+
+images = []
+labels = []
+
+for digit in range(10):
+    num_easy = int(samples_per_class * easy_ratio)
+    num_moderate = int(samples_per_class * moderate_ratio)
+    num_hard = samples_per_class - num_easy - num_moderate
+    
+    # Generate easy samples
+    for _ in range(num_easy):
+        img = create_digit_image(digit, 'easy')
+        images.append(img)
+        labels.append(digit)
+    
+    # Generate moderate samples
+    for _ in range(num_moderate):
+        img = create_digit_image(digit, 'moderate')
+        images.append(img)
+        labels.append(digit)
+    
+    # Generate hard samples
+    for _ in range(num_hard):
+        img = create_digit_image(digit, 'hard')
+        images.append(img)
+        labels.append(digit)
+
+# Convert to numpy arrays
+images = np.array(images, dtype=np.uint8)
+labels = np.array(labels, dtype=np.uint8)
+
+# Shuffle the dataset
+indices = np.arange(num_samples)
+np.random.shuffle(indices)
+images = images[indices]
+labels = labels[indices]
+
+# Save the dataset
+np.savez('/workspace/data/train.npz', images=images, labels=labels)
+
+print(f"Generated training dataset: {images.shape}, {labels.shape}")
+print(f"Sample distribution - Easy: {int(num_samples*easy_ratio)}, Moderate: {int(num_samples*moderate_ratio)}, Hard: {int(num_samples*hard_ratio)}")

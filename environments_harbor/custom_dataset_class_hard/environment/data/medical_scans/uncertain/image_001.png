@@ -1,0 +1,182 @@
+import os
+import json
+import torch
+from torch.utils.data import Dataset
+from PIL import Image
+import numpy as np
+
+
+class MedicalScanDataset(Dataset):
+    """
+    Custom PyTorch Dataset for loading medical scan images with preprocessing.
+    Handles corrupted files, inconsistent dimensions, and varying pixel ranges.
+    """
+    
+    def __init__(self, root_dir, target_size=(256, 256)):
+        """
+        Initialize the dataset.
+        
+        Args:
+            root_dir (str): Root directory containing subdirectories for each class
+            target_size (tuple): Target size for resizing images (height, width)
+        """
+        self.root_dir = root_dir
+        self.target_size = target_size
+        self.class_names = ['benign', 'malignant', 'uncertain']
+        self.class_to_idx = {name: idx for idx, name in enumerate(self.class_names)}
+        
+        # Load all valid image paths and labels
+        self.samples = []
+        self.class_counts = [0, 0, 0]
+        
+        self._load_dataset()
+    
+    def _load_dataset(self):
+        """
+        Load all valid images from the directory structure.
+        Skips corrupted files without crashing.
+        """
+        for class_name in self.class_names:
+            class_dir = os.path.join(self.root_dir, class_name)
+            
+            if not os.path.exists(class_dir):
+                continue
+            
+            class_idx = self.class_to_idx[class_name]
+            
+            # Iterate through all files in the class directory
+            for filename in os.listdir(class_dir):
+                file_path = os.path.join(class_dir, filename)
+                
+                # Skip if not a file
+                if not os.path.isfile(file_path):
+                    continue
+                
+                # Try to validate the image can be loaded
+                if self._is_valid_image(file_path):
+                    self.samples.append((file_path, class_idx))
+                    self.class_counts[class_idx] += 1
+    
+    def _is_valid_image(self, file_path):
+        """
+        Check if an image file can be loaded without errors.
+        
+        Args:
+            file_path (str): Path to the image file
+            
+        Returns:
+            bool: True if image is valid, False otherwise
+        """
+        try:
+            with Image.open(file_path) as img:
+                img.verify()  # Verify it's a valid image
+            # Reopen after verify (verify closes the file)
+            with Image.open(file_path) as img:
+                img.load()  # Actually load the image data
+            return True
+        except Exception:
+            return False
+    
+    def _load_and_preprocess_image(self, file_path):
+        """
+        Load and preprocess an image.
+        
+        Args:
+            file_path (str): Path to the image file
+            
+        Returns:
+            torch.Tensor: Preprocessed image tensor with shape (1, 256, 256)
+        """
+        # Load image
+        img = Image.open(file_path)
+        
+        # Convert to grayscale if needed
+        if img.mode != 'L':
+            img = img.convert('L')
+        
+        # Resize to target size
+        img = img.resize(self.target_size, Image.BILINEAR)
+        
+        # Convert to numpy array
+        img_array = np.array(img, dtype=np.float32)
+        
+        # Normalize to [0, 1] range
+        # Handle both 0-255 and 0-1 ranges
+        if img_array.max() > 1.0:
+            img_array = img_array / 255.0
+        
+        # Convert to torch tensor and add channel dimension
+        img_tensor = torch.from_numpy(img_array).unsqueeze(0)  # Shape: (1, H, W)
+        
+        return img_tensor
+    
+    def __len__(self):
+        """Return the total number of valid images in the dataset."""
+        return len(self.samples)
+    
+    def __getitem__(self, idx):
+        """
+        Get a sample from the dataset.
+        
+        Args:
+            idx (int): Index of the sample
+            
+        Returns:
+            tuple: (image_tensor, label) where image_tensor has shape (1, 256, 256)
+        """
+        file_path, label = self.samples[idx]
+        
+        # Load and preprocess the image
+        image_tensor = self._load_and_preprocess_image(file_path)
+        
+        return image_tensor, label
+    
+    def get_class_distribution(self):
+        """
+        Get the distribution of samples across classes.
+        
+        Returns:
+            list: Count of samples for each class [benign, malignant, uncertain]
+        """
+        return self.class_counts
+
+
+if __name__ == "__main__":
+    # Validation script
+    root_dir = "/workspace/medical_scans"
+    
+    # Create dataset instance
+    dataset = MedicalScanDataset(root_dir)
+    
+    # Gather statistics
+    total_valid_images = len(dataset)
+    class_distribution = dataset.get_class_distribution()
+    
+    # Get first image to check shape and compute mean
+    if total_valid_images > 0:
+        first_image, first_label = dataset[0]
+        image_shape = list(first_image.shape)
+        sample_pixel_mean = round(float(first_image.mean()), 3)
+    else:
+        image_shape = [1, 256, 256]
+        sample_pixel_mean = 0.0
+    
+    # Create validation summary
+    validation_summary = {
+        "total_valid_images": total_valid_images,
+        "class_distribution": class_distribution,
+        "image_shape": image_shape,
+        "sample_pixel_mean": sample_pixel_mean
+    }
+    
+    # Save to JSON file
+    output_path = "/workspace/validation_summary.json"
+    with open(output_path, 'w') as f:
+        json.dump(validation_summary, f, indent=2)
+    
+    print(f"Dataset validation complete!")
+    print(f"Total valid images: {total_valid_images}")
+    print(f"Class distribution: {class_distribution}")
+    print(f"Image shape: {image_shape}")
+    print(f"Sample pixel mean: {sample_pixel_mean}")
+    print(f"Validation summary saved to {output_path}")

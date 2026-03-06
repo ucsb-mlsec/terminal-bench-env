@@ -1,0 +1,32 @@
+Token Count to Position Embedding Size Mapping
+================================================================================
+
+Token Count Range | Required Embedding Size | Memory Usage (MB)
+--------------------------------------------------------------------------------
+0-512            | 512                     | 64
+513-1024         | 1024                    | 128
+1025-2048        | 2048                    | 256
+2049-4096        | 4096                    | 512
+4097-8192        | 8192                    | 1024
+8193-16384       | 16384                   | 2048
+16385-32768      | 32768                   | 4096
+32769-65536      | 65536                   | 8192
+65537-131072     | 131072                  | 16384
+131073-262144    | 262144                  | 32768
+
+--------------------------------------------------------------------------------
+Notes:
+- Longformer uses learned position embeddings for each token position
+- The embedding size must be configured to accommodate the maximum token length
+  in your document corpus
+- Position embeddings are stored as a matrix of shape [max_position, hidden_size]
+- Memory usage is approximate and assumes hidden_size=768 (base model)
+- Always round up to the next power of 2 for optimal performance
+- Standard Longformer models support up to 4096 tokens by default
+- Extended models can handle longer sequences but require more memory
+- Batch size should be adjusted inversely with document length to manage GPU memory
+- Consider using gradient checkpointing for documents exceeding 8192 tokens
+
+Recommendation:
+Set max_position_embeddings to at least 125% of your largest expected document
+token count to provide headroom for edge cases and future expansion.

@@ -1,0 +1,72 @@
+I'll create a minimal but valid MP4 file with proper structure that will clearly show corruption if opened in text mode.
+
+```python
+import struct
+import os
+
+def create_ftyp_box():
+    """Create MP4 file type box"""
+    brand = b'isom'
+    minor_version = struct.pack('>I', 512)
+    compatible_brands = b'isomiso2mp41'
+    box_data = brand + minor_version + compatible_brands
+    size = len(box_data) + 8
+    return struct.pack('>I', size) + b'ftyp' + box_data
+
+def create_mdat_box():
+    """Create media data box with binary content"""
+    # Mix of binary data that would corrupt in text mode
+    data = b''
+    # Add various byte patterns including problematic ones for text mode
+    for i in range(200):
+        data += bytes([i % 256])
+    
+    # Add some realistic video-like data patterns
+    data += b'\x00\x00\x01\xb0' * 50  # MPEG start codes
+    data += b'\xff\xd8\xff\xe0' * 30  # JPEG markers
+    data += bytes(range(256)) * 100   # Full byte range
+    
+    size = len(data) + 8
+    return struct.pack('>I', size) + b'mdat' + data
+
+def create_moov_box():
+    """Create movie box with minimal track structure"""
+    # mvhd - movie header
+    mvhd_data = struct.pack('>I', 0)  # version/flags
+    mvhd_data += struct.pack('>I', 0)  # creation time
+    mvhd_data += struct.pack('>I', 0)  # modification time
+    mvhd_data += struct.pack('>I', 1000)  # timescale
+    mvhd_data += struct.pack('>I', 3000)  # duration
+    mvhd_data += struct.pack('>I', 0x00010000)  # rate
+    mvhd_data += struct.pack('>H', 0x0100)  # volume
+    mvhd_data += b'\x00' * 10  # reserved
+    mvhd_data += struct.pack('>9I', 0x00010000, 0, 0, 0, 0x00010000, 0, 0, 0, 0x40000000)  # matrix
+    mvhd_data += b'\x00' * 24  # pre-defined
+    mvhd_data += struct.pack('>I', 1)  # next track ID
+    
+    mvhd_size = len(mvhd_data) + 8
+    mvhd = struct.pack('>I', mvhd_size) + b'mvhd' + mvhd_data
+    
+    moov_size = len(mvhd) + 8
+    return struct.pack('>I', moov_size) + b'moov' + mvhd
+
+def create_mp4():
+    """Create complete MP4 file"""
+    ftyp = create_ftyp_box()
+    moov = create_moov_box()
+    mdat = create_mdat_box()
+    
+    return ftyp + moov + mdat
+
+# Generate the MP4 file
+mp4_content = create_mp4()
+
+# Write to file
+os.makedirs('/opt/video_service/test_data', exist_ok=True)
+with open('/opt/video_service/test_data/sample.mp4', 'wb') as f:
+    f.write(mp4_content)
+
+print(f"Created sample.mp4 ({len(mp4_content)} bytes)")
+```
+
+Let me run this to generate the file:

@@ -1,0 +1,425 @@
+Query Patterns Analysis - Last 24 Hours
+=================================================
+Date Range: 2024-01-15 00:00:00 to 2024-01-16 00:00:00
+Cluster: production-es-cluster-01
+Node: es-data-node-03
+=================================================
+
+[2024-01-15 08:23:45] Query ID: q-8a7f3d21
+Index Pattern: logs-2024-01-*
+Estimated Data Size: 4.2 GB
+Status: CIRCUIT_BREAKER_TRIGGERED
+---
+{
+  "size": 0,
+  "query": {
+    "range": {
+      "@timestamp": {
+        "gte": "2024-01-14",
+        "lte": "2024-01-15"
+      }
+    }
+  },
+  "aggs": {
+    "user_analysis": {
+      "terms": {
+        "field": "user_id.keyword",
+        "size": 100000
+      },
+      "aggs": {
+        "event_breakdown": {
+          "terms": {
+            "field": "event_type.keyword",
+            "size": 50000
+          }
+        }
+      }
+    }
+  }
+}
+
+[2024-01-15 09:47:12] Query ID: q-2b9e4c38
+Index Pattern: metrics-app-*
+Estimated Data Size: 4.5 GB
+Status: CIRCUIT_BREAKER_TRIGGERED
+---
+{
+  "size": 0,
+  "aggs": {
+    "timestamp_buckets": {
+      "date_histogram": {
+        "field": "@timestamp",
+        "fixed_interval": "1m",
+        "min_doc_count": 0
+      },
+      "aggs": {
+        "service_terms": {
+          "terms": {
+            "field": "service.name.keyword",
+            "size": 75000
+          },
+          "aggs": {
+            "status_codes": {
+              "terms": {
+                "field": "http.status_code",
+                "size": 10000
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+[2024-01-15 11:15:33] Query ID: q-5c2a1f67
+Index Pattern: logs-2024-01-*
+Estimated Data Size: 4.3 GB
+Status: CIRCUIT_BREAKER_TRIGGERED
+---
+{
+  "size": 0,
+  "query": {
+    "wildcard": {
+      "message": "*error*exception*"
+    }
+  },
+  "aggs": {
+    "error_sources": {
+      "terms": {
+        "field": "source.file.keyword",
+        "size": 80000
+      },
+      "aggs": {
+        "error_types": {
+          "terms": {
+            "field": "error.type.keyword",
+            "size": 60000
+          }
+        }
+      }
+    }
+  }
+}
+
+[2024-01-15 12:38:54] Query ID: q-9d4e7a22
+Index Pattern: transactions-*
+Estimated Data Size: 4.4 GB
+Status: CIRCUIT_BREAKER_TRIGGERED
+---
+{
+  "size": 0,
+  "aggs": {
+    "customer_segments": {
+      "terms": {
+        "field": "customer_id.keyword",
+        "size": 100000
+      },
+      "aggs": {
+        "product_categories": {
+          "terms": {
+            "field": "product.category.keyword",
+            "size": 50000
+          },
+          "aggs": {
+            "payment_methods": {
+              "terms": {
+                "field": "payment.method.keyword",
+                "size": 10000
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+[2024-01-15 14:22:18] Query ID: q-3f8b2c91
+Index Pattern: security-logs-*
+Estimated Data Size: 4.1 GB
+Status: CIRCUIT_BREAKER_TRIGGERED
+---
+{
+  "size": 0,
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "wildcard": {
+            "user_agent": "*bot*crawler*"
+          }
+        }
+      ]
+    }
+  },
+  "aggs": {
+    "ip_addresses": {
+      "terms": {
+        "field": "source.ip.keyword",
+        "size": 90000
+      },
+      "aggs": {
+        "geo_locations": {
+          "terms": {
+            "field": "source.geo.country_name.keyword",
+            "size": 50000
+          }
+        }
+      }
+    }
+  }
+}
+
+[2024-01-15 15:45:07] Query ID: q-7a1d9e45
+Index Pattern: logs-2024-01-*
+Estimated Data Size: 4.6 GB
+Status: CIRCUIT_BREAKER_TRIGGERED
+---
+{
+  "size": 0,
+  "aggs": {
+    "hourly_buckets": {
+      "date_histogram": {
+        "field": "@timestamp",
+        "fixed_interval": "1h"
+      },
+      "aggs": {
+        "unique_users": {
+          "terms": {
+            "field": "user.id.keyword",
+            "size": 100000
+          },
+          "aggs": {
+            "actions_per_user": {
+              "terms": {
+                "field": "action.keyword",
+                "size": 50000
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+[2024-01-15 17:03:29] Query ID: q-4e6c8b73
+Index Pattern: application-logs-*
+Estimated Data Size: 4.3 GB
+Status: CIRCUIT_BREAKER_TRIGGERED
+---
+{
+  "size": 0,
+  "query": {
+    "wildcard": {
+      "stack_trace": "*OutOfMemory*"
+    }
+  },
+  "aggs": {
+    "exception_classes": {
+      "terms": {
+        "field": "exception.class.keyword",
+        "size": 70000
+      },
+      "aggs": {
+        "thread_names": {
+          "terms": {
+            "field": "thread.name.keyword",
+            "size": 55000
+          },
+          "aggs": {
+            "log_levels": {
+              "terms": {
+                "field": "log.level.keyword",
+                "size": 1000
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+[2024-01-15 18:31:42] Query ID: q-1b7f3a56
+Index Pattern: metrics-system-*
+Estimated Data Size: 4.5 GB
+Status: CIRCUIT_BREAKER_TRIGGERED
+---
+{
+  "size": 0,
+  "aggs": {
+    "host_aggregation": {
+      "terms": {
+        "field": "host.name.keyword",
+        "size": 85000
+      },
+      "aggs": {
+        "process_names": {
+          "terms": {
+            "field": "process.name.keyword",
+            "size": 65000
+          },
+          "aggs": {
+            "cpu_stats": {
+              "stats": {
+                "field": "system.cpu.total.pct"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+[2024-01-15 19:58:16] Query ID: q-8c2d5f94
+Index Pattern: logs-2024-01-*
+Estimated Data Size: 4.4 GB
+Status: CIRCUIT_BREAKER_TRIGGERED
+---
+{
+  "size": 0,
+  "aggs": {
+    "api_endpoints": {
+      "terms": {
+        "field": "url.path.keyword",
+        "size": 100000
+      },
+      "aggs": {
+        "response_times": {
+          "histogram": {
+            "field": "http.response.duration",
+            "interval": 10
+          },
+          "aggs": {
+            "status_distribution": {
+              "terms": {
+                "field": "http.response.status_code",
+                "size": 50000
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+[2024-01-15 21:14:38] Query ID: q-6d9a4e21
+Index Pattern: user-activity-*
+Estimated Data Size: 4.2 GB
+Status: CIRCUIT_BREAKER_TRIGGERED
+---
+{
+  "size": 0,
+  "query": {
+    "wildcard": {
+      "session.id": "*"
+    }
+  },
+  "aggs": {
+    "session_analysis": {
+      "terms": {
+        "field": "session.id.keyword",
+        "size": 95000
+      },
+      "aggs": {
+        "page_views": {
+          "terms": {
+            "field": "page.url.keyword",
+            "size": 75000
+          }
+        }
+      }
+    }
+  }
+}
+
+[2024-01-15 22:47:53] Query ID: q-3a8f1c67
+Index Pattern: logs-2024-01-*
+Estimated Data Size: 4.6 GB
+Status: CIRCUIT_BREAKER_TRIGGERED
+---
+{
+  "size": 0,
+  "aggs": {
+    "correlation_id": {
+      "terms": {
+        "field": "correlation.id.keyword",
+        "size": 100000
+      },
+      "aggs": {
+        "service_chain": {
+          "terms": {
+            "field": "service.name.keyword",
+            "size": 60000
+          },
+          "aggs": {
+            "span_types": {
+              "terms": {
+                "field": "span.type.keyword",
+                "size": 50000
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+[2024-01-16 00:19:27] Query ID: q-7e3b9d42
+Index Pattern: security-audit-*
+Estimated Data Size: 4.3 GB
+Status: CIRCUIT_BREAKER_TRIGGERED
+---
+{
+  "size": 0,
+  "aggs": {
+    "security_events": {
+      "terms": {
+        "field": "event.action.keyword",
+        "size": 80000
+      },
+      "aggs": {
+        "affected_users": {
+          "terms": {
+            "field": "user.name.keyword",
+            "size": 70000
+          },
+          "aggs": {
+            "source_ips": {
+              "terms": {
+                "field": "source.ip.keyword",
+                "size": 50000
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+=================================================
+OBSERVATIONS AND ANALYSIS
+=================================================
+
+Memory Consumption Patterns:
+- All queries with aggregation size > 50000 consistently trigger circuit breaker
+- Nested aggregations with combined sizes > 100000 are particularly problematic
+- Estimated memory per query: 4.0-4.5 GB
+- Peak query frequency: 8-12 concurrent queries during business hours
+
+High-Risk Query Characteristics:
+1. Terms aggregations with size >= 75000
+2. Multiple nested aggregation levels (3+ deep)
+3. Wildcard queries combined with large aggregations
+4. Date histogram buckets with high-cardinality nested terms
+
+Recommendation:
+- Current circuit breaker limit appears insufficient for these query patterns
+- Queries are exceeding the request circuit breaker threshold
+- Either increase circuit breaker limits or optimize queries to use smaller aggregation sizes

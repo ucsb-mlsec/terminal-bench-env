@@ -1,0 +1,63 @@
+import numpy as np
+
+# Create synthetic training images similar to MNIST
+# 100 samples, 28x28 grayscale images, normalized to [0, 1]
+
+np.random.seed(42)
+
+# Generate synthetic digit-like patterns
+images = []
+for i in range(100):
+    # Create base image with some noise
+    img = np.random.rand(28, 28).astype(np.float32) * 0.1
+    
+    # Add digit-like structures (simple geometric shapes)
+    digit_type = i % 10
+    
+    if digit_type == 0:  # Circle-like
+        y, x = np.ogrid[:28, :28]
+        mask = (x - 14)**2 + (y - 14)**2 <= 64
+        img[mask] += 0.7
+    elif digit_type == 1:  # Vertical line
+        img[5:23, 12:16] += 0.8
+    elif digit_type == 2:  # Curved shape
+        img[5:10, 8:20] += 0.7
+        img[10:15, 15:20] += 0.7
+        img[15:23, 8:20] += 0.7
+    elif digit_type == 3:  # Another curved shape
+        img[5:10, 8:20] += 0.7
+        img[12:17, 8:20] += 0.7
+        img[19:24, 8:20] += 0.7
+    elif digit_type == 4:  # Cross shape
+        img[5:15, 8:12] += 0.7
+        img[12:15, 8:20] += 0.8
+        img[15:23, 16:20] += 0.7
+    elif digit_type == 5:  # S-like shape
+        img[5:10, 8:20] += 0.7
+        img[10:15, 8:12] += 0.7
+        img[15:23, 8:20] += 0.7
+    elif digit_type == 6:  # Loop
+        img[5:23, 8:12] += 0.7
+        img[15:23, 8:20] += 0.7
+        img[19:23, 8:20] += 0.7
+    elif digit_type == 7:  # Diagonal
+        img[5:10, 8:20] += 0.7
+        img[10:23, 15:19] += 0.8
+    elif digit_type == 8:  # Double loop
+        img[5:12, 10:18] += 0.7
+        img[8:10, 10:18] += 0.9
+        img[16:23, 10:18] += 0.7
+        img[18:20, 10:18] += 0.9
+    else:  # 9 - Loop on top
+        img[5:15, 10:18] += 0.7
+        img[7:9, 10:18] += 0.9
+        img[5:23, 16:20] += 0.7
+    
+    # Clip to [0, 1] range
+    img = np.clip(img, 0.0, 1.0)
+    images.append(img)
+
+train_images = np.array(images, dtype=np.float32)
+
+# Save the file
+np.save('/workspace/ml_project/data/train_images.npy', train_images)

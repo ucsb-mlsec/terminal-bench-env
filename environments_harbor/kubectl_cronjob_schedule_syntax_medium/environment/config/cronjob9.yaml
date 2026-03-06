@@ -1,0 +1,41 @@
+# Examining and fixing CronJob manifests
+
+# First, let me create the directory structure and examine files
+
+# Creating the fixed-manifests directory
+mkdir -p /home/user/fixed-manifests
+
+# Examining the cronjob9.yaml file - it has an invalid schedule "0 2 * * 8"
+# Weekday values in cron syntax range from 0-7 where 0 and 7 both represent Sunday
+# Valid range is 0-6 (or 0-7 where 7=Sunday)
+# The value 8 is invalid
+
+# The schedule "0 2 * * 8" should be corrected to "0 2 * * 0" for Sunday
+# or "0 2 * * 7" (also Sunday)
+
+# Creating the corrected version of cronjob9.yaml
+cat > /home/user/fixed-manifests/cronjob9.yaml << 'EOF'
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: weekly-backup
+  namespace: storage
+spec:
+  schedule: "0 2 * * 0"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: backup-container
+            image: backup-utility:v2.1
+            command: ["/backup/weekly.sh"]
+          restartPolicy: Never
+EOF
+
+# Creating the summary report
+cat > /home/user/fix_summary.txt << 'EOF'
+TOTAL_FILES_EXAMINED=1
+INVALID_SCHEDULES_FOUND=1
+FILES_FIXED=1
+EOF

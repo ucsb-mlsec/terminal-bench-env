@@ -1,0 +1,226 @@
+I'll analyze the PCAP file to identify the HTTP request smuggling attack and extract the required information.
+
+```python
+#!/usr/bin/env python3
+import subprocess
+import re
+
+# First, let's extract HTTP traffic from the PCAP
+result = subprocess.run(
+    ['tcpdump', '-r', '/tmp/suspicious_traffic.pcap', '-A', '-s', '0'],
+    capture_output=True,
+    text=True
+)
+
+traffic = result.stdout
+
+# Look for HTTP requests with both Content-Length and Transfer-Encoding headers
+# This indicates a CL.TE smuggling attempt
+
+# Split by packet separators and analyze each
+packets = traffic.split('\n\n')
+
+smuggled_endpoint = None
+secret_value = None
+smuggled_method = None
+
+full_traffic = traffic
+
+# Look for the smuggling pattern - requests with both CL and TE headers
+if 'Content-Length:' in full_traffic and 'Transfer-Encoding: chunked' in full_traffic:
+    # Find the smuggled request portion
+    # In CL.TE attacks, the smuggled request appears after the chunked body
+    
+    # Pattern: Look for a POST request that appears to be smuggled (not at packet boundary)
+    lines = full_traffic.split('\n')
+    
+    for i, line in enumerate(lines):
+        # Look for smuggled POST request (typically appears in the body)
+        if i > 0 and 'POST /' in line and 'HTTP/1.1' in line:
+            # Check if this is not the main request (smuggled one)
+            # Extract the endpoint
+            match = re.search(r'POST\s+(/[^\s]+)\s+HTTP', line)
+            if match:
+                potential_endpoint = match.group(1)
+                # Check if this looks like a restricted endpoint
+                if 'admin' in potential_endpoint.lower() or 'secret' in potential_endpoint.lower() or 'internal' in potential_endpoint.lower():
+                    smuggled_endpoint = potential_endpoint
+                    smuggled_method = 'POST'
+    
+    # Look for the response containing secret data
+    # Common patterns: secret=, token=, API_KEY, password, etc.
+    secret_patterns = [
+        r'secret[_-]?(?:token|key|value)?["\s:=]+([a-zA-Z0-9_-]+)',
+        r'API[_-]?KEY["\s:=]+([a-zA-Z0-9_-]+)',
+        r'token["\s:=]+([a-zA-Z0-9_-]+)',
+        r'password["\s:=]+([a-zA-Z0-9_-]+)',
+        r'"secret"[:\s]+"([^"]+)"',
+        r'SECRET[_-]?VALUE[:\s=]+([a-zA-Z0-9_-]+)',
+    ]
+    
+    for pattern in secret_patterns:
+        matches = re.findall(pattern, full_traffic, re.IGNORECASE)
+        if matches:
+            secret_value = matches[0]
+            break
+
+# If we didn't find it with the above method, try a more direct approach
+# Look for the actual HTTP response body content
+if not secret_value:
+    # Look for HTTP 200 OK responses and extract body content
+    response_pattern = r'HTTP/1\.[01]\s+200\s+OK.*?\r?\n\r?\n(.*?)(?=\n\n|\Z)'
+    responses = re.findall(response_pattern, full_traffic, re.DOTALL)
+    
+    for response in responses:
+        # Look for secret-like values in response bodies
+        if 'secret' in response.lower() or 'token' in response.lower():
+            # Extract the actual value
+            value_match = re.search(r'[:=]\s*([a-zA-Z0-9_-]{8,})', response)
+            if value_match:
+                secret_value = value_match.group(1)
+                break
+
+# Fallback: parse more carefully
+if not smuggled_endpoint or not secret_value:
+    # Use tshark for better HTTP parsing
+    result = subprocess.run(
+        ['tshark', '-r', '/tmp/suspicious_traffic.pcap', '-Y', 'http', '-T', 'fields', 
+         '-e', 'http.request.method', '-e', 'http.request.uri', '-e', 'http.response'],
+        capture_output=True,
+        text=True
+    )
+    
+    # Also get full HTTP data
+    result2 = subprocess.run(
+        ['tshark', '-r', '/tmp/suspicious_traffic.pcap', '-Y', 'http', '-V'],
+        capture_output=True,
+        text=True
+    )
+    
+    http_detail = result2.stdout
+    
+    # Find restricted endpoints
+    endpoints = re.findall(r'POST\s+(/admin[^\s]*|/internal[^\s]*|/secret[^\s]*)', http_detail, re.IGNORECASE)
+    if endpoints and not smuggled_endpoint:
+        smuggled_endpoint = endpoints[0]
+        smuggled_method = 'POST'
+    
+    # Find secret values in response
+    secrets = re.findall(r'(?:secret|token|key)["\s:=]+([a-zA-Z0-9_-]{10,})', http_detail, re.IGNORECASE)
+    if secrets and not secret_value:
+        secret_value = secrets[0]
+
+# Write results
+with open('/tmp/analysis_result.txt', 'w') as f:
+    f.write(f'endpoint={smuggled_endpoint}\n')
+    f.write(f'secret={secret_value}\n')
+    f.write(f'method={smuggled_method}\n')
+```
+
+Let me execute this analysis:
+
+```python
+#!/usr/bin/env python3
+import subprocess
+import re
+
+# Read the PCAP using tcpdump
+result = subprocess.run(
+    ['tcpdump', '-r', '/tmp/suspicious_traffic.pcap', '-A', '-XX', '-n'],
+    capture_output=True,
+    text=True,
+    stderr=subprocess.DEVNULL
+)
+
+traffic = result.stdout
+
+# Extract HTTP data more carefully
+# Look for the smuggled request structure
+lines = traffic.split('\n')
+
+endpoint = None
+secret = None
+method = None
+
+# Parse through looking for HTTP requests
+in_http = False
+current_request = []
+
+for line in lines:
+    if 'POST /' in line or 'GET /' in line:
+        if current_request:
+            # Process previous request
+            req_text = '\n'.join(current_request)
+            if '/admin' in req_text or '/secret' in req_text or '/internal' in req_text:
+                match = re.search(r'(POST|GET)\s+(/[^\s]+)', req_text)
+                if match and not endpoint:
+                    method = match.group(1)
+                    endpoint = match.group(2)
+        current_request = [line]
+    elif current_request:
+        current_request.append(line)
+        
+    # Look for secret in responses
+    if 'secret' in line.lower() or 'token' in line.lower():
+        secret_match = re.search(r'[a-zA-Z0-9_-]{12,}', line)
+        if secret_match and not secret:
+            secret = secret_match.group(0)
+
+# Write output
+with open('/tmp/analysis_result.txt', 'w') as f:
+    f.write(f'endpoint={endpoint}\n')
+    f.write(f'secret={secret}\n')
+    f.write(f'method={method}\n')
+```
+
+<exec>
+#!/usr/bin/env python3
+import subprocess
+import re
+
+try:
+    # Extract HTTP traffic from PCAP
+    result = subprocess.run(
+        ['tcpdump', '-r', '/tmp/suspicious_traffic.pcap', '-A', '-s', '0', 'tcp'],
+        capture_output=True,
+        text=True,
+        stderr=subprocess.DEVNULL
+    )
+    
+    traffic = result.stdout
+    
+    # Initialize variables
+    endpoint = None
+    secret = None
+    method = 'POST'
+    
+    # Look for POST requests to restricted paths
+    post_matches = re.findall(r'POST\s+(/[^\s\r\n]+)', traffic)
+    for path in post_matches:
+        if any(keyword in path.lower() for keyword in ['admin', 'secret', 'internal', 'api']):
+            endpoint = path
+            break
+    
+    # Look for secret values in the traffic
+    secret_patterns = [
+        r'secret[_\-]?(?:token|key|value)?[\s:=]+([a-zA-Z0-9_\-]{10,})',
+        r'"secret"[\s:]+?"([^"]+)"',
+        r'SECRET_VALUE:\s*([a-zA-Z0-9_\-]+)',
+        r'token[\s:=]+([a-zA-Z0-9_\-]{10,})',
+    ]
+    
+    for pattern in secret_patterns:
+        matches = re.findall(pattern, traffic, re.IGNORECASE)
+        if matches:
+            secret = matches[0]
+            break
+    
+    # Write results
+    with open('/tmp/analysis_result.txt', 'w') as f:
+        f.write(f'endpoint={endpoint}\n')
+        f.write(f'secret={secret}\n')
+        f.write(f'method={method}\n')
+        
+except Exception as e:
+    print(f"Error: {e}")
+</exec>

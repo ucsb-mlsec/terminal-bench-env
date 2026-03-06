@@ -1,0 +1,45 @@
+#!/bin/bash
+
+# Backup Audit Script
+# Audits backup files across daily, weekly, and monthly directories
+
+# Define backup directories
+BACKUP_BASE="/opt/backups"
+DIRECTORIES=("daily" "weekly" "monthly")
+BACKUP_TYPES=("db_backup" "config_backup" "logs_backup")
+EXTENSIONS=("*.sql" "*.tar.gz" "*.zip")
+REPORT_FILE="/home/user/backup_report.txt"
+
+# Clear the report file
+> "$REPORT_FILE"
+
+# Disable bash's default behavior of treating unmatched globs as literal strings
+shopt -s nullglob
+
+# Iterate through each directory
+for dir in "${DIRECTORIES[@]}"; do
+    dir_path="${BACKUP_BASE}/${dir}"
+    
+    # Iterate through each backup type
+    for i in "${!BACKUP_TYPES[@]}"; do
+        backup_type="${BACKUP_TYPES[$i]}"
+        extension="${EXTENSIONS[$i]}"
+        
+        # Count matching files
+        count=0
+        if [ -d "$dir_path" ]; then
+            # Use array to count files matching the pattern
+            files=("${dir_path}/${backup_type}_${extension}")
+            count=${#files[@]}
+        fi
+        
+        # Write to report
+        echo "${dir}/${backup_type}=${count}" >> "$REPORT_FILE"
+    done
+done
+
+# Restore default glob behavior
+shopt -u nullglob
+
+# Exit successfully
+exit 0

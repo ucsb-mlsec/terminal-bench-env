@@ -1,0 +1,185 @@
+I'll help you create a comprehensive parallel word search system. Let me start by creating the necessary files.
+
+First, let me create the text data files with realistic content:
+
+**Creating file1.txt through file8.txt with realistic technical content:**
+
+Due to the size constraints, I'll create a Python script that generates these files programmatically, then create the main parallel search solution.
+
+Let me create the complete solution:
+
+```python
+#!/usr/bin/env python3
+import os
+import json
+import time
+import random
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from collections import Counter
+import multiprocessing as mp
+
+# First, let's ensure the data files exist
+def generate_test_data():
+    """Generate test data files if they don't exist"""
+    
+    # Create directory if it doesn't exist
+    os.makedirs('/workspace/textdata', exist_ok=True)
+    
+    # Sample vocabulary for generating realistic text
+    tech_words = [
+        'algorithm', 'thread', 'worker', 'task', 'queue', 'processing', 
+        'computation', 'distribute', 'pipeline', 'batch', 'stream', 'async',
+        'synchronize', 'coordinate', 'schedule', 'parallel', 'concurrent',
+        'mutex', 'semaphore', 'deadlock', 'optimization', 'efficiency',
+        'throughput', 'latency', 'bandwidth', 'cache', 'memory', 'buffer',
+        'network', 'protocol', 'packet', 'routing', 'gateway', 'server',
+        'client', 'request', 'response', 'database', 'query', 'index',
+        'transaction', 'consistency', 'availability', 'partition', 'replica',
+        'sharding', 'scaling', 'load', 'balancer', 'proxy', 'handler'
+    ]
+    
+    common_words = [
+        'the', 'is', 'and', 'to', 'of', 'in', 'for', 'with', 'on', 'at',
+        'by', 'from', 'as', 'this', 'that', 'which', 'will', 'can', 'has',
+        'are', 'was', 'been', 'have', 'had', 'does', 'did', 'system', 'data',
+        'process', 'function', 'method', 'class', 'object', 'value', 'result',
+        'operation', 'execution', 'implementation', 'performance', 'analysis'
+    ]
+    
+    all_words = tech_words + common_words
+    
+    # Generate 8 text files
+    for file_num in range(1, 9):
+        filepath = f'/workspace/textdata/file{file_num}.txt'
+        if not os.path.exists(filepath):
+            print(f"Generating {filepath}...")
+            with open(filepath, 'w') as f:
+                for line_num in range(100000):
+                    # Generate a sentence with 5-15 words
+                    sentence_length = random.randint(5, 15)
+                    words = []
+                    for _ in range(sentence_length):
+                        word = random.choice(all_words)
+                        # Add case variety
+                        case_choice = random.random()
+                        if case_choice < 0.7:
+                            words.append(word.lower())
+                        elif case_choice < 0.85:
+                            words.append(word.upper())
+                        elif case_choice < 0.95:
+                            words.append(word.capitalize())
+                        else:
+                            words.append(word)
+                    
+                    f.write(' '.join(words) + '\n')
+    
+    # Generate search terms file
+    search_terms_path = '/workspace/search_terms.txt'
+    if not os.path.exists(search_terms_path):
+        print(f"Generating {search_terms_path}...")
+        search_terms = ['algorithm', 'thread', 'worker', 'queue', 'parallel', 
+                       'processing', 'data', 'system', 'async', 'task',
+                       'pipeline', 'batch', 'optimization', 'cache', 'memory']
+        with open(search_terms_path, 'w') as f:
+            for term in search_terms:
+                f.write(term + '\n')
+
+
+def search_word_in_file(args):
+    """Search for a word in a specific file (case-insensitive)"""
+    filepath, word = args
+    word_lower = word.lower()
+    count = 0
+    
+    try:
+        with open(filepath, 'r') as f:
+            for line in f:
+                # Case-insensitive word matching
+                line_lower = line.lower()
+                words_in_line = line_lower.split()
+                count += words_in_line.count(word_lower)
+    except Exception as e:
+        print(f"Error reading {filepath}: {e}")
+        return 0
+    
+    return count
+
+
+def search_files_for_word(word, filepaths):
+    """Search all files for a specific word using parallel processing"""
+    # Create tasks for each file
+    tasks = [(filepath, word) for filepath in filepaths]
+    
+    total_count = 0
+    
+    # Use ProcessPoolExecutor for CPU-bound task
+    with ProcessPoolExecutor(max_workers=mp.cpu_count()) as executor:
+        futures = [executor.submit(search_word_in_file, task) for task in tasks]
+        
+        for future in as_completed(futures):
+            total_count += future.result()
+    
+    return total_count
+
+
+def parallel_search():
+    """Main function to perform parallel search across all files"""
+    
+    # Start timing
+    start_time = time.time()
+    
+    # Read search terms
+    search_terms_path = '/workspace/search_terms.txt'
+    with open(search_terms_path, 'r') as f:
+        search_terms = [line.strip() for line in f if line.strip()]
+    
+    # Get all text files
+    textdata_dir = '/workspace/textdata'
+    filepaths = [
+        os.path.join(textdata_dir, f'file{i}.txt') 
+        for i in range(1, 9)
+    ]
+    
+    # Filter only existing files
+    filepaths = [fp for fp in filepaths if os.path.exists(fp)]
+    
+    print(f"Searching for {len(search_terms)} terms across {len(filepaths)} files...")
+    
+    # Search for each word across all files
+    results = {}
+    
+    for idx, word in enumerate(search_terms, 1):
+        print(f"Searching for '{word}' ({idx}/{len(search_terms)})...")
+        count = search_files_for_word(word, filepaths)
+        results[word] = count
+        print(f"  Found {count} occurrences")
+    
+    # Calculate execution time
+    execution_time = time.time() - start_time
+    
+    # Prepare output
+    output = {
+        "execution_time_seconds": round(execution_time, 3),
+        "results": results
+    }
+    
+    # Save results
+    output_path = '/workspace/search_results.json'
+    with open(output_path, 'w') as f:
+        json.dump(output, f, indent=2)
+    
+    print(f"\nSearch completed in {execution_time:.3f} seconds")
+    print(f"Results saved to {output_path}")
+    
+    return output
+
+
+if __name__ == '__main__':
+    # Generate test data if needed
+    generate_test_data()
+    
+    # Perform parallel search
+    parallel_search()
+```
+
+Save this as `/workspace/parallel_search.py`

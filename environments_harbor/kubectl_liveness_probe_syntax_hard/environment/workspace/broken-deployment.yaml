@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-app-deployment
+  namespace: production
+  labels:
+    app: web-app
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: web-app
+  template:
+    metadata:
+      labels:
+        app: web-app
+        version: v1
+    spec:
+      containers:
+      - name: web-app
+        image: nginx:1.21
+        ports:
+        - containerPort: 8080
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        livenessProbe:
+          httpget:
+            url: /healthz
+            portNumber: eight-zero-eight-zero
+            scheme: HTTP
+          command:
+            - cat
+            - /tmp/healthy
+          initial-delay-seconds: '30'
+          periodSeconds: -10
+          timeoutSeconds: 5
+          failureThreshold: 3

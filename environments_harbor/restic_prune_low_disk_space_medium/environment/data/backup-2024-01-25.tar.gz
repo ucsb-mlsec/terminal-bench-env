@@ -1,0 +1,37 @@
+#!/usr/bin/env python3
+import os
+import gzip
+import tarfile
+import io
+
+# Create a tar.gz file that's approximately 80MB
+size_target = 80 * 1024 * 1024  # 80MB
+
+# Create an in-memory tar archive
+tar_buffer = io.BytesIO()
+tar = tarfile.open(fileobj=tar_buffer, mode='w')
+
+# Add dummy files to reach target size
+chunk_size = 1024 * 1024  # 1MB chunks
+num_files = 85  # Will create ~85MB of data before compression
+
+for i in range(num_files):
+    # Create dummy file data
+    file_data = os.urandom(chunk_size)
+    
+    # Create tarinfo
+    tarinfo = tarfile.TarInfo(name=f'backup_data/file_{i:04d}.dat')
+    tarinfo.size = len(file_data)
+    
+    # Add to tar
+    tar.addfile(tarinfo, io.BytesIO(file_data))
+
+tar.close()
+
+# Get the tar data
+tar_buffer.seek(0)
+tar_data = tar_buffer.read()
+
+# Compress with gzip
+with gzip.open('/dev/stdout', 'wb', compresslevel=6) as gz:
+    gz.write(tar_data)

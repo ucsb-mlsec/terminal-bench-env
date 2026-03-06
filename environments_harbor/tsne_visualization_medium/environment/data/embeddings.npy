@@ -1,0 +1,27 @@
+import numpy as np
+
+# Set random seed for reproducibility
+np.random.seed(42)
+
+# Initialize array for embeddings
+embeddings = np.random.randn(500, 128).astype(np.float32)
+
+# Add category-specific patterns to make documents from same category cluster together
+for i in range(500):
+    if i < 100:  # Category 0
+        embeddings[i, 0:26] += 2.0
+    elif i < 200:  # Category 1
+        embeddings[i, 26:52] += 2.0
+    elif i < 300:  # Category 2
+        embeddings[i, 52:78] += 2.0
+    elif i < 400:  # Category 3
+        embeddings[i, 78:104] += 2.0
+    else:  # Category 4
+        embeddings[i, 104:128] += 2.0
+
+# Normalize each embedding vector to unit length
+norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
+embeddings = embeddings / norms
+
+# Save the embeddings
+np.save('/workspace/data/embeddings.npy', embeddings)

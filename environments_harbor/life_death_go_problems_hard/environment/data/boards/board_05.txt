@@ -1,0 +1,90 @@
+I'll analyze the Go boards to count groups and find the ones with the fewest liberties.
+
+First, let me read all the board files and analyze them:
+
+```python
+import os
+from collections import deque
+
+def read_board(filepath):
+    with open(filepath, 'r') as f:
+        return [line.strip() for line in f.readlines()]
+
+def get_neighbors(row, col):
+    """Get adjacent positions (up, down, left, right)"""
+    return [(row-1, col), (row+1, col), (row, col-1), (row, col+1)]
+
+def find_group(board, row, col, visited):
+    """Find all stones in a group using BFS"""
+    if visited[row][col] or board[row][col] == '.':
+        return set()
+    
+    color = board[row][col]
+    group = set()
+    queue = deque([(row, col)])
+    
+    while queue:
+        r, c = queue.popleft()
+        if (r, c) in group or visited[r][c]:
+            continue
+        if r < 0 or r >= 9 or c < 0 or c >= 9:
+            continue
+        if board[r][c] != color:
+            continue
+            
+        group.add((r, c))
+        visited[r][c] = True
+        
+        for nr, nc in get_neighbors(r, c):
+            if 0 <= nr < 9 and 0 <= nc < 9:
+                queue.append((nr, nc))
+    
+    return group
+
+def count_liberties(board, group):
+    """Count liberties for a group"""
+    liberties = set()
+    for row, col in group:
+        for nr, nc in get_neighbors(row, col):
+            if 0 <= nr < 9 and 0 <= nc < 9 and board[nr][nc] == '.':
+                liberties.add((nr, nc))
+    return len(liberties)
+
+def coord_to_string(row, col):
+    """Convert 0-indexed position to Go notation (A1-J9)"""
+    return f"{chr(ord('A') + col)}{row + 1}"
+
+def analyze_board(filepath):
+    board = read_board(filepath)
+    visited = [[False] * 9 for _ in range(9)]
+    groups = []
+    
+    for row in range(9):
+        for col in range(9):
+            if not visited[row][col] and board[row][col] != '.':
+                group = find_group(board, row, col, visited)
+                if group:
+                    liberties = count_liberties(board, group)
+                    top_left = min(group)  # Gets topmost, then leftmost
+                    groups.append((top_left, liberties, group))
+    
+    # Find minimum liberties
+    min_liberties = min(g[1] for g in groups)
+    min_group = min(g for g in groups if g[1] == min_liberties)
+    
+    return len(groups), min_group[0], min_group[1]
+
+# Analyze all boards
+results = []
+for i in range(1, 16):
+    filename = f"board_{i:02d}.txt"
+    filepath = f"/home/agent/boards/{filename}"
+    
+    if os.path.exists(filepath):
+        num_groups, (row, col), liberties = analyze_board(filepath)
+        coord = coord_to_string(row, col)
+        results.append(f"{filename}: {num_groups} groups, minimum at {coord}, {liberties} liberties")
+
+# Write results
+with open('/home/agent/liberty_analysis.txt', 'w') as f:
+    f.write('\n'.join(results) + '\n')

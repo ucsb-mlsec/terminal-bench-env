@@ -1,0 +1,45 @@
+import numpy as np
+from datetime import datetime, timedelta
+
+# Create March 2024 sensor data with the specified structure
+np.random.seed(303)  # For reproducibility
+
+# Generate 95 records for March
+n_records = 95
+
+# Define the dtype
+dtype = [
+    ('timestamp', 'datetime64[s]'),
+    ('temperature', 'f8'),
+    ('humidity', 'f8'),
+    ('pressure', 'f8'),
+    ('vibration', 'f8'),
+    ('light_level', 'f8'),
+    ('sensor_id', 'i4'),
+    ('location', 'U20')
+]
+
+# Create structured array
+data = np.zeros(n_records, dtype=dtype)
+
+# Generate timestamps for March 2024
+start_date = datetime(2024, 3, 1, 0, 0, 0)
+timestamps = [start_date + timedelta(hours=i*7.5) for i in range(n_records)]
+data['timestamp'] = np.array(timestamps, dtype='datetime64[s]')
+
+# Generate sensor readings with realistic variations
+data['temperature'] = np.random.uniform(19.0, 26.5, n_records)
+data['humidity'] = np.random.uniform(32.0, 68.0, n_records)
+data['pressure'] = np.random.uniform(1012.0, 1028.0, n_records)
+data['vibration'] = np.random.uniform(0.2, 2.8, n_records)
+data['light_level'] = np.random.uniform(100.0, 1000.0, n_records)
+
+# Generate sensor IDs (1-6)
+data['sensor_id'] = np.random.randint(1, 7, n_records)
+
+# Generate location strings
+locations = ['Lab-A', 'Lab-B', 'Storage', 'Warehouse']
+data['location'] = np.random.choice(locations, n_records)
+
+# Save the structured array
+np.save('/data/experiments/sensor_readings_2024_03.npy', data)

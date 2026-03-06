@@ -1,0 +1,161 @@
+IoT Sensor Monitoring System - Performance Requirements
+
+==============================================================================
+QUERY PERFORMANCE SLAs
+==============================================================================
+
+Single sensor time-range queries: p99 latency < 100ms
+- Query pattern: Retrieve all readings for a specific sensor over a date range
+- Must support ranges from 1 hour to 90 days
+- Expected query frequency: High (monitoring dashboards, analytics)
+
+Latest reading queries: p99 latency < 50ms
+- Query pattern: Get most recent reading for a specific sensor
+- Critical for real-time monitoring and alerting
+- Expected query frequency: Very high (health checks, dashboards)
+
+Data center-wide queries (latest): p99 latency < 500ms
+- Query pattern: Retrieve latest readings for all sensors in a data center
+- Used for data center health overview dashboards
+- Expected query frequency: Medium (administrative monitoring)
+
+90-day time range queries: p99 latency < 2 seconds
+- Query pattern: Historical analysis queries spanning full retention period
+- Used for trend analysis and reporting
+- Expected query frequency: Low (batch analytics jobs)
+
+==============================================================================
+WRITE PERFORMANCE REQUIREMENTS
+==============================================================================
+
+Peak load: 50,000 writes/second
+- Occurs during synchronized sensor reporting intervals
+- System must maintain performance during peaks
+- Cannot drop or delay writes
+
+Average load: 25,000 writes/second
+- Sustained normal operation throughput
+- 15,000 sensors × 3 reading types / 30 seconds = 1,500 writes/second per type
+- Actual average accounts for network delays and staggered reporting
+
+Must handle burst traffic without data loss:
+- Sensor reconnection storms after network outages
+- Bulk backfill operations from sensor buffers
+- No acceptable data loss tolerance
+
+==============================================================================
+DATA DISTRIBUTION REQUIREMENTS
+==============================================================================
+
+No hot partitions - data must distribute evenly across cluster nodes:
+- Write load must be balanced across all 6 cluster nodes
+- Read load must not concentrate on specific nodes
+- Avoid time-based partition keys that create hotspots during write bursts
+
+Partition size must remain bounded (recommend < 100MB per partition):
+- Cassandra performance degrades with partitions > 100MB
+- Queries slow down as partition size increases
+- Compaction becomes expensive with large partitions
+
+Prevent unlimited partition growth over time:
+- Using only sensor_id as partition key creates unbounded growth
+- Each sensor generates ~8,640 readings per day (3 types × 2,880 30-sec intervals)
+- Over 90 days: ~777,600 readings per sensor = unbounded partition
+- Must include time component in partition key to bound growth
+
+==============================================================================
+DATA RETENTION REQUIREMENTS
+==============================================================================
+
+90-day retention period:
+- Data older than 90 days must be automatically removed
+- Retention policy driven by storage capacity and compliance requirements
+
+Must support automatic TTL-based expiration:
+- Cassandra default_time_to_live = 7776000 (90 days in seconds)
+- No manual cleanup jobs required
+- Tombstones must be manageable
+
+Old data must be efficiently removed:
+- TTL expiration should not create performance issues
+- Compaction strategy must handle tombstone cleanup efficiently
+- Time-bucketed partitions enable efficient data aging
+
+==============================================================================
+SYSTEM SCALE METRICS
+==============================================================================
+
+15,000+ active sensors:
+- Distributed across 5 data centers
+- Sensors can be added/removed dynamically
+- Sensor IDs are UUIDs
+
+5 data centers:
+- Geographic distribution: US-East, US-West, EU-Central, APAC-Singapore, APAC-Tokyo
+- Each data center contains 2,000-4,000 sensors
+- Data center identifiers: dc_east, dc_west, dc_eu, dc_apac_sg, dc_apac_tokyo
+
+3 reading types per sensor:
+- temperature (Celsius)
+- humidity (percentage)
+- pressure (kPa)
+- Each type stored as separate reading
+
+Write frequency: every 30 seconds per sensor:
+- 15,000 sensors × 3 types = 45,000 distinct time series
+- 45,000 time series × 2 readings/minute = 90,000 writes/minute
+- 90,000 writes/minute ÷ 60 seconds = 1,500 writes/second baseline
+- Peak load accounts for synchronized reporting and retries
+
+Calculated data volume:
+- ~750,000 readings per 30-second interval across all sensors
+- Daily: ~2.16 billion readings
+- 90-day retention: ~194.4 billion readings
+- Average reading size: ~150 bytes
+- Total data: ~29TB (before replication)
+- With RF=3: ~87TB total cluster storage
+
+==============================================================================
+INFRASTRUCTURE CONSTRAINTS
+==============================================================================
+
+6-node Cassandra cluster with replication factor 3:
+- Node capacity: ~15TB usable storage each
+- Network: 10Gbps interconnect
+- CPU: 32 cores per node
+- Memory: 128GB per node
+
+Cannot add more hardware:
+- Budget constraints prevent horizontal scaling
+- Must optimize schema to work within existing cluster capacity
+
+Schema optimization is the only solution:
+- Hardware is properly sized for workload
+- Current schema design is the bottleneck
+- Partition key redesign will resolve performance issues
+
+==============================================================================
+ROOT CAUSE ANALYSIS (Current Schema Problems)
+==============================================================================
+
+Problem 1 - Hot Partitions:
+- Current schema likely uses data_center or timestamp as partition key
+- Creates hotspots during synchronized sensor reporting
+- Some nodes handle disproportionate write load
+
+Problem 2 - Unbounded Partition Growth:
+- If using sensor_id alone as partition key
+- Each sensor partition grows infinitely over time
+- 90 days of data per sensor exceeds optimal partition size
+- Query performance degrades as partitions grow
+
+Problem 3 - Poor Time-Range Query Performance:
+- Without time component in partition key, range queries scan entire partition
+- Cannot efficiently prune partitions for time-range queries
+- Forces full partition scans for historical queries
+
+Required Solution:
+- Composite partition key combining sensor_id with time bucket
+- Time bucket bounds partition growth (e.g., daily or weekly buckets)
+- Distributes writes evenly across nodes
+- Clustering by timestamp enables efficient time-range queries

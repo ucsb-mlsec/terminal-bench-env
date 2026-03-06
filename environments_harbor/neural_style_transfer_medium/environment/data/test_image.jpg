@@ -1,0 +1,106 @@
+#!/usr/bin/env python3
+"""
+Feature extraction utility for neural style transfer pipeline.
+Extracts features from VGG19 layers 10, 15, and 20.
+"""
+
+import json
+import numpy as np
+from tensorflow.keras.applications.vgg19 import VGG19, preprocess_input
+from tensorflow.keras.preprocessing import image
+from tensorflow.keras.models import Model
+import tensorflow as tf
+
+# Set random seeds for reproducibility
+np.random.seed(42)
+tf.random.set_seed(42)
+
+def load_and_preprocess_image(img_path):
+    """
+    Load and preprocess an image for VGG19.
+    
+    Args:
+        img_path: Path to the image file
+        
+    Returns:
+        Preprocessed image array ready for VGG19
+    """
+    img = image.load_img(img_path, target_size=(224, 224))
+    img_array = image.img_to_array(img)
+    img_array = np.expand_dims(img_array, axis=0)
+    img_array = preprocess_input(img_array)
+    return img_array
+
+def create_feature_extractor(layer_indices):
+    """
+    Create a feature extraction model from VGG19.
+    
+    Args:
+        layer_indices: List of layer indices to extract features from
+        
+    Returns:
+        Keras Model that outputs features from specified layers
+    """
+    # Load pre-trained VGG19 model
+    base_model = VGG19(weights='imagenet', include_top=False)
+    
+    # Get the layers we want to extract features from
+    outputs = [base_model.layers[idx].output for idx in layer_indices]
+    
+    # Create model that outputs features from specified layers
+    feature_model = Model(inputs=base_model.input, outputs=outputs)
+    
+    return feature_model
+
+def extract_features(img_path, layer_indices):
+    """
+    Extract features from specified VGG19 layers.
+    
+    Args:
+        img_path: Path to input image
+        layer_indices: List of layer indices to extract from
+        
+    Returns:
+        Dictionary mapping layer index to mean activation value
+    """
+    # Load and preprocess image
+    img_array = load_and_preprocess_image(img_path)
+    
+    # Create feature extraction model
+    feature_model = create_feature_extractor(layer_indices)
+    
+    # Extract features
+    features = feature_model.predict(img_array, verbose=0)
+    
+    # Calculate mean activation for each layer
+    results = {}
+    for idx, feature_map in zip(layer_indices, features):
+        mean_activation = float(np.mean(feature_map))
+        results[f"layer_{idx}_mean"] = mean_activation
+    
+    return results
+
+def main():
+    """Main execution function."""
+    # Define input image path
+    img_path = '/workspace/test_image.jpg'
+    
+    # Define layer indices to extract features from
+    layer_indices = [10, 15, 20]
+    
+    # Extract features
+    print("Loading VGG19 model and extracting features...")
+    feature_stats = extract_features(img_path, layer_indices)
+    
+    # Save results to JSON
+    output_path = '/workspace/features.json'
+    with open(output_path, 'w') as f:
+        json.dump(feature_stats, f, indent=2)
+    
+    print(f"Feature extraction complete. Results saved to {output_path}")
+    print("\nExtracted features:")
+    for layer_name, mean_val in feature_stats.items():
+        print(f"  {layer_name}: {mean_val:.2f}")
+
+if __name__ == "__main__":
+    main()

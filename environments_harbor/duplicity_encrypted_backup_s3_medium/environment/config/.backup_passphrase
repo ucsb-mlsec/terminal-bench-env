@@ -1,0 +1,30 @@
+#!/bin/bash
+
+# Configuration and environment setup
+SOURCE_DIR="/opt/appdata"
+S3_BUCKET="s3://s3.example.com/company-backups"
+CACHE_DIR="/var/cache/duplicity"
+PASSPHRASE_FILE="/root/.backup_passphrase"
+S3_CONFIG="/root/.s3cfg"
+
+# Export passphrase for duplicity
+export PASSPHRASE=$(cat ${PASSPHRASE_FILE})
+
+# Export S3 credentials from s3cfg
+export AWS_ACCESS_KEY_ID=$(grep access_key ${S3_CONFIG} | cut -d'=' -f2 | tr -d ' ')
+export AWS_SECRET_ACCESS_KEY=$(grep secret_key ${S3_CONFIG} | cut -d'=' -f2 | tr -d ' ')
+
+# FULL BACKUP
+duplicity full --encrypt-key=${BACKUP_GPG_KEY} --sign-key=${BACKUP_GPG_KEY} --archive-dir=${CACHE_DIR} ${SOURCE_DIR} ${S3_BUCKET}
+
+# INCREMENTAL BACKUP
+duplicity incremental --encrypt-key=${BACKUP_GPG_KEY} --sign-key=${BACKUP_GPG_KEY} --archive-dir=${CACHE_DIR} ${SOURCE_DIR} ${S3_BUCKET}
+
+# CLEANUP OLD BACKUPS
+duplicity remove-older-than 30D --force --archive-dir=${CACHE_DIR} ${S3_BUCKET}
+duplicity remove-all-inc-of-but-n-full 1 --force --archive-dir=${CACHE_DIR} ${S3_BUCKET}
+
+# Unset sensitive environment variables
+unset PASSPHRASE
+unset AWS_ACCESS_KEY_ID
+unset AWS_SECRET_ACCESS_KEY

@@ -1,0 +1,48 @@
+% Problem: General shader correctness verification
+% Type: mixed_characteristics
+% Description: Verifies general correctness properties of shader transformations
+% Characteristics: Mix of equality reasoning, moderate term depth, 25 clauses
+% Note: Balanced problem without strongly dominant characteristic
+
+% Equality axioms
+fof(reflexivity, axiom, ![X]: X = X).
+fof(symmetry, axiom, ![X,Y]: (X = Y => Y = X)).
+fof(transitivity, axiom, ![X,Y,Z]: ((X = Y & Y = Z) => X = Z)).
+fof(substitution_transform, axiom, ![X,Y]: (X = Y => transform(X) = transform(Y))).
+fof(substitution_apply, axiom, ![X,Y,Z]: (X = Y => apply(X,Z) = apply(Y,Z))).
+fof(substitution_apply2, axiom, ![X,Y,Z]: (X = Y => apply(Z,X) = apply(Z,Y))).
+fof(substitution_combine, axiom, ![X,Y,Z]: (X = Y => combine(X,Z) = combine(Y,Z))).
+
+% Shader transformation properties
+fof(transform_preserves_validity, axiom, ![S]: (valid_shader(S) => valid_shader(transform(S)))).
+fof(apply_combination, axiom, ![S,T,X]: apply(combine(S,T),X) = combine(apply(S,X),apply(T,X))).
+fof(transform_idempotent, axiom, ![S]: transform(transform(S)) = transform(S)).
+fof(valid_base_shader, axiom, valid_shader(base_shader)).
+
+% Equivalence properties
+fof(equivalent_reflexive, axiom, ![S]: equivalent(S,S)).
+fof(equivalent_symmetric, axiom, ![S,T]: (equivalent(S,T) => equivalent(T,S))).
+fof(equivalent_preserves_valid, axiom, ![S,T]: ((equivalent(S,T) & valid_shader(S)) => valid_shader(T))).
+
+% Correctness properties
+fof(correct_implies_valid, axiom, ![S]: (correct(S) => valid_shader(S))).
+fof(preserves_correctness, axiom, ![S,P]: ((correct(S) & preserves(transform(S),P)) => correct(transform(S)))).
+fof(base_correct, axiom, correct(base_shader)).
+
+% Preservation properties
+fof(preserves_reflexive, axiom, ![S,P]: preserves(S,P) => preserves(S,P)).
+fof(combine_preserves, axiom, ![S,T,P]: ((preserves(S,P) & preserves(T,P)) => preserves(combine(S,T),P))).
+fof(transform_preserves_property, axiom, ![S,P]: (preserves(S,P) => preserves(transform(S),P))).
+
+% Additional transformation rules
+fof(apply_transform_commute, axiom, ![S,X]: apply(transform(S),X) = transform(apply(S,X))).
+fof(combine_associative, axiom, ![S,T,U]: combine(combine(S,T),U) = combine(S,combine(T,U))).
+fof(equivalent_transform, axiom, ![S,T]: (equivalent(S,T) => equivalent(transform(S),transform(T)))).
+
+% Specific shader instances
+fof(shader_s1_valid, axiom, valid_shader(shader_s1)).
+fof(shader_s1_preserves, axiom, preserves(shader_s1,property_alpha)).
+
+% Conjecture: transformed combined shader maintains correctness
+fof(main_conjecture, conjecture, 
+    correct(transform(combine(base_shader,shader_s1)))).

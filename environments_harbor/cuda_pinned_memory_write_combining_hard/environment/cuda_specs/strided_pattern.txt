@@ -1,0 +1,109 @@
+File: cuda_specs/strided_pattern.txt
+
+PATTERN NAME: Strided Write Pattern
+
+==================================================
+MEMORY ACCESS SEQUENCE
+==================================================
+
+Buffer size: 32 MB (33554432 bytes)
+
+Access pattern: Strided writes with stride of 128 bytes
+
+Write order: 
+- First pass writes to offsets 0, 128, 256, 384, 512, ...
+- Second pass writes to offsets 4, 132, 260, 388, 516, ...
+- Third pass writes to offsets 8, 136, 264, 392, 520, ...
+- Pattern continues for 32 passes total
+- Each pass shifts the starting offset by 4 bytes
+
+Write size: 4-byte (32-bit) writes per operation
+
+Stride distance: 128 bytes between consecutive writes in each pass
+
+Total number of passes: 32 passes required to fill entire buffer
+
+Read-back operations: Approximately 1 read per 100 writes for data integrity verification
+
+Total operations per pass: 262,144 writes
+Total operations across all passes: 8,388,608 writes
+Total verification reads: ~83,886 reads
+
+==================================================
+BUFFER ALIGNMENT
+==================================================
+
+Buffer allocation alignment: 128-byte boundary
+Starting address alignment: 128-byte aligned
+Stride alignment: Matches cache line boundaries (64-byte cache lines)
+Every other stride crosses cache line boundary
+
+==================================================
+CURRENT MEMORY ALLOCATION
+==================================================
+
+Current API: cudaHostAlloc with cudaHostAllocDefault flag
+Memory type: Standard pinned memory
+Cache behavior: Cacheable memory, CPU cache enabled
+Memory mapping: Locked in physical memory, pageable=false
+DMA capability: Direct memory access enabled for GPU transfers
+
+==================================================
+OBSERVED PERFORMANCE CHARACTERISTICS
+==================================================
+
+Current write throughput: 1.8 GB/s
+Average write latency: 22 nanoseconds per 4-byte write
+Cache hit rate: Approximately 60%
+Cache miss rate: Approximately 40%
+
+Performance issues observed:
+- Large stride (128 bytes) causes cache line conflicts
+- Strided pattern results in poor spatial locality
+- Multiple cache lines resident simultaneously
+- Cache thrashing when working set exceeds L1/L2 capacity
+- Read-back operations require cache coherency protocol
+- Verification reads may hit modified cache lines
+- Cache line evictions before writes complete
+
+Cache behavior details:
+- Each 128-byte stride spans 2 cache lines (64 bytes each)
+- Working set per pass: 262,144 cache lines active
+- Cache pressure high due to scattered access pattern
+- Frequent cache line replacements observed
+
+==================================================
+USE CASE
+==================================================
+
+Application: Interleaved color channel processing for image manipulation
+
+Processing model:
+- RGB image data stored in interleaved format (RGBRGBRGB...)
+- Each pixel is 12 bytes (4 bytes per channel)
+- Processing operates on one color channel at a time
+
+Channel isolation:
+- Red channel: offsets 0, 12, 24, 36, 48, ... (stride reflects pixel size)
+- Green channel: offsets 4, 16, 28, 40, 52, ...
+- Blue channel: offsets 8, 20, 32, 44, 56, ...
+- Stride of 128 bytes used for optimization to align with memory subsystem
+
+Data verification:
+- Read-back operations verify correct channel isolation
+- Ensures no cross-channel contamination
+- Verification reads check that writes committed correctly
+- Cache coherency critical for verification accuracy
+
+Processing workflow:
+1. CPU performs channel-specific computations
+2. Writes processed data to pinned buffer with stride
+3. Periodic verification reads ensure data integrity
+4. GPU reads buffer for further processing
+5. Strided pattern repeats for entire image dataset
+
+Performance requirements:
+- High throughput for real-time image processing
+- Low latency for interactive applications
+- Data integrity verification essential
+- Cache coherency must be maintained for correctness

@@ -1,0 +1,55 @@
+PagerDuty Events API v2 Documentation
+==========================================
+
+ENDPOINT
+--------
+POST /v2/enqueue
+
+DESCRIPTION
+-----------
+Creates a new incident in PagerDuty by sending an event to the Events API v2.
+
+REQUIRED HEADERS
+----------------
+Content-Type: application/json
+
+REQUEST BODY FORMAT
+-------------------
+The request body must be a JSON object with the following fields:
+
+- routing_key (string, required): The integration key for your PagerDuty service
+- event_action (string, required): The action to perform. Use "trigger" to create a new incident
+- payload (object, required): Contains the incident details with the following fields:
+  - summary (string, required): A brief description of the incident
+  - severity (string, required): Must be one of: "critical", "error", "warning", "info"
+  - source (string, required): The source system or host generating the event
+  - custom_details (object, optional): Additional custom data about the incident
+
+EXAMPLE REQUEST
+---------------
+{
+  "routing_key": "R123456789ABCDEF",
+  "event_action": "trigger",
+  "payload": {
+    "summary": "High CPU usage detected on prod-web-01",
+    "severity": "critical",
+    "source": "prod-web-01",
+    "custom_details": {
+      "alert_name": "High CPU Usage",
+      "message": "CPU usage at 95%"
+    }
+  }
+}
+
+RESPONSE CODES
+--------------
+202 Accepted: Event was successfully accepted and will be processed
+400 Bad Request: Invalid request format or missing required fields
+401 Unauthorized: Invalid routing key
+429 Rate Limited: Too many requests
+
+NOTES
+-----
+- All requests must include the Content-Type header set to application/json
+- The routing_key identifies which PagerDuty service should receive the incident
+- The event_action field must be "trigger" when creating new incidents

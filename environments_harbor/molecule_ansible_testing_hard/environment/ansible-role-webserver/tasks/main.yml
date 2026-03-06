@@ -1,0 +1,79 @@
+---
+- name: Update apt cache
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+  when: ansible_os_family == "Debian"
+
+- name: Install Apache on Debian systems
+  apt:
+    name: "{{ webserver_package }}"
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Install Apache on RedHat systems
+  yum:
+    name: httpd
+    state: present
+  when ansible_os_family == "RedHat"
+
+- name: Create web directory
+  file:
+    path: /var/www/{{ site_name }}
+    state: directory
+    owner: www-data
+    mode: 0755
+
+- name: Deploy website configuration
+  template:
+    src: vhost.conf.j2
+    dest: "/etc/apache2/sites-available/{{ webserver_domain }}.conf"
+  notify: restart webserver
+  when: ansible_os_family == "Debian"
+
+- name: Enable Apache modules
+  apache2_module
+    name: "{{ item }}"
+    state: present
+  loop:
+    - rewrite
+    - ssl
+    - headers
+  when: ansible_os_family == "Debian"
+
+- name: Configure firewall for HTTP
+  ufw:
+    rule: allow
+    port: "{{ webserver_port }}"
+    proto: tcp
+
+- name: Configure firewall for HTTPS
+  ufw:
+    rule: allow
+    port: '443'
+    proto: tcp
+
+- name: Create database user with password
+  mysql_user:
+    name: webadmin
+    password: SuperSecret123!
+    priv: '*.*:ALL'
+    state: present
+
+- name: Install additional packages
+  package:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - php
+    - php-mysql
+    - libapache2-mod-php
+
+- name: Include security configuration
+  include: security.yml
+
+- name: Start and enable Apache service
+  service:
+    name: "{{ webserver_service_name }}"
+    status: started
+    enabled: yes

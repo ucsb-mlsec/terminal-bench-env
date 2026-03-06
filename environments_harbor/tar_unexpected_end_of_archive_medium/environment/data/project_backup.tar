@@ -1,0 +1,215 @@
+#!/bin/bash
+
+# Create a temporary directory for building the archive
+TEMP_DIR=$(mktemp -d)
+ARCHIVE_DIR="$TEMP_DIR/project"
+mkdir -p "$ARCHIVE_DIR"
+
+# Create main.py - A simple Python application
+cat > "$ARCHIVE_DIR/main.py" << 'PYEOF'
+#!/usr/bin/env python3
+"""
+Main application entry point for the project management system.
+Handles initialization and core business logic.
+"""
+
+import json
+import sys
+from utils import load_config, process_data
+
+def main():
+    """Main execution function"""
+    print("Starting Project Management System v2.1")
+    
+    try:
+        config = load_config('config.json')
+        print(f"Loaded configuration: {config['app_name']}")
+        
+        # Process data files
+        data = process_data('data.csv')
+        print(f"Processed {len(data)} records")
+        
+        # Execute main logic
+        results = execute_workflow(data, config)
+        print(f"Workflow completed: {results['status']}")
+        
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+def execute_workflow(data, config):
+    """Execute the main workflow"""
+    return {"status": "success", "processed": len(data)}
+
+if __name__ == "__main__":
+    main()
+PYEOF
+
+# Create config.json - Configuration file
+cat > "$ARCHIVE_DIR/config.json" << 'JSONEOF'
+{
+  "app_name": "ProjectManager",
+  "version": "2.1.0",
+  "database": {
+    "host": "localhost",
+    "port": 5432,
+    "name": "project_db",
+    "pool_size": 10
+  },
+  "logging": {
+    "level": "INFO",
+    "file": "/var/log/project.log",
+    "rotation": "daily"
+  },
+  "features": {
+    "auto_backup": true,
+    "notifications": true,
+    "analytics": false
+  }
+}
+JSONEOF
+
+# Create README.md - Documentation
+cat > "$ARCHIVE_DIR/README.md" << 'MDEOF'
+# Project Management System
+
+## Overview
+This is a comprehensive project management system designed for team collaboration and workflow automation.
+
+## Features
+- Task tracking and assignment
+- Real-time collaboration tools
+- Automated reporting and analytics
+- Integration with external services
+
+## Installation
+```bash
+pip install -r requirements.txt
+python main.py
+```
+
+## Configuration
+Edit `config.json` to customize settings for your environment.
+
+## Usage
+Run the main application:
+```bash
+python main.py --config config.json
+```
+
+## License
+MIT License - See LICENSE file for details
+MDEOF
+
+# Create data.csv - Sample data file
+cat > "$ARCHIVE_DIR/data.csv" << 'CSVEOF'
+id,project_name,status,priority,assigned_to,due_date,completion
+1,Website Redesign,in_progress,high,Alice Johnson,2024-03-15,65
+2,API Development,completed,high,Bob Smith,2024-02-28,100
+3,Database Migration,in_progress,critical,Carol White,2024-03-01,80
+4,Security Audit,pending,high,David Brown,2024-03-20,0
+5,Documentation Update,in_progress,medium,Alice Johnson,2024-03-10,45
+6,Performance Testing,pending,medium,Bob Smith,2024-03-25,0
+7,Mobile App Beta,in_progress,high,Carol White,2024-03-18,55
+8,User Training,completed,low,David Brown,2024-02-15,100
+9,Backup System,in_progress,critical,Alice Johnson,2024-03-05,90
+10,Code Review,pending,medium,Bob Smith,2024-03-12,0
+CSVEOF
+
+# Create utils.py - Utility functions
+cat > "$ARCHIVE_DIR/utils.py" << 'UTILEOF'
+"""
+Utility functions for the project management system.
+Provides common functionality used across modules.
+"""
+
+import json
+import csv
+
+def load_config(filepath):
+    """Load configuration from JSON file"""
+    with open(filepath, 'r') as f:
+        return json.load(f)
+
+def process_data(filepath):
+    """Process CSV data file"""
+    data = []
+    with open(filepath, 'r') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            data.append(row)
+    return data
+
+def validate_input(data, schema):
+    """Validate input data against schema"""
+    # Implementation here
+    return True
+UTILEOF
+
+# Create requirements.txt
+cat > "$ARCHIVE_DIR/requirements.txt" << 'REQEOF'
+requests==2.31.0
+pandas==2.0.3
+numpy==1.24.3
+flask==2.3.2
+sqlalchemy==2.0.19
+pytest==7.4.0
+REQEOF
+
+# Create LICENSE file
+cat > "$ARCHIVE_DIR/LICENSE" << 'LICEOF'
+MIT License
+
+Copyright (c) 2024 Project Management Team
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+LICEOF
+
+# Create a partial file that will be corrupted
+cat > "$ARCHIVE_DIR/database.sql" << 'SQLEOF'
+-- Database initialization script
+-- This file will be incomplete due to transmission corruption
+
+CREATE TABLE projects (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    status VARCHAR(50),
+    priority VARCHAR(20),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE tasks (
+    id SERIAL PRIMARY KEY,
+    project_id INTEGER REFERENCES projects(id),
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    assigned_to VARCHAR(100),
+SQLEOF
+
+# Create the complete tar archive first
+cd "$TEMP_DIR"
+tar -cf full_archive.tar project/
+
+# Now create the corrupted version by truncating after a few complete files
+# Extract to calculate where to truncate
+COMPLETE_SIZE=$(tar -tvf full_archive.tar | head -4 | awk '{sum += $3} END {print sum}')
+
+# Add some header overhead (approximately 512 bytes per file for tar headers)
+TRUNCATE_POINT=$((COMPLETE_SIZE + 2560))
+
+# Create the corrupted archive at the target location
+mkdir -p /home/user/backups
+dd if=full_archive.tar of=/home/user/backups/project_backup.tar bs=1 count=$TRUNCATE_POINT 2>/dev/null
+
+# Clean up
+rm -rf "$TEMP_DIR"
+
+echo "Corrupted tar archive created at /home/user/backups/project_backup.tar"

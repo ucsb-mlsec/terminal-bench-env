@@ -1,0 +1,82 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: xpostgresqlinstances.database.example.org
+  labels:
+    provider: aws
+    service: rds
+spec:
+  compositeTypeRef:
+    apiVersion: database.example.org/v1alpha1
+    kind: XPostgreSQLInstance
+  
+  resources:
+    - name: rdsinstance
+      base:
+        apiVersion: database.aws.upbound.io/v1beta1
+        kind: Instance
+        spec:
+          forProvider:
+            engine: postgres
+            engineVersion: "13.7"
+            publiclyAccessible: false
+            skipFinalSnapshot: true
+            storageEncrypted: true
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.instanceType
+          toFieldPath: spec.forProvider.instanceClass
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.storageSize
+          toFieldPath: spec.forProvider.allocatedStorage
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.databaseName
+          toFieldPath: spec.forProvider.dbName
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+      connectionDetails:
+        - name: endpoint
+          fromConnectionSecretKey: endpoint
+        - name: port
+          fromConnectionSecretKey: port
+        - name: username
+          fromConnectionSecretKey: username
+        - name: password
+          fromConnectionSecretKey: password
+
+    - name: subnetgroup
+      base:
+        apiVersion: database.aws.upbound.io/v1beta1
+        kind: SubnetGroup
+        spec:
+          forProvider:
+            subnetIds:
+              - subnet-12345
+              - subnet-67890
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.subnetIds
+          toFieldPath: spec.forProvider.subnetIdRefs
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.region
+          toFieldPath: spec.forProvider.region
+
+    - name: securitygroup
+      base:
+        apiVersion: ec2.aws.upbound.io/v1beta1
+        kind: SecurityGroup
+        spec:
+          forProvider:
+            description: Security group for PostgreSQL database
+            vpcId: vpc-default
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.vpcId
+          toFieldPath: spec.forProvider.vpcIdRef.name
+        - fromFieldPath: spec.parameters.allowedCIDR
+          toFieldPath: spec.forProvider.ingress[0].cidrBlocks[0]
+          type: FromCompositeFieldPath
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.environment
+          toFieldPath: metadata.labels.environment

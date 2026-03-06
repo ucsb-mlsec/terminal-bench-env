@@ -1,0 +1,82 @@
+I'll complete this hardware security assessment task by extracting the configuration variables from the bootloader dump and analyzing them for security issues.
+
+Let me start by examining the binary file and extracting the environment variables:
+
+```python
+import struct
+import json
+
+# Read the bootloader configuration binary
+with open('/workspace/bootloader_config.bin', 'rb') as f:
+    data = f.read()
+
+# Skip the first 4 bytes (CRC32 header)
+env_data = data[4:]
+
+# Extract null-terminated key=value pairs
+variables = {}
+current_pos = 0
+
+while current_pos < len(env_data):
+    # Find the next null terminator
+    null_pos = env_data.find(b'\x00', current_pos)
+    
+    if null_pos == -1 or null_pos == current_pos:
+        break
+    
+    # Extract the key=value pair
+    pair = env_data[current_pos:null_pos].decode('ascii', errors='ignore')
+    
+    # Check if it's a valid key=value pair
+    if '=' in pair and pair.strip():
+        key, value = pair.split('=', 1)
+        variables[key] = value
+    
+    current_pos = null_pos + 1
+    
+    # Stop if we hit the padding area (0xFF bytes)
+    if current_pos < len(env_data) and env_data[current_pos] == 0xFF:
+        break
+
+# Analyze for security findings
+security_findings = []
+
+# Check for credentials
+if 'rootpw' in variables:
+    security_findings.append(f"Default root password found: {variables['rootpw']}")
+
+if 'adminuser' in variables:
+    security_findings.append(f"Default admin username exposed: {variables['adminuser']}")
+
+# Check for hardcoded IPs
+if 'ipaddr' in variables:
+    security_findings.append(f"Hardcoded device IP address: {variables['ipaddr']}")
+
+if 'serverip' in variables:
+    security_findings.append(f"Hardcoded server IP: {variables['serverip']}")
+
+# Check for insecure services
+if 'telnetd_enabled' in variables and variables['telnetd_enabled'] == '1':
+    security_findings.append("Telnet daemon is enabled - insecure unencrypted protocol")
+
+# Check for hardcoded MAC address
+if 'ethaddr' in variables:
+    security_findings.append(f"Hardcoded MAC address: {variables['ethaddr']}")
+
+# Check boot command for vulnerabilities
+if 'bootcmd' in variables:
+    security_findings.append("Boot command sequence exposed, potential for boot manipulation attacks")
+
+# Create the output JSON
+output = {
+    "variables": variables,
+    "security_findings": security_findings
+}
+
+# Write to the output file
+with open('/workspace/extracted_config.json', 'w') as f:
+    json.dump(output, f, indent=2)
+
+print("Configuration extraction complete!")
+print(f"Extracted {len(variables)} environment variables")
+print(f"Identified {len(security_findings)} security findings")

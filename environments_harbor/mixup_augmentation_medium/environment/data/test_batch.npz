@@ -1,0 +1,63 @@
+import numpy as np
+
+# Create 10 diverse grayscale images (28x28, values 0-255)
+np.random.seed(42)
+images = []
+
+# Create different patterns for each image
+for i in range(10):
+    img = np.zeros((28, 28), dtype=np.uint8)
+    
+    if i == 0:
+        # Horizontal stripes
+        img[::2, :] = 255
+    elif i == 1:
+        # Vertical stripes
+        img[:, ::2] = 255
+    elif i == 2:
+        # Checkerboard
+        img[::2, ::2] = 255
+        img[1::2, 1::2] = 255
+    elif i == 3:
+        # Circle
+        y, x = np.ogrid[-14:14, -14:14]
+        mask = x**2 + y**2 <= 100
+        img[mask] = 255
+    elif i == 4:
+        # Diagonal
+        for j in range(28):
+            img[j, j] = 255
+            if j < 27:
+                img[j, j+1] = 200
+                img[j+1, j] = 200
+    elif i == 5:
+        # Border
+        img[0, :] = 255
+        img[-1, :] = 255
+        img[:, 0] = 255
+        img[:, -1] = 255
+    elif i == 6:
+        # Random noise
+        img = np.random.randint(0, 256, (28, 28), dtype=np.uint8)
+    elif i == 7:
+        # Gradient horizontal
+        img = np.tile(np.linspace(0, 255, 28, dtype=np.uint8), (28, 1))
+    elif i == 8:
+        # Gradient vertical
+        img = np.tile(np.linspace(0, 255, 28, dtype=np.uint8).reshape(-1, 1), (1, 28))
+    elif i == 9:
+        # Center square
+        img[8:20, 8:20] = 255
+    
+    images.append(img)
+
+images = np.array(images, dtype=np.uint8)
+
+# Create one-hot encoded labels (10x10) - distribute across different classes
+labels = np.zeros((10, 10), dtype=np.float32)
+label_indices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]  # One of each class
+for i, label_idx in enumerate(label_indices):
+    labels[i, label_idx] = 1.0
+
+# Save to npz file
+np.savez('/data/test_batch.npz', images=images, labels=labels)

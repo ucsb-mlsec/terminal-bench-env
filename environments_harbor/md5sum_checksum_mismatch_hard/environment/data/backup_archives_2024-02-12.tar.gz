@@ -1,0 +1,150 @@
+#!/bin/bash
+
+# Create a temporary directory for the text files
+TEMP_DIR=$(mktemp -d)
+cd "$TEMP_DIR"
+
+# Create 4 small text files with dummy content
+cat > file1.txt << 'EOF'
+Backup Archive System - Dataset 1
+==================================
+
+This file contains sample data for backup testing purposes.
+The archive was created on 2024-02-12 as part of the daily backup routine.
+
+System Information:
+- Server: backup-primary-01
+- Location: DataCenter-A
+- Backup Type: Incremental
+- Compression: gzip level 6
+
+Data blocks:
+AAAABBBBCCCCDDDDEEEEFFFFGGGGHHHHIIIIJJJJKKKKLLLLMMMMNNNNOOOOPPPP
+1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ
+The quick brown fox jumps over the lazy dog multiple times for padding.
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod.
+
+Status: VERIFIED
+Checksum: INTERNAL-CHECK-OK
+EOF
+
+cat > file2.txt << 'EOF'
+Application Log Extract - 2024-02-12
+=====================================
+
+[2024-02-12 08:15:23] INFO: Backup job initiated
+[2024-02-12 08:15:24] INFO: Scanning source directories
+[2024-02-12 08:15:25] INFO: Found 1,247 files to backup
+[2024-02-12 08:15:26] INFO: Starting compression phase
+[2024-02-12 08:16:01] INFO: Compression completed successfully
+[2024-02-12 08:16:02] INFO: Calculating checksums
+[2024-02-12 08:16:05] INFO: Checksum calculation complete
+[2024-02-12 08:16:06] INFO: Writing archive to storage
+[2024-02-12 08:16:15] INFO: Archive written successfully
+[2024-02-12 08:16:16] INFO: Verifying archive integrity
+[2024-02-12 08:16:20] INFO: Verification passed
+[2024-02-12 08:16:21] INFO: Backup job completed successfully
+
+Total files: 1,247
+Total size: 4.3 GB
+Compressed size: 1.8 GB
+Compression ratio: 41.86%
+Duration: 58 seconds
+
+Additional padding data for file size requirements:
+XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY
+ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ
+EOF
+
+cat > file3.txt << 'EOF'
+Database Backup Metadata
+=========================
+
+Backup Date: 2024-02-12
+Database: production_db_v3
+Tables Backed Up: 127
+Records Count: 4,582,391
+Backup Method: Hot backup with transaction log
+
+Table Statistics:
+- users: 45,203 rows
+- transactions: 3,891,445 rows
+- products: 12,847 rows
+- orders: 445,229 rows
+- audit_logs: 187,667 rows
+
+Integrity Status: VALID
+Backup Window: 23:00-01:30 UTC
+Performance: Within SLA targets
+Next Scheduled: 2024-02-13 23:00 UTC
+
+Recovery Point Objective: 1 hour
+Recovery Time Objective: 4 hours
+
+This backup archive can be used for point-in-time recovery.
+All foreign key constraints and indexes have been preserved.
+
+Padding content to meet size requirements:
+0000111122223333444455556666777788889999AAAABBBBCCCCDDDDEEEE
+abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ
+The system has been verified and is operating within normal parameters.
+EOF
+
+cat > file4.txt << 'EOF'
+Configuration Snapshot - February 12, 2024
+===========================================
+
+System Configuration Backup
+----------------------------
+
+[Network Settings]
+Hostname: backup-srv-02
+IP Address: 10.20.30.40
+Gateway: 10.20.30.1
+DNS: 8.8.8.8, 8.8.4.4
+Domain: backup.internal.corp
+
+[Storage Configuration]
+Primary Volume: /dev/sda1 (2TB)
+Backup Volume: /dev/sdb1 (5TB)
+Archive Path: /backup/archives/
+Checksum Path: /backup/checksums/
+Retention: 90 days
+
+[Security Settings]
+Encryption: AES-256
+Key Management: HSM-enabled
+Access Control: Role-based
+Audit Logging: Enabled
+Intrusion Detection: Active
+
+[Backup Schedule]
+Daily Full: 23:00 UTC
+Hourly Incremental: :00
+Weekly Verification: Sunday 02:00
+Monthly Archive: First of month
+
+Configuration hash: a1b2c3d4e5f6g7h8i9j0
+Last updated: 2024-02-12 08:00:00 UTC
+Status: Active and operational
+
+Additional data for proper archive sizing and testing:
+========================================================
+QWERTYUIOPASDFGHJKLZXCVBNM1234567890qwertyuiopasdfghjklzxcvbnm
+!@#$%^&*()_+-=[]{}|;:,.<>?/~`QWERTYUIOPASDFGHJKLZXCVBNM
+EOF
+
+# Create the tar.gz archive
+tar -czf backup_archives_2024-02-12.tar.gz file1.txt file2.txt file3.txt file4.txt
+
+# Move to the target location
+mkdir -p /tmp/data
+mv backup_archives_2024-02-12.tar.gz /tmp/data/
+
+# Cleanup
+cd /
+rm -rf "$TEMP_DIR"
+
+# Output the file for verification
+cat /tmp/data/backup_archives_2024-02-12.tar.gz

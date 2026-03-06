@@ -1,0 +1,49 @@
+# State Store Requirements for User Session Application
+
+## Overview
+This document defines configuration requirements for the user-sessions-store to meet production SLAs.
+
+## Durability Requirements
+- Maximum acceptable data loss window: 1 second
+- State must be recoverable after crashes
+- Changelog topics must be enabled for disaster recovery
+
+## Performance Requirements
+- Low latency commits to minimize data loss
+- Commit interval must not exceed 1000ms
+- Sufficient cache to handle 100K records
+
+## Configuration Parameters
+
+### commit.interval.ms
+- REQUIRED: 1000 (1 second)
+- RATIONALE: Production SLA requires maximum 1-second data loss window
+- Current production issues indicate this is set too high
+
+### state.dir
+- REQUIRED: /var/lib/kafka-streams
+- RATIONALE: Persistent storage with proper backup
+
+### cache.max.bytes.buffering
+- REQUIRED: 10485760 (10MB minimum)
+- RATIONALE: Adequate buffering for performance
+
+### replication.factor
+- RECOMMENDED: 3 for production
+- RATIONALE: High availability
+
+## Compliance
+All parameters marked REQUIRED must be set to specified values.
+
+## Changelog Configuration
+- Enable changelog topics for all persistent stores
+- Use appropriate replication factor for changelog topics
+- Ensure proper retention policies
+
+## Monitoring
+- Track commit latency metrics
+- Monitor state store lag
+- Alert on commit interval violations
+
+## Notes
+The commit.interval.ms parameter is critical for meeting durability SLAs. Values exceeding 1000ms will result in unacceptable data loss windows during failure scenarios.

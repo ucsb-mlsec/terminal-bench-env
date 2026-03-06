@@ -1,0 +1,137 @@
+import numpy as np
+import torch
+import torch.nn as nn
+import json
+
+# Set random seeds
+np.random.seed(42)
+torch.manual_seed(42)
+
+# Create training data
+inputs = np.random.uniform(-1.0, 1.0, (10, 16, 64)).astype(np.float32)
+targets = np.random.uniform(-1.0, 1.0, (10, 16, 64)).astype(np.float32)
+
+# Save training data
+np.savez('/workspace/training_data.npz', inputs=inputs, targets=targets)
+
+# Save model config
+config = {"hidden_dim": 64, "num_heads": 4, "num_layers": 2}
+with open('/workspace/model_config.json', 'w') as f:
+    json.dump(config, f)
+
+# Load configuration and data
+with open('/workspace/model_config.json', 'r') as f:
+    config = json.load(f)
+
+data = np.load('/workspace/training_data.npz')
+inputs = torch.from_numpy(data['inputs'])
+targets = torch.from_numpy(data['targets'])
+
+hidden_dim = config['hidden_dim']
+num_heads = config['num_heads']
+num_layers = config['num_layers']
+
+
+class TransformerLayer(nn.Module):
+    def __init__(self, hidden_dim, num_heads, use_prenorm):
+        super().__init__()
+        self.use_prenorm = use_prenorm
+        self.attention = nn.MultiheadAttention(hidden_dim, num_heads, batch_first=True)
+        self.ffn = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim * 4),
+            nn.ReLU(),
+            nn.Linear(hidden_dim * 4, hidden_dim)
+        )
+        self.norm1 = nn.LayerNorm(hidden_dim)
+        self.norm2 = nn.LayerNorm(hidden_dim)
+    
+    def forward(self, x):
+        if self.use_prenorm:
+            # Pre-norm: normalize before attention/ffn
+            attn_out, _ = self.attention(self.norm1(x), self.norm1(x), self.norm1(x))
+            x = x + attn_out
+            x = x + self.ffn(self.norm2(x))
+        else:
+            # Post-norm: normalize after residual
+            attn_out, _ = self.attention(x, x, x)
+            x = self.norm1(x + attn_out)
+            x = self.norm2(x + self.ffn(x))
+        return x
+
+
+class Transformer(nn.Module):
+    def __init__(self, hidden_dim, num_heads, num_layers, use_prenorm):
+        super().__init__()
+        self.layers = nn.ModuleList([
+            TransformerLayer(hidden_dim, num_heads, use_prenorm)
+            for _ in range(num_layers)
+        ])
+        self.output_proj = nn.Linear(hidden_dim, hidden_dim)
+    
+    def forward(self, x):
+        for layer in self.layers:
+            x = layer(x)
+        return self.output_proj(x)
+
+
+def compute_gradient_variance(model, inputs, targets):
+    """Compute variance of gradients across all parameters"""
+    model.zero_grad()
+    
+    total_loss = 0
+    for i in range(inputs.shape[0]):
+        inp = inputs[i:i+1]
+        tgt = targets[i:i+1]
+        output = model(inp)
+        loss = ((output - tgt) ** 2).mean()
+        total_loss += loss
+    
+    # Backpropagate accumulated loss
+    total_loss.backward()
+    
+    # Collect all gradients
+    all_grads = []
+    for param in model.parameters():
+        if param.grad is not None:
+            all_grads.append(param.grad.view(-1))
+    
+    # Concatenate all gradients and compute variance
+    all_grads = torch.cat(all_grads)
+    variance = torch.var(all_grads).item()
+    
+    return variance
+
+
+# Reset random seed before creating models
+torch.manual_seed(42)
+np.random.seed(42)
+
+# Create pre-norm model
+model_prenorm = Transformer(hidden_dim, num_heads, num_layers, use_prenorm=True)
+
+# Reset seed and create post-norm model with same initialization
+torch.manual_seed(42)
+np.random.seed(42)
+model_postnorm = Transformer(hidden_dim, num_heads, num_layers, use_prenorm=False)
+
+# Compute gradient variances
+prenorm_variance = compute_gradient_variance(model_prenorm, inputs, targets)
+postnorm_variance = compute_gradient_variance(model_postnorm, inputs, targets)
+
+# Determine which is more stable (lower variance)
+variance_ratio = postnorm_variance / prenorm_variance
+
+if prenorm_variance < postnorm_variance:
+    stable_config = "pre-norm"
+else:
+    stable_config = "post-norm"
+
+# Create report
+report = {
+    "stable_config": stable_config,
+    "variance_ratio": float(variance_ratio)
+}
+
+# Save report
+with open('/workspace/stability_report.json', 'w') as f:
+    json.dump(report, f)

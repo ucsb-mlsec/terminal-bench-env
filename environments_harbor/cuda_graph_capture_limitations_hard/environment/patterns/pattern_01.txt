@@ -1,0 +1,75 @@
+I'll analyze each pattern file to determine if it can be captured into a CUDA graph.
+
+First, let me read all the pattern files:
+
+<bash>
+cd /workspace/patterns
+ls -la
+</bash>
+
+<bash>
+cat /workspace/patterns/pattern_01.txt
+</bash>
+
+<bash>
+cat /workspace/patterns/pattern_02.txt
+</bash>
+
+<bash>
+cat /workspace/patterns/pattern_03.txt
+</bash>
+
+<bash>
+cat /workspace/patterns/pattern_04.txt
+</bash>
+
+<bash>
+cat /workspace/patterns/pattern_05.txt
+</bash>
+
+<bash>
+cat /workspace/patterns/pattern_06.txt
+</bash>
+
+<bash>
+cat /workspace/patterns/pattern_07.txt
+</bash>
+
+<bash>
+cat /workspace/patterns/pattern_08.txt
+</bash>
+
+Now I'll analyze each pattern based on CUDA graph capture restrictions:
+
+**Pattern 01**: Sequential kernel launches on a single stream with no synchronization and pre-allocated memory - This is the ideal case for CUDA graphs. **CAPTURABLE**
+
+**Pattern 02**: Contains cudaDeviceSynchronize() between kernel launches - This is a CPU-GPU synchronization point that cannot be captured. **NOT_CAPTURABLE**
+
+**Pattern 03**: Kernel launches with cudaMemcpyAsync on the same stream - Async memory copies can be captured into graphs. **CAPTURABLE**
+
+**Pattern 04**: Contains cudaMalloc() during the sequence - Memory allocation cannot be captured. **NOT_CAPTURABLE**
+
+**Pattern 05**: Uses cudaStreamWaitEvent() and cudaEventRecord() for inter-stream dependencies - Events can be captured in graphs. **CAPTURABLE**
+
+**Pattern 06**: Contains cudaMemcpy (synchronous) - Synchronous operations require CPU-GPU synchronization and cannot be captured. **NOT_CAPTURABLE**
+
+**Pattern 07**: Kernel launches with dynamic parallelism (kernel launching kernels) - Dynamic parallelism can be captured in graphs. **CAPTURABLE**
+
+**Pattern 08**: Contains cudaStreamQuery() to check stream completion status - Querying device state cannot be captured. **NOT_CAPTURABLE**
+
+<bash>
+cat > /workspace/analysis.txt << 'EOF'
+pattern_01=CAPTURABLE
+pattern_02=NOT_CAPTURABLE
+pattern_03=CAPTURABLE
+pattern_04=NOT_CAPTURABLE
+pattern_05=CAPTURABLE
+pattern_06=NOT_CAPTURABLE
+pattern_07=CAPTURABLE
+pattern_08=NOT_CAPTURABLE
+EOF
+</bash>
+
+<bash>
+cat /workspace/analysis.txt
+</bash>

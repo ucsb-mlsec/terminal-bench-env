@@ -1,0 +1,27 @@
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: storage-chaos
+  namespace: storage
+spec:
+  appinfo:
+    appns: storage
+    applabel: app=minio
+    appkind: statefulset
+  engineState: active
+  chaosServiceAccount: storage-chaos-sa
+  experiments:
+    - name: disk-fill
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: '90'
+            - name: FILL_PERCENTAGE
+              value: '80'
+            - name: TARGET_CONTAINER
+              value: minio
+          resources:
+            limits:
+              memory: 350Mi
+              cpu: 600m

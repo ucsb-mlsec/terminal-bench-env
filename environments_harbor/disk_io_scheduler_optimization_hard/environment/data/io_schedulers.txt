@@ -1,0 +1,186 @@
+# Linux I/O Schedulers Reference Guide
+
+## Overview
+This document describes the available Linux I/O schedulers and their characteristics to help you choose the appropriate scheduler for different storage workloads.
+
+---
+
+## 1. none Scheduler
+
+**Description:** No scheduling (passthrough mode)
+
+**Characteristics:**
+- Bypasses I/O scheduling layer entirely
+- Direct submission of I/O requests to the device
+- Minimal software overhead
+- Relies entirely on device's internal queue management
+
+**Best for:**
+- NVMe devices with internal scheduling capabilities
+- Modern SSDs with sophisticated internal controllers
+- Devices that can handle their own I/O optimization
+
+**Use case:**
+- Modern NVMe SSDs that have their own internal queue management
+- High-performance storage devices with advanced firmware
+- Scenarios where minimizing CPU overhead is critical
+
+**Performance:**
+- Lowest CPU overhead
+- Relies on device's own scheduling
+- Maximum throughput for devices with good internal scheduling
+
+---
+
+## 2. mq-deadline Scheduler
+
+**Description:** Multi-queue deadline scheduler
+
+**Characteristics:**
+- Balanced performance for mixed workloads
+- Prevents request starvation through deadline enforcement
+- Supports multiple hardware queues
+- Separates read and write requests
+- Implements FIFO queues with deadlines
+
+**Best for:**
+- Mixed random and sequential I/O patterns
+- SATA SSDs and HDDs
+- Workloads with varying I/O characteristics
+
+**Use case:**
+- General-purpose workloads
+- Databases with mixed read/write patterns
+- Systems requiring balanced performance
+- Traditional rotating media (HDDs)
+
+**Performance:**
+- Good balance between throughput and latency
+- Ensures no request waits indefinitely
+- Effective for both sequential and random workloads
+
+---
+
+## 3. bfq (Budget Fair Queueing) Scheduler
+
+**Description:** Fair queueing scheduler optimized for interactive workloads
+
+**Characteristics:**
+- Provides low latency and fairness across processes
+- Allocates I/O bandwidth proportionally
+- Excellent handling of concurrent random I/O
+- Process-level fairness guarantees
+- Prioritizes interactive and latency-sensitive operations
+
+**Best for:**
+- Interactive workloads
+- Desktop systems
+- Low-latency requirements
+- High concurrency scenarios
+- Random I/O patterns
+
+**Use case:**
+- Systems with high concurrency needs
+- Random I/O with low latency requirements
+- Database servers with many concurrent queries
+- Applications requiring responsive I/O
+- SATA SSDs with mixed workloads
+
+**Performance:**
+- Excellent for random read/write operations
+- Ensures fair resource distribution among processes
+- Prioritizes latency over maximum throughput
+- Ideal for 80/20 random read/write patterns
+
+---
+
+## 4. kyber Scheduler
+
+**Description:** Designed specifically for fast devices with latency targets
+
+**Characteristics:**
+- Focuses on meeting latency goals
+- Token-based queueing mechanism
+- Adaptive queue depth management
+- Monitors device performance in real-time
+- Adjusts behavior based on latency measurements
+
+**Best for:**
+- Fast SSDs (SATA and NVMe)
+- Workloads requiring consistent latency
+- Sequential write-heavy workloads
+- Real-time systems
+
+**Use case:**
+- Real-time systems
+- Log aggregation services
+- Continuous write workloads
+- Time-sensitive applications
+- Streaming data ingestion
+
+**Performance:**
+- Optimized for sequential writes with low and consistent latency
+- Maintains predictable response times
+- Excellent for write-heavy sequential patterns
+- Reduces latency variance
+
+---
+
+## Workload Matching Guide
+
+### By I/O Pattern:
+
+**Random I/O:**
+- High concurrency with low latency: **bfq**
+- Balanced random/sequential: **mq-deadline**
+- Fast devices with latency targets: **kyber**
+
+**Sequential I/O:**
+- Throughput-focused: **mq-deadline**
+- Latency-focused continuous writes: **kyber**
+- NVMe devices: **none**
+
+### By Device Type:
+
+**NVMe SSDs:**
+- Primary choice: **none**
+- Alternative: **kyber** (for latency-sensitive workloads)
+
+**SATA SSDs:**
+- Random workload: **bfq**
+- Mixed workload: **mq-deadline**
+- Sequential writes: **kyber**
+
+**HDDs (Rotating Media):**
+- Best choice: **mq-deadline**
+- Alternative: **bfq** (for fairness requirements)
+
+### By Workload Characteristic:
+
+**Latency-Sensitive:**
+- Random operations: **bfq**
+- Sequential operations: **kyber**
+
+**Throughput-Optimized:**
+- General purpose: **mq-deadline**
+- NVMe devices: **none**
+
+**High Concurrency:**
+- Fair resource sharing needed: **bfq**
+- Mixed patterns: **mq-deadline**
+
+---
+
+## Configuration Notes
+
+I/O schedulers can be set per block device using:
+- udev rules (persistent across reboots)
+- sysfs interface (runtime changes)
+- Kernel boot parameters (system-wide defaults)
+
+The scheduler choice should be based on:
+1. Device type (NVMe, SATA SSD, HDD)
+2. I/O pattern (random vs sequential)
+3. Workload priority (latency vs throughput)
+4. Concurrency level
+5. Read/write ratio

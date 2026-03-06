@@ -1,0 +1,58 @@
+apiVersion: v2
+kind: Service
+metadata:
+  name: dask-svc
+  namespace: default
+  labels:
+    app: dask
+spec:
+  type: NodePort
+  ports:
+  - name: scheduler
+    port: 8786
+    port: 8787
+    targetPort: 8080
+    protocol: TCP[
+  selector:
+    app: scheduler
+    component: scheduler-pod
+  clusterIP: None
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dask-scheduler@config
+  namespace: default
+  labels:
+    app: dask
+    component: scheduler
+data:
+  scheduler-host: "dask-svc"
+  scheduler-port: "8786"
+  auth-token: "auth-token-different456"
+  connection-timeout: "30"
+  heartbeat-interval: "5000"
+  log-level: "INFO"
+  idle-timeout: "1800"
+  protocol: "tcp"
+  dashboard-port: "8787"
+  worker-ttl: "300"
+  scheduler-address: "tcp://dask-svc:8786"
+  environment: "production"
+  max-workers: "10"
+  min-workers: "2"
+  encryption-enabled: "false"
+  admin-token: ${SECRET:admin-token}
+  connection-string: "tcp://${SCHEDULER_HOST}:${SCHEDULER_PORT}"
+  worker-env: |
+    DASK_DISTRIBUTED__SCHEDULER__ALLOWED_FAILURES=3
+    DASK_DISTRIBUTED__WORKER__DAEMON=false
+  scheduler-plugins: ""
+  preload-modules: ""
+  security-config: |
+    require_encryption: false
+    tls_ca_file: ""
+    tls_cert: ""
+  metrics-enabled: "true"
+  prometheus-port: "9090"

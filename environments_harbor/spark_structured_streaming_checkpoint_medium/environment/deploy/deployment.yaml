@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spark-streaming-app
+  namespace: streaming
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spark-streaming
+  template:
+    metadata:
+      labels:
+        app: spark-streaming
+    spec:
+      containers:
+      - name: streaming-app
+        image: spark-streaming:latest
+        env:
+        - name: CHECKPOINT_PATH
+          value: "/mnt/old_storage/checkpoints/k8s_app"
+        - name: BACKUP_CHECKPOINT
+          value: "/mnt/old_storage/checkpoints/k8s_backup"
+        volumeMounts:
+        - name: checkpoint-storage
+          mountPath: /mnt/old_storage/checkpoints
+      volumes:
+      - name: checkpoint-storage
+        persistentVolumeClaim:
+          claimName: checkpoint-pvc

@@ -1,0 +1,51 @@
+apiVersion: sparkoperator.k8s.io/v1beta2
+kind: SparkApplication
+metadata:
+  name: data-processor
+  namespace: spark-apps
+spec:
+  type: Scala
+  mode: cluster
+  image: spark:3.4.0
+  imagePullPolicy: Always
+  mainClass: com.example.DataProcessor
+  mainApplicationFile: local:///opt/spark/jars/data-processor.jar
+  sparkVersion: 3.4.0
+  restartPolicy:
+    type: OnFailure
+    onFailureRetries: 3
+    onFailureRetryInterval: 10
+  
+  dynamicAllocation:
+    enabled: true
+    initialExecutors: 10
+    minExecutors: 8
+    maxExecutors: 15
+    shuffleTrackingTimeout: 60s
+  
+  executor:
+    instances: 10
+    cores: 2
+    memory: "4096m"
+    memoryOverhead: "512m"
+    labels:
+      app: data-processor
+    serviceAccount: spark
+    
+  driver:
+    cores: 1
+    memory: "2048m"
+    memoryOverhead: "256m"
+    labels:
+      app: data-processor
+    serviceAccount: spark
+  
+  sparkConf:
+    "spark.kubernetes.allocation.batch.size": "5"
+    "spark.dynamicAllocation.executorIdleTimeout": "300s"
+    "spark.dynamicAllocation.cachedExecutorIdleTimeout": "600s"
+    "spark.dynamicAllocation.schedulerBacklogTimeout": "5s"
+    "spark.dynamicAllocation.sustainedSchedulerBacklogTimeout": "10s"
+    "spark.kubernetes.executor.request.cores": "2"
+    "spark.kubernetes.executor.limit.cores": "2"
+    "spark.kubernetes.memoryOverheadFactor": "0.1"

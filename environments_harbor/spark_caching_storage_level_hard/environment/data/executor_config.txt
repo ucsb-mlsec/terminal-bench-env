@@ -1,0 +1,47 @@
+Spark Executor Configuration
+============================
+
+Memory Configuration:
+- Executor Memory: 4 GB (4096 MB)
+- Executor Memory Overhead: 512 MB
+- Available Heap Memory: 4096 MB
+- Storage Memory Fraction: 0.5 (default)
+- Available Storage Memory: ~2.0 GB
+- Recommended Maximum Cache Usage: 3.2 GB (80% of 4GB, leaving 20% headroom)
+
+Executor Settings:
+- Number of Executors: 8
+- Cores per Executor: 4
+- Total Executor Cores: 32
+
+JVM Heap Settings:
+- Initial Heap Size (-Xms): 4096m
+- Maximum Heap Size (-Xmx): 4096m
+- GC Configuration: G1GC
+
+Memory Management Notes:
+- Storage memory can expand up to 60% of heap if execution memory is not in use
+- Unified Memory Manager is enabled (Spark 2.x+)
+- Must maintain headroom for execution memory to avoid OOM
+- Serialized storage reduces memory footprint by approximately 60%
+
+Current Issue:
+- Jobs failing with OutOfMemoryError during execution
+- Suspect cause: Over-caching in MEMORY_ONLY mode
+
+Additional Context:
+- Peak execution memory observed: ~1.5 GB per executor
+- GC pressure increases significantly when cached data exceeds 3.0 GB
+- Application performs shuffle operations requiring execution memory
+- Recent failures occurred during join operations with multiple cached datasets
+
+Performance Observations:
+- Serialization overhead: 50-100ms per partition for typical workload
+- Disk spill throughput: ~200 MB/s on current storage
+- Deserialization cost acceptable for datasets accessed 3+ times
+
+Recommendations:
+- Balance memory caching with execution memory needs
+- Consider serialized storage for large, infrequently accessed datasets
+- Use disk spillover for datasets that don't fit in available memory
+- Monitor GC metrics after reconfiguration

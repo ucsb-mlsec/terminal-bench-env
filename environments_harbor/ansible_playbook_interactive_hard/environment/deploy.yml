@@ -1,0 +1,40 @@
+---
+- name: 'Deploy Web Application Configuration'
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  
+  vars_prompt:
+    - name: environment
+      prompt: "Enter deployment environment"
+      private: no
+    
+    - name: app_port
+      prompt: "Enter application port"
+  
+  vars:
+    env_config:
+      staging:
+        log_level: "INFO"
+        max_connections: 100
+      prod:
+        log_level: "WARNING"
+        max_connections: 500
+  
+  tasks:
+    - name: Ensure application directory exists
+      file:
+        path: /var/app
+        state: directory
+        mode: '0755'
+    
+    - name: Set environment-specific variables
+      set_fact:
+        current_log_level: "{{ env_config[environment].log_level }}"
+        current_max_conn: "{{ env_config[environment].max_connections }}"
+    
+    - name: Generate configuration file
+      template:
+        src: /opt/ansible/app.conf.j2
+        dest: /var/app/app.conf
+        mode: '0644'

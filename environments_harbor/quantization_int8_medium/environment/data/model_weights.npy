@@ -1,0 +1,60 @@
+import numpy as np
+
+# Set random seed for reproducibility
+np.random.seed(42)
+
+# Define layer dimensions
+layer1_weights_shape = (784, 128)
+layer1_bias_shape = (128,)
+layer2_weights_shape = (128, 64)
+layer2_bias_shape = (64,)
+layer3_weights_shape = (64, 10)
+layer3_bias_shape = (10,)
+
+# Calculate number of parameters
+layer1_weights_size = 784 * 128  # 100,352
+layer1_bias_size = 128
+layer2_weights_size = 128 * 64   # 8,192
+layer2_bias_size = 64
+layer3_weights_size = 64 * 10    # 640
+layer3_bias_size = 10
+
+# Total: 100,352 + 128 + 8,192 + 64 + 640 + 10 = 109,386
+
+# Initialize weights using Xavier/He initialization for better training convergence
+# Layer 1: Xavier initialization
+layer1_weights = np.random.randn(*layer1_weights_shape).astype(np.float32) * np.sqrt(2.0 / 784)
+layer1_bias = np.zeros(layer1_bias_shape, dtype=np.float32)
+
+# Layer 2: Xavier initialization
+layer2_weights = np.random.randn(*layer2_weights_shape).astype(np.float32) * np.sqrt(2.0 / 128)
+layer2_bias = np.zeros(layer2_bias_shape, dtype=np.float32)
+
+# Layer 3: Xavier initialization
+layer3_weights = np.random.randn(*layer3_weights_shape).astype(np.float32) * np.sqrt(2.0 / 64)
+layer3_bias = np.zeros(layer3_bias_shape, dtype=np.float32)
+
+# Flatten all parameters into a single 1D array
+all_weights = np.concatenate([
+    layer1_weights.flatten(),
+    layer1_bias.flatten(),
+    layer2_weights.flatten(),
+    layer2_bias.flatten(),
+    layer3_weights.flatten(),
+    layer3_bias.flatten()
+])
+
+# Verify the shape and dtype
+assert all_weights.shape == (109386,), f"Expected shape (109386,), got {all_weights.shape}"
+assert all_weights.dtype == np.float32, f"Expected dtype float32, got {all_weights.dtype}"
+
+# Save to file
+np.save('/workspace/model_weights.npy', all_weights)
+
+print(f"Generated model_weights.npy")
+print(f"Shape: {all_weights.shape}")
+print(f"Dtype: {all_weights.dtype}")
+print(f"File size: {all_weights.nbytes} bytes")
+print(f"Min value: {all_weights.min():.6f}")
+print(f"Max value: {all_weights.max():.6f}")
+print(f"Mean value: {all_weights.mean():.6f}")

@@ -1,0 +1,126 @@
+I'll analyze the task and create the necessary files to solve the database lock issue.
+
+First, let me create the database file with the required schema and data:
+
+```python
+import sqlite3
+import random
+import time
+
+# Create database
+conn = sqlite3.connect('/workspace/sensor_system/data/sensors.db')
+cursor = conn.cursor()
+
+# Create table
+cursor.execute('''
+CREATE TABLE readings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sensor_id TEXT,
+    temperature REAL,
+    humidity REAL,
+    recorded_at INTEGER
+)
+''')
+
+# Generate 500 readings
+current_time = int(time.time())
+seconds_in_30_days = 30 * 24 * 60 * 60
+
+for i in range(500):
+    sensor_id = f'sensor_{random.randint(1, 50):03d}'
+    temperature = round(random.uniform(15.0, 30.0), 2)
+    humidity = round(random.uniform(30.0, 80.0), 2)
+    recorded_at = current_time - random.randint(0, seconds_in_30_days)
+    
+    cursor.execute(
+        'INSERT INTO readings (sensor_id, temperature, humidity, recorded_at) VALUES (?, ?, ?, ?)',
+        (sensor_id, temperature, humidity, recorded_at)
+    )
+
+conn.commit()
+conn.close()
+```
+
+Now, let me examine the typical issues with SQLite concurrent access and create the Python scripts with the fixes:
+
+```python
+# api_server.py - with fixes for concurrent access
+import sqlite3
+from flask import Flask, request, jsonify
+import time
+
+app = Flask(__name__)
+
+def get_db_connection():
+    conn = sqlite3.connect('/workspace/sensor_system/data/sensors.db', timeout=10.0)
+    conn.execute('PRAGMA journal_mode=WAL')
+    conn.execute('PRAGMA busy_timeout=10000')
+    return conn
+
+@app.route('/reading', methods=['POST'])
+def add_reading():
+    data = request.json
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute(
+        'INSERT INTO readings (sensor_id, temperature, humidity, recorded_at) VALUES (?, ?, ?, ?)',
+        (data['sensor_id'], data['temperature'], data['humidity'], int(time.time()))
+    )
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'status': 'success'}), 201
+
+if __name__ == '__main__':
+    app.run(port=5000)
+```
+
+```python
+# summary_processor.py - with fixes for concurrent access
+import sqlite3
+import time
+
+def get_db_connection():
+    conn = sqlite3.connect('/workspace/sensor_system/data/sensors.db', timeout=10.0, check_same_thread=False)
+    conn.execute('PRAGMA journal_mode=WAL')
+    conn.execute('PRAGMA busy_timeout=10000')
+    return conn
+
+def process_hourly_summaries():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Calculate hourly statistics
+    current_hour = int(time.time()) // 3600 * 3600
+    
+    cursor.execute('''
+        SELECT 
+            sensor_id,
+            AVG(temperature) as avg_temp,
+            AVG(humidity) as avg_humidity,
+            COUNT(*) as reading_count
+        FROM readings
+        WHERE recorded_at >= ? AND recorded_at < ?
+        GROUP BY sensor_id
+    ''', (current_hour - 3600, current_hour))
+    
+    results = cursor.fetchall()
+    
+    for row in results:
+        print(f"Sensor: {row[0]}, Avg Temp: {row[1]:.2f}, Avg Humidity: {row[2]:.2f}, Count: {row[3]}")
+    
+    conn.close()
+
+if __name__ == '__main__':
+    while True:
+        process_hourly_summaries()
+        time.sleep(3600)
+```
+
+Now let me create the fixes.txt file:
+
+```
+api_server.py: enabled WAL mode with PRAGMA journal_mode=WAL and set 10 second timeout with busy_timeout=10000
+summary_processor.py: enabled WAL mode with PRAGMA journal_mode=WAL and set 10 second timeout with busy_timeout=10000

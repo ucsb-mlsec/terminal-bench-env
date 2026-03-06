@@ -1,0 +1,49 @@
+# CNI Configuration Directory Listing and Configuration
+
+## Part 1 - Directory Listing: ls -la /etc/cni/net.d/
+
+total 16
+drwxr-xr-x 2 root root 4096 Oct 15 2024 .
+drwxr-xr-x 3 root root 4096 Oct 15 2024 ..
+-rw-r--r-- 1 root root 1823 Oct 15 2024 10-calico.conflist
+-rw-r--r-- 1 root root  318 Oct 15 2024 calico-kubeconfig
+
+## Part 2 - Content of /etc/cni/net.d/10-calico.conflist
+
+{
+  "name": "k8s-pod-network",
+  "cniVersion": "0.3.1",
+  "plugins": [
+    {
+      "type": "calico",
+      "datastore_type": "etcd",
+      "etcd_endpoints": "http://127.0.0.1:2379",
+      "log_level": "info",
+      "log_file_path": "/var/log/calico/cni/cni.log",
+      "ipam": {
+        "type": "calico-ipam",
+        "assign_ipv4": "true",
+        "assign_ipv6": "false"
+      },
+      "policy": {
+        "type": "k8s"
+      },
+      "kubernetes": {
+        "kubeconfig": "/etc/cni/net.d/calico.kubeconfig"
+      }
+    },
+    {
+      "type": "portmap",
+      "snat": true,
+      "capabilities": {
+        "portMappings": true
+      }
+    },
+    {
+      "type": "bandwidth",
+      "capabilities": {
+        "bandwidth": true
+      }
+    }
+  ]
+}

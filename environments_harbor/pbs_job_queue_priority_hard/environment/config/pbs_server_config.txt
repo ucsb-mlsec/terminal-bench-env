@@ -1,0 +1,81 @@
+# PBS Server Configuration File
+# Main server configuration for research computing cluster
+
+# ============ SERVER SETTINGS ============
+# Enable job scheduling
+set server scheduling = True
+
+# Set default queue for job submissions
+set server default_queue = batch
+
+# Scheduler iteration interval (seconds)
+set server scheduler_iteration = 600
+
+# Node packing strategy - should be True for efficiency but set to False
+set server node_pack = False
+
+# ============ JOB PRIORITY FORMULA ============
+# Formula for calculating job priorities
+# ERROR: This formula is incomplete - missing age, group priority, and resource factors
+set server job_sort_formula = queue_priority + 10
+
+# ============ QUEUE DEFINITIONS ============
+
+# Batch queue - standard priority jobs
+set queue batch queue_type = Execution
+set queue batch enabled = True
+set queue batch started = True
+set queue batch priority = 50
+set queue batch resources_max.walltime = 72:00:00
+
+# Express queue - high priority jobs
+set queue express queue_type = Execution
+set queue express enabled = True
+set queue express started = True
+# ERROR: Express queue priority should be higher than batch
+set queue express priority = 45
+set queue express resources_max.walltime = 24:00:00
+
+# Long queue - extended runtime jobs
+set queue long queue_type = Execution
+set queue long enabled = True
+set queue long started = True
+set queue long priority = 30
+set queue long resources_max.walltime = 168:00:00
+
+# ============ FAIR-SHARE CONFIGURATION ============
+# ERROR: Fair-share is disabled when it should be enabled
+set server fairshare_enabled = False
+
+# Fair-share usage decay factor
+set server fairshare_decay_factor = 0.5
+
+# Fair-share usage file location
+set server fairshare_usage_file = /var/spool/pbs/fairshare_usage
+
+# ERROR: Group weights are not defined for genomics and physics groups
+# Missing: set server fairshare_entity genomics weight = 200
+# Missing: set server fairshare_entity physics weight = 100
+
+# ============ RESOURCE MANAGEMENT ============
+# Default resources
+set server resources_default.nodes = 1
+set server resources_default.walltime = 01:00:00
+
+# Keep completed jobs for 24 hours
+set server keep_completed = 86400
+
+# Log events
+set server log_events = 511
+
+File: data/current_queue_state.txt
+Requirements: A PBS job queue listing showing current jobs. Format should mimic 'qstat -f' output style. Include 10-12 jobs with these attributes for each: Job Id (format: ####.pbs-server), Job_Name, Job_Owner (with group in username like user@genomics or user@physics), job_state (Q for queued, R for running), queue (batch/express/long), Resource_List.nodes (1-8 nodes), Resource_List.walltime (various times), qtime (submission time in format: Mon Dec 16 HH:MM:SS YYYY - vary these so some are >24 hours old, some recent), comment (some should say things like "Not Running: Insufficient resources" or "Job held by user"). Make times realistic relative to current timestamp of Wed Dec 18 14:30:00 2024. Include a mix: some genomics group jobs that should be high priority but are queued, some physics jobs, some regular users. Some small jobs (1-3 nodes), some large (5-8 nodes). Some old submissions (Dec 15-16), some new (Dec 18). Make 3-4 jobs Running (R) and the rest Queued (Q). Format with proper indentation like real qstat output.
+
+Generate the file content.
+
+Requirements:
+- Follow all requirements exactly
+- Generate realistic content
+- DO NOT wrap output in ``` markers
+
+Output the content directly:

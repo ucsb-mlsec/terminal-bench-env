@@ -1,0 +1,43 @@
+I'll analyze the diffusion model training issue and create an optimized noise schedule configuration.
+
+## Analysis
+
+Given the poor FID score (45.2) and blurry outputs, the current noise schedule is likely causing:
+1. **Training instability** - Possibly due to too aggressive noise addition
+2. **Blurry outputs** - Suggesting insufficient denoising steps or poor beta scheduling
+
+For 64x64 RGB images with a 4-layer U-Net:
+- The model has limited capacity compared to larger architectures
+- Smaller images benefit from more timesteps for gradual denoising
+- Cosine schedules typically provide better training stability than linear schedules
+- Beta values should be conservative to avoid destroying too much signal early
+
+## Optimal Configuration Rationale
+
+**num_timesteps: 1000**
+- Standard choice that provides sufficient granularity for the denoising process
+- More steps allow the model to learn finer-grained noise prediction
+
+**beta_start: 0.0001**
+- Very small initial value preserves image structure in early diffusion steps
+- Prevents over-noising that leads to information loss
+
+**beta_end: 0.02**
+- Conservative end value appropriate for 64x64 images
+- Higher values (>0.02) often cause training instability on smaller images
+- This range (0.0001 to 0.02) is widely validated in literature
+
+**schedule_type: cosine**
+- Cosine schedules allocate more denoising capacity to mid-range noise levels
+- Reduces training instability compared to linear schedules
+- Proven to improve FID scores, especially on smaller datasets
+- Better matches the information content across noise levels
+
+This configuration should improve FID score from 45.2 to approximately 25-30 range based on typical improvements seen when switching from suboptimal linear schedules to cosine with proper beta values.
+
+{
+    "num_timesteps": 1000,
+    "beta_start": 0.0001,
+    "beta_end": 0.02,
+    "schedule_type": "cosine"
+}

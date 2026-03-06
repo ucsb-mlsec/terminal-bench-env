@@ -1,0 +1,75 @@
+I'll analyze the database and create the optimization report. Let me start by examining the schema and identifying the performance issues.
+
+<solution>
+import sqlite3
+import json
+
+# Connect to the database
+conn = sqlite3.connect('/tmp/support_tickets.db')
+cursor = conn.cursor()
+
+# Examine the schema to understand table structures
+cursor.execute("SELECT sql FROM sqlite_master WHERE type='table'")
+tables_sql = cursor.fetchall()
+
+# Check for existing indexes
+cursor.execute("SELECT name, tbl_name, sql FROM sqlite_master WHERE type='index' AND name NOT LIKE 'sqlite_%'")
+existing_indexes = cursor.fetchall()
+
+# Analyze the typical dashboard query pattern
+# Dashboard loads open tickets with user info and comment counts
+# This would involve:
+# - Filtering tickets by status='open'
+# - Joining with users table on user_id
+# - Joining with comments to count comments per ticket
+# - Possibly joining with attachments
+
+# Test query performance simulation
+cursor.execute("EXPLAIN QUERY PLAN SELECT t.id, t.subject, t.status, u.name, u.email, COUNT(c.id) as comment_count FROM tickets t LEFT JOIN users u ON t.user_id = u.id LEFT JOIN comments c ON t.id = c.ticket_id WHERE t.status = 'open' GROUP BY t.id")
+query_plan = cursor.fetchall()
+
+# Identify missing indexes based on schema analysis
+missing_indexes = []
+
+# Check if tickets.status has an index (needed for WHERE clause)
+cursor.execute("SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='tickets' AND sql LIKE '%status%'")
+if not cursor.fetchone():
+    missing_indexes.append("tickets.status")
+
+# Check if tickets.user_id has an index (needed for JOIN)
+cursor.execute("SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='tickets' AND sql LIKE '%user_id%'")
+if not cursor.fetchone():
+    missing_indexes.append("tickets.user_id")
+
+# Check if comments.ticket_id has an index (needed for JOIN and counting)
+cursor.execute("SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='comments' AND sql LIKE '%ticket_id%'")
+if not cursor.fetchone():
+    missing_indexes.append("comments.ticket_id")
+
+# Check if tickets.assigned_agent_id has an index
+cursor.execute("SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='tickets' AND sql LIKE '%assigned_agent_id%'")
+if not cursor.fetchone():
+    missing_indexes.append("tickets.assigned_agent_id")
+
+# Check if attachments.ticket_id has an index
+cursor.execute("SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='attachments' AND sql LIKE '%ticket_id%'")
+if not cursor.fetchone():
+    missing_indexes.append("attachments.ticket_id")
+
+# The primary bottleneck for dashboard is filtering open tickets
+# The most impactful optimization would be an index on tickets.status
+# since the dashboard specifically filters for open tickets
+
+# Create the optimization report
+report = {
+    "missing_indexes": missing_indexes,
+    "slow_query_table": "tickets",
+    "recommended_action": "CREATE INDEX idx_tickets_status ON tickets(status)"
+}
+
+# Write the report to JSON file
+with open('/tmp/optimization_report.json', 'w') as f:
+    json.dump(report, f, indent=2)
+
+conn.close()
+</solution>

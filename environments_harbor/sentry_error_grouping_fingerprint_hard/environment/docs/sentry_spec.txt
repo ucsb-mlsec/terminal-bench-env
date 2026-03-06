@@ -1,0 +1,368 @@
+# SENTRY FINGERPRINTING RULES SPECIFICATION
+================================================================================
+
+VERSION: 2.0
+LAST UPDATED: 2024-01
+PURPOSE: Technical specification for custom fingerprinting rules in Sentry error tracking
+
+================================================================================
+SECTION 1: INTRODUCTION
+================================================================================
+
+Fingerprinting is a mechanism in Sentry that determines how error events are grouped together into issues. By default, Sentry uses a built-in algorithm that groups errors based on stack trace, error type, and error message. However, this default grouping may not always be appropriate for specific application needs.
+
+Custom fingerprinting rules allow developers to override the default grouping behavior by defining patterns that match specific error characteristics and assign custom fingerprints to those errors. When multiple error events share the same fingerprint, they are grouped into a single issue in the Sentry UI.
+
+Proper fingerprinting is critical for:
+- Reducing noise by grouping similar errors together
+- Separating errors that appear similar but have different root causes
+- Maintaining consistent issue tracking across deployments
+- Improving signal-to-noise ratio in error monitoring
+
+This specification defines the syntax and semantics for creating valid custom fingerprinting rules that will be correctly processed by Sentry's grouping engine.
+
+================================================================================
+SECTION 2: VALID MATCHER TYPES
+================================================================================
+
+Matchers are used to identify which error events a fingerprinting rule should apply to. The following matcher types are supported:
+
+path
+    Matches against the file path where the error occurred
+    Example: path: "*/controllers/api/*"
+
+type
+    Matches against the error or exception type
+    Example: type: "DatabaseError"
+
+value
+    Matches against the error or exception value/message
+    Example: value: "*connection timeout*"
+
+message
+    Matches against the log message or error message
+    Example: message: "Failed to process request"
+
+exception.type
+    Specifically matches the exception class name
+    Example: exception.type: "ValueError"
+
+exception.value
+    Specifically matches the exception message
+    Example: exception.value: "*invalid input*"
+
+tags.<key>
+    Matches against custom tags attached to the event
+    Example: tags.environment: "production"
+    Example: tags.user_type: "premium"
+
+level
+    Matches against the severity level (debug, info, warning, error, fatal)
+    Example: level: "error"
+
+platform
+    Matches against the platform/language (python, javascript, java, etc.)
+    Example: platform: "python"
+
+logger
+    Matches against the logger name that generated the event
+    Example: logger: "django.request"
+
+================================================================================
+SECTION 3: SYNTAX RULES
+================================================================================
+
+RULE STRUCTURE
+--------------
+Each fingerprinting rule must be defined as a dictionary/mapping with two required keys:
+
+matchers: A list of matcher conditions (all must match for the rule to apply)
+fingerprint: A list defining the custom fingerprint to assign
+
+Example basic structure:
+- matchers:
+    - type: "DatabaseError"
+    - tags.environment: "production"
+  fingerprint:
+    - "database-error"
+    - "{{ transaction }}"
+
+MATCHER SYNTAX
+--------------
+Matchers use key-value pairs where the key is a matcher type (see Section 2) and the value is the pattern to match against. Values support wildcard operators:
+
+* (asterisk): Matches zero or more characters
+? (question mark): Matches exactly one character
+[abc]: Matches any single character in the brackets
+
+Wildcards can be used at the beginning, middle, or end of patterns:
+- value: "*timeout*" (matches any value containing "timeout")
+- path: "*/handlers/?.py" (matches single-character filenames)
+- type: "Http[45]*Error" (matches Http4xxError, Http5xxError, etc.)
+
+FINGERPRINT TEMPLATES
+---------------------
+The fingerprint field must be a list (even if it contains only one element). Each element can be:
+
+1. A literal string value:
+   fingerprint:
+     - "custom-group-name"
+
+2. A template variable using {{ variable }} syntax:
+   fingerprint:
+     - "{{ transaction }}"
+     - "{{ function }}"
+
+3. A combination of literals and variables:
+   fingerprint:
+     - "error-{{ type }}"
+     - "{{ module }}"
+
+VALID FINGERPRINT VARIABLES
+----------------------------
+The following template variables are supported in fingerprint definitions:
+
+{{ default }}
+    Uses Sentry's default fingerprinting algorithm for this component
+    Often used as a fallback: ["custom-prefix", "{{ default }}"]
+
+{{ transaction }}
+    The transaction name or endpoint where the error occurred
+    Example: "/api/v1/users" or "UserController.create"
+
+{{ function }}
+    The function or method name where the error occurred
+    Example: "process_payment" or "validate_input"
+
+{{ type }}
+    The error or exception type
+    Example: "ValueError" or "DatabaseConnectionError"
+
+{{ module }}
+    The module or file name where the error occurred
+    Example: "payment.processor" or "auth.middleware"
+
+{{ message }}
+    The error message or exception value
+    Use with caution as messages may vary, reducing grouping effectiveness
+
+MULTIPLE RULES
+--------------
+Rules are evaluated in order from top to bottom. The first rule whose matchers all match will be applied, and subsequent rules will be ignored for that event. Order your rules from most specific to most general.
+
+================================================================================
+SECTION 4: DEPRECATED PATTERNS
+================================================================================
+
+The following patterns are from older versions of Sentry's fingerprinting syntax and are NO LONGER SUPPORTED. Rules using these patterns are invalid and will not be processed:
+
+OLD 'match' SYNTAX
+------------------
+DEPRECATED:
+- match: "DatabaseError"
+  fingerprint: ["db-error"]
+
+CORRECT:
+- matchers:
+    - type: "DatabaseError"
+  fingerprint: ["db-error"]
+
+The 'match' key has been replaced by 'matchers' (plural) which accepts a list of matcher conditions.
+
+OLD 'app' ATTRIBUTE
+-------------------
+DEPRECATED:
+- matchers:
+    - app: "mobile"
+  fingerprint: ["mobile-error"]
+
+CORRECT:
+- matchers:
+    - platform: "cocoa"
+  fingerprint: ["mobile-error"]
+
+The 'app' matcher has been replaced by 'platform' which more accurately describes the runtime environment.
+
+SINGLE-STRING FINGERPRINTS
+---------------------------
+DEPRECATED:
+- matchers:
+    - type: "ValueError"
+  fingerprint: "validation-error"
+
+CORRECT:
+- matchers:
+    - type: "ValueError"
+  fingerprint: ["validation-error"]
+
+Fingerprints must always be specified as a list, even when containing only one element.
+
+'fingerprint-rule' MATCHER TYPE
+--------------------------------
+DEPRECATED:
+- matchers:
+    - fingerprint-rule: "legacy-rule-01"
+  fingerprint: ["legacy-error"]
+
+This matcher type never existed in production Sentry but appears in some legacy configurations. It is not valid and should be removed.
+
+================================================================================
+SECTION 5: INVALID COMBINATIONS
+================================================================================
+
+Certain matcher and fingerprint combinations are not allowed and will cause the rule to be considered invalid:
+
+CANNOT USE 'default' MATCHER
+-----------------------------
+There is no matcher type called 'default'. This is often confused with the {{ default }} fingerprint variable.
+
+INVALID:
+- matchers:
+    - default: "*"
+  fingerprint: ["all-errors"]
+
+The term 'default' can only be used within fingerprint templates as {{ default }}.
+
+CANNOT MIX OLD AND NEW SYNTAX
+------------------------------
+Rules must use either the old syntax (deprecated) or new syntax consistently. Mixing both is not supported.
+
+INVALID:
+- match: "Error"
+  matchers:
+    - type: "DatabaseError"
+  fingerprint: ["db-error"]
+
+Choose one syntax style per rule. Always prefer the new 'matchers' syntax.
+
+CANNOT USE UNDEFINED MATCHER TYPES
+-----------------------------------
+Only the matcher types listed in Section 2 are valid. Any other keys in the matchers list will cause the rule to be invalid.
+
+INVALID:
+- matchers:
+    - error_code: "500"
+    - severity: "high"
+  fingerprint: ["high-severity"]
+
+Neither 'error_code' nor 'severity' are valid matcher types. Use 'tags.error_code' for custom attributes.
+
+CANNOT USE UNDEFINED FINGERPRINT VARIABLES
+-------------------------------------------
+Only the template variables listed in Section 3 are valid. Using undefined variables will cause the rule to be invalid.
+
+INVALID:
+- matchers:
+    - type: "Error"
+  fingerprint: ["{{ timestamp }}", "{{ user_id }}"]
+
+Neither {{ timestamp }} nor {{ user_id }} are valid fingerprint variables.
+
+================================================================================
+SECTION 6: EXAMPLES
+================================================================================
+
+VALID RULE EXAMPLES
+-------------------
+
+Example 1: Simple type matching with literal fingerprint
+- matchers:
+    - type: "DatabaseConnectionError"
+  fingerprint:
+    - "database-connection-failure"
+
+Example 2: Path matching with wildcard and template variable
+- matchers:
+    - path: "*/api/v2/*"
+    - level: "error"
+  fingerprint:
+    - "api-v2-error"
+    - "{{ transaction }}"
+
+Example 3: Multiple matchers with combined literal and template
+- matchers:
+    - exception.type: "TimeoutError"
+    - tags.service: "payment-processor"
+    - platform: "python"
+  fingerprint:
+    - "payment-timeout"
+    - "{{ function }}"
+    - "{{ module }}"
+
+Example 4: Using default fingerprint with custom prefix
+- matchers:
+    - logger: "celery.worker"
+    - message: "*task retry*"
+  fingerprint:
+    - "celery-retry"
+    - "{{ default }}"
+
+Example 5: Complex wildcard pattern matching
+- matchers:
+    - exception.value: "*HTTP [45]?? error*"
+    - tags.endpoint: "/api/*"
+  fingerprint:
+    - "api-http-error"
+    - "{{ type }}"
+    - "{{ transaction }}"
+
+Example 6: Tag-based grouping
+- matchers:
+    - tags.error_category: "validation"
+    - level: "warning"
+  fingerprint:
+    - "validation-warning"
+    - "{{ message }}"
+
+Example 7: Module-specific error grouping
+- matchers:
+    - path: "*/services/email/*.py"
+    - type: "*Error"
+  fingerprint:
+    - "email-service"
+    - "{{ type }}"
+
+INVALID RULE EXAMPLES
+---------------------
+
+Invalid Example 1: Using deprecated 'match' syntax
+- match: "ValueError"
+  fingerprint: ["validation-error"]
+
+REASON: The 'match' key is deprecated. Should use 'matchers' list instead.
+
+Invalid Example 2: Non-list fingerprint format
+- matchers:
+    - type: "KeyError"
+  fingerprint: "key-error"
+
+REASON: Fingerprint must be a list, not a single string.
+
+Invalid Example 3: Using undefined matcher type
+- matchers:
+    - error_category: "database"
+    - severity: "critical"
+  fingerprint: ["critical-db-error"]
+
+REASON: 'error_category' and 'severity' are not valid matcher types. Should use tags.error_category and tags.severity.
+
+Invalid Example 4: Using 'default' as a matcher
+- matchers:
+    - default: "*"
+    - type: "Error"
+  fingerprint: ["all-errors"]
+
+REASON: 'default' is not a valid matcher type. It can only be used as {{ default }} in fingerprint templates.
+
+Invalid Example 5: Using undefined template variable
+- matchers:
+    - type: "RuntimeError"
+  fingerprint:
+    - "{{ error_id }}"
+    - "{{ stack_trace }}"
+
+REASON: {{ error_id }} and {{ stack_trace }} are not valid fingerprint variables.
+
+================================================================================
+END OF SPECIFICATION
+================================================================================

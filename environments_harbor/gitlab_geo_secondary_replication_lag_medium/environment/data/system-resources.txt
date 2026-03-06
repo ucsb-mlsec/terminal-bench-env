@@ -1,0 +1,70 @@
+SYSTEM RESOURCE MONITORING SNAPSHOT
+Generated: 2024-01-15 14:23:07 UTC
+Collection Period: Last 15 minutes
+
+================================================================================
+CPU USAGE:
+================================================================================
+- Overall: 45-55% utilized
+- Load average: 8.5, 9.2, 10.1 (1, 5, 15 min)
+- Top processes by CPU:
+  * gitaly: 15-18% CPU (multiple instances)
+  * git-gc: 20-25% CPU (18 concurrent processes)
+  * git-repack: 12-15% CPU (12 concurrent processes)
+  * redis-server: 3-5% CPU
+  * postgresql: 4-6% CPU
+
+================================================================================
+MEMORY:
+================================================================================
+- Total: 32GB
+- Used: 18GB (56%)
+- Free: 14GB
+- Buffers/Cache: 8GB
+- Swap: 2GB used of 8GB total
+- Memory pressure: Low to moderate
+
+================================================================================
+DISK I/O:
+================================================================================
+- Read: 150-200 MB/s sustained
+- Write: 80-120 MB/s sustained
+- iowait: 35-45% (very high)
+- Disk utilization: 95-100% busy on /dev/sda
+- Queue depth: 16-24 operations
+- Average response time: 180-250ms (degraded)
+- Primary disk: /dev/sda (repositories storage)
+
+================================================================================
+NETWORK:
+================================================================================
+- Inbound: 25 Mbps average
+- Outbound: 30 Mbps average
+- Connections: 450 established
+- Network errors: 0
+- Packet loss: 0%
+- Bandwidth utilization: 12% of capacity
+
+================================================================================
+PROCESS COUNT:
+================================================================================
+- Total processes: 380
+- git-gc processes: 18 running concurrently
+- git-repack processes: 12 running concurrently
+- gitaly processes: 8 running
+- sidekiq workers: 25 active
+- puma workers: 16 active
+- redis processes: 3
+- postgresql connections: 87
+
+================================================================================
+NOTES AND OBSERVATIONS:
+================================================================================
+CRITICAL: Disk I/O contention appears severe with multiple concurrent git 
+housekeeping operations (30 combined git-gc and git-repack processes). The 
+disk subsystem is saturated at 95-100% utilization with extremely high iowait 
+(35-45%). This level of concurrent garbage collection and repository 
+maintenance is causing significant performance degradation. Repository 
+synchronization operations are likely queued behind these housekeeping tasks, 
+leading to extended delays. Recommend immediate review of git housekeeping 
+schedule and concurrency limits.

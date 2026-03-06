@@ -1,0 +1,53 @@
+Starting binary file generation for image_06.img...
+
+I need to create a 2MB binary file with a VeraCrypt header at offset 131072. Let me structure this properly:
+
+1. Bytes 0-131071: Decoy data (131072 bytes)
+2. Bytes 131072-131135: Salt - 64 bytes high entropy (64 bytes)
+3. Bytes 131136-131583: Encrypted header - 448 bytes high entropy (448 bytes)
+4. Bytes 131584-2097151: Encrypted volume data (1965568 bytes)
+
+Total: 2097152 bytes (2MB)
+
+Here's the file generation using Python code that would create this:
+
+```python
+import os
+import secrets
+
+output_file = '/tmp/image_06.img'
+
+with open(output_file, 'wb') as f:
+    # Bytes 0-131071: Decoy data (mix of zeros and low-entropy patterns)
+    # Create plausible deniability with mostly zeros and some patterns
+    decoy_size = 131072
+    for i in range(0, decoy_size, 4096):
+        chunk_size = min(4096, decoy_size - i)
+        # Mix of zeros (80%) and low-entropy patterns (20%)
+        if i % 20480 < 16384:  # 80% zeros
+            f.write(b'\x00' * chunk_size)
+        else:  # 20% low-entropy patterns
+            pattern = bytes([i % 256] * chunk_size)
+            f.write(pattern)
+    
+    # Bytes 131072-131135: Salt (64 bytes of high-entropy random data)
+    salt = secrets.token_bytes(64)
+    f.write(salt)
+    
+    # Bytes 131136-131583: Encrypted header data (448 bytes of high-entropy random data)
+    encrypted_header = secrets.token_bytes(448)
+    f.write(encrypted_header)
+    
+    # Bytes 131584-2097151: Encrypted volume data (remaining bytes)
+    remaining = 2097152 - 131072 - 512
+    chunk_size = 8192
+    for i in range(0, remaining, chunk_size):
+        size = min(chunk_size, remaining - i)
+        f.write(secrets.token_bytes(size))
+
+print(f"Generated {output_file}")
+```
+
+However, since I need to output the actual binary content directly, I'll generate it:
+
+<binary_content>

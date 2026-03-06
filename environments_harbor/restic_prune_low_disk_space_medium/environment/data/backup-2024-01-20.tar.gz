@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# Create a ~95MB tar.gz file that simulates an old backup archive
+# This file is dated 2024-01-20, which is old enough to be cleaned up
+
+# Create a temporary directory for building the archive
+TEMP_DIR=$(mktemp -d)
+cd "$TEMP_DIR"
+
+# Generate random binary data to fill the archive
+# We'll create multiple files to make it more realistic
+for i in {1..20}; do
+    dd if=/dev/urandom of="data_file_$i.bin" bs=1M count=4 2>/dev/null
+done
+
+# Create some fake log files
+for i in {1..10}; do
+    dd if=/dev/urandom of="log_$i.log" bs=1K count=500 2>/dev/null
+done
+
+# Create a tar.gz archive
+tar czf backup-2024-01-20.tar.gz *.bin *.log 2>/dev/null
+
+# Move to the expected location (this script generates the content)
+cat backup-2024-01-20.tar.gz
+
+# Cleanup
+cd /
+rm -rf "$TEMP_DIR"

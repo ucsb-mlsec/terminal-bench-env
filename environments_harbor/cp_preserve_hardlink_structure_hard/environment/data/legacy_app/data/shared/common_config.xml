@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ApplicationConfig version="2.7.3" environment="production" last-modified="2024-01-15T10:30:00Z">
+    
+    <DatabaseSettings>
+        <PrimaryConnection 
+            host="db-primary.internal.net" 
+            port="5432" 
+            database="legacy_app_prod" 
+            timeout="30000">
+            <Username>app_service_account</Username>
+            <MaxConnections>100</MaxConnections>
+            <MinConnections>10</MinConnections>
+        </PrimaryConnection>
+        <ReplicaConnection 
+            host="db-replica.internal.net" 
+            port="5432" 
+            database="legacy_app_prod" 
+            readonly="true">
+            <LoadBalancing enabled="true" strategy="round-robin"/>
+        </ReplicaConnection>
+        <ConnectionPool 
+            maxWaitTime="5000" 
+            validationQuery="SELECT 1" 
+            testOnBorrow="true"/>
+        <TransactionSettings 
+            isolationLevel="READ_COMMITTED" 
+            defaultTimeout="60000"/>
+    </DatabaseSettings>
+    
+    <CacheSettings>
+        <MemoryCache 
+            maxSize="512MB" 
+            evictionPolicy="LRU" 
+            enabled="true">
+            <TTL default="3600" max="86400"/>
+            <Regions>
+                <Region name="session" size="128MB" ttl="1800"/>
+                <Region name="static" size="256MB" ttl="7200"/>
+                <Region name="dynamic" size="128MB" ttl="600"/>
+            </Regions>
+        </MemoryCache>
+        <DistributedCache 
+            provider="redis" 
+            clusterMode="true">
+            <Servers>redis-cluster.internal.net:6379</Servers>
+            <ReplicationFactor>3</ReplicationFactor>
+        </DistributedCache>
+        <CacheWarming enabled="true" schedule="0 2 * * *"/>
+    </CacheSettings>
+    
+    <SecuritySettings>
+        <Authentication 
+            method="LDAP" 
+            allowAnonymous="false" 
+            sessionTimeout="3600">
+            <LDAPServer url="ldap://auth.internal.net:389" baseDN="dc=company,dc=com"/>
+            <PasswordPolicy 
+                minLength="12" 
+                requireSpecialChars="true" 
+                expiryDays="90"/>
+        </Authentication>
+        <Authorization 
+            model="RBAC" 
+            cacheEnabled="true">
+            <DefaultRole>user</DefaultRole>
+            <AdminRoles>admin,superuser,operator</AdminRoles>
+        </Authorization>
+        <Encryption 
+            algorithm="AES-256-GCM" 
+            keyRotation="quarterly">
+            <DataAtRest enabled="true"/>
+            <DataInTransit tlsVersion="1.3" enforceHTTPS="true"/>
+        </Encryption>
+        <AuditLogging enabled="true" retention="730" includePayload="false"/>
+    </SecuritySettings>
+    
+    <LoggingSettings>
+        <LogLevel default="INFO" performanceImpact="low"/>
+        <Appenders>
+            <FileAppender 
+                path="/var/log/legacy_app" 
+                maxSize="100MB" 
+                maxBackups="10" 
+                compression="gzip"/>
+            <SyslogAppender 
+                host="syslog.internal.net" 
+                port="514" 
+                protocol="TCP" 
+                facility="LOCAL1"/>
+        </Appenders>
+        <Categories>
+            <Category name="application" level="INFO"/>
+            <Category name="database" level="WARN"/>
+            <Category name="security" level="DEBUG"/>
+            <Category name="performance" level="INFO"/>
+        </Categories>
+        <Rotation schedule="daily" retentionDays="30"/>
+        <SensitiveDataMasking enabled="true" patterns="SSN,CREDIT_CARD,EMAIL"/>
+    </LoggingSettings>
+    
+</ApplicationConfig>

@@ -1,0 +1,114 @@
+import numpy as np
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Dropout, Input
+import json
+
+# Create a sentiment analysis model with dropout layers
+np.random.seed(42)
+tf.random.set_seed(42)
+
+# Model architecture: feedforward network with dropout
+model = Sequential([
+    Input(shape=(100,)),  # 100-dimensional input for processed text features
+    Dense(128, activation='relu'),
+    Dropout(0.4),
+    Dense(64, activation='relu'),
+    Dropout(0.3),
+    Dense(32, activation='relu'),
+    Dropout(0.3),
+    Dense(1, activation='sigmoid')
+])
+
+# Compile the model
+model.compile(
+    optimizer='adam',
+    loss='binary_crossentropy',
+    metrics=['accuracy']
+)
+
+# Train on synthetic data to create realistic weights
+# Generate synthetic training data
+n_samples = 1000
+X_train = np.random.randn(n_samples, 100)
+# Create somewhat realistic sentiment labels based on feature patterns
+y_train = (np.sum(X_train[:, :50], axis=1) > 0).astype(float)
+y_train = y_train + np.random.normal(0, 0.1, n_samples)
+y_train = np.clip(y_train, 0, 1)
+
+# Train the model
+model.fit(X_train, y_train, epochs=20, batch_size=32, verbose=0)
+
+# Save the model
+model.save('/home/user/models/sentiment_model.h5')
+
+print("Model created and saved successfully")
+```
+
+```python
+import os
+import json
+import numpy as np
+import tensorflow as tf
+from tensorflow import keras
+
+# Load the pre-trained model
+model = keras.models.load_model('/home/user/models/sentiment_model.h5')
+
+# Read reviews from file
+with open('/home/user/data/reviews.txt', 'r') as f:
+    reviews = [line.strip() for line in f.readlines()]
+
+# Simple preprocessing: convert text to numeric features
+def preprocess_text(text):
+    """Convert text to 100-dimensional feature vector"""
+    # Simple hash-based feature extraction
+    features = np.zeros(100)
+    words = text.lower().split()
+    
+    for word in words:
+        # Use hash to map words to feature dimensions
+        idx = hash(word) % 100
+        features[idx] += 1
+    
+    # Normalize
+    if np.sum(features) > 0:
+        features = features / np.sqrt(np.sum(features ** 2))
+    
+    return features
+
+# Preprocess all reviews
+X = np.array([preprocess_text(review) for review in reviews])
+
+# Monte Carlo Dropout for uncertainty estimation
+n_iterations = 50
+
+# Enable dropout during inference by setting training=True
+predictions_list = []
+for _ in range(n_iterations):
+    preds = model(X, training=True)  # Keep dropout active
+    predictions_list.append(preds.numpy().flatten())
+
+predictions_array = np.array(predictions_list)  # Shape: (n_iterations, n_samples)
+
+# Calculate mean prediction (sentiment) and uncertainty
+mean_predictions = np.mean(predictions_array, axis=0)
+# Use standard deviation as uncertainty measure
+uncertainty_scores = np.std(predictions_array, axis=0)
+
+# Prepare output
+results = []
+for i in range(len(reviews)):
+    results.append({
+        "review_id": i,
+        "sentiment": float(mean_predictions[i]),
+        "uncertainty": float(uncertainty_scores[i])
+    })
+
+# Save to JSON
+with open('/tmp/predictions.json', 'w') as f:
+    json.dump(results, f, indent=2)
+
+print(f"Processed {len(reviews)} reviews successfully")
+print(f"Results saved to /tmp/predictions.json")

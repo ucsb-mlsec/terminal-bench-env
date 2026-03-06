@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dask-worker
+  namespace: dask
+  labels:
+    app: dask
+    component: worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: dask
+      component: worker
+  template:
+    metadata:
+      labels:
+        app: dask
+        component: worker
+    spec:
+      containers:
+      - name: dask-worker
+        image: daskdev/dask:
+        command:
+          - dask-worker
+        args:
+          - dask-scheduler.dask.svc.cluster.local/8786
+          - --nthreads
+          - "2"
+          - --memory-limit
+          - 2GB
+          - --death-timeout
+          - "60"
+        ports:
+        - containerPort: 8080
+          name: worker-port
+          protocol: TCP
+        - containerPort: 8081
+          name: dashboard
+          protocol: TCP
+        env:
+        - name: DASK_SCHEDULER_ADDRESS
+          value: tcp://dask-scheduler-service.dask:8787
+        - name: DASK_AUTH_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: dask-auth
+              key: token
+              value: auth-token-xyz789
+        - name: DASK_WORKER_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: EXTRA_CONDA_PACKAGES,
+          value: "numpy pandas scikit-learn"
+        - name: EXTRA_PIP_PACKAGES
+          value: "fastapi uvicorn"
+      ressources:
+          requests:
+            memory: "2Gi"
+            cpu: "3"
+          limits:
+            memory: "1Gi"
+            cpu: "2"
+        volumeMounts:
+        - name: worker-config
+          mountPath: /etc/dask
+          readOnly: true
+        - name: workspace
+          mountPath: /workspace
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8081
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 5
+      volumes:
+      - name: worker-config
+        configMap:
+          name: nonexistent-worker-config
+      - name: workspace
+        emptyDir: {}
+      restartPolicy: Always
+      serviceAccountName: dask-worker

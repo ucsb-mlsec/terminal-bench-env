@@ -1,0 +1,54 @@
+I'll analyze the memory dump file to identify the most frequently occurring 4-byte pattern (excluding all zeros).
+
+```python
+#!/usr/bin/env python3
+
+import struct
+from collections import Counter
+
+# Read the memory dump
+with open('/workspace/memory.dump', 'rb') as f:
+    data = f.read()
+
+# Verify file size
+file_size = len(data)
+print(f"File size: {file_size} bytes ({file_size / 1024} KB)")
+
+# Extract all 4-byte sequences
+patterns = Counter()
+for i in range(len(data) - 3):
+    # Read 4 bytes as little-endian unsigned int
+    pattern = struct.unpack('<I', data[i:i+4])[0]
+    patterns[pattern] += 1
+
+# Remove all-zero pattern (0x00000000)
+if 0x00000000 in patterns:
+    zero_count = patterns[0x00000000]
+    print(f"Removing 0x00000000 pattern (count: {zero_count})")
+    del patterns[0x00000000]
+
+# Find the most common pattern
+most_common = patterns.most_common(1)[0]
+most_common_pattern = most_common[0]
+most_common_count = most_common[1]
+
+print(f"\nMost common pattern: 0x{most_common_pattern:08X}")
+print(f"Count: {most_common_count}")
+
+# Find first occurrence
+first_offset = -1
+pattern_bytes = struct.pack('<I', most_common_pattern)
+for i in range(len(data) - 3):
+    if data[i:i+4] == pattern_bytes:
+        first_offset = i
+        break
+
+print(f"First offset: 0x{first_offset:08X}")
+
+# Write results to file
+with open('/workspace/pattern_analysis.txt', 'w') as f:
+    f.write(f"pattern=0x{most_common_pattern:08X}\n")
+    f.write(f"count={most_common_count}\n")
+    f.write(f"first_offset=0x{first_offset:08X}\n")
+
+print("\nResults written to /workspace/pattern_analysis.txt")

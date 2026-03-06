@@ -1,0 +1,170 @@
+RAY AUTOSCALER CONFIGURATION REFERENCE
+Version: 2.x
+Last Updated: 2024
+
+================================================================================
+OVERVIEW
+================================================================================
+This document describes the required structure for Ray autoscaler configuration
+files used with AWS EC2 instances.
+
+================================================================================
+REQUIRED TOP-LEVEL SECTIONS
+================================================================================
+Every Ray autoscaler configuration must contain the following top-level keys:
+
+1. cluster_name: (string) Unique identifier for the Ray cluster
+2. provider: (dict) Cloud provider configuration and credentials
+3. available_node_types: (dict) Definitions of all node types in the cluster
+4. head_node_type: (string) Reference to which node type serves as head node
+5. autoscaling: (dict) Autoscaling behavior and limits configuration
+
+================================================================================
+PROVIDER SECTION STRUCTURE
+================================================================================
+The provider section configures cloud provider settings:
+
+provider:
+  type: aws
+  region: us-west-2
+  availability_zone: us-west-2a
+
+Required fields:
+  - type: Must be 'aws' for EC2
+  - region: AWS region identifier (e.g., us-east-1, us-west-2)
+  - availability_zone: Specific AZ within the region
+
+================================================================================
+AVAILABLE_NODE_TYPES SECTION STRUCTURE
+================================================================================
+This section is a dictionary where each key is a node type name. Each node
+type definition contains:
+
+available_node_types:
+  <node_type_name>:
+    node_config: (dict) EC2 instance configuration
+    resources: (dict) Ray resource allocation (use {} for defaults)
+    min_workers: (int) Minimum number of nodes of this type
+    max_workers: (int) Maximum number of nodes of this type
+
+Node Config Fields:
+  - InstanceType: (string) EC2 instance type (e.g., m5.large, c5.xlarge)
+  - ImageId: (string) AMI identifier (e.g., ami-0abcdef1234567890)
+  - InstanceMarketOptions: (dict, optional) For spot instance configuration
+
+================================================================================
+SPOT INSTANCE CONFIGURATION
+================================================================================
+To configure spot instances, include InstanceMarketOptions in node_config:
+
+InstanceMarketOptions:
+  MarketType: spot
+  SpotOptions:
+    MaxPrice: '1.50'  # Maximum price per hour in USD (string format)
+
+Example worker node with spot instances:
+
+spot_worker_type_1:
+  node_config:
+    InstanceType: m5.large
+    ImageId: ami-0abcdef1234567890
+    InstanceMarketOptions:
+      MarketType: spot
+      SpotOptions:
+        MaxPrice: '0.50'
+  resources: {}
+  min_workers: 0
+  max_workers: 10
+
+================================================================================
+ON-DEMAND INSTANCE CONFIGURATION
+================================================================================
+On-demand instances are configured by OMITTING the InstanceMarketOptions field:
+
+ondemand_worker_type:
+  node_config:
+    InstanceType: m5.large
+    ImageId: ami-0abcdef1234567890
+  resources: {}
+  min_workers: 0
+  max_workers: 5
+
+This creates standard on-demand EC2 instances with predictable pricing.
+
+================================================================================
+AUTOSCALING SECTION
+================================================================================
+The autoscaling section controls cluster scaling behavior:
+
+autoscaling:
+  min_workers: (int) Minimum total workers across all types
+  max_workers: (int) Maximum total workers across all types
+  idle_timeout_minutes: (int) Minutes before idle workers are terminated
+
+Example:
+autoscaling:
+  min_workers: 2
+  max_workers: 20
+  idle_timeout_minutes: 5
+
+Note: min_workers and max_workers represent total worker capacity across
+all worker node types combined.
+
+================================================================================
+HEAD NODE CONFIGURATION
+================================================================================
+One node type must be designated as the head node:
+
+1. Define it in available_node_types with min_workers: 0 and max_workers: 0
+2. Reference it in the head_node_type field
+
+Example:
+head_node_type: head_node
+
+available_node_types:
+  head_node:
+    node_config:
+      InstanceType: m5.xlarge
+      ImageId: ami-0abcdef1234567890
+    resources: {}
+    min_workers: 0
+    max_workers: 0
+
+================================================================================
+COMPLETE MINIMAL EXAMPLE
+================================================================================
+
+cluster_name: my-ray-cluster
+
+provider:
+  type: aws
+  region: us-west-2
+  availability_zone: us-west-2a
+
+available_node_types:
+  head_node:
+    node_config:
+      InstanceType: m5.xlarge
+      ImageId: ami-0abcdef1234567890
+    resources: {}
+    min_workers: 0
+    max_workers: 0
+  
+  worker_node:
+    node_config:
+      InstanceType: m5.large
+      ImageId: ami-0abcdef1234567890
+    resources: {}
+    min_workers: 1
+    max_workers: 10
+
+head_node_type: head_node
+
+autoscaling:
+  min_workers: 1
+  max_workers: 10
+  idle_timeout_minutes: 5
+
+================================================================================
+END OF REFERENCE
+================================================================================

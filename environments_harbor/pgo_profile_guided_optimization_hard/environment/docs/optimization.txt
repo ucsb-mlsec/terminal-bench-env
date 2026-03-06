@@ -1,0 +1,74 @@
+COMPILER OPTIMIZATION GUIDE
+========================
+
+STANDARD OPTIMIZATION LEVELS
+-----------------------------
+
+Modern compilers like GCC provide several optimization levels:
+
+-O0: No optimization (default). Fast compilation, easy debugging.
+-O1: Basic optimizations. Reduces code size and execution time without
+     extensive compilation time.
+-O2: Recommended optimization level. Enables most optimization flags that
+     don't involve space-speed tradeoffs. Good balance for production.
+-O3: Aggressive optimizations. Includes loop unrolling, vectorization, and
+     other optimizations that may increase code size.
+
+PROFILE-GUIDED OPTIMIZATION (PGO)
+---------------------------------
+
+Profile-Guided Optimization is a compiler technique that uses runtime profiling
+data to make better optimization decisions. Unlike static optimization, PGO
+optimizes based on actual program behavior observed during execution.
+
+HOW TO USE PGO WITH GCC
+------------------------
+
+PGO is a three-step process:
+
+Step 1: Compile with instrumentation
+  gcc -O2 -fprofile-generate -o program program.c
+  
+  This creates an instrumented binary that will collect profiling data
+  during execution. The binary will be slower due to instrumentation overhead.
+
+Step 2: Run with representative workload
+  ./program < typical_input.dat
+  
+  Execute the instrumented program with data that represents real-world usage.
+  This generates .gcda files containing execution statistics (branch frequencies,
+  call counts, etc.).
+
+Step 3: Recompile with profile data
+  gcc -O2 -fprofile-use -o program program.c
+  
+  The compiler reads the .gcda profiling data and applies optimizations based
+  on observed behavior. This produces the final optimized binary.
+
+PROFILING DATA FILES
+--------------------
+
+.gcda files: Generated during profiling run, contain arc transition counts
+.gcno files: Generated during instrumentation compile, contain control flow graph
+
+These files must be present in the compilation directory for -fprofile-use.
+
+BENEFITS OF PGO
+---------------
+
+- Better branch prediction: Hot paths kept together, cold paths moved away
+- Improved code layout: Frequently executed code placed for better cache usage
+- Smarter inlining: Inline decisions based on actual call frequencies
+- Optimized loop transformations: Applied to frequently executed loops
+- Virtual call devirtualization: When targets are predictable
+
+WHEN PGO IS MOST EFFECTIVE
+---------------------------
+
+PGO provides the most benefit when:
+- Execution patterns are predictable and consistent
+- Programs have distinct hot and cold paths
+- Branch behavior is data-dependent but stable
+- Performance is critical (worth complex build process)
+
+Typical improvements range from 5-20% for compute-intensive applications.

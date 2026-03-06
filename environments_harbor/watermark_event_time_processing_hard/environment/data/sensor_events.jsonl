@@ -1,0 +1,164 @@
+#!/usr/bin/env python3
+"""
+Fixed IoT Analytics Pipeline with Watermark-based Event Time Processing
+Handles late-arriving events with 30-second allowed lateness
+"""
+
+import json
+from collections import defaultdict
+from typing import Dict, List, Tuple
+
+class EventTimeProcessor:
+    def __init__(self, window_size_ms: int = 60000, allowed_lateness_ms: int = 30000):
+        self.window_size_ms = window_size_ms
+        self.allowed_lateness_ms = allowed_lateness_ms
+        self.watermark = float('-inf')
+        
+        # Store events per window: {window_start: [events]}
+        self.windows: Dict[int, List[dict]] = defaultdict(list)
+        
+        # Track dropped events per window
+        self.dropped_per_window: Dict[int, int] = defaultdict(int)
+        
+        # Track completed windows
+        self.completed_windows = set()
+    
+    def get_window_start(self, event_time: int) -> int:
+        """Calculate the window start time for a given event time."""
+        return (event_time // self.window_size_ms) * self.window_size_ms
+    
+    def update_watermark(self, event_time: int) -> int:
+        """Update watermark based on event time - allowed lateness."""
+        new_watermark = event_time - self.allowed_lateness_ms
+        if new_watermark > self.watermark:
+            self.watermark = new_watermark
+        return self.watermark
+    
+    def process_event(self, event: dict) -> List[dict]:
+        """
+        Process a single event and return any completed windows.
+        Returns list of window results that can now be emitted.
+        """
+        event_time = event['event_time']
+        window_start = self.get_window_start(event_time)
+        window_end = window_start + self.window_size_ms
+        
+        # Update watermark
+        self.update_watermark(event_time)
+        
+        # Check if event is too late (beyond allowed lateness)
+        if event_time < self.watermark:
+            self.dropped_per_window[window_start] += 1
+        else:
+            # Add event to its window
+            self.windows[window_start].append(event)
+        
+        # Check which windows can now be completed
+        return self.get_completed_windows()
+    
+    def get_completed_windows(self) -> List[dict]:
+        """
+        Return results for windows that have passed the watermark
+        and haven't been completed yet.
+        """
+        results = []
+        
+        for window_start in sorted(self.windows.keys()):
+            window_end = window_start + self.window_size_ms
+            
+            # Window is complete if watermark has passed window end
+            if self.watermark >= window_end and window_start not in self.completed_windows:
+                result = self.compute_window_result(window_start)
+                results.append(result)
+                self.completed_windows.add(window_start)
+        
+        return results
+    
+    def compute_window_result(self, window_start: int) -> dict:
+        """Compute aggregation results for a window."""
+        window_end = window_start + self.window_size_ms
+        events = self.windows[window_start]
+        dropped = self.dropped_per_window[window_start]
+        
+        if not events:
+            # Window with no events (only dropped ones)
+            return {
+                'window_start': window_start,
+                'window_end': window_end,
+                'min_temp': 0.0,
+                'max_temp': 0.0,
+                'avg_temp': 0.0,
+                'event_count': 0,
+                'dropped_count': dropped
+            }
+        
+        temperatures = [e['temperature'] for e in events]
+        
+        return {
+            'window_start': window_start,
+            'window_end': window_end,
+            'min_temp': round(min(temperatures), 1),
+            'max_temp': round(max(temperatures), 1),
+            'avg_temp': round(sum(temperatures) / len(temperatures), 1),
+            'event_count': len(events),
+            'dropped_count': dropped
+        }
+    
+    def finalize(self) -> List[dict]:
+        """
+        Finalize processing and return any remaining windows.
+        Should be called after all events are processed.
+        """
+        results = []
+        
+        for window_start in sorted(self.windows.keys()):
+            if window_start not in self.completed_windows:
+                result = self.compute_window_result(window_start)
+                results.append(result)
+                self.completed_windows.add(window_start)
+        
+        return results
+
+
+def main():
+    input_file = '/workspace/analytics_pipeline/input/sensor_events.jsonl'
+    output_file = '/workspace/analytics_pipeline/output/results.jsonl'
+    
+    processor = EventTimeProcessor(window_size_ms=60000, allowed_lateness_ms=30000)
+    
+    # Read and sort events by arrival_time to simulate real-time processing
+    events = []
+    with open(input_file, 'r') as f:
+        for line in f:
+            if line.strip():
+                events.append(json.loads(line))
+    
+    # Sort by arrival_time to simulate the order events arrive at the system
+    events.sort(key=lambda e: e['arrival_time'])
+    
+    all_results = []
+    
+    # Process events in arrival order
+    for event in events:
+        completed_windows = processor.process_event(event)
+        all_results.extend(completed_windows)
+    
+    # Finalize and get any remaining windows
+    final_windows = processor.finalize()
+    all_results.extend(final_windows)
+    
+    # Sort results by window_start
+    all_results.sort(key=lambda r: r['window_start'])
+    
+    # Write results
+    with open(output_file, 'w') as f:
+        for result in all_results:
+            f.write(json.dumps(result) + '\n')
+    
+    print(f"Processing complete. Processed {len(events)} events.")
+    print(f"Generated {len(all_results)} window results.")
+    print(f"Results written to {output_file}")
+
+
+if __name__ == '__main__':
+    main()

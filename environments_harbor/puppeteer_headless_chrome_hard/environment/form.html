@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Step Registration Form</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 10px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            max-width: 500px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            padding: 0 20px;
+        }
+        
+        .step {
+            width: 30%;
+            height: 4px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            position: relative;
+        }
+        
+        .step.active {
+            background: #667eea;
+        }
+        
+        .form-step {
+            display: none;
+        }
+        
+        .form-step.active {
+            display: block;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        input[type="text"],
+        input[type="email"],
+        input[type="tel"],
+        input[type="password"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .error {
+            color: #e74c3c;
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+        }
+        
+        .error.show {
+            display: block;
+        }
+        
+        input.invalid,
+        select.invalid {
+            border-color: #e74c3c;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            margin-right: 10px;
+        }
+        
+        .checkbox-group label {
+            margin-bottom: 0;
+        }
+        
+        .button-group {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+        
+        button {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .btn-next,
+        .btn-submit {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-next:hover,
+        .btn-submit:hover {
+            background: #5568d3;
+        }
+        
+        .btn-prev {
+            background: #e0e0e0;
+            color: #555;
+        }
+        
+        .btn-prev:hover {
+            background: #d0d0d0;
+        }
+        
+        .confirmation {
+            display: none;
+            text-align: center;
+        }
+        
+        .confirmation.show {
+            display: block;
+        }
+        
+        .confirmation h2 {
+            color: #27ae60;
+            margin-bottom: 20px;
+        }
+        
+        .confirmation-code {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        
+        #company-name-group {
+            display: none;
+        }
+        
+        #company-name-group.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <!-- Test Data: Email: test@example.com, Password: Test123!, Username: testuser123, Full Name: John Doe, Phone: 555-0100, Company Name: Test Corp, Address: 123 Main St, City: TestCity, Country: USA -->
+    
+    <div class="container">
+        <h1>Registration Form</h1>
+        
+        <div class="step-indicator">
+            <div class="step" id="step-indicator-1"></div>
+            <div class="step" id="step-indicator-2"></div>
+            <div class="step" id="step-indicator-3"></div>
+        </div>
+        
+        <form id="registration-form">
+            <!-- Step 1 -->
+            <div class="form-step active" id="step-1">
+                <h2>Step 1: Personal Information</h2>
+                
+                <div class="form-group">
+                    <label for="full-name">Full Name *</label>
+                    <input type="text" id="full-name" name="fullName">
+                    <div class="error" id="full-name-error">Full name is required</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">Email *</label>
+                    <input type="email" id="email" name="email">
+                    <div class="error" id="email-error">Please enter a valid email address</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="phone">Phone Number *</label>
+                    <input type="tel" id="phone" name="phone">
+                    <div class="error" id="phone-error">Phone number is required</div>
+                </div>
+                
+                <div class="button-group">
+                    <div></div>
+                    <button type="button" class="btn-next" onclick="nextStep(1)">Next</button>
+                </div>
+            </div>
+            
+            <!-- Step 2 -->
+            <div class="form-step" id="step-2">
+                <h2>Step 2: Account Details</h2>
+                
+                <div class="form-group">
+                    <label for="account-type">Account Type *</label>
+                    <select id="account-type" name="accountType" onchange="toggleCompanyName()">
+                        <option value="">Select account type</option>
+                        <option value="Personal">Personal</option>
+                        <option value="Business">Business</option>
+                    </select>
+                    <div class="error" id="account-type-error">Please select an account type</div>
+                </div>
+                
+                <div class="form-group" id="company-name-group">
+                    <label for="company-name">Company Name *</label>
+                    <input type="text" id="company-name" name="companyName">
+                    <div class="error" id="company-name-error">Company name is required for business accounts</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="username">Username *</label>
+                    <input type="text" id="username" name="username">
+                    <div class="error" id="username-error">Username is required</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password *</label>
+                    <input type="password" id="password" name="password">
+                    <div class="error" id="password-error">Password must be at least 8 characters with 1 uppercase letter and 1 number</div>
+                </div>
+                
+                <div class="button-group">
+                    <button type="button" class="btn-prev" onclick="prevStep(2)">Previous</button>
+                    <button type="button" class="btn-next" onclick="nextStep(2)">Next</button>
+                </div>
+            </div>
+            
+            <!-- Step 3 -->
+            <div class="form-step" id="step-3">
+                <h2>Step 3: Address Information</h2>
+                
+                <div class="form-group">
+                    <label for="address">Address *</label>
+                    <input type="text" id="address" name="address">
+                    <div class="error" id="address-error">Address is required</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="city">City *</label>
+                    <input type="text" id="city" name="city">
+                    <div class="error" id="city-error">City is required</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="country">Country *</label>
+                    <select id="country" name="country">
+                        <option value="">Select country</option>
+                        <option value="USA">USA</option>
+                        <option value="Canada">Canada</option>
+                        <option value="UK">UK</option>
+                    </select>
+                    <div class="error" id="country-error">Please select a country</div>
+                </div>
+                
+                <div class="form-group checkbox-group">
+                    <input type="checkbox" id="newsletter" name="newsletter">
+                    <label for="newsletter">Subscribe to newsletter</label>
+                </div>
+                
+                <div class="button-group">
+                    <button type="button" class="btn-prev" onclick="prevStep(3)">Previous</button>
+                    <button type="button" class="btn-submit" onclick="submitForm()">Submit</button>
+                </div>
+            </div>
+        </form>
+        
+        <div class="confirmation" id="confirmation">
+            <h2>Registration Successful!</h2>
+            <p>Thank you for registering. Your confirmation code is:</p>
+            <div class="confirmation-code" id="confirmation-code">CONF-12345</div>
+        </div>
+    </div>
+    
+    <script>
+        let currentStep = 1;
+        
+        function updateStepIndicator() {
+            for (let i = 1; i <= 3; i++) {
+                const indicator = document.getElementById(`step-indicator-${i}`);
+                if (i <= currentStep) {
+                    indicator.classList.add('active');
+                } else {
+                    indicator.classList.remove('active');
+                }
+            }
+        }
+        
+        function showStep(step) {
+            document.querySelectorAll('.form-step').forEach(el => {
+                el.classList.remove('active');
+            });
+            document.getElementById(`step-${step}`).classList.add('active');
+            currentStep = step;
+            updateStepIndicator();
+        }
+        
+        function nextStep(step) {
+            if (validateStep(step)) {
+                showStep(step + 1);
+            }
+        }
+        
+        function prevStep(step) {
+            showStep(step - 1);
+        }
+        
+        function validateStep(step) {
+            let isValid = true;
+            
+            if (step === 1) {
+                isValid = validateFullName() && validateEmail() && validatePhone() && isValid;
+            } else if (step === 2) {
+                isValid = validateAccountType() && validateUsername() && validatePassword() && isValid;
+                if (document.getElementById('account-type').value === 'Business') {
+                    isValid = validateCompanyName() && isValid;
+                }
+            } else if (step === 3) {
+                isValid = validateAddress() && validateCity() && validateCountry() && isValid;
+            }
+            
+            return isValid;
+        }
+        
+        function validateFullName() {
+            const fullName = document.getElementById('full-name');
+            const error = document.getElementById('full-name-error');
+            
+            if (fullName.value.trim() === '') {
+                fullName.classList.add('invalid');
+                error.classList.add('show');
+                return false;
+            } else {
+                fullName.classList.remove('invalid');
+                error.classList.remove('show');
+                return true;
+            }
+        }
+        
+        function validateEmail() {
+            const email = document.getElementById('email');
+            const error = document.getElementById('email-error');
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            
+            if (!emailRegex.test(email.value.trim())) {
+                email.classList.add('invalid');
+                error.classList.add('show');
+                return false;
+            } else {
+                email.classList.remove('invalid');
+                error.classList.remove('show');
+                return true;
+            }
+        }
+        
+        function validatePhone() {
+            const phone = document.getElementById('phone');
+            const error = document.getElementById('phone-error');
+            
+            if (phone.value.trim() === '') {
+                phone.classList.add('invalid');
+                error.classList.add('show');
+                return false;
+            } else {
+                phone.classList.remove('invalid');
+                error.classList.remove('show');
+                return true;
+            }
+        }
+        
+        function validateAccountType() {
+            const accountType = document.getElementById('account-type');
+            const error = document.getElementById('account-type-error');
+            
+            if (accountType.value === '') {
+                accountType.classList.add('invalid');
+                error.classList.add('show');
+                return false;
+            } else {
+                accountType.classList.remove('invalid');
+                error.classList.remove('show');
+                return true;
+            }
+        }
+        
+        function validateCompanyName() {
+            const companyName = document.getElementById('company-name');
+            const error = document.getElementById('company-name-error');
+            const accountType = document.getElementById('account-type').value;
+            
+            if (accountType === 'Business' && companyName.value.trim() === '') {
+                companyName.classList.add('invalid');
+                error.classList.add('show');
+                return false;
+            } else {
+                companyName.classList.remove('invalid');
+                error.classList.remove('show');
+                return true;
+            }
+        }
+        
+        function validateUsername() {
+            const username = document.getElementById('username');
+            const error = document.getElementById('username-error');
+            
+            if (username.value.trim() === '') {
+                username.classList.add('invalid');
+                error.classList.add('show');
+                return false;
+            } else {
+                username.classList.remove('invalid');
+                error.classList.remove('show');
+                return true;
+            }
+        }
+        
+        function validatePassword() {
+            const password = document.getElementById('password');
+            const error = document.getElementById('password-error');
+            const passwordRegex = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
+            
+            if (!passwordRegex.test(password.value)) {
+                password.classList.add('invalid');
+                error.classList.add('show');
+                return false;
+            } else {
+                password.classList.remove('invalid');
+                error.classList.remove('show');
+                return true;
+            }
+        }
+        
+        function validateAddress() {
+            const address = document.getElementById('address');
+            const error = document.getElementById('address-error');
+            
+            if (address.value.trim() === '') {
+                address.classList.add('invalid');
+                error.classList.add('show');
+                return false;
+            } else {
+                address.classList.remove('invalid');
+                error.classList.remove('show');
+                return true;
+            }
+        }
+        
+        function validateCity() {
+            const city = document.getElementById('city');
+            const error = document.getElementById('city-error');
+            
+            if (city.value.trim() === '') {
+                city.classList.add('invalid');
+                error.classList.add('show');
+                return false;
+            } else {
+                city.classList.remove('invalid');
+                error.classList.remove('show');
+                return true;
+            }
+        }
+        
+        function validateCountry() {
+            const country = document.getElementById('country');
+            const error = document.getElementById('country-error');
+            
+            if (country.value === '') {
+                country.classList.add('invalid');
+                error.classList.add('show');
+                return false;
+            } else {
+                country.classList.remove('invalid');
+                error.classList.remove('show');
+                return true;
+            }
+        }
+        
+        function toggleCompanyName() {
+            const accountType = document.getElementById('account-type').value;
+            const companyNameGroup = document.getElementById('company-name-group');
+            
+            if (accountType === 'Business') {
+                companyNameGroup.classList.add('show');
+            } else {
+                companyNameGroup.classList.remove('show');
+                document.getElementById('company-name').value = '';
+                document.getElementById('company-name').classList.remove('invalid');
+                document.getElementById('company-name-error').classList.remove('show');
+            }
+        }
+        
+        function submitForm() {
+            if (validateStep(3)) {
+                document.getElementById('registration-form').style.display = 'none';
+                document.querySelector('.step-indicator').style.display = 'none';
+                document.getElementById('confirmation').classList.add('show');
+            }
+        }
+        
+        // Initialize
+        updateStepIndicator();
+    </script>
+</body>
+</html>

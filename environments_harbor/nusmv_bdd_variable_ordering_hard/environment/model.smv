@@ -1,0 +1,71 @@
+MODULE main
+
+VAR
+  resource_locked : boolean;
+  state1 : {idle, working, done};
+  counter1 : 0..3;
+  channel_ready : boolean;
+  buffer1 : boolean;
+  state2 : {idle, working, done};
+  queue_full : boolean;
+  msg_pending : boolean;
+  resource_owner : {none, proc1, proc2};
+  state3 : {idle, working, done};
+  buffer2 : boolean;
+  counter2 : 0..3;
+  ack : boolean;
+  request_flag : boolean;
+  sync_token : boolean;
+
+ASSIGN
+  init(resource_locked) := FALSE;
+  init(state1) := idle;
+  init(counter1) := 0;
+  init(channel_ready) := FALSE;
+  init(buffer1) := FALSE;
+  init(state2) := idle;
+  init(queue_full) := FALSE;
+  init(msg_pending) := FALSE;
+  init(resource_owner) := none;
+  init(state3) := idle;
+  init(buffer2) := FALSE;
+  init(counter2) := 0;
+  init(ack) := FALSE;
+  init(request_flag) := FALSE;
+  init(sync_token) := FALSE;
+
+TRANS
+  (state1 = idle & !buffer1 & counter1 < 3) -> (next(state1) = working & next(buffer1) = TRUE & next(counter1) = counter1 + 1);
+
+TRANS
+  (state1 = working & buffer1) -> next(state1) = done;
+
+TRANS
+  (state2 = idle & state3 = idle & !queue_full) -> (next(state2) = working & next(state3) = working);
+
+TRANS
+  (state2 = working & queue_full) -> next(state2) = idle;
+
+TRANS
+  (state3 = working & state2 = done & queue_full) -> (next(state3) = done & next(queue_full) = FALSE);
+
+TRANS
+  (resource_locked & resource_owner = proc1 & request_flag) -> (next(resource_locked) = FALSE & next(resource_owner) = none);
+
+TRANS
+  (!resource_locked & request_flag & state1 = working) -> (next(resource_locked) = TRUE & next(resource_owner) = proc1);
+
+TRANS
+  (channel_ready & msg_pending & buffer2) -> (next(ack) = TRUE & next(msg_pending) = FALSE);
+
+TRANS
+  (!channel_ready & buffer1 & buffer2 & !msg_pending) -> (next(channel_ready) = TRUE & next(msg_pending) = TRUE);
+
+TRANS
+  (ack & channel_ready) -> (next(ack) = FALSE & next(channel_ready) = FALSE & next(buffer2) = FALSE);
+
+TRANS
+  (counter2 < 3 & state3 = working & sync_token) -> next(counter2) = counter2 + 1;
+
+TRANS
+  (counter1 = 3 & counter2 = 3 & sync_token) -> (next(counter1) = 0 & next(counter2) = 0 & next(sync_token) = FALSE);

@@ -1,0 +1,111 @@
+I'll analyze the task and create the board_07.txt file, then solve the complete problem.
+
+First, let me create board_07.txt focusing on corner positions with stones in atari:
+
+BW.......
+WB.......
+.........
+.........
+.........
+.........
+.........
+......BWB
+......WBW
+
+Now let me solve the complete task by analyzing all boards in /home/agent/boards/:
+
+<solution>
+import os
+
+def read_board(filename):
+    """Read a board file and return as a 2D list."""
+    with open(filename, 'r') as f:
+        lines = f.readlines()
+    board = []
+    for line in lines:
+        line = line.strip()
+        if line:
+            board.append(list(line))
+    return board
+
+def get_neighbors(row, col, size=9):
+    """Get valid neighbor coordinates."""
+    neighbors = []
+    for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+        nr, nc = row + dr, col + dc
+        if 0 <= nr < size and 0 <= nc < size:
+            neighbors.append((nr, nc))
+    return neighbors
+
+def find_group(board, row, col, visited):
+    """Find all stones connected to the stone at (row, col)."""
+    color = board[row][col]
+    if color == '.':
+        return set()
+    
+    group = set()
+    stack = [(row, col)]
+    
+    while stack:
+        r, c = stack.pop()
+        if (r, c) in visited or (r, c) in group:
+            continue
+        if board[r][c] != color:
+            continue
+        
+        group.add((r, c))
+        visited.add((r, c))
+        
+        for nr, nc in get_neighbors(r, c):
+            if (nr, nc) not in group and board[nr][nc] == color:
+                stack.append((nr, nc))
+    
+    return group
+
+def count_liberties(board, group):
+    """Count liberties for a group of stones."""
+    liberties = set()
+    for row, col in group:
+        for nr, nc in get_neighbors(row, col):
+            if board[nr][nc] == '.':
+                liberties.add((nr, nc))
+    return len(liberties)
+
+def find_atari_stones(board):
+    """Find all stones with exactly one liberty."""
+    atari_stones = []
+    visited = set()
+    
+    for row in range(9):
+        for col in range(9):
+            if board[row][col] in ['B', 'W'] and (row, col) not in visited:
+                group = find_group(board, row, col, visited)
+                if group and count_liberties(board, group) == 1:
+                    for r, c in group:
+                        atari_stones.append((r + 1, c + 1, board[r][c]))
+    
+    return atari_stones
+
+# Main execution
+boards_dir = '/home/agent/boards/'
+results = []
+
+for i in range(1, 16):
+    filename = f'board_{i:02d}.txt'
+    filepath = os.path.join(boards_dir, filename)
+    
+    if os.path.exists(filepath):
+        board = read_board(filepath)
+        atari_stones = find_atari_stones(board)
+        
+        for row, col, color in atari_stones:
+            results.append((filename, row, col, color))
+
+# Sort results
+results.sort(key=lambda x: (x[0], x[1], x[2]))
+
+# Write output
+with open('/home/agent/atari_stones.txt', 'w') as f:
+    for filename, row, col, color in results:
+        f.write(f'{filename} {row} {col} {color}\n')
+</solution>

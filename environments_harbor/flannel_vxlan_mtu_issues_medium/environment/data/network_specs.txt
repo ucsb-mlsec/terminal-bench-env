@@ -1,0 +1,70 @@
+INFRASTRUCTURE NETWORK SPECIFICATIONS
+=============================================
+
+1. Physical Network Constraints
+--------------------------------
+   - Underlay Network MTU: 1400 bytes (this is the critical constraint)
+   - Reason: Cloud provider network limitation or jumbo frames disabled
+   - Network Type: Standard Ethernet
+   - Impact: All encapsulated traffic must fit within this MTU limit
+
+2. Overlay Network Configuration
+---------------------------------
+   - CNI Plugin: Flannel
+   - Backend: VXLAN
+   - Pod Network CIDR: 10.244.0.0/16
+   - Service Network CIDR: 10.96.0.0/12
+   - VXLAN Network Identifier (VNI): 1
+   - VXLAN Port: 8472 (default)
+
+3. VXLAN Encapsulation Overhead
+--------------------------------
+   The VXLAN overlay adds the following headers to each packet:
+
+   - Outer Ethernet Header: 14 bytes
+   - Outer IP Header: 20 bytes
+   - Outer UDP Header: 8 bytes
+   - VXLAN Header: 8 bytes
+   -----------------------------------
+   - Total Overhead: 50 bytes
+
+   This overhead is added to every packet traversing between nodes,
+   reducing the available payload size for pod-to-pod communication.
+
+4. Current Observed Behavior
+-----------------------------
+   Symptoms reported by users:
+
+   - Small packets (< 1400 bytes): Success
+     * These packets fit within the physical MTU after encapsulation
+     * No fragmentation occurs
+
+   - Large packets (> 1400 bytes): Fragmentation or loss
+     * Encapsulated size exceeds physical MTU
+     * Results in fragmentation or dropped packets
+
+   - Cross-node communication: Affected (uses VXLAN)
+     * Requires encapsulation, subject to MTU constraints
+     * Experiencing packet loss and timeouts
+
+   - Same-node communication: Working (no encapsulation)
+     * Traffic stays within node, no VXLAN overhead
+     * Uses standard Linux bridge or veth pairs
+
+5. MTU Calculation Formula
+---------------------------
+   For VXLAN overlay networks, the pod interface MTU must account
+   for encapsulation overhead:
+
+   Overlay MTU = Physical MTU - Encapsulation Overhead
+   Overlay MTU = 1400 - 50 = 1350 bytes
+
+   This ensures that encapsulated packets do not exceed the physical
+   network MTU of 1400 bytes, preventing fragmentation and packet loss.
+
+6. Recommended Configuration
+-----------------------------
+   The Flannel CNI configuration should specify:
+   - MTU: 1350 bytes for pod interfaces
+   - This value must be explicitly configured in the Flannel CNI settings
+   - All nodes must use the same MTU value for consistency

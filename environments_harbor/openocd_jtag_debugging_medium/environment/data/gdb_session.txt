@@ -1,0 +1,156 @@
+GNU gdb (GNU Arm Embedded Toolchain 10.3-2021.10) 10.2.90.20210621-git
+Copyright (C) 2021 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+Type "show copying" and "show warranty" for details.
+This GDB was configured as "--host=x86_64-linux-gnu --target=arm-none-eabi".
+Type "show configuration" for configuration details.
+For bug reporting instructions, please see:
+<https://www.gnu.org/software/gdb/bugs/>.
+Find the GDB manual and other documentation resources online at:
+    <http://www.gnu.org/software/gdb/documentation/>.
+
+For help, type "help".
+Type "apropos word" to search for commands related to "word".
+(gdb) target extended-remote localhost:3333
+Remote debugging using localhost:3333
+0x08002a4c in main ()
+(gdb) monitor reset halt
+target halted due to debug-request, current mode: Thread 
+xPSR: 0x01000000 pc: 0x08000194 msp: 0x20005000
+(gdb) load firmware.elf
+Loading section .isr_vector, size 0x188 lma 0x8000000
+Loading section .text, size 0x2e4c lma 0x8000188
+Loading section .rodata, size 0x48c lma 0x8002fd4
+Loading section .ARM, size 0x8 lma 0x8003460
+Loading section .init_array, size 0xc lma 0x8003468
+Loading section .fini_array, size 0x8 lma 0x8003474
+Loading section .data, size 0x24 lma 0x800347c
+Start address 0x08002a4c, load size 13472
+Transfer rate: 8 KB/sec, 1920 bytes/write.
+(gdb) continue
+Continuing.
+
+Program received signal SIGTRAP, Trace/breakpoint trap.
+0x08002d88 in HardFault_Handler ()
+(gdb) info registers
+r0             0x20001a40          536877632
+r1             0x00000010          16
+r2             0x40013800          1073878016
+r3             0x00000000          0
+r4             0x20000b4c          536873804
+r5             0x00000000          0
+r6             0x00000000          0
+r7             0x20004f30          536891184
+r8             0x00000000          0
+r9             0x00000000          0
+r10            0x00000000          0
+r11            0x00000000          0
+r12            0x00000001          1
+sp             0x20004f18          0x20004f18
+lr             0x08001a7d          134224509
+pc             0x08002d88          0x8002d88 <HardFault_Handler+8>
+xPSR           0x61000003          1627389955
+fpscr          0x00000000          0
+msp            0x20004f18          0x20004f18
+psp            0x00000000          0x0
+primask        0x00000000          0
+basepri        0x00000000          0
+faultmask      0x00000000          0
+control        0x00000000          0
+(gdb) bt
+#0  0x08002d88 in HardFault_Handler ()
+#1  0x08001a7c in USART1_IRQHandler ()
+#2  <signal handler called>
+Backtrace stopped: previous frame identical to this frame (corrupt stack?)
+(gdb) p/x $pc
+$1 = 0x8002d88
+(gdb) p/x $sp
+$2 = 0x20004f18
+(gdb) p/x $lr
+$3 = 0x8001a7d
+(gdb) x/16x $sp
+0x20004f18:     0x20001a40      0x00000010      0x40013800      0x00000000
+0x20004f28:     0x20000b4c      0x00000000      0x00000000      0x20004f30
+0x20004f38:     0x00000000      0x00000000      0x00000000      0x00000000
+0x20004f48:     0x00000001      0x08001a7d      0x08002d80      0x61000003
+(gdb) info frame
+Stack level 0, frame at 0x20004f18:
+ pc = 0x8002d88 in HardFault_Handler; saved pc = 0x8001a7d
+ called by frame at 0x20004f38
+ Arglist at 0x20004f10, args: 
+ Locals at 0x20004f10, Previous frame's sp is 0x20004f18
+ Saved registers:
+  lr at 0x20004f14
+(gdb) monitor reg
+===== arm v7m registers
+(0) r0 (/32): 0x20001A40 (dirty)
+(1) r1 (/32): 0x00000010
+(2) r2 (/32): 0x40013800
+(3) r3 (/32): 0x00000000
+(4) r4 (/32): 0x20000B4C
+(5) r5 (/32): 0x00000000
+(6) r6 (/32): 0x00000000
+(7) r7 (/32): 0x20004F30
+(8) r8 (/32): 0x00000000
+(9) r9 (/32): 0x00000000
+(10) r10 (/32): 0x00000000
+(11) r11 (/32): 0x00000000
+(12) r12 (/32): 0x00000001
+(13) sp (/32): 0x20004F18
+(14) lr (/32): 0x08001A7D
+(15) pc (/32): 0x08002D88
+(16) xPSR (/32): 0x61000003
+(17) msp (/32): 0x20004F18
+(18) psp (/32): 0x00000000
+(19) primask (/1): 0x00
+(20) basepri (/8): 0x00
+(21) faultmask (/1): 0x00
+(22) control (/2): 0x00
+===== Cortex-M DWT registers
+(gdb) p/x $msp
+$4 = 0x20004f18
+(gdb) x/32x 0x20004f00
+0x20004f00:     0x00000000      0x00000000      0x00000000      0x00000000
+0x20004f10:     0x20001a40      0x00000010      0x40013800      0x00000000
+0x20004f20:     0x20000b4c      0x00000000      0x00000000      0x20004f30
+0x20004f30:     0x00000000      0x00000000      0x00000000      0x00000000
+0x20004f40:     0x00000001      0x08001a7d      0x08002d80      0x61000003
+0x20004f50:     0x00000000      0x00000000      0x00000000      0x00000000
+0x20004f60:     0x00000000      0x00000000      0x00000000      0x00000000
+0x20004f70:     0x00000000      0x00000000      0x00000000      0x00000000
+(gdb) info all-registers
+r0             0x20001a40          536877632
+r1             0x00000010          16
+r2             0x40013800          1073878016
+r3             0x00000000          0
+r4             0x20000b4c          536873804
+r5             0x00000000          0
+r6             0x00000000          0
+r7             0x20004f30          536891184
+r8             0x00000000          0
+r9             0x00000000          0
+r10            0x00000000          0
+r11            0x00000000          0
+r12            0x00000001          1
+sp             0x20004f18          0x20004f18
+lr             0x08001a7d          134224509
+pc             0x08002d88          0x8002d88 <HardFault_Handler+8>
+xPSR           0x61000003          1627389955
+fpscr          0x00000000          0
+msp            0x20004f18          0x20004f18
+psp            0x00000000          0x0
+primask        0x00000000          0
+basepri        0x00000000          0
+faultmask      0x00000000          0
+control        0x00000000          0
+(gdb) quit
+A debugging session is active.
+
+	Inferior 1 [Remote target] will be detached.
+
+Quit anyway? (y or n) y
+Detaching from program: firmware.elf, Remote target
+Ending remote debugging.
+[Inferior 1 (Remote target) detached]

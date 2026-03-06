@@ -1,0 +1,147 @@
+import numpy as np
+import os
+
+# Create the data directory if it doesn't exist
+os.makedirs('/workspace/data', exist_ok=True)
+
+# Set random seed for reproducibility
+np.random.seed(42)
+
+# Generate 1000 realistic grayscale images (64x64 pixels each)
+n_images = 1000
+image_size = 64
+n_features = image_size * image_size  # 4096
+
+# Initialize array
+images = np.zeros((n_images, n_features), dtype=np.float64)
+
+# Generate various types of realistic grayscale patterns
+for i in range(n_images):
+    # Create a 64x64 image
+    img = np.zeros((image_size, image_size), dtype=np.float64)
+    
+    # Mix different pattern types to create realistic images
+    pattern_type = i % 10
+    
+    if pattern_type == 0:
+        # Gradient patterns
+        x = np.linspace(0, 1, image_size)
+        y = np.linspace(0, 1, image_size)
+        X, Y = np.meshgrid(x, y)
+        img = 128 + 100 * (X - 0.5) + 50 * (Y - 0.5)
+        
+    elif pattern_type == 1:
+        # Circular patterns (like faces or objects)
+        center_x, center_y = np.random.randint(20, 44, 2)
+        radius = np.random.randint(10, 20)
+        for x in range(image_size):
+            for y in range(image_size):
+                dist = np.sqrt((x - center_x)**2 + (y - center_y)**2)
+                img[x, y] = 200 * np.exp(-(dist**2) / (2 * radius**2))
+        
+    elif pattern_type == 2:
+        # Sinusoidal patterns
+        x = np.linspace(0, 4 * np.pi, image_size)
+        y = np.linspace(0, 4 * np.pi, image_size)
+        X, Y = np.meshgrid(x, y)
+        img = 128 + 80 * np.sin(X) * np.cos(Y)
+        
+    elif pattern_type == 3:
+        # Block patterns
+        block_size = 8
+        for bx in range(0, image_size, block_size):
+            for by in range(0, image_size, block_size):
+                value = np.random.randint(50, 200)
+                img[bx:bx+block_size, by:by+block_size] = value
+        
+    elif pattern_type == 4:
+        # Gaussian blobs
+        n_blobs = np.random.randint(3, 8)
+        for _ in range(n_blobs):
+            center_x = np.random.randint(0, image_size)
+            center_y = np.random.randint(0, image_size)
+            sigma = np.random.randint(5, 15)
+            amplitude = np.random.randint(50, 150)
+            for x in range(image_size):
+                for y in range(image_size):
+                    dist_sq = (x - center_x)**2 + (y - center_y)**2
+                    img[x, y] += amplitude * np.exp(-dist_sq / (2 * sigma**2))
+    
+    elif pattern_type == 5:
+        # Diagonal stripes
+        stripe_width = np.random.randint(3, 8)
+        for x in range(image_size):
+            for y in range(image_size):
+                if ((x + y) // stripe_width) % 2 == 0:
+                    img[x, y] = 180
+                else:
+                    img[x, y] = 80
+    
+    elif pattern_type == 6:
+        # Radial pattern
+        center_x, center_y = image_size // 2, image_size // 2
+        for x in range(image_size):
+            for y in range(image_size):
+                angle = np.arctan2(y - center_y, x - center_x)
+                img[x, y] = 128 + 80 * np.sin(5 * angle)
+    
+    elif pattern_type == 7:
+        # Checkered pattern with smooth transitions
+        cell_size = 8
+        for x in range(image_size):
+            for y in range(image_size):
+                cx, cy = x // cell_size, y // cell_size
+                if (cx + cy) % 2 == 0:
+                    img[x, y] = 150 + 30 * np.sin(x * 0.3) * np.cos(y * 0.3)
+                else:
+                    img[x, y] = 100 + 30 * np.sin(x * 0.3) * np.cos(y * 0.3)
+    
+    elif pattern_type == 8:
+        # Concentric circles
+        center_x, center_y = image_size // 2, image_size // 2
+        for x in range(image_size):
+            for y in range(image_size):
+                dist = np.sqrt((x - center_x)**2 + (y - center_y)**2)
+                img[x, y] = 128 + 80 * np.sin(dist * 0.5)
+    
+    else:
+        # Mixed texture with low-frequency components
+        for freq_x in range(1, 5):
+            for freq_y in range(1, 5):
+                x = np.linspace(0, freq_x * 2 * np.pi, image_size)
+                y = np.linspace(0, freq_y * 2 * np.pi, image_size)
+                X, Y = np.meshgrid(x, y)
+                amplitude = np.random.uniform(10, 30)
+                img += amplitude * np.sin(X) * np.cos(Y)
+        img += 128
+    
+    # Add slight Gaussian noise for realism
+    noise = np.random.normal(0, 5, (image_size, image_size))
+    img += noise
+    
+    # Apply Gaussian smoothing to create spatial correlation
+    from scipy.ndimage import gaussian_filter
+    img = gaussian_filter(img, sigma=1.0)
+    
+    # Clip to valid range
+    img = np.clip(img, 0, 255)
+    
+    # Flatten and store
+    images[i, :] = img.flatten()
+
+# Save the array
+np.save('/workspace/data/images.npy', images)
+
+print(f"Generated images.npy with shape: {images.shape}")
+print(f"Data type: {images.dtype}")
+print(f"File size: ~{images.nbytes / (1024*1024):.1f} MB")
+print(f"Pixel value range: [{images.min():.2f}, {images.max():.2f}]")
+
+# Generate baseline time (simulating processing time)
+# This should be a reasonable time that can be beaten with efficient compression
+baseline_time = 2.5  # seconds
+
+with open('/workspace/data/baseline_time.txt', 'w') as f:
+    f.write(str(baseline_time))
+
+print(f"Generated baseline_time.txt with value: {baseline_time}")

@@ -1,0 +1,226 @@
+I'll help create a SQLite database with the required schema and sample data. Here's a Ruby script that will generate the database file:
+
+require 'sqlite3'
+require 'date'
+
+# Remove existing database if present
+File.delete('blog.db') if File.exist?('blog.db')
+
+# Create database
+db = SQLite3::Database.new('blog.db')
+
+# Create tables
+db.execute <<-SQL
+  CREATE TABLE users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL
+  );
+SQL
+
+db.execute <<-SQL
+  CREATE TABLE posts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    title TEXT NOT NULL,
+    content TEXT NOT NULL,
+    created_at DATETIME NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );
+SQL
+
+db.execute <<-SQL
+  CREATE TABLE comments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    post_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    content TEXT NOT NULL,
+    created_at DATETIME NOT NULL,
+    FOREIGN KEY (post_id) REFERENCES posts(id),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );
+SQL
+
+# Insert users
+users = [
+  ['Alice Johnson', 'alice.johnson@example.com'],
+  ['Bob Smith', 'bob.smith@example.com'],
+  ['Carol Williams', 'carol.williams@example.com'],
+  ['David Brown', 'david.brown@example.com'],
+  ['Emma Davis', 'emma.davis@example.com'],
+  ['Frank Miller', 'frank.miller@example.com'],
+  ['Grace Wilson', 'grace.wilson@example.com'],
+  ['Henry Moore', 'henry.moore@example.com'],
+  ['Ivy Taylor', 'ivy.taylor@example.com'],
+  ['Jack Anderson', 'jack.anderson@example.com'],
+  ['Kate Thomas', 'kate.thomas@example.com'],
+  ['Liam Jackson', 'liam.jackson@example.com'],
+  ['Mia White', 'mia.white@example.com'],
+  ['Noah Harris', 'noah.harris@example.com'],
+  ['Olivia Martin', 'olivia.martin@example.com'],
+  ['Peter Thompson', 'peter.thompson@example.com'],
+  ['Quinn Garcia', 'quinn.garcia@example.com'],
+  ['Rachel Martinez', 'rachel.martinez@example.com']
+]
+
+users.each do |name, email|
+  db.execute('INSERT INTO users (name, email) VALUES (?, ?)', [name, email])
+end
+
+# Insert posts
+post_titles = [
+  'Getting Started with Ruby on Rails',
+  'Understanding ActiveRecord Associations',
+  'Best Practices for Database Design',
+  'Introduction to Test-Driven Development',
+  'Optimizing SQL Queries',
+  'Building RESTful APIs',
+  'Mastering Git and GitHub',
+  'Docker for Ruby Applications',
+  'Debugging Techniques in Ruby',
+  'Working with Background Jobs',
+  'Authentication and Authorization',
+  'Caching Strategies for Web Apps',
+  'Deploying Rails to Production',
+  'Understanding MVC Architecture',
+  'Writing Clean Ruby Code',
+  'Database Migrations Best Practices',
+  'Error Handling in Ruby',
+  'Using Redis for Session Storage',
+  'Advanced SQL Techniques',
+  'Building a Blog Platform',
+  'Introduction to GraphQL',
+  'Responsive Web Design Tips',
+  'JavaScript Integration in Rails',
+  'Testing with RSpec',
+  'Performance Monitoring Tools',
+  'Securing Your Web Application',
+  'Understanding HTTP Protocols',
+  'Working with JSON APIs',
+  'CSS Grid and Flexbox',
+  'Asynchronous Processing',
+  'Database Indexing Strategies',
+  'Code Review Best Practices',
+  'Continuous Integration Setup',
+  'Managing Dependencies with Bundler',
+  'Ruby Metaprogramming',
+  'Building Microservices',
+  'API Versioning Strategies',
+  'Logging and Monitoring',
+  'Working with File Uploads',
+  'Email Integration in Rails',
+  'Internationalization and Localization',
+  'Handling Time Zones',
+  'Building CLI Tools in Ruby',
+  'Web Scraping with Nokogiri',
+  'Working with CSV Files',
+  'Database Transactions',
+  'Polymorphic Associations',
+  'Single Table Inheritance',
+  'Service Objects Pattern',
+  'View Components and Partials',
+  'Asset Pipeline Explained',
+  'WebSockets in Rails',
+  'Building Real-time Features',
+  'Form Validation Techniques',
+  'Pagination Best Practices',
+  'Search Functionality',
+  'Image Processing',
+  'PDF Generation',
+  'OAuth Integration',
+  'Two-Factor Authentication',
+  'Rate Limiting APIs',
+  'Memory Management in Ruby',
+  'Garbage Collection Tuning',
+  'Profiling Ruby Applications',
+  'Database Connection Pooling',
+  'N+1 Query Problems',
+  'Eager Loading Strategies',
+  'Query Optimization',
+  'Database Sharding',
+  'Horizontal Scaling',
+  'Load Balancing',
+  'Blue-Green Deployments',
+  'Feature Flags',
+  'A/B Testing Implementation',
+  'Analytics Integration',
+  'GDPR Compliance',
+  'Data Privacy',
+  'Backup Strategies'
+]
+
+base_date = DateTime.now
+70.times do |i|
+  user_id = rand(1..18)
+  title = post_titles[i]
+  content = "This is the content for the post titled '#{title}'. It contains detailed information about the topic and provides valuable insights for developers."
+  days_ago = rand(1..90)
+  created_at = (base_date - days_ago).strftime('%Y-%m-%d %H:%M:%S')
+  
+  db.execute('INSERT INTO posts (user_id, title, content, created_at) VALUES (?, ?, ?, ?)',
+             [user_id, title, content, created_at])
+end
+
+# Insert comments with varied distribution
+comment_texts = [
+  'Great article! Very helpful.',
+  'Thanks for sharing this information.',
+  'I learned a lot from this post.',
+  'Could you provide more examples?',
+  'This is exactly what I needed.',
+  'Excellent explanation!',
+  'I have a question about this.',
+  'Very informative, thanks!',
+  'This helped me solve my problem.',
+  'Looking forward to more posts like this.',
+  'Clear and concise, well done.',
+  'I disagree with some points here.',
+  'Can you elaborate on this?',
+  'Bookmarked for future reference.',
+  'Amazing content!',
+  'This needs more detail.',
+  'Perfect timing, I was just researching this.',
+  'Well written and easy to follow.',
+  'I tried this and it worked great.',
+  'Any plans for a follow-up post?'
+]
+
+# Get all posts to create comments
+posts = db.execute('SELECT id, created_at FROM posts')
+
+posts.each_with_index do |post_row, idx|
+  post_id = post_row[0]
+  post_created_at = DateTime.parse(post_row[1])
+  
+  # Variable comment counts: some posts with 0, some with few, some with many
+  num_comments = if idx % 7 == 0
+    0  # Some posts with no comments
+  elsif idx % 5 == 0
+    rand(10..15)  # Some posts with many comments
+  elsif idx % 3 == 0
+    rand(5..9)  # Some posts with moderate comments
+  else
+    rand(1..4)  # Most posts with few comments
+  end
+  
+  num_comments.times do
+    user_id = rand(1..18)
+    content = comment_texts.sample
+    days_after = rand(0..30)
+    hours_after = rand(0..23)
+    created_at = (post_created_at + days_after + (hours_after / 24.0)).strftime('%Y-%m-%d %H:%M:%S')
+    
+    db.execute('INSERT INTO comments (post_id, user_id, content, created_at) VALUES (?, ?, ?, ?)',
+               [post_id, user_id, content, created_at])
+  end
+end
+
+db.close
+
+puts "Database created successfully with:"
+puts "- 18 users"
+puts "- 70 posts"
+result = SQLite3::Database.new('blog.db')
+comment_count = result.execute('SELECT COUNT(*) FROM comments')[0][0]
+puts "- #{comment_count} comments"
+result.close

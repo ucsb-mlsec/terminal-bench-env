@@ -1,0 +1,57 @@
+=== DynamoDB Query Patterns Analysis ===
+Application: User Activity Event Tracking System
+Last Updated: 2024-01-15
+
+--- QUERY PATTERN 1: Event Type Queries ---
+Purpose: Retrieve recent events of a specific type for analytics dashboards
+GSI Used: event-type-index
+Query Frequency: 5,000 queries per minute during peak hours
+Query Structure:
+- Partition Key: event_type (e.g., 'login', 'purchase', 'page_view', 'logout')
+- Sort Key: timestamp (querying recent events with timestamp range)
+- Consistency: Eventually consistent reads
+- Average items returned: 10 items per query
+- Item size: 2 KB average
+Business Criticality: HIGH - Powers real-time analytics dashboard
+
+--- QUERY PATTERN 2: Regional Activity Queries ---
+Purpose: Monitor user activity by geographic region for compliance reporting
+GSI Used: region-index
+Query Frequency: 2,000 queries per minute during peak hours
+Query Structure:
+- Partition Key: region (e.g., 'us-east', 'eu-west', 'ap-south')
+- Sort Key: timestamp (querying activity in time windows)
+- Consistency: Eventually consistent reads
+- Average items returned: 20 items per query
+- Item size: 2 KB average
+Special Considerations:
+- The region attribute is OPTIONAL - only 60% of events include region data
+- This creates a sparse index opportunity
+- Events without region: mobile app activities, automated system events
+- Events with region: web-based user actions, API calls from regional servers
+Business Criticality: MEDIUM - Used for compliance and regional performance reports
+
+--- WRITE PATTERN ---
+Write Operations: Event ingestion from multiple sources
+Write Frequency: 50,000 writes per minute during peak hours (833.33 writes/second)
+Item Structure:
+- Required attributes: user_id, timestamp, event_type, event_data
+- Optional attributes: region, session_id, device_info
+- Average item size: 2 KB (2048 bytes)
+Write Consistency: Standard (no conditional writes)
+
+--- READ PATTERN: Base Table ---
+Direct table reads: 10,000 reads per minute during peak hours
+Read Type:
+- 95% eventually consistent reads
+- 5% strongly consistent reads
+- Average item size: 2 KB
+Use Case: Individual user activity retrieval by user_id and timestamp
+
+--- CAPACITY CALCULATION NOTES ---
+DynamoDB Capacity Unit Definitions:
+- 1 Write Capacity Unit (WCU) = 1 write per second of up to 1 KB
+- 1 Read Capacity Unit (RCU) = 1 strongly consistent read per second OR 2 eventually consistent reads per second, up to 4 KB
+- Items larger than base size consume proportionally more units (round up)
+- GSI writes consume capacity from the GSI, not base table
+- Sparse indexes only consume write capacity for items with the indexed attribute

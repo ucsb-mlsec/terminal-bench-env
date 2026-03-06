@@ -1,0 +1,33 @@
+# Elasticsearch Configuration - Node 1
+# WARNING: This configuration contains settings that led to split-brain incident
+
+cluster.name: production-cluster
+
+node.name: node-1
+node.master: true
+node.data: true
+
+network.host: 10.0.1.1
+http.port: 9200
+transport.tcp.port: 9300
+
+# Discovery settings
+discovery.zen.ping.unicast.hosts:
+  - 10.0.1.1
+  - 10.0.1.2
+  - 10.0.1.3
+  - 10.0.1.4
+  - 10.0.1.5
+
+# MISCONFIGURATION: This value is too low for a 5-node cluster
+# Should be 3 (majority quorum: (5/2)+1 = 3)
+# This incorrect setting allowed split-brain to occur
+discovery.zen.minimum_master_nodes: 2
+
+# Path settings
+path.data: /var/lib/elasticsearch/node1/data
+path.logs: /var/log/elasticsearch/node1
+
+# Additional cluster settings
+discovery.zen.ping_timeout: 3s
+discovery.zen.join_timeout: 30s

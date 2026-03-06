@@ -1,0 +1,151 @@
+import numpy as np
+from Crypto.Cipher import AES
+
+# Set random seed for reproducibility
+np.random.seed(42)
+
+# Define the secret AES key
+SECRET_KEY = bytes.fromhex('000102030405060708090a0b0c0d0e0f')
+
+# AES S-box
+SBOX = [
+    0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76,
+    0xca, 0x82, 0xc9, 0x7d, 0xfa, 0x59, 0x47, 0xf0, 0xad, 0xd4, 0xa2, 0xaf, 0x9c, 0xa4, 0x72, 0xc0,
+    0xb7, 0xfd, 0x93, 0x26, 0x36, 0x3f, 0xf7, 0xcc, 0x34, 0xa5, 0xe5, 0xf1, 0x71, 0xd8, 0x31, 0x15,
+    0x04, 0xc7, 0x23, 0xc3, 0x18, 0x96, 0x05, 0x9a, 0x07, 0x12, 0x80, 0xe2, 0xeb, 0x27, 0xb2, 0x75,
+    0x09, 0x83, 0x2c, 0x1a, 0x1b, 0x6e, 0x5a, 0xa0, 0x52, 0x3b, 0xd6, 0xb3, 0x29, 0xe3, 0x2f, 0x84,
+    0x53, 0xd1, 0x00, 0xed, 0x20, 0xfc, 0xb1, 0x5b, 0x6a, 0xcb, 0xbe, 0x39, 0x4a, 0x4c, 0x58, 0xcf,
+    0xd0, 0xef, 0xaa, 0xfb, 0x43, 0x4d, 0x33, 0x85, 0x45, 0xf9, 0x02, 0x7f, 0x50, 0x3c, 0x9f, 0xa8,
+    0x51, 0xa3, 0x40, 0x8f, 0x92, 0x9d, 0x38, 0xf5, 0xbc, 0xb6, 0xda, 0x21, 0x10, 0xff, 0xf3, 0xd2,
+    0xcd, 0x0c, 0x13, 0xec, 0x5f, 0x97, 0x44, 0x17, 0xc4, 0xa7, 0x7e, 0x3d, 0x64, 0x5d, 0x19, 0x73,
+    0x60, 0x81, 0x4f, 0xdc, 0x22, 0x2a, 0x90, 0x88, 0x46, 0xee, 0xb8, 0x14, 0xde, 0x5e, 0x0b, 0xdb,
+    0xe0, 0x32, 0x3a, 0x0a, 0x49, 0x06, 0x24, 0x5c, 0xc2, 0xd3, 0xac, 0x62, 0x91, 0x95, 0xe4, 0x79,
+    0xe7, 0xc8, 0x37, 0x6d, 0x8d, 0xd5, 0x4e, 0xa9, 0x6c, 0x56, 0xf4, 0xea, 0x65, 0x7a, 0xae, 0x08,
+    0xba, 0x78, 0x25, 0x2e, 0x1c, 0xa6, 0xb4, 0xc6, 0xe8, 0xdd, 0x74, 0x1f, 0x4b, 0xbd, 0x8b, 0x8a,
+    0x70, 0x3e, 0xb5, 0x66, 0x48, 0x03, 0xf6, 0x0e, 0x61, 0x35, 0x57, 0xb9, 0x86, 0xc1, 0x1d, 0x9e,
+    0xe1, 0xf8, 0x98, 0x11, 0x69, 0xd9, 0x8e, 0x94, 0x9b, 0x1e, 0x87, 0xe9, 0xce, 0x55, 0x28, 0xdf,
+    0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16
+]
+
+def hamming_weight(n):
+    """Calculate the Hamming weight (number of 1s in binary representation)"""
+    return bin(n).count('1')
+
+# Parameters
+num_traces = 5000
+num_samples = 3000
+noise_level = 0.3  # Standard deviation of Gaussian noise
+
+# Leakage points for each byte (where power consumption correlates with HW)
+# Distribute them across the trace to simulate timing of operations
+leakage_points = [500 + i * 150 for i in range(16)]
+
+# Initialize the power traces array
+power_traces = np.zeros((num_traces, num_samples), dtype=np.float32)
+
+# Generate random plaintexts
+plaintexts = np.random.randint(0, 256, size=(num_traces, 16), dtype=np.uint8)
+
+# Add baseline power consumption (random walk + noise)
+for i in range(num_traces):
+    # Base power consumption (random walk)
+    baseline = np.cumsum(np.random.randn(num_samples) * 0.05)
+    baseline = baseline - np.mean(baseline)  # Center around 0
+    
+    # Add general noise
+    noise = np.random.randn(num_samples) * noise_level
+    
+    power_traces[i] = baseline + noise
+
+# Add leakage for each key byte
+for byte_idx in range(16):
+    key_byte = SECRET_KEY[byte_idx]
+    leakage_point = leakage_points[byte_idx]
+    
+    # For each trace, add power consumption correlated with Hamming weight
+    for trace_idx in range(num_traces):
+        plaintext_byte = plaintexts[trace_idx, byte_idx]
+        
+        # Compute the intermediate value (after AddRoundKey and SubBytes)
+        intermediate = SBOX[plaintext_byte ^ key_byte]
+        
+        # Calculate Hamming weight
+        hw = hamming_weight(intermediate)
+        
+        # Add leakage signal at the leakage point with some spreading
+        # The power consumption is proportional to the Hamming weight
+        leakage_strength = 0.5  # Correlation coefficient strength
+        
+        # Add the leakage at the main point and nearby samples (to simulate realistic capture)
+        for offset in range(-5, 6):
+            sample_idx = leakage_point + offset
+            if 0 <= sample_idx < num_samples:
+                # Gaussian-shaped leakage profile
+                spread_factor = np.exp(-(offset**2) / 8.0)
+                power_traces[trace_idx, sample_idx] += leakage_strength * hw * spread_factor
+
+# Add some additional realistic features
+for i in range(num_traces):
+    # Add some periodic components (clock signal artifacts)
+    t = np.arange(num_samples)
+    clock_noise = 0.1 * np.sin(2 * np.pi * t / 100)
+    power_traces[i] += clock_noise
+    
+    # Add some random spikes
+    num_spikes = np.random.randint(3, 8)
+    spike_positions = np.random.randint(0, num_samples, num_spikes)
+    for pos in spike_positions:
+        if pos < num_samples - 10:
+            power_traces[i, pos:pos+10] += np.random.randn() * 0.5
+
+# Normalize the power traces to a reasonable range
+power_traces = power_traces / np.std(power_traces) * 0.5
+
+# Save the power traces
+np.save('/data/power_traces.npy', power_traces)
+
+# Generate and save plaintexts
+np.save('/data/plaintexts.npy', plaintexts)
+
+# Generate ciphertexts using the secret key
+ciphertexts = np.zeros((num_traces, 16), dtype=np.uint8)
+cipher = AES.new(SECRET_KEY, AES.MODE_ECB)
+
+for i in range(num_traces):
+    plaintext = plaintexts[i].tobytes()
+    ciphertext = cipher.encrypt(plaintext)
+    ciphertexts[i] = np.frombuffer(ciphertext, dtype=np.uint8)
+
+np.save('/data/ciphertexts.npy', ciphertexts)
+
+# Create sample_info.txt
+with open('/data/sample_info.txt', 'w') as f:
+    f.write("Power Trace Metadata\n")
+    f.write("====================\n\n")
+    f.write(f"Number of traces: {num_traces}\n")
+    f.write(f"Samples per trace: {num_samples}\n")
+    f.write(f"Sampling rate: 1 GS/s (1 sample per nanosecond)\n")
+    f.write(f"Total capture duration: {num_samples} ns per trace\n\n")
+    f.write("Trigger Configuration:\n")
+    f.write("- Trigger point: Start of AES encryption\n")
+    f.write("- Trigger offset: 0 samples\n")
+    f.write("- Pre-trigger samples: 100\n\n")
+    f.write("Device Information:\n")
+    f.write("- Target: AES-128 hardware accelerator\n")
+    f.write("- Architecture: 8-bit microcontroller implementation\n")
+    f.write("- Clock frequency: 10 MHz\n\n")
+    f.write("Leakage Model:\n")
+    f.write("- Leakage occurs during SubBytes operation in first round\n")
+    f.write("- Power consumption correlates with Hamming weight of S-box output\n")
+    f.write("- Intermediate value: SBOX[plaintext_byte XOR key_byte]\n\n")
+    f.write("Approximate leakage timing:\n")
+    for i, point in enumerate(leakage_points):
+        f.write(f"- Byte {i:2d}: around sample {point}\n")
+    f.write("\nNoise characteristics:\n")
+    f.write("- Gaussian noise with sigma ~ 0.3\n")
+    f.write("- Electronic noise from power supply\n")
+    f.write("- Clock signal artifacts present\n")
+    f.write("- SNR: ~3-5 dB\n")
+
+print("Data generation complete!")
+print(f"Secret key used: {SECRET_KEY.hex()}")

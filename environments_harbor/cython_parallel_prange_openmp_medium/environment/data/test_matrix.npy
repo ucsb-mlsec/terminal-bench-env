@@ -1,0 +1,182 @@
+import numpy as np
+
+# Create a 5000x5000 matrix with random float64 values
+# Using values between 0 and 1000 for realistic data
+np.random.seed(42)  # For reproducibility
+test_matrix = np.random.uniform(0, 1000, size=(5000, 5000))
+
+# Save the matrix
+np.save('/workspace/test_matrix.npy', test_matrix)
+```
+
+Now let me examine the existing files and optimize the implementation:
+
+```python
+# First, let's check the current implementation
+with open('/workspace/compute.pyx', 'r') as f:
+    print(f.read())
+```
+
+```python
+# Check setup.py
+with open('/workspace/setup.py', 'r') as f:
+    print(f.read())
+```
+
+```python
+# Check benchmark.py
+with open('/workspace/benchmark.py', 'r') as f:
+    print(f.read())
+```
+
+Now I'll create optimized versions of the files:
+
+```python
+# Optimized compute.pyx with parallel processing
+optimized_compute = """# cython: language_level=3
+# cython: boundscheck=False
+# cython: wraparound=False
+# cython: cdivision=True
+
+import numpy as np
+cimport numpy as np
+from cython.parallel import prange
+cimport cython
+
+def compute_row_sums(double[:, :] data):
+    cdef int n_rows = data.shape[0]
+    cdef int n_cols = data.shape[1]
+    cdef int i, j
+    cdef double row_sum
+    
+    result = np.zeros(n_rows, dtype=np.float64)
+    cdef double[:] result_view = result
+    
+    # Parallel loop over rows
+    for i in prange(n_rows, nogil=True, schedule='static'):
+        row_sum = 0.0
+        for j in range(n_cols):
+            row_sum += data[i, j]
+        result_view[i] = row_sum
+    
+    return result
+"""
+
+with open('/workspace/compute.pyx', 'w') as f:
+    f.write(optimized_compute)
+```
+
+```python
+# Setup.py for building the Cython module
+setup_content = """from setuptools import setup, Extension
+from Cython.Build import cythonize
+import numpy as np
+
+extensions = [
+    Extension(
+        "compute",
+        ["compute.pyx"],
+        extra_compile_args=['-fopenmp'],
+        extra_link_args=['-fopenmp'],
+        include_dirs=[np.get_include()]
+    )
+]
+
+setup(
+    ext_modules=cythonize(extensions, compiler_directives={
+        'language_level': '3',
+        'boundscheck': False,
+        'wraparound': False,
+    })
+)
+"""
+
+with open('/workspace/setup.py', 'w') as f:
+    f.write(setup_content)
+```
+
+```python
+# Benchmark script
+benchmark_content = """import numpy as np
+import time
+import sys
+
+# Load test data
+test_matrix = np.load('/workspace/test_matrix.npy')
+
+# Compute baseline (NumPy)
+print("Computing baseline with NumPy...")
+start = time.time()
+expected = np.sum(test_matrix, axis=1)
+baseline_time = time.time() - start
+print(f"Baseline time: {baseline_time:.4f} seconds")
+
+# Import and test optimized version
+try:
+    import compute
+    
+    print("\\nTesting optimized implementation...")
+    # Warmup
+    _ = compute.compute_row_sums(test_matrix)
+    
+    # Actual benchmark
+    start = time.time()
+    result = compute.compute_row_sums(test_matrix)
+    optimized_time = time.time() - start
+    print(f"Optimized time: {optimized_time:.4f} seconds")
+    
+    # Check correctness
+    max_diff = np.max(np.abs(result - expected))
+    print(f"Maximum difference: {max_diff:.2e}")
+    
+    correct = max_diff < 1e-9
+    speedup = baseline_time / optimized_time
+    faster = speedup >= 2.0
+    
+    print(f"Correct: {correct}")
+    print(f"Speedup: {speedup:.2f}x")
+    print(f"At least 2x faster: {faster}")
+    
+    # Write results
+    with open('/workspace/result.txt', 'w') as f:
+        f.write(f"compiled=true\\n")
+        f.write(f"correct={'true' if correct else 'false'}\\n")
+        f.write(f"faster={'true' if faster else 'false'}\\n")
+    
+except Exception as e:
+    print(f"Error: {e}")
+    with open('/workspace/result.txt', 'w') as f:
+        f.write(f"compiled=false\\n")
+        f.write(f"correct=false\\n")
+        f.write(f"faster=false\\n")
+    sys.exit(1)
+"""
+
+with open('/workspace/benchmark.py', 'w') as f:
+    f.write(benchmark_content)
+```
+
+```python
+# Build the module
+import subprocess
+import os
+
+os.chdir('/workspace')
+result = subprocess.run(['python', 'setup.py', 'build_ext', '--inplace'], 
+                       capture_output=True, text=True)
+print(result.stdout)
+print(result.stderr)
+```
+
+```python
+# Run the benchmark
+result = subprocess.run(['python', 'benchmark.py'], 
+                       capture_output=True, text=True)
+print(result.stdout)
+print(result.stderr)
+```
+
+```python
+# Check the results
+with open('/workspace/result.txt', 'r') as f:
+    print(f.read())

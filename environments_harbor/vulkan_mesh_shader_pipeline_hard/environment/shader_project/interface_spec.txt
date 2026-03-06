@@ -1,0 +1,104 @@
+Shader Interface Specification - Vertex to Fragment Stage
+
+==============================================================================
+OVERVIEW
+==============================================================================
+
+This document specifies the required data interface between the vertex shader
+stage and the fragment shader stage in the Vulkan rendering pipeline. All
+outputs from the vertex shader must have corresponding inputs in the fragment
+shader with matching types and location qualifiers.
+
+==============================================================================
+VERTEX SHADER OUTPUT REQUIREMENTS
+==============================================================================
+
+The vertex shader MUST output the following variables to be passed to the
+fragment shader stage:
+
+1. Interpolated Color Data
+   - Variable type: vec3
+   - Location qualifier: layout(location = 0)
+   - Purpose: Carries RGB color information from vertex to fragment
+   - Data flow: Computed or passed through from vertex attributes
+   - Interpolation: Automatically interpolated across primitive surface
+
+2. Texture Coordinates
+   - Variable type: vec2
+   - Location qualifier: layout(location = 1)
+   - Purpose: Carries 2D texture coordinate (UV mapping)
+   - Data flow: Typically passed through from vertex attributes
+   - Interpolation: Linear interpolation across primitive surface
+
+Example vertex shader output declaration:
+   layout(location = 0) out vec3 fragColor;
+   layout(location = 1) out vec2 fragTexCoord;
+
+==============================================================================
+FRAGMENT SHADER INPUT REQUIREMENTS
+==============================================================================
+
+The fragment shader MUST declare input variables that exactly match the vertex
+shader outputs:
+
+1. Interpolated Color Data (from vertex shader location 0)
+   - Variable type: vec3 (MUST match vertex output)
+   - Location qualifier: layout(location = 0) (MUST match vertex output)
+   - Purpose: Receives interpolated color for the current fragment
+   - Usage: Used in final color calculation or blending operations
+
+2. Texture Coordinates (from vertex shader location 1)
+   - Variable type: vec2 (MUST match vertex output)
+   - Location qualifier: layout(location = 1) (MUST match vertex output)
+   - Purpose: Receives interpolated texture coordinates
+   - Usage: Used for texture sampling operations
+
+Example fragment shader input declaration:
+   layout(location = 0) in vec3 fragColor;
+   layout(location = 1) in vec2 fragTexCoord;
+
+==============================================================================
+INTERFACE MATCHING REQUIREMENTS
+==============================================================================
+
+CRITICAL: The vertex shader outputs and fragment shader inputs MUST match
+exactly according to the following rules:
+
+1. Location Qualifiers:
+   - Each output location in the vertex shader must have a corresponding
+     input location in the fragment shader
+   - Location numbers must match exactly (e.g., location = 0 to location = 0)
+
+2. Data Types:
+   - The data type of each output must exactly match its corresponding input
+   - vec3 output requires vec3 input
+   - vec2 output requires vec2 input
+   - Type mismatches will cause Vulkan validation failures
+
+3. Variable Names:
+   - Variable names may differ between stages (e.g., "outColor" vs "inColor")
+   - However, using consistent naming conventions is recommended for clarity
+
+4. Completeness:
+   - Every vertex shader output must be consumed by a fragment shader input
+   - No extra outputs without corresponding inputs
+   - No fragment shader inputs without corresponding vertex outputs
+
+5. Vulkan GLSL Requirements:
+   - All interface variables must use explicit location qualifiers
+   - The vertex shader must use "out" qualifier for outputs
+   - The fragment shader must use "in" qualifier for inputs
+
+==============================================================================
+VALIDATION CRITERIA
+==============================================================================
+
+The shader interface is valid when:
+- Both shaders compile to SPIR-V without errors
+- Location bindings match between stages
+- Data types match between stages
+- Vulkan validation layers report no interface mismatch errors
+
+==============================================================================
+END OF SPECIFICATION
+==============================================================================

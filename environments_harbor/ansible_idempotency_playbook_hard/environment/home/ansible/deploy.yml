@@ -1,0 +1,54 @@
+---
+- name: Deploy application configuration
+  hosts: localhost
+  connection: local
+  become: yes
+  
+  vars:
+    app_version: "1.0.0"
+    db_host: "localhost"
+    db_port: 5432
+    cache_ttl: 3600
+
+  tasks:
+    - name: Create application directory
+      file:
+        path: /etc/myapp
+        state: directory
+        mode: '0755'
+
+    - name: Generate timestamp for deployment
+      shell: date +%s
+      register: deploy_timestamp
+
+    - name: Deploy app.conf from template
+      template:
+        src: /home/ansible/templates/app.conf.j2
+        dest: /etc/myapp/app.conf
+        mode: '0644'
+
+    - name: Create database.conf with timestamp
+      copy:
+        content: |
+          [database]
+          host={{ db_host }}
+          port={{ db_port }}
+          deployed_at={{ deploy_timestamp.stdout }}
+        dest: /etc/myapp/database.conf
+        mode: '0644'
+
+    - name: Initialize cache configuration
+      shell: echo "[cache]\nttl={{ cache_ttl }}\ndeployed=$(date +%s)" > /etc/myapp/cache.conf
+
+    - name: Set permissions on configuration files
+      command: chmod 644 /etc/myapp/*.conf
+
+    - name: Add configuration marker
+      lineinfile:
+        path: /etc/myapp/app.conf
+        line: "# Configuration deployed"
+        insertafter: EOF
+
+    - name: Verify configuration directory exists
+      shell: test -d /etc/myapp && echo "exists"
+      register: dir_check

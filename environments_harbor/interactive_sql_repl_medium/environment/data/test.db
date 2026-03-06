@@ -1,0 +1,394 @@
+#!/usr/bin/env python3
+import sqlite3
+import sys
+import os
+import json
+from datetime import datetime
+
+class SQLRepl:
+    def __init__(self, db_path):
+        self.db_path = db_path
+        self.history_path = os.path.join(os.path.dirname(db_path), '.sql_history.db')
+        self.conn = None
+        self.history_conn = None
+        self._initialize_database()
+        self._initialize_history()
+    
+    def _initialize_database(self):
+        """Initialize connection to the main database"""
+        try:
+            self.conn = sqlite3.connect(self.db_path)
+            self.conn.row_factory = sqlite3.Row
+        except sqlite3.Error as e:
+            print(f"Error connecting to database: {e}")
+            sys.exit(1)
+    
+    def _initialize_history(self):
+        """Initialize the query history database"""
+        try:
+            self.history_conn = sqlite3.connect(self.history_path)
+            cursor = self.history_conn.cursor()
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS query_history (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    query TEXT NOT NULL,
+                    timestamp TEXT NOT NULL
+                )
+            ''')
+            self.history_conn.commit()
+        except sqlite3.Error as e:
+            print(f"Error initializing history: {e}")
+    
+    def _add_to_history(self, query):
+        """Add a successfully executed query to history"""
+        try:
+            cursor = self.history_conn.cursor()
+            timestamp = datetime.now().isoformat()
+            cursor.execute(
+                'INSERT INTO query_history (query, timestamp) VALUES (?, ?)',
+                (query, timestamp)
+            )
+            self.history_conn.commit()
+        except sqlite3.Error as e:
+            print(f"Error saving to history: {e}")
+    
+    def _get_history(self, limit=None):
+        """Retrieve query history"""
+        try:
+            cursor = self.history_conn.cursor()
+            if limit:
+                cursor.execute(
+                    'SELECT query, timestamp FROM query_history ORDER BY id DESC LIMIT ?',
+                    (limit,)
+                )
+            else:
+                cursor.execute(
+                    'SELECT query, timestamp FROM query_history ORDER BY id DESC'
+                )
+            return cursor.fetchall()
+        except sqlite3.Error as e:
+            print(f"Error retrieving history: {e}")
+            return []
+    
+    def _clear_history(self):
+        """Clear all query history"""
+        try:
+            cursor = self.history_conn.cursor()
+            cursor.execute('DELETE FROM query_history')
+            self.history_conn.commit()
+            print("History cleared.")
+        except sqlite3.Error as e:
+            print(f"Error clearing history: {e}")
+    
+    def _execute_query(self, query):
+        """Execute a SQL query and display results"""
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute(query)
+            
+            # Check if it's a SELECT query (has results to fetch)
+            if cursor.description:
+                rows = cursor.fetchall()
+                if rows:
+                    # Print column headers
+                    headers = [description[0] for description in cursor.description]
+                    print(" | ".join(headers))
+                    print("-" * (sum(len(h) for h in headers) + 3 * (len(headers) - 1)))
+                    
+                    # Print rows
+                    for row in rows:
+                        print(" | ".join(str(value) for value in row))
+                    print(f"\n{len(rows)} row(s) returned.")
+                else:
+                    print("No rows returned.")
+            else:
+                # For INSERT, UPDATE, DELETE, etc.
+                self.conn.commit()
+                print(f"Query executed successfully. {cursor.rowcount} row(s) affected.")
+            
+            # Add to history only if query was successful
+            self._add_to_history(query)
+            return True
+            
+        except sqlite3.Error as e:
+            print(f"SQL Error: {e}")
+            return False
+    
+    def _handle_command(self, command):
+        """Handle special commands starting with '.'"""
+        parts = command.strip().split()
+        cmd = parts[0].lower()
+        
+        if cmd in ['.exit', '.quit']:
+            return False
+        
+        elif cmd == '.history':
+            if len(parts) > 1:
+                try:
+                    limit = int(parts[1])
+                    history = self._get_history(limit)
+                except ValueError:
+                    print("Invalid limit. Usage: .history [N]")
+                    return True
+            else:
+                history = self._get_history()
+            
+            if history:
+                print("\nQuery History (most recent first):")
+                print("-" * 80)
+                for query, timestamp in history:
+                    print(f"[{timestamp}] {query}")
+                print("-" * 80)
+            else:
+                print("No query history.")
+            return True
+        
+        elif cmd == '.clear':
+            self._clear_history()
+            return True
+        
+        else:
+            print(f"Unknown command: {cmd}")
+            print("Available commands: .history [N], .clear, .exit, .quit")
+            return True
+    
+    def run(self):
+        """Main REPL loop"""
+        print("SQLite REPL - Interactive SQL Shell")
+        print(f"Connected to: {self.db_path}")
+        print("Type .exit or .quit to exit, .history to view history, .clear to clear history")
+        print("-" * 80)
+        
+        while True:
+            try:
+                query = input("\nSQL> ").strip()
+                
+                if not query:
+                    continue
+                
+                # Handle special commands
+                if query.startswith('.'):
+                    if not self._handle_command(query):
+                        break
+                else:
+                    # Execute SQL query
+                    self._execute_query(query)
+                    
+            except KeyboardInterrupt:
+                print("\nUse .exit or .quit to exit")
+                continue
+            except EOFError:
+                break
+        
+        self._cleanup()
+    
+    def _cleanup(self):
+        """Clean up database connections"""
+        if self.conn:
+            self.conn.close()
+        if self.history_conn:
+            self.history_conn.close()
+        print("\nGoodbye!")
+
+def create_test_database():
+    """Create the test database with sample data"""
+    db_path = '/tmp/test.db'
+    
+    # Remove existing database
+    if os.path.exists(db_path):
+        os.remove(db_path)
+    
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    
+    # Create users table
+    cursor.execute('''
+        CREATE TABLE users (
+            id INTEGER PRIMARY KEY,
+            name TEXT,
+            email TEXT,
+            age INTEGER,
+            created_at TEXT
+        )
+    ''')
+    
+    # Insert sample users
+    users = [
+        (1, 'John Doe', 'john.doe@example.com', 35, '2023-01-15 10:30:00'),
+        (2, 'Jane Smith', 'jane.smith@example.com', 28, '2023-02-20 14:45:00'),
+        (3, 'Alice Johnson', 'alice.johnson@example.com', 42, '2023-03-10 09:15:00'),
+        (4, 'Bob Wilson', 'bob.wilson@example.com', 31, '2023-04-05 16:20:00'),
+        (5, 'Carol Brown', 'carol.brown@example.com', 55, '2023-05-12 11:00:00'),
+        (6, 'David Lee', 'david.lee@example.com', 26, '2023-06-18 13:30:00'),
+        (7, 'Emma Davis', 'emma.davis@example.com', 39, '2023-07-22 08:45:00'),
+        (8, 'Frank Miller', 'frank.miller@example.com', 48, '2023-08-30 15:10:00'),
+        (9, 'Grace Taylor', 'grace.taylor@example.com', 33, '2023-09-14 10:50:00'),
+        (10, 'Henry Anderson', 'henry.anderson@example.com', 29, '2023-10-25 12:25:00'),
+        (11, 'Iris Martinez', 'iris.martinez@example.com', 44, '2023-11-08 14:00:00'),
+        (12, 'Jack Thomas', 'jack.thomas@example.com', 37, '2023-12-01 09:30:00'),
+        (13, 'Karen White', 'karen.white@example.com', 52, '2024-01-10 11:15:00'),
+        (14, 'Leo Harris', 'leo.harris@example.com', 24, '2024-02-14 16:40:00'),
+        (15, 'Mia Clark', 'mia.clark@example.com', 41, '2024-03-20 13:20:00')
+    ]
+    
+    cursor.executemany('INSERT INTO users VALUES (?, ?, ?, ?, ?)', users)
+    
+    # Create products table
+    cursor.execute('''
+        CREATE TABLE products (
+            id INTEGER PRIMARY KEY,
+            product_name TEXT,
+            price REAL,
+            category TEXT,
+            stock INTEGER
+        )
+    ''')
+    
+    # Insert sample products
+    products = [
+        (1, 'Laptop', 899.99, 'Electronics', 25),
+        (2, 'Wireless Mouse', 29.99, 'Accessories', 150),
+        (3, 'Mechanical Keyboard', 79.99, 'Accessories', 80),
+        (4, '27-inch Monitor', 299.99, 'Electronics', 45),
+        (5, 'Office Chair', 249.99, 'Furniture', 30),
+        (6, 'Standing Desk', 499.99, 'Furniture', 15),
+        (7, 'USB-C Hub', 49.99, 'Accessories', 200),
+        (8, 'Webcam', 89.99, 'Electronics', 60),
+        (9, 'Desk Lamp', 39.99, 'Furniture', 100),
+        (10, 'Laptop Stand', 34.99, 'Accessories', 75),
+        (11, 'Headphones', 149.99, 'Electronics', 55),
+        (12, 'Mouse Pad', 9.99, 'Accessories', 300),
+        (13, 'Cable Management', 19.99, 'Accessories', 120),
+        (14, 'Ergonomic Footrest', 44.99, 'Furniture', 40),
+        (15, 'Monitor Arm', 129.99, 'Furniture', 22)
+    ]
+    
+    cursor.executemany('INSERT INTO products VALUES (?, ?, ?, ?, ?)', products)
+    
+    # Create orders table
+    cursor.execute('''
+        CREATE TABLE orders (
+            id INTEGER PRIMARY KEY,
+            user_id INTEGER,
+            product_id INTEGER,
+            quantity INTEGER,
+            order_date TEXT
+        )
+    ''')
+    
+    # Insert sample orders
+    orders = [
+        (1, 1, 1, 1, '2023-06-15 14:30:00'),
+        (2, 2, 2, 2, '2023-07-20 10:15:00'),
+        (3, 3, 5, 1, '2023-08-05 16:45:00'),
+        (4, 4, 3, 1, '2023-08-12 09:20:00'),
+        (5, 5, 4, 1, '2023-09-01 13:50:00'),
+        (6, 1, 11, 1, '2023-09-18 11:30:00'),
+        (7, 6, 6, 1, '2023-10-10 15:00:00'),
+        (8, 7, 2, 3, '2023-10-25 08:40:00'),
+        (9, 8, 8, 1, '2023-11-14 12:15:00'),
+        (10, 9, 7, 2, '2023-12-03 14:20:00'),
+        (11, 10, 12, 5, '2024-01-08 10:50:00'),
+        (12, 3, 9, 2, '2024-02-19 16:10:00')
+    ]
+    
+    cursor.executemany('INSERT INTO orders VALUES (?, ?, ?, ?, ?)', orders)
+    
+    conn.commit()
+    conn.close()
+    
+    print(f"Test database created at {db_path}")
+
+def run_automated_tests():
+    """Run automated tests on the REPL"""
+    db_path = '/tmp/test.db'
+    
+    # Create test database
+    create_test_database()
+    
+    # Test queries to execute
+    test_queries = [
+        "SELECT * FROM users LIMIT 3",
+        "SELECT name, email FROM users WHERE age > 30",
+        "SELECT product_name, price FROM products WHERE category = 'Electronics'",
+        "SELECT COUNT(*) as total_users FROM users",
+        "SELECT u.name, p.product_name, o.quantity FROM orders o JOIN users u ON o.user_id = u.id JOIN products p ON o.product_id = p.id LIMIT 5",
+        "SELECT category, COUNT(*) as count, AVG(price) as avg_price FROM products GROUP BY category"
+    ]
+    
+    # Execute queries directly
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    successful_queries = 0
+    
+    history_path = '/tmp/.sql_history.db'
+    if os.path.exists(history_path):
+        os.remove(history_path)
+    
+    # Initialize history database
+    history_conn = sqlite3.connect(history_path)
+    history_cursor = history_conn.cursor()
+    history_cursor.execute('''
+        CREATE TABLE IF NOT EXISTS query_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            query TEXT NOT NULL,
+            timestamp TEXT NOT NULL
+        )
+    ''')
+    history_conn.commit()
+    
+    for query in test_queries:
+        try:
+            cursor.execute(query)
+            timestamp = datetime.now().isoformat()
+            history_cursor.execute(
+                'INSERT INTO query_history (query, timestamp) VALUES (?, ?)',
+                (query, timestamp)
+            )
+            history_conn.commit()
+            successful_queries += 1
+        except sqlite3.Error as e:
+            print(f"Error executing test query: {e}")
+    
+    conn.close()
+    history_conn.close()
+    
+    # Create test results file
+    results = {
+        "database_path": db_path,
+        "history_storage": history_path,
+        "test_query_count": successful_queries
+    }
+    
+    with open('/tmp/repl_test_results.json', 'w') as f:
+        json.dump(results, f, indent=2)
+    
+    print(f"\nTest results saved to /tmp/repl_test_results.json")
+    print(f"Successfully executed {successful_queries} test queries")
+
+def main():
+    # Get database path from command line or use default
+    if len(sys.argv) > 1:
+        db_path = sys.argv[1]
+    else:
+        db_path = '/tmp/test.db'
+    
+    # Check if database exists
+    if not os.path.exists(db_path):
+        print(f"Database not found at {db_path}")
+        print("Creating test database...")
+        create_test_database()
+    
+    # Start REPL
+    repl = SQLRepl(db_path)
+    repl.run()
+
+if __name__ == '__main__':
+    # Run automated tests first
+    run_automated_tests()
+    
+    # Then start interactive REPL
+    print("\n" + "=" * 80)
+    print("Starting interactive REPL...")
+    print("=" * 80 + "\n")
+    main()

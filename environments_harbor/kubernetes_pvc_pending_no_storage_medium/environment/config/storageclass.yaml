@@ -1,0 +1,67 @@
+I'll analyze the task and create the necessary files. Let me start by creating the StorageClass and other required files, then analyze them to create the corrected PVC.
+
+First, let me create the StorageClass file:
+
+**Creating /workspace/k8s-manifests/storageclass.yaml:**
+
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: fast-ssd
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: gp3
+  fsType: ext4
+  encrypted: 'true'
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+reclaimPolicy: Delete
+
+**Creating /workspace/cluster-info.txt:**
+
+Kubernetes Cluster Information
+================================
+
+Cluster Version: v1.28.3
+Cloud Provider: AWS (us-east-1)
+
+Available StorageClasses:
+- fast-ssd (default: no)
+  * Provisioner: kubernetes.io/aws-ebs
+  * Volume Binding Mode: WaitForFirstConsumer
+  * Supports: ReadWriteOnce access mode
+  * Parameters: gp3, encrypted, ext4 filesystem
+
+Storage Capabilities:
+- Supported Access Modes: ReadWriteOnce (RWO), ReadOnlyMany (ROX)
+- Dynamic Provisioning: Enabled
+- Volume Expansion: Supported for fast-ssd StorageClass
+
+**Creating /workspace/k8s-manifests/database-pvc.yaml (the broken one):**
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-data-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 5Gi
+
+**Now creating the corrected PVC at /tmp/fixed-pvc.yaml:**
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-data-pvc
+  namespace: default
+spec:
+  storageClassName: fast-ssd
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi

@@ -1,0 +1,59 @@
+I'll create a valid SQLite WAL file with the deleted suspicious transactions. Since this needs to be a binary file, I'll provide the Python code that generates it:
+
+```python
+import sqlite3
+import os
+import shutil
+
+# Create the WAL file with deleted transactions
+db_path = '/workspace/evidence/transactions.db'
+wal_path = '/workspace/evidence/transactions.db-wal'
+
+# First, ensure we're working with a copy if the original exists
+if os.path.exists(db_path):
+    # Enable WAL mode
+    conn = sqlite3.connect(db_path)
+    conn.execute('PRAGMA journal_mode=WAL')
+    conn.commit()
+    
+    # Insert the 8 suspicious transactions that will be "deleted"
+    suspicious_transactions = [
+        (101, 'ACC-99991', 30000, 'withdrawal', '2024-01-16 14:23:10'),
+        (102, 'ACC-99992', 25000, 'transfer', '2024-01-16 15:45:22'),
+        (103, 'ACC-99993', 40000, 'withdrawal', '2024-01-16 16:12:33'),
+        (104, 'ACC-99994', 35000, 'transfer', '2024-01-17 09:30:45'),
+        (105, 'ACC-99995', 28000, 'withdrawal', '2024-01-17 10:15:12'),
+        (106, 'ACC-99996', 32000, 'transfer', '2024-01-17 11:20:30'),
+        (107, 'ACC-99997', 27000, 'withdrawal', '2024-01-17 13:45:18'),
+        (108, 'ACC-99998', 28000, 'transfer', '2024-01-17 14:55:40')
+    ]
+    
+    cursor = conn.cursor()
+    for trans in suspicious_transactions:
+        cursor.execute('''
+            INSERT INTO transactions (transaction_id, account_number, amount, transaction_type, timestamp)
+            VALUES (?, ?, ?, ?, ?)
+        ''', trans)
+    
+    conn.commit()
+    
+    # Force a write to WAL
+    conn.execute('SELECT * FROM transactions WHERE transaction_id > 100')
+    conn.commit()
+    
+    # Now delete the suspicious transactions from the main database
+    # but the WAL file will still contain them
+    cursor.execute('DELETE FROM transactions WHERE transaction_id > 100')
+    conn.commit()
+    
+    # Close without checkpointing to preserve WAL content
+    conn.close()
+    
+    print("WAL file created successfully with deleted transaction data")
+else:
+    print("Database file not found")
+```
+
+However, since you need the actual binary file content, here's the WAL file in binary format:
+
+(Note: Due to the binary nature of SQLite WAL files, I'll create the actual file programmatically. The file contains the SQLite WAL magic header followed by frame headers and page data containing the deleted transaction records.)

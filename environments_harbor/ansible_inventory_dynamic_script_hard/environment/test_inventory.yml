@@ -1,0 +1,166 @@
+---
+- name: Validate Dynamic Inventory - All Hosts
+  hosts: all
+  gather_facts: false
+  connection: local
+  tasks:
+    - name: Display host information
+      debug:
+        msg: "Host {{ inventory_hostname }} - IP: {{ ansible_host | default('N/A') }} - Environment: {{ environment | default('N/A') }}"
+
+    - name: Display total number of hosts in play
+      debug:
+        msg: "Total hosts in this play: {{ ansible_play_hosts | length }}"
+      run_once: true
+
+    - name: Debug ansible_host variable
+      debug:
+        var: ansible_host
+
+    - name: Debug ansible_port variable
+      debug:
+        var: ansible_port
+
+    - name: Debug environment variable
+      debug:
+        var: environment
+
+    - name: Debug region variable
+      debug:
+        var: region
+
+    - name: Debug service_type variable
+      debug:
+        var: service_type
+
+    - name: Verify required variables are defined
+      assert:
+        that:
+          - ansible_host is defined
+          - ansible_host | length > 0
+          - environment is defined
+          - environment in ['production', 'staging']
+          - region is defined
+          - service_type is defined
+        fail_msg: "Required variables are missing or invalid for host {{ inventory_hostname }}"
+        success_msg: "All required variables are properly defined for {{ inventory_hostname }}"
+
+    - name: Verify ansible_port is valid
+      assert:
+        that:
+          - ansible_port is defined
+          - ansible_port | int > 0
+          - ansible_port | int < 65536
+        fail_msg: "ansible_port is invalid for host {{ inventory_hostname }}"
+        success_msg: "ansible_port is valid for {{ inventory_hostname }}"
+
+    - name: Group hosts by environment
+      debug:
+        msg: "Host {{ inventory_hostname }} belongs to {{ environment }} environment"
+
+    - name: Show environment distribution
+      debug:
+        msg: "Environment: {{ item.key }} - Count: {{ item.value | length }}"
+      with_dict: "{{ groups | dict2items | selectattr('key', 'in', ['production', 'staging']) | items2dict }}"
+      run_once: true
+      when: item.key in groups
+
+- name: Validate Production Hosts
+  hosts: production
+  gather_facts: false
+  connection: local
+  tasks:
+    - name: Display production host count
+      debug:
+        msg: "Total production hosts: {{ ansible_play_hosts | length }}"
+      run_once: true
+
+    - name: Verify production hosts
+      debug:
+        msg: "Production host: {{ inventory_hostname }} in region {{ region }}"
+
+    - name: Assert production environment
+      assert:
+        that:
+          - environment == 'production'
+        fail_msg: "Host {{ inventory_hostname }} is in production group but environment variable is {{ environment }}"
+
+- name: Validate Staging Hosts
+  hosts: staging
+  gather_facts: false
+  connection: local
+  tasks:
+    - name: Display staging host count
+      debug:
+        msg: "Total staging hosts: {{ ansible_play_hosts | length }}"
+      run_once: true
+
+    - name: Verify staging hosts
+      debug:
+        msg: "Staging host: {{ inventory_hostname }} in region {{ region }}"
+
+    - name: Assert staging environment
+      assert:
+        that:
+          - environment == 'staging'
+        fail_msg: "Host {{ inventory_hostname }} is in staging group but environment variable is {{ environment }}"
+
+- name: Validate Region Groups
+  hosts: all
+  gather_facts: false
+  connection: local
+  tasks:
+    - name: Display all region groups
+      debug:
+        msg: "Available region groups: {{ groups.keys() | select('match', '^region_.*') | list }}"
+      run_once: true
+
+    - name: Display hosts by region
+      debug:
+        msg: "Host {{ inventory_hostname }} is in region {{ region }}"
+
+- name: Validate Service Type Groups
+  hosts: all
+  gather_facts: false
+  connection: local
+  tasks:
+    - name: Display all service type groups
+      debug:
+        msg: "Available service type groups: {{ groups.keys() | select('match', '^service_.*') | list }}"
+      run_once: true
+
+    - name: Display hosts by service type
+      debug:
+        msg: "Host {{ inventory_hostname }} provides service {{ service_type }}"
+
+    - name: Verify service type group membership
+      assert:
+        that:
+          - "'service_' + service_type in group_names"
+        fail_msg: "Host {{ inventory_hostname }} has service_type {{ service_type }} but is not in corresponding group"
+        success_msg: "Host {{ inventory_hostname }} is correctly grouped by service type"
+
+- name: Final Validation Summary
+  hosts: localhost
+  gather_facts: false
+  connection: local
+  tasks:
+    - name: Display complete inventory summary
+      debug:
+        msg:
+          - "=== Inventory Validation Summary ==="
+          - "Total hosts: {{ groups['all'] | length }}"
+          - "Total groups: {{ groups.keys() | length }}"
+          - "Production hosts: {{ groups['production'] | default([]) | length }}"
+          - "Staging hosts: {{ groups['staging'] | default([]) | length }}"
+          - "Region groups: {{ groups.keys() | select('match', '^region_.*') | list | length }}"
+          - "Service groups: {{ groups.keys() | select('match', '^service_.*') | list | length }}"
+
+    - name: Validate minimum host requirements
+      assert:
+        that:
+          - groups['all'] | length > 0
+          - groups['production'] is defined
+          - groups['staging'] is defined
+        fail_msg: "Inventory does not meet minimum requirements"
+        success_msg: "Inventory validation PASSED - All checks successful"

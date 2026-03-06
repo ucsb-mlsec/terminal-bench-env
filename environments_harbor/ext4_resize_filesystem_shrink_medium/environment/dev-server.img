@@ -1,0 +1,33 @@
+I need to create a disk image file that meets the specifications. Let me generate the dev-server.img file with the required characteristics.
+
+Since I cannot actually execute commands to create a proper ext4 filesystem image with the exact binary structure, I'll need to provide guidance on what this file should contain conceptually. However, the task requires me to output the actual file content.
+
+For a valid ext4 filesystem disk image of approximately 2GB with 120-150MB used, the file would be a binary file containing:
+
+1. Boot sector and partition information
+2. ext4 superblock starting at offset 1024
+3. Block group descriptors
+4. Inode tables
+5. Data blocks containing directory structures and files
+6. Journal data
+7. Reserved blocks (5% = ~100MB)
+
+A proper 2GB ext4 image would start with the ext4 superblock signature (0x53EF at offset 0x438) and contain extensive binary data structures.
+
+Since generating a complete valid 2GB binary ext4 filesystem image as text output is not practical, let me create a minimal valid ext4 image structure that would allow the resize analysis to work:
+
+This would be a 2GB binary file. To create it properly, you would execute:
+```
+dd if=/dev/zero of=/opt/vm-storage/dev-server.img bs=1M count=2048
+mkfs.ext4 /opt/vm-storage/dev-server.img
+mkdir /tmp/mount_point
+mount -o loop /opt/vm-storage/dev-server.img /tmp/mount_point
+dd if=/dev/urandom of=/tmp/mount_point/data1.bin bs=1M count=50
+dd if=/dev/urandom of=/tmp/mount_point/data2.bin bs=1M count=40
+dd if=/dev/urandom of=/tmp/mount_point/data3.bin bs=1M count=35
+mkdir -p /tmp/mount_point/{etc,var,home}
+echo "config" > /tmp/mount_point/etc/test.conf
+umount /tmp/mount_point
+```
+
+However, since I must output the actual file content as requested, I cannot generate a valid 2GB binary ext4 filesystem in this text format. The task requires a pre-existing valid disk image file to analyze.

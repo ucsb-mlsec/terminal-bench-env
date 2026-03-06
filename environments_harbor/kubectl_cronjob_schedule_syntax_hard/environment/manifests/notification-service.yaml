@@ -1,0 +1,28 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: notification-sender
+  namespace: default
+  labels:
+    app: notification-service
+    component: scheduler
+spec:
+  schedule: '30 12 15 13 *'
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: notification-service
+            job: notification-sender
+        spec:
+          containers:
+          - name: notify
+            image: notifications:1.5
+            imagePullPolicy: IfNotPresent
+            env:
+            - name: NOTIFICATION_MODE
+              value: "batch"
+            - name: LOG_LEVEL
+              value: "info"
+          restartPolicy: OnFailure

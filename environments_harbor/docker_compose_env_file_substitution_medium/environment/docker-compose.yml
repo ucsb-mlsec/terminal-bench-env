@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  web:
+    image: nginx:latest
+    container_name: $WEB_CONTAINER_NAME
+    ports:
+      - "${APP_PORT:-8080}:80"
+    environment:
+      - APP_NAME=$APP_NAME_VAR
+      - APP_ENV={$APP_ENVIRONMENT}
+      - APP_DEBUG=${DEBUG_MODE
+      - APP_PORT=$WEB_PORT}
+      - API_URL=${API_ENDPOINT:-http://localhost
+      - LOG_LEVEL=${LOG_LEVEL-info}
+      - MAX_WORKERS=${WORKER_COUNT:5}
+      - CACHE_DRIVER=${CACHE_TYPE:-}
+      - SESSION_LIFETIME=$SESSION_TIMEOUT
+    depends_on:
+      - database
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  database:
+    image: postgres:14
+    container_name: ${DB_CONTAINER}
+    ports:
+      - "$DB_PORT:5432"
+    environment:
+      - POSTGRES_DB=${DATABASE_NAME
+      - POSTGRES_USER=$DB_USERNAME}
+      - POSTGRES_PASSWORD={$DB_PASSWORD}
+      - POSTGRES_HOST=${DB_HOST_NAME:-localhost}
+      - POSTGRES_INITDB_ARGS=${INITDB_ARGS-}
+      - POSTGRES_MAX_CONNECTIONS=$MAX_CONNECTIONS
+      - POSTGRES_SHARED_BUFFERS=${SHARED_BUFFERS_SIZE:256MB}
+      - PGDATA=${DATA_DIRECTORY:-/var/lib/postgresql/data}
+    volumes:
+      - db-data:${DATA_PATH}/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - app-network
+    restart: always
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  db-data:
+    driver: local

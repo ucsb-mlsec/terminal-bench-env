@@ -1,0 +1,75 @@
+---
+- name: Deploy multi-tier application stack
+  hosts: application_servers
+  become: yes
+  tasks:
+    
+    - name: Install application dependencies
+      apt:
+        name:
+          - python3-pip
+          - nginx
+          - postgresql-client
+        state: present
+        update_cache: yes
+    
+    - name: Download application archive
+      get_url:
+        url: https://releases.example.com/app-v2.5.tar.gz
+        dest: /tmp/app-v2.5.tar.gz
+        timeout: 300
+      async: 300
+      poll: 15
+      register: download_job
+    
+    - name: Deploy database schema
+      shell: |
+        cd /opt/application
+        python3 manage.py migrate --noinput
+        python3 manage.py create_indexes
+      async: 600
+      poll: 0
+      register: db_migration_job
+    
+    - name: Build application container
+      shell: |
+        cd /opt/application
+        docker build -t myapp:latest .
+        docker tag myapp:latest myapp:v2.5
+      async: 900
+      poll: 0
+    
+    - name: Wait for database migration
+      async_status:
+        jid: "{{ download_job.ansible_job_id }}"
+      register: migration_result
+      until: migration_result.finished
+      retries: 60
+      delay: 10
+    
+    - name: Compile static assets
+      shell: |
+        cd /opt/application/frontend
+        npm install
+        npm run build
+      async: 450
+      poll: 0
+      register: assets_job
+    
+    - name: Check static assets compilation
+      async_status:
+        jid: "{{ assets_job.ansible_job_id }}"
+      register: assets_result
+      until: assets_result.finished
+      retries: 45
+      delay: 10
+    
+    - name: Restart application services
+      systemd:
+        name: "{{ item }}"
+        state: restarted
+        enabled: yes
+      loop:
+        - nginx
+        - gunicorn
+        - celery-worker

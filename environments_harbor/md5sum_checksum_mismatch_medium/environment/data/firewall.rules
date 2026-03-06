@@ -1,0 +1,38 @@
+# Firewall Rules Configuration
+# Generated: 2024-01-15
+# Default policies
+
+*filter
+:INPUT DROP [0:0]
+:FORWARD DROP [0:0]
+:OUTPUT ACCEPT [0:0]
+
+# Allow loopback interface
+-A INPUT -i lo -j ACCEPT
+-A OUTPUT -o lo -j ACCEPT
+
+# Allow established and related connections
+-A INPUT -p tcp -m state --state ESTABLISHED,RELATED -j ACCEPT
+-A INPUT -p udp -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+# Allow SSH from trusted network
+-A INPUT -p tcp -s 192.168.1.0/24 --dport 22 -m state --state NEW -j ACCEPT
+
+# Allow HTTP and HTTPS
+-A INPUT -p tcp --dport 80 -m state --state NEW -j ACCEPT
+-A INPUT -p tcp --dport 443 -m state --state NEW -j ACCEPT
+
+# Allow DNS queries
+-A INPUT -p udp --dport 53 -j ACCEPT
+-A INPUT -p tcp --dport 53 -j ACCEPT
+
+# Allow ICMP ping
+-A INPUT -p icmp --icmp-type echo-request -j ACCEPT
+
+# Drop invalid packets
+-A INPUT -m state --state INVALID -j DROP
+
+# Log dropped packets
+-A INPUT -j LOG --log-prefix "IPTables-Dropped: "
+
+COMMIT

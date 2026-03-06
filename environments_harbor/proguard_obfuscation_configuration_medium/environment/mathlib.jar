@@ -1,0 +1,304 @@
+// Calculator.java
+package com.mathlib;
+
+import com.mathlib.internal.ExpressionParser;
+import com.mathlib.internal.ResultFormatter;
+
+public class Calculator {
+    private ExpressionParser parser;
+    private ResultFormatter formatter;
+    
+    public Calculator() {
+        this.parser = new ExpressionParser();
+        this.formatter = new ResultFormatter();
+    }
+    
+    public String calculate(String expression) {
+        try {
+            double result = parser.parse(expression);
+            return formatter.format(result);
+        } catch (Exception e) {
+            return "Error: " + e.getMessage();
+        }
+    }
+}
+
+// ExpressionParser.java
+package com.mathlib.internal;
+
+public class ExpressionParser {
+    private TokenProcessor tokenProcessor;
+    private OperatorHandler operatorHandler;
+    
+    public ExpressionParser() {
+        this.tokenProcessor = new TokenProcessor();
+        this.operatorHandler = new OperatorHandler();
+    }
+    
+    public double parse(String expression) throws Exception {
+        if (expression == null || expression.trim().isEmpty()) {
+            throw new Exception("Empty expression");
+        }
+        
+        String[] tokens = tokenProcessor.tokenize(expression);
+        return evaluateTokens(tokens);
+    }
+    
+    private double evaluateTokens(String[] tokens) throws Exception {
+        if (tokens.length == 3) {
+            double left = Double.parseDouble(tokens[0]);
+            String operator = tokens[1];
+            double right = Double.parseDouble(tokens[2]);
+            return operatorHandler.apply(left, operator, right);
+        }
+        throw new Exception("Invalid expression format");
+    }
+}
+
+// TokenProcessor.java
+package com.mathlib.internal;
+
+public class TokenProcessor {
+    
+    public String[] tokenize(String expression) {
+        expression = expression.trim();
+        
+        for (char op : new char[]{'+', '-', '*', '/'}) {
+            int index = expression.indexOf(op);
+            if (index > 0) {
+                String left = expression.substring(0, index).trim();
+                String right = expression.substring(index + 1).trim();
+                return new String[]{left, String.valueOf(op), right};
+            }
+        }
+        
+        return new String[]{expression};
+    }
+    
+    private boolean isOperator(char c) {
+        return c == '+' || c == '-' || c == '*' || c == '/';
+    }
+}
+
+// OperatorHandler.java
+package com.mathlib.internal;
+
+public class OperatorHandler {
+    
+    public double apply(double left, String operator, double right) throws Exception {
+        switch (operator) {
+            case "+":
+                return add(left, right);
+            case "-":
+                return subtract(left, right);
+            case "*":
+                return multiply(left, right);
+            case "/":
+                return divide(left, right);
+            default:
+                throw new Exception("Unknown operator: " + operator);
+        }
+    }
+    
+    private double add(double a, double b) {
+        return a + b;
+    }
+    
+    private double subtract(double a, double b) {
+        return a - b;
+    }
+    
+    private double multiply(double a, double b) {
+        return a * b;
+    }
+    
+    private double divide(double a, double b) throws Exception {
+        if (b == 0) {
+            throw new Exception("Division by zero");
+        }
+        return a / b;
+    }
+}
+
+// ResultFormatter.java
+package com.mathlib.internal;
+
+public class ResultFormatter {
+    
+    public String format(double value) {
+        if (value == (long) value) {
+            return String.valueOf((long) value);
+        }
+        return String.valueOf(value);
+    }
+    
+    private String formatWithPrecision(double value, int precision) {
+        return String.format("%." + precision + "f", value);
+    }
+}
+```
+
+To create the JAR file, compile and package:
+
+```bash
+mkdir -p /tmp/mathlib/com/mathlib/internal
+cd /tmp/mathlib
+
+# Save the Calculator.java source
+cat > com/mathlib/Calculator.java << 'EOF'
+package com.mathlib;
+
+import com.mathlib.internal.ExpressionParser;
+import com.mathlib.internal.ResultFormatter;
+
+public class Calculator {
+    private ExpressionParser parser;
+    private ResultFormatter formatter;
+    
+    public Calculator() {
+        this.parser = new ExpressionParser();
+        this.formatter = new ResultFormatter();
+    }
+    
+    public String calculate(String expression) {
+        try {
+            double result = parser.parse(expression);
+            return formatter.format(result);
+        } catch (Exception e) {
+            return "Error: " + e.getMessage();
+        }
+    }
+}
+EOF
+
+# Save the ExpressionParser.java source
+cat > com/mathlib/internal/ExpressionParser.java << 'EOF'
+package com.mathlib.internal;
+
+public class ExpressionParser {
+    private TokenProcessor tokenProcessor;
+    private OperatorHandler operatorHandler;
+    
+    public ExpressionParser() {
+        this.tokenProcessor = new TokenProcessor();
+        this.operatorHandler = new OperatorHandler();
+    }
+    
+    public double parse(String expression) throws Exception {
+        if (expression == null || expression.trim().isEmpty()) {
+            throw new Exception("Empty expression");
+        }
+        
+        String[] tokens = tokenProcessor.tokenize(expression);
+        return evaluateTokens(tokens);
+    }
+    
+    private double evaluateTokens(String[] tokens) throws Exception {
+        if (tokens.length == 3) {
+            double left = Double.parseDouble(tokens[0]);
+            String operator = tokens[1];
+            double right = Double.parseDouble(tokens[2]);
+            return operatorHandler.apply(left, operator, right);
+        }
+        throw new Exception("Invalid expression format");
+    }
+}
+EOF
+
+# Save the TokenProcessor.java source
+cat > com/mathlib/internal/TokenProcessor.java << 'EOF'
+package com.mathlib.internal;
+
+public class TokenProcessor {
+    
+    public String[] tokenize(String expression) {
+        expression = expression.trim();
+        
+        for (char op : new char[]{'+', '-', '*', '/'}) {
+            int index = expression.indexOf(op);
+            if (index > 0) {
+                String left = expression.substring(0, index).trim();
+                String right = expression.substring(index + 1).trim();
+                return new String[]{left, String.valueOf(op), right};
+            }
+        }
+        
+        return new String[]{expression};
+    }
+    
+    private boolean isOperator(char c) {
+        return c == '+' || c == '-' || c == '*' || c == '/';
+    }
+}
+EOF
+
+# Save the OperatorHandler.java source
+cat > com/mathlib/internal/OperatorHandler.java << 'EOF'
+package com.mathlib.internal;
+
+public class OperatorHandler {
+    
+    public double apply(double left, String operator, double right) throws Exception {
+        switch (operator) {
+            case "+":
+                return add(left, right);
+            case "-":
+                return subtract(left, right);
+            case "*":
+                return multiply(left, right);
+            case "/":
+                return divide(left, right);
+            default:
+                throw new Exception("Unknown operator: " + operator);
+        }
+    }
+    
+    private double add(double a, double b) {
+        return a + b;
+    }
+    
+    private double subtract(double a, double b) {
+        return a - b;
+    }
+    
+    private double multiply(double a, double b) {
+        return a * b;
+    }
+    
+    private double divide(double a, double b) throws Exception {
+        if (b == 0) {
+            throw new Exception("Division by zero");
+        }
+        return a / b;
+    }
+}
+EOF
+
+# Save the ResultFormatter.java source
+cat > com/mathlib/internal/ResultFormatter.java << 'EOF'
+package com.mathlib.internal;
+
+public class ResultFormatter {
+    
+    public String format(double value) {
+        if (value == (long) value) {
+            return String.valueOf((long) value);
+        }
+        return String.valueOf(value);
+    }
+    
+    private String formatWithPrecision(double value, int precision) {
+        return String.format("%." + precision + "f", value);
+    }
+}
+EOF
+
+# Compile all Java files
+javac com/mathlib/Calculator.java com/mathlib/internal/*.java
+
+# Create JAR file
+jar cf /workspace/mathlib.jar com/mathlib/*.class com/mathlib/internal/*.class
+
+# Clean up
+cd /workspace
+rm -rf /tmp/mathlib

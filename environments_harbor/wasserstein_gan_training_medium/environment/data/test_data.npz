@@ -1,0 +1,36 @@
+import numpy as np
+
+# Set random seed for reproducibility
+np.random.seed(42)
+
+# Generate real_scores: critic scores for real images
+# These should be generally positive (critic thinks they're real)
+real_scores = np.random.randn(100).astype(np.float32) * 0.3 + 0.8
+
+# Generate fake_scores: critic scores for fake images
+# These should be generally negative (critic thinks they're fake)
+fake_scores = np.random.randn(100).astype(np.float32) * 0.4 - 0.5
+
+# Generate gradient_penalty: a scalar value around 2.5-3.5
+gradient_penalty = np.array(2.847, dtype=np.float32)
+
+# Lambda coefficient for gradient penalty (standard WGAN-GP value)
+lambda_gp = np.array(10.0, dtype=np.float32)
+
+# Save to npz file
+np.savez('/workspace/wgan_project/test_data.npz',
+         real_scores=real_scores,
+         fake_scores=fake_scores,
+         gradient_penalty=gradient_penalty,
+         lambda_gp=lambda_gp)
+
+# Verify the expected loss value
+# WGAN-GP critic loss formula: mean(fake_scores) - mean(real_scores) + lambda_gp * gradient_penalty
+expected_loss = np.mean(fake_scores) - np.mean(real_scores) + lambda_gp * gradient_penalty
+
+print(f"Test data generated successfully!")
+print(f"Expected loss value: {expected_loss:.6f}")
+
+# Save expected output to file
+with open('/workspace/wgan_project/expected_output.txt', 'w') as f:
+    f.write(f"{expected_loss:.6f}\n")

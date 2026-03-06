@@ -1,0 +1,37 @@
+import numpy as np
+
+# Set random seed for reproducibility
+np.random.seed(42)
+
+# Number of points from each Gaussian
+n_per_gaussian = 333
+n_total = 1000
+
+# Generate points from first Gaussian: center (-2, -2), std 0.5
+gaussian1 = np.random.randn(n_per_gaussian, 2) * 0.5 + np.array([-2.0, -2.0])
+
+# Generate points from second Gaussian: center (2, 2), std 0.5
+gaussian2 = np.random.randn(n_per_gaussian, 2) * 0.5 + np.array([2.0, 2.0])
+
+# Generate points from third Gaussian: center (0, -3), std 0.7
+# This gets the remaining points to reach exactly 1000
+n_remaining = n_total - 2 * n_per_gaussian
+gaussian3 = np.random.randn(n_remaining, 2) * 0.7 + np.array([0.0, -3.0])
+
+# Combine all points
+train_data = np.vstack([gaussian1, gaussian2, gaussian3])
+
+# Shuffle the data
+np.random.shuffle(train_data)
+
+# Verify shape and range
+assert train_data.shape == (1000, 2), f"Shape mismatch: {train_data.shape}"
+assert train_data.min() >= -6 and train_data.max() <= 6, f"Data out of expected range: [{train_data.min()}, {train_data.max()}]"
+
+# Save to file
+np.save('/workspace/train_data.npy', train_data)
+
+print(f"Generated training data with shape: {train_data.shape}")
+print(f"Data range: [{train_data.min():.2f}, {train_data.max():.2f}]")
+print(f"Mean: {train_data.mean(axis=0)}")
+print(f"Std: {train_data.std(axis=0)}")

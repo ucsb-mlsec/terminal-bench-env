@@ -1,0 +1,42 @@
+Algorithm A: Basic Parallel Reduction with Multiple Transfers
+
+Input: array[N] on host memory
+Output: single reduced value
+
+STEP 1: Initial transfer
+  copy array[N] from host to device memory
+  device_synchronize()
+  
+STEP 2: First reduction phase
+  launch kernel: partial_reduce(array, temp_results, N)
+    // Each thread block reduces local subset
+  device_synchronize()
+  copy temp_results back to host memory
+  
+STEP 3: Host-side intermediate processing
+  for i = 0 to num_blocks:
+    intermediate[i] = process(temp_results[i])  // Sequential on CPU
+  device_synchronize()
+  
+STEP 4: Second transfer back to device
+  copy intermediate results to device memory
+  device_synchronize()
+  
+STEP 5: Second reduction phase  
+  launch kernel: partial_reduce(intermediate, temp_results2, num_blocks)
+  device_synchronize()
+  copy temp_results2 back to host memory
+  
+STEP 6: Final reduction on CPU
+  result = 0
+  for i = 0 to remaining_elements:  // Single-threaded loop
+    result = combine(result, temp_results2[i])
+  
+return result
+
+// Performance characteristics:
+// - 4 host-device memory transfers (very expensive)
+// - 3 explicit synchronization barriers
+// - Sequential CPU processing in steps 3 and 6
+// - No overlap between computation and data transfer
+// - Intermediate results require round-trip to host memory

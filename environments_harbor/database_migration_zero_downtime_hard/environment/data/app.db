@@ -1,0 +1,167 @@
+I'll create the SQLite database file with 2,500 user records as specified.
+
+```python
+import sqlite3
+import json
+import random
+from datetime import datetime, timedelta
+
+# Create database connection
+conn = sqlite3.connect('/home/agent/app.db')
+cursor = conn.cursor()
+
+# Create users table
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY,
+    username TEXT,
+    preferences TEXT,
+    created_at TEXT
+)
+''')
+
+# Generate 2,500 user records
+base_date = datetime(2023, 6, 15, 0, 0, 0)
+themes = ['dark', 'light']
+notifications_options = [True, False]
+
+for i in range(1, 2501):
+    username = f'user{i}'
+    email = f'user{i}@example.com'
+    theme = random.choice(themes)
+    notifications = random.choice(notifications_options)
+    
+    preferences = json.dumps({
+        "email": email,
+        "theme": theme,
+        "notifications": notifications
+    })
+    
+    # Generate random timestamp within the past year
+    days_offset = random.randint(0, 365)
+    hours_offset = random.randint(0, 23)
+    minutes_offset = random.randint(0, 59)
+    seconds_offset = random.randint(0, 59)
+    
+    created_at = (base_date + timedelta(
+        days=days_offset,
+        hours=hours_offset,
+        minutes=minutes_offset,
+        seconds=seconds_offset
+    )).strftime('%Y-%m-%dT%H:%M:%SZ')
+    
+    cursor.execute('''
+        INSERT INTO users (username, preferences, created_at)
+        VALUES (?, ?, ?)
+    ''', (username, preferences, created_at))
+
+conn.commit()
+conn.close()
+```
+
+Now I'll create the migration script:
+
+```bash
+#!/bin/bash
+set -e
+
+DB_PATH="/home/agent/app.db"
+RESULT_PATH="/home/agent/result.json"
+
+# Function to log messages
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+}
+
+# Function to execute SQL with timeout to avoid long locks
+execute_sql() {
+    sqlite3 "$DB_PATH" "$1"
+}
+
+log "Starting zero-downtime migration..."
+
+# Step 1: Add new email column (non-blocking, instant operation)
+log "Step 1: Adding email column..."
+execute_sql "ALTER TABLE users ADD COLUMN email TEXT;"
+
+# Step 2: Create index on new email column (can be done before data is there)
+log "Step 2: Creating index on email column..."
+execute_sql "CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);"
+
+# Step 3: Batch update emails from JSON preferences
+# Process in small batches to minimize lock time
+log "Step 3: Extracting emails from JSON preferences in batches..."
+
+BATCH_SIZE=100
+TOTAL_RECORDS=$(execute_sql "SELECT COUNT(*) FROM users;")
+BATCHES=$((($TOTAL_RECORDS + $BATCH_SIZE - 1) / $BATCH_SIZE))
+
+log "Total records: $TOTAL_RECORDS, Processing in $BATCHES batches of $BATCH_SIZE"
+
+for ((batch=0; batch<$BATCHES; batch++)); do
+    OFFSET=$((batch * BATCH_SIZE))
+    
+    # Extract and update emails for this batch
+    # Using json_extract for efficient JSON parsing
+    execute_sql "
+    UPDATE users 
+    SET email = json_extract(preferences, '$.email')
+    WHERE id IN (
+        SELECT id FROM users 
+        WHERE email IS NULL 
+        LIMIT $BATCH_SIZE
+    );"
+    
+    # Small sleep to allow other operations to proceed
+    sleep 0.01
+    
+    if ((batch % 10 == 0)); then
+        PROCESSED=$((batch * BATCH_SIZE))
+        log "Processed $PROCESSED / $TOTAL_RECORDS records..."
+    fi
+done
+
+log "Step 4: Verifying migration..."
+
+# Verify all records have emails extracted
+MIGRATED_COUNT=$(execute_sql "SELECT COUNT(*) FROM users WHERE email IS NOT NULL;")
+NULL_EMAIL_COUNT=$(execute_sql "SELECT COUNT(*) FROM users WHERE email IS NULL;")
+
+log "Migrated records: $MIGRATED_COUNT"
+log "Records with NULL email: $NULL_EMAIL_COUNT"
+
+# Verify email extraction accuracy (sample check)
+MISMATCH_COUNT=$(execute_sql "
+SELECT COUNT(*) FROM users 
+WHERE email != json_extract(preferences, '$.email');")
+
+log "Records with email mismatch: $MISMATCH_COUNT"
+
+# Determine if verification passed
+VERIFIED="false"
+if [ "$MIGRATED_COUNT" -eq "$TOTAL_RECORDS" ] && [ "$NULL_EMAIL_COUNT" -eq "0" ] && [ "$MISMATCH_COUNT" -eq "0" ]; then
+    VERIFIED="true"
+    log "Migration verification PASSED"
+else
+    log "Migration verification FAILED"
+fi
+
+# Step 5: Create result file
+log "Step 5: Writing results..."
+cat > "$RESULT_PATH" << EOF
+{
+  "migrated": $MIGRATED_COUNT,
+  "verified": $VERIFIED
+}
+EOF
+
+log "Migration complete!"
+log "Results written to $RESULT_PATH"
+
+# Display final statistics
+log "Final Statistics:"
+log "  Total records in database: $TOTAL_RECORDS"
+log "  Successfully migrated: $MIGRATED_COUNT"
+log "  Verification status: $VERIFIED"
+
+exit 0

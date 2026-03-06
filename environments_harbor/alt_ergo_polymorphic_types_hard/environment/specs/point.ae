@@ -1,0 +1,62 @@
+module Point where
+
+-- Type definitions for 2D and 3D points
+type Point2D = { x: Real, y: Real }
+type Point3D = { x: Real, y: Real, z: Real }
+
+-- Distance between two 2D points using Euclidean metric
+function distance2D(p1: Point2D, p2: Point2D): Real
+  let dx = p1.x - p2.x
+  let dy = p1.y - p2.y
+  -- Polymorphic expression: sqrt expects specific numeric type
+  return sqrt(dx * dx + dy * dy)
+
+-- Distance between two 3D points
+function distance3D(p1: Point3D, p2: Point3D): Real
+  let dx = p1.x - p2.x
+  let dy = p1.y - p2.y
+  let dz = p1.z - p2.z
+  return sqrt(dx * dx + dy * dy + dz * dz)
+
+-- Calculate midpoint between two 2D points
+function midpoint2D(p1: Point2D, p2: Point2D): Point2D
+  -- Polymorphic literal: 2 could be Int, Real, or Rational
+  return { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 }
+
+-- Calculate midpoint between two 3D points
+function midpoint3D(p1: Point3D, p2: Point3D): Point3D
+  return { 
+    x: (p1.x + p2.x) / 2,
+    y: (p1.y + p2.y) / 2,
+    z: (p1.z + p2.z) / 2
+  }
+
+-- Translate a 2D point by given offsets
+function translate2D(p: Point2D, dx: Real, dy: Real): Point2D
+  return { x: p.x + dx, y: p.y + dy }
+
+-- Translate a 3D point by given offsets
+function translate3D(p: Point3D, dx: Real, dy: Real, dz: Real): Point3D
+  return { x: p.x + dx, y: p.y + dy, z: p.z + dz }
+
+-- Scale a point by a factor from origin
+function scale2D(p: Point2D, factor: Real): Point2D
+  return { x: p.x * factor, y: p.y * factor }
+
+-- Origin point for 2D space
+constant origin2D: Point2D = { x: 0, y: 0 }
+
+-- Axioms and properties
+
+-- Property: Distance is always non-negative
+axiom distance_non_negative: forall p1: Point2D, p2: Point2D.
+  distance2D(p1, p2) >= 0
+
+-- Property: Distance is symmetric
+axiom distance_symmetric: forall p1: Point2D, p2: Point2D.
+  distance2D(p1, p2) = distance2D(p2, p1)
+
+-- Property: Midpoint is equidistant from both points
+axiom midpoint_equidistant: forall p1: Point2D, p2: Point2D.
+  let m = midpoint2D(p1, p2) in
+  distance2D(p1, m) = distance2D(m, p2)

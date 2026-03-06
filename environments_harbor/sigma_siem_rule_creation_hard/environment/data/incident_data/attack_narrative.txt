@@ -1,0 +1,67 @@
+# Incident Response Report: Multi-Stage Targeted Attack Campaign
+
+## Executive Summary
+
+On October 15, 2023, our security operations center detected suspicious activity originating from a compromised service account. Further investigation revealed a sophisticated multi-stage attack campaign that progressed through initial access, reconnaissance, credential harvesting, lateral movement, persistence establishment, and data exfiltration. This report documents the complete attack chain and associated indicators for future detection and prevention efforts.
+
+## Initial Access - October 15, 2023, 14:23 UTC
+
+The threat actor gained initial access to our network through a compromised service account identified as 'svc_backup'. Analysis of Windows Security Event Logs (Event ID 4624 - Successful Logon) revealed an anomalous logon from an external IP address 198.51.100.45, which had never been previously associated with this service account. The authentication used NTLM over port 445, suggesting the attacker possessed valid credentials for the account.
+
+The svc_backup account, typically used for automated backup operations, had elevated privileges across multiple systems in the environment. Event ID 4672 (Special Privileges Assigned to New Logon) confirmed that the account was granted SeBackupPrivilege, SeRestorePrivilege, and SeDebugPrivilege upon authentication. These privileges would later facilitate the attacker's credential access activities.
+
+Initial analysis suggests the credentials were likely obtained through a prior phishing campaign or password spraying attack, though the exact compromise vector remains under investigation. The attacker established their initial foothold on workstation WKSTN-2547, a Windows 10 Enterprise system located in the finance department.
+
+## Discovery Phase - October 15, 2023, 14:35-15:12 UTC
+
+Following initial access, the threat actor immediately began reconnaissance activities to understand the network environment and identify high-value targets. Process creation events (Event ID 4688) captured a series of native Windows commands executed in rapid succession.
+
+At 14:35 UTC, the attacker executed 'whoami /all' to enumerate the current security context, followed by 'net user /domain' to list all domain user accounts. Additional commands included 'net group "Domain Admins" /domain' to identify administrative accounts and 'nltest /domain_trusts' to map trust relationships with other domains.
+
+The attacker also performed network reconnaissance using 'net view /domain' to enumerate domain resources and 'ping' commands against multiple internal IP ranges to identify live hosts. At 14:52 UTC, they executed 'systeminfo' to gather detailed information about the compromised host, including patch levels and system architecture.
+
+PowerShell was leveraged extensively during this phase. Event ID 4688 showed powershell.exe spawning with encoded commands (identified through the -EncodedCommand parameter). Subsequent PowerShell script block logging (Event ID 4104) revealed the attacker used Active Directory enumeration cmdlets including Get-ADUser, Get-ADComputer, and Get-ADGroup to map the domain structure comprehensively.
+
+## Credential Access - October 15, 2023, 15:18-15:45 UTC
+
+Having completed reconnaissance, the attacker pivoted to credential harvesting to obtain additional access. At 15:18 UTC, process creation logs captured the execution of a file named 'mi.exe' (a renamed variant of Mimikatz) from the directory C:\Users\svc_backup\AppData\Local\Temp\. 
+
+Event ID 4688 showed mi.exe was launched with command line arguments 'sekurlsa::logonpasswords' and 'sekurlsa::tickets'. The attacker leveraged the SeDebugPrivilege granted to the svc_backup account to access LSASS memory (lsass.exe, PID 684).
+
+Sysmon Event ID 10 (Process Access) logs confirmed suspicious access to lsass.exe with GrantedAccess value 0x1410, indicating PROCESS_QUERY_INFORMATION and PROCESS_VM_READ permissions - a clear indicator of credential dumping activity. The source process was mi.exe, and the access pattern matched known Mimikatz behavior.
+
+Additionally, at 15:32 UTC, the attacker executed 'reg save HKLM\SAM C:\Users\svc_backup\AppData\Local\Temp\sam.hiv' and similar commands to export the SECURITY and SYSTEM registry hives. These files contain password hashes and can be processed offline for credential extraction.
+
+## Lateral Movement - October 15, 2023, 16:05-17:30 UTC
+
+Armed with harvested credentials, the attacker began lateral movement across the network. At 16:05 UTC, Security logs on server SRV-DC01 (domain controller) recorded a logon event (4624) for user account 'admin_jdoe', a domain administrator account compromised during the credential harvesting phase.
+
+The attacker utilized PsExec.exe for remote code execution. Event ID 4688 on the source system showed psexec.exe launching with parameters '\\SRV-FILE01 -s cmd.exe'. On the destination system SRV-FILE01, Event ID 7045 (Service Installation) recorded the creation of 'PSEXESVC' service at 16:12 UTC, followed by Event ID 4624 showing a Type 3 (Network) logon for admin_jdoe.
+
+The attacker also leveraged Windows Management Instrumentation (WMI) for lateral movement. Event ID 4688 captured wmic.exe execution with parameters 'process call create' targeting multiple systems. Corresponding Event ID 4624 logs on remote systems showed Type 3 network logons originating from previously compromised hosts.
+
+Between 16:45 and 17:30 UTC, the attacker accessed four additional servers: SRV-FILE01, SRV-APP02, SRV-DB03, and SRV-EXCH01, establishing presence across critical business systems including file servers, application servers, database servers, and the Exchange email server.
+
+## Persistence - October 15, 2023, 17:45-18:20 UTC
+
+To maintain long-term access, the attacker implemented multiple persistence mechanisms across compromised systems. On WKSTN-2547, Event ID 4688 showed execution of 'schtasks.exe' with parameters '/create /tn "Windows Update Check" /tr "C:\Windows\Temp\update.exe" /sc daily /st 09:00'. This scheduled task was designed to execute malicious code daily while masquerading as a legitimate Windows update process.
+
+Event ID 4698 (Scheduled Task Created) provided additional details about the task creation, including the task name, triggers, and actions. The persistence binary 'update.exe' was a backdoor payload that established command and control communication.
+
+On SRV-APP02, the attacker modified registry run keys for persistence. Registry modification was captured through Sysmon Event ID 13 (Registry Value Set), showing the creation of a value named 'SecurityUpdate' under 'HKLM\Software\Microsoft\Windows\CurrentVersion\Run' pointing to 'C:\ProgramData\Microsoft\security\svchost.exe' - another backdoor binary masquerading as a legitimate Windows process.
+
+The attacker also created a rogue service on SRV-DC01. Event ID 7045 recorded service installation for a service named 'Windows Security Update Service' with binary path 'C:\Windows\System32\wupdater.exe' configured for automatic startup.
+
+## Exfiltration - October 16, 2023, 02:15-04:30 UTC
+
+The final stage of the attack involved data staging and exfiltration. At 02:15 UTC on October 16th, Event ID 4688 captured PowerShell execution with command line parameters indicating data collection and compression activities. The attacker executed commands to recursively search file shares for documents containing keywords such as 'confidential', 'financial', 'budget', and 'password'.
+
+At 02:45 UTC, the attacker launched '7z.exe' (7-Zip compression utility) with parameters to create encrypted archives: '7z.exe a -p[REDACTED] -mhe=on C:\Users\svc_backup\AppData\Local\Temp\data.7z'. Multiple archives were created totaling approximately 2.3 GB of compressed data from SRV-FILE01 and SRV-DB03.
+
+Network connection logs and Event ID 4688 showed the execution of 'curl.exe' at 03:20 UTC with parameters uploading the archived data to an external domain 'backup-service[.]xyz' over HTTPS. Multiple connection attempts were recorded uploading different archive segments to the attacker-controlled infrastructure.
+
+The exfiltration was conducted in a manner designed to avoid detection, occurring during off-hours and using encrypted HTTPS connections that could blend with legitimate traffic. The attacker successfully exfiltrated sensitive financial documents, employee personally identifiable information (PII), and proprietary business data before activity ceased at 04:30 UTC.
+
+## Conclusion
+
+This incident demonstrates a sophisticated threat actor with knowledge of Windows environments and common security monitoring gaps. The attack progressed through classic attack chain stages and leveraged both legitimate administrative tools (Living off the Land techniques) and custom malware. The comprehensive event log analysis provided here forms the basis for developing detection rules to identify similar attack patterns in the future.

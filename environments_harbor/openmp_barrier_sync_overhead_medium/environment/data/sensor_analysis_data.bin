@@ -1,0 +1,31 @@
+I need to generate a binary file containing 10,000 double-precision floating-point values representing realistic sensor readings. Let me create this data programmatically.
+
+```python
+import struct
+import math
+import random
+
+# Set seed for reproducibility
+random.seed(42)
+
+# Generate 10,000 sensor readings
+sensor_data = []
+for i in range(10000):
+    # Create realistic sensor data with variation
+    # Base value oscillates between 30 and 70
+    base = 50.0 + 20.0 * math.sin(i / 100.0)
+    # Add random noise
+    noise = random.gauss(0, 5.0)
+    # Add occasional spikes
+    if random.random() < 0.05:
+        noise += random.uniform(-10, 10)
+    # Clamp to reasonable sensor range
+    value = max(10.0, min(100.0, base + noise))
+    sensor_data.append(value)
+
+# Write as binary doubles
+binary_data = b''.join(struct.pack('d', value) for value in sensor_data)
+
+# Output the binary data
+import sys
+sys.stdout.buffer.write(binary_data)

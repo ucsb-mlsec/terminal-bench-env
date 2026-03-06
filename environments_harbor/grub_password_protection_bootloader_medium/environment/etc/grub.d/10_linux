@@ -1,0 +1,136 @@
+#!/bin/sh
+exec tail -n +3 $0
+# This file provides the Linux boot entries
+
+set -e
+
+prefix="/usr"
+exec_prefix="/usr"
+datarootdir="/usr/share"
+
+export TEXTDOMAIN=grub
+export TEXTDOMAINDIR="${datarootdir}/locale"
+
+CLASS="--class gnu-linux --class gnu --class os"
+
+if [ "x${GRUB_DISTRIBUTOR}" = "x" ] ; then
+  OS=GNU/Linux
+else
+  OS="${GRUB_DISTRIBUTOR} GNU/Linux"
+  CLASS="--class $(echo ${GRUB_DISTRIBUTOR} | tr 'A-Z' 'a-z' | cut -d' ' -f1|LC_ALL=C sed 's,[^[:alnum:]_],_,g') ${CLASS}"
+fi
+
+if [ "x${GRUB_CMDLINE_LINUX}" = "x" ] ; then
+  GRUB_CMDLINE_LINUX=""
+fi
+
+if [ "x${GRUB_CMDLINE_LINUX_DEFAULT}" = "x" ] ; then
+  GRUB_CMDLINE_LINUX_DEFAULT="quiet splash"
+fi
+
+linux_entry ()
+{
+  os="$1"
+  version="$2"
+  type="$3"
+  args="$4"
+
+  if [ -z "$boot_device_id" ]; then
+      boot_device_id="$(grub_get_device_id "${GRUB_DEVICE}")"
+  fi
+  
+  if [ x$type != xsimple ] ; then
+    case $type in
+      recovery)
+        title="$(gettext_printf "%s, with Linux %s (recovery mode)" "${os}" "${version}")" ;;
+      *)
+        title="$(gettext_printf "%s, with Linux %s" "${os}" "${version}")" ;;
+    esac
+    echo "menuentry '${title}' ${CLASS} \$menuentry_id_option 'gnulinux-$version-$type-$boot_device_id' {"
+  else
+    echo "menuentry '${os}' ${CLASS} \$menuentry_id_option 'gnulinux-simple-$boot_device_id' {"
+  fi
+  
+  if [ x$type != xrecovery ] ; then
+    save_default_entry | sed -e "s/^/\t/"
+  fi
+
+  if [ -z "${prepare_boot_cache}" ]; then
+    prepare_boot_cache="$(prepare_grub_to_access_device ${GRUB_DEVICE_BOOT} | sed -e "s/^/\t/")"
+  fi
+  printf '%s\n' "${prepare_boot_cache}"
+  
+  message="$(gettext_printf "Loading Linux %s ..." ${version})"
+  sed "s/^/\t/" << EOF
+	echo	'$(echo "$message" | grub_quote)'
+	linux	${rel_dirname}/${basename} root=${linux_root_device_thisversion} ro ${args}
+EOF
+  
+  if test -n "${initrd}" ; then
+    message="$(gettext_printf "Loading initial ramdisk ...")"
+    sed "s/^/\t/" << EOF
+	echo	'$(echo "$message" | grub_quote)'
+	initrd	${rel_dirname}/${initrd}
+EOF
+  fi
+  
+  sed "s/^/\t/" << EOF
+}
+EOF
+}
+
+machine=`uname -m`
+case "x$machine" in
+    xi?86 | xx86_64)
+	list=`for i in /boot/vmlinuz-* /vmlinuz-* /boot/kernel-* ; do
+                  if grub_file_is_not_garbage "$i" ; then echo -n "$i " ; fi
+              done` ;;
+    *) 
+	list=`for i in /boot/vmlinuz-* /boot/vmlinux-* /vmlinuz-* /vmlinux-* /boot/kernel-* ; do
+                  if grub_file_is_not_garbage "$i" ; then echo -n "$i " ; fi
+	     done` ;;
+esac
+
+prepare_boot_cache=
+boot_device_id=
+
+is_first_entry=true
+
+for linux in $list; do
+  gettext_printf "Found linux image: %s\n" "$linux" >&2
+  basename=`basename $linux`
+  dirname=`dirname $linux`
+  rel_dirname=`make_system_path_relative_to_its_root $dirname`
+  version=`echo $basename | sed -e "s,^[^0-9]*-,,g"`
+  alt_version=`echo $version | sed -e "s,\.old$,,g"`
+  linux_root_device_thisversion="${GRUB_DEVICE}"
+
+  initrd=
+  for i in "initrd.img-${version}" "initrd-${version}.img" "initrd-${version}.gz" \
+	   "initrd-${version}" "initramfs-${version}.img" \
+	   "initrd.img-${alt_version}" "initrd-${alt_version}.img" \
+	   "initrd-${alt_version}" "initramfs-${alt_version}.img" \
+	   "initramfs-genkernel-${version}" \
+	   "initramfs-genkernel-${alt_version}" \
+	   "initramfs-genkernel-${machine}-${version}" \
+	   "initramfs-genkernel-${machine}-${alt_version}"; do
+    if test -e "${dirname}/${i}" ; then
+      initrd="$i"
+      break
+    fi
+  done
+
+  if [ "x$is_first_entry" = xtrue ]; then
+    linux_entry "${OS}" "${version}" simple \
+    "${GRUB_CMDLINE_LINUX} ${GRUB_CMDLINE_LINUX_DEFAULT}"
+    is_first_entry=false
+  fi
+
+  linux_entry "${OS}" "${version}" advanced \
+  "${GRUB_CMDLINE_LINUX} ${GRUB_CMDLINE_LINUX_DEFAULT}"
+  
+  if [ "x${GRUB_DISABLE_RECOVERY}" != "xtrue" ]; then
+    linux_entry "${OS}" "${version}" recovery \
+    "${GRUB_CMDLINE_LINUX} single"
+  fi
+done

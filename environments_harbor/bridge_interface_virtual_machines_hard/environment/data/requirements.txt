@@ -1,0 +1,79 @@
+VM Network Infrastructure Requirements
+=============================================
+Version: 1.0
+Date: 2024-01-15
+Infrastructure Team
+
+
+VM GROUPS DEFINITION
+====================
+
+1. production
+   - IP Range: 10.100.1.0/24
+   - Purpose: Production web services and application servers
+   - Hosts customer-facing applications
+
+2. development
+   - IP Range: 10.100.2.0/24
+   - Purpose: Development and staging environment
+   - Used by developers for testing new features
+
+3. testing
+   - IP Range: 10.100.3.0/24
+   - Purpose: Quality assurance and automated testing
+   - Isolated testing environment for CI/CD pipelines
+
+4. database
+   - IP Range: 10.100.4.0/24
+   - Purpose: Database servers and data storage
+   - Contains sensitive data requiring isolation
+
+5. monitoring
+   - IP Range: 10.100.5.0/24
+   - Purpose: Infrastructure monitoring and logging services
+   - Collects metrics and logs from all environments
+
+
+EXTERNAL CONNECTIVITY REQUIREMENTS
+===================================
+
+Physical Interface: eth0
+
+Groups requiring external network access:
+- production: requires external access for public services and API endpoints
+- development: requires external access for package downloads and repository access
+- monitoring: requires external access for alerting and external monitoring endpoints
+
+Note: External connectivity must be configured through proper bridge forwarding
+
+
+ISOLATION REQUIREMENTS
+======================
+
+The following VM groups must be isolated with NO external network forwarding:
+
+- database: must be isolated, no direct external access allowed
+  * Contains sensitive customer data
+  * Should only be accessible from internal networks
+  
+- testing: isolated environment, no external connectivity
+  * Prevents test traffic from reaching production systems
+  * Maintains clean testing environment
+
+
+ADDITIONAL REQUIREMENTS
+========================
+
+IP Forwarding:
+- Enable IP forwarding only for bridges that require external connectivity
+- Isolated networks must have forwarding disabled
+
+Bridge Naming:
+- Bridge names must follow Linux interface naming conventions
+- Maximum 15 characters per bridge name
+- Use descriptive names based on VM group purpose
+
+Bridge Configuration:
+- Each VM group requires its own dedicated bridge interface
+- Bridges must not share network segments
+- Proper isolation between bridges must be maintained

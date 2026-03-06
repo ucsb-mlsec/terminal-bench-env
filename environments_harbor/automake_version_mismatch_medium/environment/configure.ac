@@ -1,0 +1,7 @@
+AC_INIT([legacy-calc], [1.0])
+AM_CONFIG_HEADER(config.h)
+AM_INIT_AUTOMAKE
+AC_PROG_CC
+AM_PROG_CC_STDC
+AC_CONFIG_FILES([Makefile src/Makefile])
+AC_OUTPUT

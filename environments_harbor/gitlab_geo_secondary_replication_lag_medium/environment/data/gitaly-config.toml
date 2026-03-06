@@ -1,0 +1,50 @@
+socket_path = "/var/opt/gitlab/gitaly.socket"
+bin_dir = "/opt/gitlab/embedded/bin"
+
+[git]
+bin_path = "/opt/gitlab/embedded/bin/git"
+
+[gitaly-ruby]
+dir = "/opt/gitlab/embedded/service/gitaly-ruby"
+max_rss = 300000000
+num_workers = 3
+
+[logging]
+format = "json"
+level = "info"
+
+[[storage]]
+name = "default"
+path = "/var/opt/gitlab/git-data/repositories"
+
+[concurrency]
+max_per_repo = 5
+
+[git.catfile]
+max_count = 100
+
+[git.config]
+[[git.config.entry]]
+key = "pack.threads"
+value = "4"
+
+[[git.config.entry]]
+key = "pack.windowMemory"
+value = "256m"
+
+[[git.config.entry]]
+key = "repack.writeBitmaps"
+value = "true"
+
+# WARNING: These settings are EXTREMELY AGGRESSIVE
+# gc.auto=1 triggers garbage collection after just 1 loose object is created
+# gc.autopacklimit=2 triggers repacking when only 2 pack files exist
+# This causes git gc to run after almost every push operation, severely degrading performance
+# Recommended defaults: gc.auto=6700, gc.autopacklimit=50
+[[git.config.entry]]
+key = "gc.auto"
+value = "1"
+
+[[git.config.entry]]
+key = "gc.autopacklimit"
+value = "2"

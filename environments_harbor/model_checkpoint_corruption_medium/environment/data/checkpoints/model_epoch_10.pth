@@ -1,0 +1,88 @@
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import json
+
+# Create a simple CNN model structure
+class SimpleCNN(nn.Module):
+    def __init__(self):
+        super(SimpleCNN, self).__init__()
+        self.conv1 = nn.Conv2d(3, 32, kernel_size=3, padding=1)
+        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
+        self.fc1 = nn.Linear(64 * 8 * 8, 128)
+        self.fc2 = nn.Linear(128, 10)
+    
+    def forward(self, x):
+        return x
+
+# Initialize model and optimizer
+model = SimpleCNN()
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+# Create the checkpoint dictionary
+checkpoint = {
+    'epoch': 10,
+    'model_state_dict': model.state_dict(),
+    'optimizer_state_dict': optimizer.state_dict(),
+    'loss': 0.6742
+}
+
+# Save the checkpoint
+torch.save(checkpoint, '/workspace/checkpoints/model_epoch_10.pth')
+
+# Create corrupted checkpoint for epoch 15 (truncated file)
+checkpoint_15 = {
+    'epoch': 15,
+    'model_state_dict': model.state_dict(),
+}
+# Save and then corrupt it by truncating
+torch.save(checkpoint_15, '/workspace/checkpoints/model_epoch_15.pth')
+with open('/workspace/checkpoints/model_epoch_15.pth', 'rb') as f:
+    data = f.read()
+# Truncate to corrupt
+with open('/workspace/checkpoints/model_epoch_15.pth', 'wb') as f:
+    f.write(data[:len(data)//2])
+
+# Create symlink/copy for latest
+import shutil
+shutil.copy('/workspace/checkpoints/model_epoch_10.pth', '/workspace/checkpoints/model_latest.pth')
+
+# Now analyze and create recovery report
+def check_checkpoint(filepath):
+    try:
+        checkpoint = torch.load(filepath)
+        has_model = 'model_state_dict' in checkpoint
+        has_optimizer = 'optimizer_state_dict' in checkpoint
+        epoch = checkpoint.get('epoch', -1)
+        return True, has_model, has_optimizer, epoch
+    except:
+        return False, False, False, -1
+
+# Check all checkpoints
+checkpoints = [
+    '/workspace/checkpoints/model_epoch_10.pth',
+    '/workspace/checkpoints/model_epoch_15.pth',
+    '/workspace/checkpoints/model_latest.pth'
+]
+
+valid_checkpoint = None
+max_epoch = -1
+
+for ckpt_path in checkpoints:
+    is_valid, has_model, has_optimizer, epoch = check_checkpoint(ckpt_path)
+    if is_valid and epoch > max_epoch:
+        max_epoch = epoch
+        valid_checkpoint = ckpt_path.split('/')[-1]
+        contains_model = has_model
+        contains_optimizer = has_optimizer
+
+# Create recovery report
+recovery_report = {
+    "usable_checkpoint": valid_checkpoint,
+    "checkpoint_epoch": max_epoch,
+    "contains_model_state": contains_model,
+    "contains_optimizer_state": contains_optimizer
+}
+
+with open('/workspace/recovery_report.json', 'w') as f:
+    json.dump(recovery_report, f, indent=2)

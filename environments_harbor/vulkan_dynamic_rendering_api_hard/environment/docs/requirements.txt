@@ -1,0 +1,59 @@
+VULKAN DYNAMIC RENDERING MIGRATION REQUIREMENTS
+Version 1.0
+
+This document specifies the mandatory configuration requirements for migrating a Vulkan application to use the VK_KHR_dynamic_rendering extension instead of traditional render passes.
+
+================================================================================
+1. REQUIRED VULKAN EXTENSIONS
+================================================================================
+
+The following device extensions MUST be enabled during logical device creation:
+
+- VK_KHR_dynamic_rendering
+
+Note: This extension requires Vulkan 1.1 or higher. Ensure that VK_KHR_get_physical_device_properties2 is available if using Vulkan 1.0.
+
+================================================================================
+2. REQUIRED DEVICE FEATURES
+================================================================================
+
+The following device feature flags MUST be enabled in VkPhysicalDeviceFeatures or extended feature structures:
+
+- dynamicRendering (from VkPhysicalDeviceDynamicRenderingFeaturesKHR)
+
+This feature must be queried during physical device selection and enabled during logical device creation. Applications should verify feature availability before attempting to use dynamic rendering.
+
+================================================================================
+3. PIPELINE CONFIGURATION REQUIREMENTS
+================================================================================
+
+Graphics pipelines created for use with dynamic rendering have the following requirements:
+
+- The 'renderPass' field in VkGraphicsPipelineCreateInfo MUST be set to VK_NULL_HANDLE
+- The 'subpass' field MUST be set to 0
+- Pipelines are created without any render pass references
+- Pipeline compatibility is determined by attachment formats rather than render pass compatibility
+
+INCOMPATIBLE SETTINGS:
+- Specifying a valid VkRenderPass handle in the renderPass field is INCOMPATIBLE with dynamic rendering and will cause initialization failures or undefined behavior
+
+================================================================================
+4. RENDERING FORMAT REQUIREMENTS
+================================================================================
+
+When using dynamic rendering, attachment formats must be explicitly declared:
+
+REQUIRED FIELDS:
+- colorAttachmentFormats: An array specifying the format of each color attachment (e.g., VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_B8G8R8A8_SRGB)
+- depthAttachmentFormat: The format for the depth attachment (e.g., VK_FORMAT_D32_SFLOAT, VK_FORMAT_D24_UNORM_S8_UINT)
+- stencilAttachmentFormat: The format for the stencil attachment if used separately
+
+These format declarations are provided through VkPipelineRenderingCreateInfoKHR which must be included in the pNext chain of VkGraphicsPipelineCreateInfo.
+
+Example format specifications:
+- colorAttachmentFormats: [VK_FORMAT_B8G8R8A8_SRGB]
+- depthAttachmentFormat: VK_FORMAT_D32_SFLOAT
+
+================================================================================
+END OF REQUIREMENTS DOCUMENT
+================================================================================

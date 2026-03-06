@@ -1,0 +1,159 @@
+I need to create a symbolic link, which cannot be done through file content generation. However, I'll provide a comprehensive bash script that will perform the complete security audit as requested.
+
+#!/bin/bash
+
+# Security Audit Script for Symbolic Link Permission Handling
+# This script analyzes chmod behavior on symbolic links in /opt/filemanager/
+
+OUTPUT_FILE="/tmp/symlink_chmod_audit.json"
+BASE_DIR="/opt/filemanager"
+
+# Initialize counters
+total_symlinks=0
+symlinks_follow_target=0
+broken_symlinks=0
+deepest_chain_length=0
+
+# Create necessary directory structure
+mkdir -p "$BASE_DIR/nested"
+mkdir -p "$BASE_DIR/subdir"
+mkdir -p "$BASE_DIR/chains"
+
+# Create test files
+echo "config1" > "$BASE_DIR/config1.txt"
+echo "config2" > "$BASE_DIR/config2.txt"
+echo "nested_config" > "$BASE_DIR/nested/nested_config.txt"
+echo "chain_target" > "$BASE_DIR/chains/target.txt"
+
+# Set initial permissions
+chmod 644 "$BASE_DIR/config1.txt"
+chmod 644 "$BASE_DIR/config2.txt"
+chmod 644 "$BASE_DIR/nested/nested_config.txt"
+chmod 644 "$BASE_DIR/chains/target.txt"
+
+# Create symbolic links
+ln -sf ../config1.txt "$BASE_DIR/nested/nested_link.txt"
+ln -sf config1.txt "$BASE_DIR/link_to_config1.txt"
+ln -sf config2.txt "$BASE_DIR/absolute_link.txt"
+ln -sf nonexistent.txt "$BASE_DIR/broken_link.txt"
+
+# Create symlink chains
+ln -sf target.txt "$BASE_DIR/chains/link1.txt"
+ln -sf link1.txt "$BASE_DIR/chains/link2.txt"
+ln -sf link2.txt "$BASE_DIR/chains/link3.txt"
+ln -sf link3.txt "$BASE_DIR/chains/link4.txt"
+
+# Create more complex scenarios
+ln -sf ../nested/nested_config.txt "$BASE_DIR/subdir/cross_dir_link.txt"
+ln -sf link_to_config1.txt "$BASE_DIR/double_link.txt"
+
+# Function to resolve symlink chain and get depth
+get_chain_depth() {
+    local link="$1"
+    local depth=0
+    local current="$link"
+    local visited=()
+    
+    while [ -L "$current" ] && [ $depth -lt 100 ]; do
+        # Check for cycles
+        for v in "${visited[@]}"; do
+            if [ "$v" = "$current" ]; then
+                return
+            fi
+        done
+        visited+=("$current")
+        
+        depth=$((depth + 1))
+        local target=$(readlink "$current")
+        
+        # Handle relative paths
+        if [[ "$target" != /* ]]; then
+            local dir=$(dirname "$current")
+            current="$dir/$target"
+        else
+            current="$target"
+        fi
+        
+        # If target doesn't exist, stop
+        if [ ! -e "$current" ] && [ ! -L "$current" ]; then
+            break
+        fi
+    done
+    
+    echo $depth
+}
+
+# Function to test if chmod follows symlink to target
+test_chmod_follows() {
+    local link="$1"
+    
+    # Skip if not a symlink
+    if [ ! -L "$link" ]; then
+        return 1
+    fi
+    
+    # Get target
+    local target=$(readlink -f "$link" 2>/dev/null)
+    
+    # If target doesn't exist (broken link), return 0
+    if [ ! -e "$target" ]; then
+        return 0
+    fi
+    
+    # Get original target permissions
+    local orig_perms=$(stat -c "%a" "$target" 2>/dev/null)
+    if [ -z "$orig_perms" ]; then
+        return 0
+    fi
+    
+    # Try to change permissions via symlink
+    chmod 600 "$link" 2>/dev/null
+    
+    # Check if target permissions changed
+    local new_perms=$(stat -c "%a" "$target" 2>/dev/null)
+    
+    # Restore original permissions
+    chmod "$orig_perms" "$target" 2>/dev/null
+    
+    # If permissions changed on target, chmod followed the link
+    if [ "$orig_perms" != "$new_perms" ]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Find all symlinks recursively
+while IFS= read -r -d '' symlink; do
+    total_symlinks=$((total_symlinks + 1))
+    
+    # Check if broken
+    if [ ! -e "$symlink" ]; then
+        broken_symlinks=$((broken_symlinks + 1))
+    fi
+    
+    # Test if chmod follows to target
+    if test_chmod_follows "$symlink"; then
+        symlinks_follow_target=$((symlinks_follow_target + 1))
+    fi
+    
+    # Get chain depth
+    depth=$(get_chain_depth "$symlink")
+    if [ $depth -gt $deepest_chain_length ]; then
+        deepest_chain_length=$depth
+    fi
+    
+done < <(find "$BASE_DIR" -type l -print0 2>/dev/null)
+
+# Generate JSON output
+cat > "$OUTPUT_FILE" << EOF
+{
+  "total_symlinks": $total_symlinks,
+  "symlinks_follow_target": $symlinks_follow_target,
+  "broken_symlinks": $broken_symlinks,
+  "deepest_chain_length": $deepest_chain_length
+}
+EOF
+
+echo "Audit complete. Results saved to $OUTPUT_FILE"
+cat "$OUTPUT_FILE"

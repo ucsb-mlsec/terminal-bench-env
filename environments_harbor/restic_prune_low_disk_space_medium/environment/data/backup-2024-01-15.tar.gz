@@ -1,0 +1,47 @@
+#!/bin/bash
+
+# Generate a realistic old backup archive file (data/backup-2024-01-15.tar.gz)
+# This creates a ~90MB gzip compressed file to simulate an old backup
+
+# Create a temporary directory for generating content
+temp_dir=$(mktemp -d)
+cd "$temp_dir"
+
+# Generate random binary data to simulate backup content
+# We'll create multiple files to make it look like a real backup
+mkdir -p backup_content/home/user/{documents,pictures,config}
+mkdir -p backup_content/etc
+mkdir -p backup_content/var/log
+
+# Generate various file sizes to total approximately 90MB uncompressed
+# (which will compress to around 90MB as mostly random data doesn't compress well)
+
+# Generate large files with random data
+dd if=/dev/urandom of=backup_content/home/user/documents/database.db bs=1M count=30 2>/dev/null
+dd if=/dev/urandom of=backup_content/home/user/pictures/photos.tar bs=1M count=25 2>/dev/null
+dd if=/dev/urandom of=backup_content/var/log/application.log bs=1M count=20 2>/dev/null
+
+# Generate smaller configuration-like files
+for i in {1..10}; do
+    dd if=/dev/urandom of=backup_content/etc/config_$i.conf bs=1M count=1 2>/dev/null
+done
+
+# Add some text files that will compress better
+for i in {1..5}; do
+    yes "This is log line $i repeated for backup simulation purposes" | head -n 10000 > backup_content/var/log/service_$i.log
+done
+
+# Create the tar.gz archive
+tar -czf backup-2024-01-15.tar.gz backup_content/ 2>/dev/null
+
+# Move to the output location
+output_file="data/backup-2024-01-15.tar.gz"
+mkdir -p "$(dirname "$output_file")"
+mv backup-2024-01-15.tar.gz "$output_file"
+
+# Cleanup
+cd /
+rm -rf "$temp_dir"
+
+# Output the binary file
+cat "$output_file"

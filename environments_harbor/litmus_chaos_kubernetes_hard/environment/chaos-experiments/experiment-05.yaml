@@ -1,0 +1,25 @@
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: db-memory-chaos
+  namespace: database
+spec:
+  appinfo:
+    appns: database
+    applabel: app=postgresql
+    appkind: statefulset
+  engineState: active
+  chaosServiceAccount: chaos-admin
+  experiments:
+    - name: pod-memory-hog
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: '120'
+            - name: MEMORY_CONSUMPTION
+              value: '2000'
+          resources:
+            limits:
+              memory: 1Gi
+              cpu: 1500m

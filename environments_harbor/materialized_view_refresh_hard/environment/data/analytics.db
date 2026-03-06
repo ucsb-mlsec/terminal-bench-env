@@ -1,0 +1,160 @@
+#!/usr/bin/env python3
+import sqlite3
+import random
+from datetime import datetime, timedelta
+
+# Create database
+conn = sqlite3.connect('/home/data/analytics.db')
+cursor = conn.cursor()
+
+# Drop existing tables if they exist
+cursor.execute('DROP TABLE IF EXISTS sales')
+cursor.execute('DROP TABLE IF EXISTS products')
+cursor.execute('DROP TABLE IF EXISTS regions')
+cursor.execute('DROP TABLE IF EXISTS mv_region_totals')
+cursor.execute('DROP TABLE IF EXISTS mv_product_totals')
+cursor.execute('DROP TABLE IF EXISTS mv_combined_summary')
+
+# Create base tables
+cursor.execute('''
+CREATE TABLE regions (
+    region_id INTEGER PRIMARY KEY,
+    region_name TEXT
+)
+''')
+
+cursor.execute('''
+CREATE TABLE products (
+    product_id INTEGER PRIMARY KEY,
+    product_name TEXT,
+    category TEXT
+)
+''')
+
+cursor.execute('''
+CREATE TABLE sales (
+    sale_id INTEGER PRIMARY KEY,
+    product_id INTEGER,
+    region_id INTEGER,
+    amount DECIMAL(10,2),
+    sale_date TEXT
+)
+''')
+
+# Populate regions
+regions = [
+    (1, 'North'),
+    (2, 'South'),
+    (3, 'East'),
+    (4, 'West'),
+    (5, 'Central')
+]
+cursor.executemany('INSERT INTO regions VALUES (?, ?)', regions)
+
+# Populate products
+products = [
+    (1, 'Laptop Pro 15', 'Electronics'),
+    (2, 'Wireless Mouse', 'Electronics'),
+    (3, 'Office Chair', 'Furniture'),
+    (4, 'Standing Desk', 'Furniture'),
+    (5, 'Cotton T-Shirt', 'Clothing'),
+    (6, 'Denim Jeans', 'Clothing'),
+    (7, 'LED Monitor', 'Electronics'),
+    (8, 'Bookshelf', 'Furniture'),
+    (9, 'Winter Jacket', 'Clothing'),
+    (10, 'Smartphone X', 'Electronics')
+]
+cursor.executemany('INSERT INTO products VALUES (?, ?, ?)', products)
+
+# Populate sales with 120 rows
+random.seed(42)
+start_date = datetime(2024, 1, 1)
+sales_data = []
+for i in range(1, 121):
+    product_id = random.randint(1, 10)
+    region_id = random.randint(1, 5)
+    amount = round(random.uniform(50.00, 5000.00), 2)
+    days_offset = random.randint(0, 364)
+    sale_date = (start_date + timedelta(days=days_offset)).strftime('%Y-%m-%d')
+    sales_data.append((i, product_id, region_id, amount, sale_date))
+
+cursor.executemany('INSERT INTO sales VALUES (?, ?, ?, ?, ?)', sales_data)
+
+# Create materialized view tables with STALE data
+# mv_region_totals - only include sales from Jan-June (first 180 days)
+cursor.execute('''
+CREATE TABLE mv_region_totals (
+    region_id INTEGER,
+    region_name TEXT,
+    total_sales DECIMAL(15,2),
+    sale_count INTEGER
+)
+''')
+
+cursor.execute('''
+INSERT INTO mv_region_totals
+SELECT 
+    r.region_id,
+    r.region_name,
+    COALESCE(SUM(s.amount), 0) as total_sales,
+    COUNT(s.sale_id) as sale_count
+FROM regions r
+LEFT JOIN sales s ON r.region_id = s.region_id 
+    AND s.sale_date < '2024-07-01'
+GROUP BY r.region_id, r.region_name
+''')
+
+# mv_product_totals - only include sales up to July (outdated)
+cursor.execute('''
+CREATE TABLE mv_product_totals (
+    product_id INTEGER,
+    product_name TEXT,
+    category TEXT,
+    total_sales DECIMAL(15,2),
+    sale_count INTEGER
+)
+''')
+
+cursor.execute('''
+INSERT INTO mv_product_totals
+SELECT 
+    p.product_id,
+    p.product_name,
+    p.category,
+    COALESCE(SUM(s.amount), 0) as total_sales,
+    COUNT(s.sale_id) as sale_count
+FROM products p
+LEFT JOIN sales s ON p.product_id = s.product_id 
+    AND s.sale_date < '2024-08-01'
+GROUP BY p.product_id, p.product_name, p.category
+''')
+
+# mv_combined_summary - based on outdated child views
+cursor.execute('''
+CREATE TABLE mv_combined_summary (
+    category TEXT,
+    region_name TEXT,
+    total_sales DECIMAL(15,2),
+    sale_count INTEGER
+)
+''')
+
+cursor.execute('''
+INSERT INTO mv_combined_summary
+SELECT 
+    p.category,
+    r.region_name,
+    COALESCE(SUM(s.amount), 0) as total_sales,
+    COUNT(s.sale_id) as sale_count
+FROM products p
+CROSS JOIN regions r
+LEFT JOIN sales s ON p.product_id = s.product_id 
+    AND r.region_id = s.region_id
+    AND s.sale_date < '2024-07-01'
+GROUP BY p.category, r.region_name
+''')
+
+conn.commit()
+conn.close()
+
+print("Database created successfully at /home/data/analytics.db")

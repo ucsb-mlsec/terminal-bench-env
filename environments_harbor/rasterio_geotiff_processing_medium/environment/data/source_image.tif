@@ -1,0 +1,59 @@
+import numpy as np
+from osgeo import gdal, osr
+import os
+
+# Create output directory if it doesn't exist
+os.makedirs('/data', exist_ok=True)
+
+# Set up the source image parameters
+width = 40
+height = 40
+origin_x = 500000.0  # UTM easting
+origin_y = 6000000.0  # UTM northing
+pixel_size_x = 30.0
+pixel_size_y = -30.0
+
+# Create a realistic elevation pattern
+# Generate a base elevation with some variation
+x = np.linspace(0, 10, width)
+y = np.linspace(0, 10, height)
+X, Y = np.meshgrid(x, y)
+
+# Create realistic terrain with multiple features
+elevation = 500.0 + 100.0 * np.sin(X * 0.5) + 80.0 * np.cos(Y * 0.6)
+elevation += 50.0 * np.sin(X * 1.2 + Y * 0.8)
+elevation += 30.0 * (X + Y) * 0.3
+elevation = elevation.astype(np.float32)
+
+# Add some NoData values to test NoData handling
+nodata_value = -9999.0
+elevation[5:8, 5:8] = nodata_value
+elevation[30:33, 25:28] = nodata_value
+
+# Create the GeoTIFF
+driver = gdal.GetDriverByName('GTiff')
+dataset = driver.Create('/data/source_image.tif', width, height, 1, gdal.GDT_Float32)
+
+# Set the geotransform
+geotransform = (origin_x, pixel_size_x, 0, origin_y, 0, pixel_size_y)
+dataset.SetGeoTransform(geotransform)
+
+# Set the projection to EPSG:32633 (UTM Zone 33N)
+srs = osr.SpatialReference()
+srs.ImportFromEPSG(32633)
+dataset.SetProjection(srs.ExportToWkt())
+
+# Write the elevation data
+band = dataset.GetRasterBand(1)
+band.WriteArray(elevation)
+band.SetNoDataValue(nodata_value)
+
+# Flush data to disk
+band.FlushCache()
+dataset.FlushCache()
+
+# Close the dataset
+dataset = None
+band = None
+
+print("Source GeoTIFF created successfully at /data/source_image.tif")

@@ -1,0 +1,59 @@
+=== DynamoDB CloudWatch Metrics Report ===
+Table: user-activity-events
+Time Period: Last 7 days (Peak Hours Analysis)
+Generated: 2024-01-15
+
+--- BASE TABLE METRICS ---
+Write Operations:
+- Write requests: 50,000 writes/minute (833.33 writes/second)
+- Average item size: 2 KB (2048 bytes)
+- Write throttle events: 127 events in past 24 hours
+- Consumed Write Capacity: Average 850 WCU during peak
+
+Read Operations:
+- Read requests: 10,000 reads/minute (166.67 reads/second)
+- Eventually consistent reads: 95%
+- Strong consistent reads: 5%
+- Consumed Read Capacity: Average 175 RCU during peak
+
+--- GSI: event-type-index METRICS ---
+Index Write Operations:
+- All base table writes replicate to this GSI (100% write propagation)
+- Index item size: 2 KB (full projection)
+- Consumed Write Capacity: Average 835 WCU during peak
+- Write throttle events: 243 events in past 24 hours
+
+Index Read Operations:
+- Query pattern 1: 5,000 queries/minute
+- Average items returned per query: 10 items
+- Eventually consistent reads only
+- Consumed Read Capacity: Average 420 RCU during peak
+- Read throttle events: 89 events in past 24 hours
+
+--- GSI: region-index METRICS ---
+Index Write Operations:
+- Sparse index: Only 60% of items have region attribute
+- Items written to index: ~30,000 writes/minute (60% of base)
+- Index item size: 2 KB (full projection)
+- Consumed Write Capacity: Average 505 WCU during peak
+- Write throttle events: 178 events in past 24 hours
+
+Index Read Operations:
+- Query pattern 2: 2,000 queries/minute
+- Average items returned per query: 20 items
+- Eventually consistent reads only
+- Consumed Read Capacity: Average 267 RCU during peak
+- Read throttle events: 34 events in past 24 hours
+
+--- COST ANALYSIS ---
+Provisioned Capacity Costs (Monthly):
+- Base table: $421.20 (500 RCU + 500 WCU)
+- GSI 1 (event-type-index): $252.72 (200 RCU + 200 WCU)
+- GSI 2 (region-index): $216.72 (150 RCU + 150 WCU)
+- Total Monthly Cost: $890.64
+
+--- PERFORMANCE ISSUES ---
+- P99 latency for writes: 245ms (baseline: 25ms)
+- P99 latency for GSI queries: 380ms (baseline: 35ms)
+- Total throttle events (7 days): 671 throttles
+- Estimated impact: 12,500 failed/retried operations per day

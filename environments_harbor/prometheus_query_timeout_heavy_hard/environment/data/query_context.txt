@@ -1,0 +1,69 @@
+PROMETHEUS QUERY OPTIMIZATION CONTEXT
+==========================================
+
+ENVIRONMENT OVERVIEW
+--------------------
+- Microservices: ~50 services across the infrastructure
+- Environments: 3 (dev, staging, prod)
+- Regions: 5 geographic regions (us-east, us-west, eu-west, ap-south, ap-east)
+- Pods: 200-400 active pods at any given time
+- Scrape interval: 15 seconds
+- Dashboard timeout threshold: 30 seconds
+- Current issue: Queries processing 2-5 million samples and timing out
+
+QUERY 1: ERROR RATE CALCULATION
+--------------------------------
+Objective: Calculate the error rate (5xx responses) as a percentage of total requests for each service over the last 5 minutes.
+
+Metric: http_requests_total (counter)
+Labels: service, environment, region, pod, status_code, method, path
+Cardinality: ~8,000 time series (50 services × 3 envs × 5 regions × variable pods × status codes × endpoints)
+
+Performance Issues Identified:
+- Query performs rate() calculation on ALL time series before filtering by status_code
+- Aggregates across high-cardinality labels (pod, method, path) without pre-filtering
+- No environment or region filters, processing dev/staging data unnecessarily
+- Label matchers are not specific enough, forcing Prometheus to load excessive data
+- Rate calculation happens before sum aggregation, causing redundant work across all label combinations
+
+Observed: Query processes ~500,000 samples per execution, takes 35-45 seconds
+
+
+QUERY 2: RESOURCE UTILIZATION PERCENTILES
+------------------------------------------
+Objective: Compute 95th percentile CPU and memory utilization across all production services for capacity planning dashboards, looking at the last hour.
+
+Metrics: container_cpu_usage_seconds_total (counter), container_memory_working_set_bytes (gauge)
+Labels: service, environment, region, pod, container, namespace
+Cardinality: ~6,000 time series for CPU, ~6,000 for memory
+
+Performance Issues Identified:
+- Uses subquery with nested aggregations: quantile(0.95, (rate(...)[5m:1m]))
+- The subquery forces evaluation at 1-minute resolution over 1 hour (60 evaluation points)
+- Redundant rate() calculations inside the subquery for every evaluation step
+- Aggregates by all labels before calculating quantile, maintaining high cardinality throughout
+- No filtering for environment=prod, includes dev/staging data
+- Separate queries for CPU and memory could potentially be optimized together
+- The :1m resolution in subquery is unnecessary for dashboard visualization
+
+Observed: Query processes ~1.8 million samples, takes 40-55 seconds, causes high memory usage on Prometheus
+
+
+QUERY 3: REQUEST LATENCY BY REGION
+-----------------------------------
+Objective: Aggregate request latencies (P95) grouped by region for SLO tracking, showing 5-minute windows over the last 30 minutes.
+
+Metric: http_request_duration_seconds (histogram with _bucket, _sum, _count)
+Labels: service, environment, region, pod, method, path, le (bucket label)
+Cardinality: ~25,000 time series (50 services × histogram buckets × labels)
+
+Performance Issues Identified:
+- Histogram_quantile calculated BEFORE filtering or aggregating other labels
+- Processes all methods and paths before aggregating, very high cardinality
+- Label matchers list region LAST, but it's the primary grouping dimension (should be first for optimization)
+- Aggregates by pod before by region, forcing more intermediate calculations
+- No environment filter, includes non-production data in SLO calculations
+- Uses 'by (region, service)' but service granularity may not be needed for regional SLO view
+- The histogram bucket aggregation (sum by le) happens after other aggregations, reversing optimal order
+
+Observed: Query processes ~2.3 million samples across all histogram buckets, takes 50+ seconds, frequently times out

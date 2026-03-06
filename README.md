@@ -17,7 +17,7 @@ Official implementation and datasets for **TermiGen**, a framework for training 
 
 This repository provides:
 
-1. **3,500+ Verified Docker Environments** - Executable tasks across 11 categories. These are provided as ZIP archives because some tasks involve GitHub repositories containing .git metadata.
+1. **3,500+ Verified Docker Environments** - Executable tasks across 11 categories. The TerminalBench 1.0 format is provided as a ZIP archive (because some tasks involve GitHub repositories containing .git metadata), while the Harbor 2.0 format is provided directly as the `environments_harbor/` directory.
 2. **BashAgent** - Minimal ReAct-style agent implementation (`bash_agent.py`)
 
 
@@ -76,8 +76,7 @@ cd terminal-bench-env
 # Extract environments (TerminalBench 1.0 format)
 unzip termigen_env.zip -d environments/
 
-# Extract Harbor 2.0 format (recommended for harbor eval harness)
-unzip termigen_env_harbor2.zip -d environments_harbor/
+# Harbor 2.0 format is already included as environments_harbor/
 ```
 
 ### Step 2: Deploy TermiGen Model
@@ -160,7 +159,7 @@ task_name/
 └── [task files]          # Source code, configs, data, git repos
 ```
 
-**Harbor 2.0** (`termigen_env_harbor2.zip`):
+**Harbor 2.0** (`environments_harbor/`):
 ```
 task_name/
 ├── task.toml              # Task metadata
@@ -180,9 +179,8 @@ terminal-bench-env/
 ├── README.md                      # This file
 ├── bash_agent.py                  # Minimal ReAct agent implementation
 ├── termigen_env.zip               # 3,500+ Docker tasks (TerminalBench 1.0 format)
-├── termigen_env_harbor2.zip       # Same tasks in Harbor 2.0 format
 ├── environments/                  # Extracted from termigen_env.zip (after unzip)
-└── environments_harbor/           # Extracted from termigen_env_harbor2.zip (after unzip)
+└── environments_harbor/           # 3,500+ Docker tasks in Harbor 2.0 format
 ```
 
 ---

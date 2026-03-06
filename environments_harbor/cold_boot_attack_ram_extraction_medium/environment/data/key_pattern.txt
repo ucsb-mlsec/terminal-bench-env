@@ -1,0 +1,23 @@
+AES-256 Encryption Key Pattern
+================================
+
+Key Length: 256 bits (32 bytes)
+
+Key Structure:
+- Bytes 0-3: Signature header (0x4B 0x45 0x59 0x21) - ASCII "KEY!"
+- Bytes 4-7: Version bytes (0x01 0x00 0x00 0x00)
+- Bytes 8-15: Timestamp-derived bytes (alternating pattern)
+- Bytes 16-31: Cryptographic material (pseudo-random but with even parity on each byte)
+
+Validation Rules:
+1. First 4 bytes must match signature (4B 45 59 21)
+2. Bytes 4-7 represent version (currently 01 00 00 00)
+3. Each byte in positions 16-31 must have even parity (even number of 1-bits)
+
+Cold Boot Attack Considerations:
+- Expect 0-5 bit flips in the recovered key
+- Bit decay pattern: bits are more likely to decay to 0 than to 1
+- Priority correction: signature bytes are most critical for identification
+
+Example valid key (hex):
+4B4559210100000055AA55AA55AA55AA246813579BDF02468ACE13579BDF0ACE

@@ -1,0 +1,166 @@
+import sqlite3
+import json
+from datetime import datetime, timedelta
+import random
+
+# Create database
+conn = sqlite3.connect('/workspace/products.db')
+cursor = conn.cursor()
+
+# Create tables
+cursor.execute('''
+CREATE TABLE products (
+    id INTEGER PRIMARY KEY,
+    shopify_id TEXT UNIQUE,
+    title TEXT,
+    created_at TEXT,
+    updated_at TEXT
+)
+''')
+
+cursor.execute('''
+CREATE TABLE variants (
+    id INTEGER PRIMARY KEY,
+    product_id INTEGER,
+    sku TEXT UNIQUE,
+    price REAL,
+    inventory_quantity INTEGER,
+    FOREIGN KEY (product_id) REFERENCES products(id)
+)
+''')
+
+cursor.execute('''
+CREATE TABLE sync_metadata (
+    product_id INTEGER,
+    last_synced_at TEXT,
+    sync_status TEXT,
+    FOREIGN KEY (product_id) REFERENCES products(id)
+)
+''')
+
+# Sample product data
+product_templates = [
+    ("Cotton T-Shirt", ["TSH-BLU-S", "TSH-BLU-M", "TSH-BLU-L"], [19.99, 19.99, 19.99]),
+    ("Leather Wallet", ["WAL-001"], [49.99]),
+    ("Running Shoes", ["SHOE-RUN-40", "SHOE-RUN-41", "SHOE-RUN-42", "SHOE-RUN-43"], [89.99, 89.99, 89.99, 89.99]),
+    ("Wireless Earbuds", ["EAR-001"], [129.99]),
+    ("Denim Jeans", ["JEAN-30", "JEAN-32", "JEAN-34"], [59.99, 59.99, 59.99]),
+    ("Yoga Mat", ["YOGA-001"], [34.99]),
+    ("Stainless Steel Water Bottle", ["BOT-500", "BOT-750"], [24.99, 29.99]),
+    ("Laptop Backpack", ["BACK-001"], [79.99]),
+    ("Hoodie Sweatshirt", ["HOOD-GRY-M", "HOOD-GRY-L", "HOOD-GRY-XL"], [44.99, 44.99, 44.99]),
+    ("Sunglasses", ["SUN-001"], [39.99]),
+    ("Canvas Sneakers", ["SNK-WHT-8", "SNK-WHT-9", "SNK-WHT-10"], [54.99, 54.99, 54.99]),
+    ("Phone Case", ["CASE-001"], [14.99]),
+    ("Winter Jacket", ["JAC-BLK-M", "JAC-BLK-L", "JAC-BLK-XL"], [149.99, 149.99, 149.99]),
+    ("Baseball Cap", ["CAP-001"], [19.99]),
+    ("Wrist Watch", ["WAT-SLV", "WAT-GLD"], [199.99, 249.99]),
+    ("Coffee Mug", ["MUG-001"], [12.99]),
+    ("Bluetooth Speaker", ["SPK-001"], [69.99]),
+    ("Fitness Tracker", ["FIT-001"], [99.99]),
+    ("Silk Scarf", ["SCRF-001"], [34.99]),
+    ("Desk Lamp", ["LAMP-001"], [44.99]),
+    ("Notebook Set", ["NOTE-001"], [16.99]),
+    ("Thermal Flask", ["FLSK-001"], [39.99]),
+    ("Gym Shorts", ["SHRT-BLK-S", "SHRT-BLK-M", "SHRT-BLK-L"], [24.99, 24.99, 24.99]),
+    ("Crossbody Bag", ["BAG-001"], [64.99]),
+    ("Reading Glasses", ["GLAS-001"], [29.99]),
+    ("Polo Shirt", ["POLO-WHT-M", "POLO-WHT-L"], [34.99, 34.99]),
+    ("Kitchen Knife Set", ["KNIF-001"], [89.99]),
+    ("Yoga Blocks", ["YBLK-001"], [19.99]),
+    ("Resistance Bands", ["RBAN-001"], [22.99]),
+    ("Bath Towel Set", ["TOWL-001"], [39.99]),
+    ("Cooking Apron", ["APRN-001"], [24.99]),
+    ("Wireless Mouse", ["MOUS-001"], [34.99]),
+    ("Keyboard", ["KEYB-001"], [79.99]),
+    ("USB Cable Pack", ["USB-001"], [14.99]),
+    ("Picture Frame", ["FRAM-001"], [29.99]),
+    ("Decorative Pillow", ["PIL-001"], [34.99]),
+    ("Table Runner", ["RUN-001"], [24.99]),
+    ("Candle Set", ["CAND-001"], [44.99]),
+    ("Essential Oil Diffuser", ["DIFF-001"], [49.99]),
+    ("Shower Curtain", ["CURT-001"], [29.99]),
+    ("Bathrobe", ["ROBE-S", "ROBE-M", "ROBE-L"], [59.99, 59.99, 59.99]),
+    ("Slippers", ["SLIP-7", "SLIP-8", "SLIP-9"], [24.99, 24.99, 24.99]),
+    ("Travel Pillow", ["TPIL-001"], [19.99]),
+    ("Luggage Tag Set", ["LTAG-001"], [9.99]),
+    ("Passport Holder", ["PASS-001"], [14.99]),
+    ("Card Holder", ["CARD-001"], [19.99]),
+    ("Money Clip", ["CLIP-001"], [24.99]),
+    ("Tie", ["TIE-BLU", "TIE-RED"], [29.99, 29.99]),
+    ("Bow Tie", ["BTIE-001"], [24.99]),
+    ("Cufflinks", ["CUFF-001"], [34.99]),
+    ("Belt", ["BELT-30", "BELT-32", "BELT-34"], [39.99, 39.99, 39.99]),
+    ("Socks Pack", ["SOCK-001"], [14.99]),
+    ("Gloves", ["GLOV-S", "GLOV-M", "GLOV-L"], [29.99, 29.99, 29.99]),
+    ("Beanie", ["BEAN-001"], [19.99]),
+    ("Umbrella", ["UMB-001"], [24.99]),
+    ("Rain Jacket", ["RJAC-M", "RJAC-L"], [79.99, 79.99]),
+    ("Fleece Vest", ["VEST-M", "VEST-L", "VEST-XL"], [54.99, 54.99, 54.99]),
+    ("Thermal Underwear", ["THRM-M", "THRM-L"], [34.99, 34.99]),
+    ("Compression Socks", ["CSOC-001"], [19.99]),
+    ("Sports Bra", ["SBRA-S", "SBRA-M", "SBRA-L"], [29.99, 29.99, 29.99]),
+    ("Leggings", ["LEG-BLK-S", "LEG-BLK-M", "LEG-BLK-L"], [39.99, 39.99, 39.99]),
+    ("Tank Top", ["TANK-WHT-S", "TANK-WHT-M"], [16.99, 16.99]),
+    ("Windbreaker", ["WIND-M", "WIND-L"], [64.99, 64.99]),
+    ("Cargo Pants", ["CARG-30", "CARG-32", "CARG-34"], [49.99, 49.99, 49.99]),
+    ("Board Shorts", ["BSHR-M", "BSHR-L"], [34.99, 34.99]),
+    ("Swim Trunks", ["SWIM-M", "SWIM-L"], [29.99, 29.99]),
+    ("Rash Guard", ["RASH-M", "RASH-L"], [39.99, 39.99]),
+    ("Hiking Boots", ["HIKE-8", "HIKE-9", "HIKE-10"], [119.99, 119.99, 119.99]),
+    ("Sandals", ["SAND-8", "SAND-9", "SAND-10"], [44.99, 44.99, 44.99]),
+    ("Flip Flops", ["FLIP-7", "FLIP-8", "FLIP-9"], [19.99, 19.99, 19.99]),
+]
+
+# Generate dates
+base_date = datetime.now()
+product_id = 1
+variant_id = 1
+
+# Insert 70 products
+for i in range(70):
+    template = product_templates[i % len(product_templates)]
+    product_title = template[0] if i < len(product_templates) else f"{template[0]} {i+1}"
+    shopify_id = f"gid://shopify/Product/{1000000000 + i}"
+    
+    created_days_ago = random.randint(30, 180)
+    updated_days_ago = random.randint(1, created_days_ago)
+    created_at = (base_date - timedelta(days=created_days_ago)).isoformat()
+    updated_at = (base_date - timedelta(days=updated_days_ago)).isoformat()
+    
+    cursor.execute('''
+        INSERT INTO products (id, shopify_id, title, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?)
+    ''', (product_id, shopify_id, product_title, created_at, updated_at))
+    
+    # Insert variants
+    skus = template[1]
+    prices = template[2]
+    
+    for j, sku in enumerate(skus):
+        actual_sku = f"{sku}-{i}" if i >= len(product_templates) else sku
+        price = prices[j] + random.uniform(-5, 5)
+        inventory = random.randint(0, 500)
+        
+        cursor.execute('''
+            INSERT INTO variants (id, product_id, sku, price, inventory_quantity)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (variant_id, product_id, actual_sku, round(price, 2), inventory))
+        variant_id += 1
+    
+    # Insert sync metadata
+    synced_days_ago = random.randint(1, 30)
+    last_synced = (base_date - timedelta(days=synced_days_ago)).isoformat()
+    sync_status = random.choice(['success', 'success', 'success', 'pending', 'failed'])
+    
+    cursor.execute('''
+        INSERT INTO sync_metadata (product_id, last_synced_at, sync_status)
+        VALUES (?, ?, ?)
+    ''', (product_id, last_synced, sync_status))
+    
+    product_id += 1
+
+conn.commit()
+conn.close()
+
+print("Database created successfully at /workspace/products.db")

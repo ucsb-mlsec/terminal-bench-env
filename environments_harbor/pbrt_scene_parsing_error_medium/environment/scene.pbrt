@@ -1,0 +1,182 @@
+# PBRT Scene File - Simple Room Interior with Objects
+# This scene depicts a small room with a floor, walls, and several geometric objects
+# File contains multiple syntax errors that need to be corrected
+
+# Camera configuration
+Camera "perspective" 
+    "float fov" 45
+    "float focaldistance" [5.0]
+
+# Film settings for output
+Film "rgb" 
+    "integer xresolution" [800] 
+    "integer yresolution" [600]
+    "string filename" "room_scene.exr"
+
+# Sampler configuration
+Sampler "halton" 
+    "integer pixelsamples" [16]
+
+# Integrator
+Integrator "path" 
+    "integer maxdepth" [10]
+
+# Camera positioning - look at room from corner
+LookAt 3 2 5    0 1 0    0 1 0
+
+WorldBegin
+
+# Main area light (ceiling light)
+AttributeBegin
+    Translate 0 3.8 0
+    LightSource "point" 
+        "color I" 150 150 150
+        "point from" [0 0 0
+AttributeEnd
+
+# Secondary light source with errors
+AttributeBegin
+    Translate -2 2 2
+    LightSource "distant" 
+        "color L" [50 50]
+        "point to" [0 -1 0]
+
+# Floor definition
+AttributeBegin
+    Material "matte" 
+        "rgb Kd" [0.6 0.6 0.7]
+    
+    Translate 0 0 0
+    Rotate 90 1 0 0
+    Shape "disk" 
+        "float radius" [10.0]
+        "float innerradius" [0.0
+AttributeEnd
+
+# Back wall
+AttributeBegin
+    Material "Matte"
+        "color Kd" [0.7 0.8 0.7]
+    
+    Translate 0 2 -5
+    Shape "trianglemesh" 
+        "integer indices" [0 1 2 0 2 3]
+        "point P" [-5 -2 0  5 -2 0  5 2 0  -5 2 0]
+        "float uv" [0 0  1 0  1 1  0 1]
+AttributeEnd
+
+# Left wall - missing AttributeEnd
+AttributeBegin
+    Material "Matte" 
+        "rgb Kd" [0.8 0.7 0.7]
+    
+    Translate -5 2 0
+    Rotate 90 0 1 0
+    Shape "trianglemesh 
+        "integer indices" [0 1 2 0 2 3]
+        "point P" [-5 -2 0  5 -2 0  5 2 0  -5 2 0]
+
+# Central sphere object
+AttributeBegin
+    Material "plastic" 
+        "color Kd" [0.8 0.2 0.2]
+        "float roughness" [0.1]
+    
+    Translate 0 1 0
+    Shape "sphere" 
+        "float radius" 0.8
+AttributeEnd
+
+# Smaller sphere on the side
+AttributeBegin
+    Material "metal" 
+        "rgb eta" [0.9 0.9 0.9]
+        "roughness" [0.05]
+    
+    Translate 1.5 0.5
+    Shape "sphere" 
+        "float radius" [0.5]
+AttributeEnd
+
+# Glass sphere with texture reference error
+AttributeBegin
+    Texture "checks" "spectrum" "imagemap"
+        "string filename" ["missing_texture.png"]
+    
+    Material "glass" 
+        "color Kr" [1.0 1.0 1.0]
+        "color Kt" [1.0 1.0 1.0]
+        "float index" [1.5]
+    
+    Translate -1.5 0.6 1.0
+    Shape "sphere" 
+        "float radius" [0.6]
+AttributeEnd
+
+# Box object - malformed transformation
+AttributeBegin
+    Material "Matte"
+        "rgb Kd" [0.3 0.6 0.3]
+    
+    Translate 2.0 0.5 -1.0
+    Scale 0.5 1.0
+    Rotate 30 0 1 0
+    
+    Shape "trianglemesh"
+        "integer indices" [0 1 2 0 2 3  4 5 6 4 6 7  8 9 10 8 10 11  12 13 14 12 14 15  16 17 18 16 18 19  20 21 22 20 22 23]
+        "point P" [-1 0 -1  1 0 -1  1 0 1  -1 0 1
+                   -1 2 -1  1 2 -1  1 2 1  -1 2 1
+                   -1 0 -1  -1 2 -1  -1 2 1  -1 0 1
+                    1 0 -1   1 2 -1   1 2 1   1 0 1
+                   -1 0 -1   1 0 -1   1 2 -1  -1 2 -1
+                   -1 0  1   1 0  1   1 2  1  -1 2  1]
+AttributeEnd
+
+# Disk light on the side - invalid material type
+AttributeBegin
+    Material "emissive" 
+        "color L" [20 20 15]
+    
+    Translate -3 2 -2
+    Rotate 45 0 1 0
+    Shape "disk" 
+        "float radius [0.5]
+AttributeEnd
+
+# Cylinder object with wrong shape name
+AttributeBegin
+    Material "Matte" 
+        "rgb Kd" [0.7 0.5 0.3]
+    
+    Translate -2 1 -1
+    Rotate 90 1 0 0
+    Shape "cylindar" 
+        "float radius" [0.3]
+        "float zmin" [0.0]
+        "float zmax" [1.5]
+AttributeEnd
+
+# Another nested attribute block with mismatch
+AttributeBegin
+    AttributeBegin
+        Material "Matte" 
+            "rgb Kd" [0.9 0.9 0.5]
+        
+        Translate 1.0 0.3 2.0
+        Shape "sphere" 
+            "float radius" [0.3]
+    # Missing inner AttributeEnd
+
+# Cone shape with malformed transform matrix
+AttributeBegin
+    Material "plastic
+        "color Kd" [0.5 0.3 0.8]
+        "float roughness" [0.2]
+    
+    Transform [1 0 0 0  0 1 0 0  0 0 1 0  2.5 0 1.5]
+    Shape "cone" 
+        "float radius" [0.4]
+        "float height" [1.2]
+AttributeEnd
+
+WorldEnd

@@ -1,0 +1,67 @@
+import onnx
+from onnx import helper, TensorProto
+import numpy as np
+
+# Create a simple feedforward neural network (MLP) in ONNX format
+# Architecture: Input(784) -> Dense(128) -> ReLU -> Dense(64) -> ReLU -> Dense(10)
+
+# Define input
+input_tensor = helper.make_tensor_value_info('input', TensorProto.FLOAT, [1, 784])
+
+# Define output
+output_tensor = helper.make_tensor_value_info('output', TensorProto.FLOAT, [1, 10])
+
+# Create weight tensors
+# Layer 1: 784 -> 128
+W1 = np.random.randn(784, 128).astype(np.float32) * 0.01
+b1 = np.zeros(128, dtype=np.float32)
+
+# Layer 2: 128 -> 64
+W2 = np.random.randn(128, 64).astype(np.float32) * 0.01
+b2 = np.zeros(64, dtype=np.float32)
+
+# Layer 3: 64 -> 10
+W3 = np.random.randn(64, 10).astype(np.float32) * 0.01
+b3 = np.zeros(10, dtype=np.float32)
+
+# Create initializers (weights and biases)
+W1_init = helper.make_tensor('W1', TensorProto.FLOAT, [784, 128], W1.flatten().tolist())
+b1_init = helper.make_tensor('b1', TensorProto.FLOAT, [128], b1.tolist())
+W2_init = helper.make_tensor('W2', TensorProto.FLOAT, [128, 64], W2.flatten().tolist())
+b2_init = helper.make_tensor('b2', TensorProto.FLOAT, [64], b2.tolist())
+W3_init = helper.make_tensor('W3', TensorProto.FLOAT, [64, 10], W3.flatten().tolist())
+b3_init = helper.make_tensor('b3', TensorProto.FLOAT, [10], b3.tolist())
+
+# Create nodes
+# Layer 1: MatMul + Add + ReLU
+matmul1_node = helper.make_node('MatMul', ['input', 'W1'], ['matmul1_out'])
+add1_node = helper.make_node('Add', ['matmul1_out', 'b1'], ['add1_out'])
+relu1_node = helper.make_node('Relu', ['add1_out'], ['relu1_out'])
+
+# Layer 2: MatMul + Add + ReLU
+matmul2_node = helper.make_node('MatMul', ['relu1_out', 'W2'], ['matmul2_out'])
+add2_node = helper.make_node('Add', ['matmul2_out', 'b2'], ['add2_out'])
+relu2_node = helper.make_node('Relu', ['add2_out'], ['relu2_out'])
+
+# Layer 3: MatMul + Add (output layer)
+matmul3_node = helper.make_node('MatMul', ['relu2_out', 'W3'], ['matmul3_out'])
+add3_node = helper.make_node('Add', ['matmul3_out', 'b3'], ['output'])
+
+# Create the graph
+graph_def = helper.make_graph(
+    nodes=[matmul1_node, add1_node, relu1_node, matmul2_node, add2_node, relu2_node, matmul3_node, add3_node],
+    name='SimpleMLPModel',
+    inputs=[input_tensor],
+    outputs=[output_tensor],
+    initializer=[W1_init, b1_init, W2_init, b2_init, W3_init, b3_init]
+)
+
+# Create the model
+model_def = helper.make_model(graph_def, producer_name='onnx-mlp-generator')
+model_def.opset_import[0].version = 13
+
+# Check the model
+onnx.checker.check_model(model_def)
+
+# Save the model
+onnx.save(model_def, '/workspace/model.onnx')

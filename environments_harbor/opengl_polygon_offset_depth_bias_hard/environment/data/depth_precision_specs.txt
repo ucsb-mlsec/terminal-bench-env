@@ -1,0 +1,102 @@
+DEPTH BUFFER PRECISION SPECIFICATIONS
+=============================================
+
+Version 1.2 - Graphics Rendering System
+Last Updated: 2024-01-15
+
+OVERVIEW
+--------
+This document describes the mathematical model for depth buffer precision
+and polygon offset calculations used in the graphics rendering system.
+Understanding these relationships is critical for eliminating depth fighting
+artifacts across different rendering configurations.
+
+DEPTH BUFFER RESOLUTION
+------------------------
+The depth buffer resolution (minimum distinguishable depth difference) varies
+non-linearly with distance from the camera. The resolution formula is:
+
+    depth_resolution = (far * near) / ((far - near) * 2^depth_bits)
+
+Where:
+    - near: Near clipping plane distance
+    - far: Far clipping plane distance  
+    - depth_bits: Depth buffer precision (16, 24, or 32 bits)
+
+This formula shows that depth precision degrades with distance, particularly
+for large far/near ratios. A 24-bit depth buffer provides significantly
+better precision than 16-bit, while 32-bit offers the highest precision.
+
+Example: For near=1.0, far=1000.0, depth_bits=24:
+    depth_resolution = (1000 * 1) / ((1000 - 1) * 16777216)
+    depth_resolution ≈ 5.96 × 10^-8
+
+POLYGON OFFSET CALCULATION
+---------------------------
+The polygon offset mechanism adds a computed depth bias to prevent depth
+fighting between coplanar or nearly coplanar surfaces. The offset is
+calculated as:
+
+    final_offset = offset_factor * slope + offset_units * depth_resolution
+
+Where:
+    - offset_factor: User-specified factor parameter (dimensionless)
+    - offset_units: User-specified units parameter (dimensionless)
+    - slope: Depth gradient of the polygon relative to the screen
+    - depth_resolution: Minimum resolvable depth difference (see above)
+
+The slope component depends on the polygon's orientation relative to the
+view direction:
+
+    slope = tan(polygon_angle)
+
+Where polygon_angle is measured between the polygon normal and the view
+direction (0° = facing camera directly, 90° = edge-on to camera).
+
+DEPTH FIGHTING SEVERITY
+------------------------
+Depth fighting occurs when the depth difference between overlapping polygons
+is smaller than the depth buffer resolution. The severity is quantified as:
+
+    severity = max(0, 1 - (actual_separation / required_separation))
+
+Where:
+    - actual_separation: Current depth offset between surfaces
+    - required_separation: depth_resolution (minimum needed to prevent fighting)
+    - severity range: 0.0 (no artifacts) to 1.0 (severe artifacts)
+
+A severity below 0.1 indicates acceptable rendering quality with minimal
+to no visible artifacts.
+
+PARAMETER SELECTION GUIDELINES
+-------------------------------
+The offset parameters must be sufficient to overcome depth_resolution across
+all viewing distances, polygon angles, and depth buffer configurations.
+
+For shallow angles (near 0°): offset_units is dominant
+For steep angles (near 90°): offset_factor * slope becomes dominant
+
+Example calculation for 24-bit depth buffer, near=1.0, far=1000.0, angle=45°:
+    depth_resolution = 5.96 × 10^-8
+    slope = tan(45°) = 1.0
+    
+    For offset_factor=2.0, offset_units=4.0:
+    final_offset = 2.0 * 1.0 + 4.0 * 5.96×10^-8
+    final_offset ≈ 2.0 (factor term dominates)
+
+CRITICAL CONSIDERATIONS
+-----------------------
+1. Insufficient offset values result in depth fighting artifacts
+2. Excessive offset values can cause incorrect depth ordering, where offset
+   surfaces appear in front of or behind geometry they should not
+3. The solution must work across the full range of:
+   - Depth buffer precisions (16-bit, 24-bit, 32-bit)
+   - Near/far plane ratios (near: 0.1-10.0, far: 100-10000)
+   - Polygon angles (0° to 85° relative to view direction)
+
+TESTING AND VALIDATION
+-----------------------
+Optimal parameters should eliminate depth fighting (severity < 0.1) across
+all test scenarios without introducing incorrect depth ordering. The offset
+must scale appropriately with both geometric factors (slope) and numerical
+factors (depth_resolution).

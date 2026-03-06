@@ -1,0 +1,186 @@
+I'll help you solve this task. Let me break it down:
+
+1. Find all .npy files in the workspace (in root and subdirectories)
+2. For each valid file, calculate entropy variance for each of the 12 heads
+3. Identify the 3 heads with lowest variance across all layers
+4. Save results in the specified format
+
+Let me write the solution:
+
+```python
+import numpy as np
+import os
+from scipy.stats import entropy
+from collections import defaultdict
+
+def find_npy_files(root_dir='/data'):
+    """Recursively find all .npy files"""
+    npy_files = []
+    for dirpath, dirnames, filenames in os.walk(root_dir):
+        for filename in filenames:
+            if filename.endswith('.npy'):
+                npy_files.append(os.path.join(dirpath, filename))
+    return npy_files
+
+def calculate_entropy_variance(attention_weights):
+    """
+    Calculate entropy variance for each head in the attention weights
+    attention_weights: shape [12, seq_len, seq_len]
+    Returns: list of 12 variance values (one per head)
+    """
+    num_heads = attention_weights.shape[0]
+    head_variances = []
+    
+    for head_idx in range(num_heads):
+        head_attention = attention_weights[head_idx]  # [seq_len, seq_len]
+        entropies = []
+        
+        # Calculate entropy for each row (each token's attention distribution)
+        for row in head_attention:
+            # Add small epsilon to avoid log(0)
+            row_clean = row + 1e-10
+            row_normalized = row_clean / row_clean.sum()
+            ent = entropy(row_normalized)
+            entropies.append(ent)
+        
+        # Variance of entropies for this head
+        head_variances.append(np.var(entropies))
+    
+    return head_variances
+
+def main():
+    # Storage for entropy variances: head_entropies[layer][head] = list of entropy values
+    head_entropies = defaultdict(lambda: defaultdict(list))
+    
+    files_analyzed = 0
+    npy_files = find_npy_files()
+    
+    for filepath in npy_files:
+        try:
+            # Load the numpy file
+            data = np.load(filepath)
+            
+            # Validate shape: should be [12, seq_len, seq_len]
+            if len(data.shape) != 3 or data.shape[0] != 12:
+                continue
+            
+            seq_len = data.shape[1]
+            if data.shape[2] != seq_len:
+                continue
+            
+            # Extract layer number from filename
+            filename = os.path.basename(filepath)
+            layer_num = None
+            
+            # Try different patterns to extract layer number
+            if 'attn_l' in filename:
+                parts = filename.split('_')
+                for part in parts:
+                    if part.startswith('l') and part[1:].isdigit():
+                        layer_num = int(part[1:])
+                        break
+            elif 'layer_' in filename:
+                parts = filename.split('_')
+                for i, part in enumerate(parts):
+                    if part == 'layer' and i+1 < len(parts):
+                        try:
+                            layer_num = int(parts[i+1].split('.')[0])
+                        except:
+                            pass
+                        break
+            
+            # Also check parent directory
+            if layer_num is None:
+                parent_dir = os.path.basename(os.path.dirname(filepath))
+                if parent_dir.startswith('layer_'):
+                    try:
+                        layer_num = int(parent_dir.split('_')[1])
+                    except:
+                        pass
+            
+            if layer_num is None or layer_num < 0 or layer_num >= 12:
+                continue
+            
+            # Calculate entropy for each head and store
+            for head_idx in range(12):
+                head_attention = data[head_idx]
+                entropies = []
+                
+                for row in head_attention:
+                    row_clean = row + 1e-10
+                    row_normalized = row_clean / row_clean.sum()
+                    ent = entropy(row_normalized)
+                    entropies.append(ent)
+                
+                # Store all entropy values for this head
+                head_entropies[layer_num][head_idx].extend(entropies)
+            
+            files_analyzed += 1
+            
+        except Exception as e:
+            # Skip corrupted or invalid files
+            continue
+    
+    # Calculate variance for each head across all sentences
+    head_variance_scores = []
+    
+    for layer in range(12):
+        for head in range(12):
+            if layer in head_entropies and head in head_entropies[layer]:
+                entropy_values = head_entropies[layer][head]
+                if len(entropy_values) > 0:
+                    variance = np.var(entropy_values)
+                    head_variance_scores.append((variance, layer, head))
+    
+    # Sort by variance (ascending - lowest first)
+    head_variance_scores.sort(key=lambda x: x[0])
+    
+    # Get top 3 pruning candidates (lowest variance)
+    top_3 = head_variance_scores[:3]
+    candidates_str = ','.join([f"{layer}-{head}" for _, layer, head in top_3])
+    
+    # Write output
+    with open('/tmp/pruning_candidates.txt', 'w') as f:
+        f.write(f"TOP_PRUNING_CANDIDATES={candidates_str}\n")
+        f.write(f"TOTAL_FILES_ANALYZED={files_analyzed}\n")
+
+if __name__ == "__main__":
+    main()
+```
+
+Now let me also create the sample data file requested:
+
+```python
+import numpy as np
+import os
+
+# Create directory if it doesn't exist
+os.makedirs('/data/layer_5', exist_ok=True)
+
+# Create attention weights: [12 heads, 16 tokens, 16 tokens]
+seq_len = 16
+attention_weights = np.zeros((12, seq_len, seq_len), dtype=np.float32)
+
+# Generate realistic attention patterns for each head
+np.random.seed(42)
+
+for head in range(12):
+    for i in range(seq_len):
+        # Create attention distribution for token i
+        # Most attention to nearby tokens, some to special tokens
+        attn = np.random.exponential(scale=0.5, size=seq_len)
+        
+        # Add positional bias (attend more to nearby tokens)
+        for j in range(seq_len):
+            distance = abs(i - j)
+            attn[j] *= np.exp(-distance / 5.0)
+        
+        # Always attend to first token (CLS token)
+        attn[0] += np.random.uniform(0.5, 1.5)
+        
+        # Normalize to sum to 1
+        attn = attn / attn.sum()
+        attention_weights[head, i, :] = attn
+
+# Save the file
+np.save('/data/layer_5/attn_l5_sent7.npy', attention_weights)

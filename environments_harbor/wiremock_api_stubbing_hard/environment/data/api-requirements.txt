@@ -1,0 +1,236 @@
+PAYMENT PROCESSING API
+====================
+
+Base Path: /api/payments
+
+Endpoints:
+
+1. POST /api/payments/validate
+   - Purpose: Validates payment details before processing
+   - Required Headers:
+     * API-Key: payment-secret-123
+   - Request Body (JSON):
+     {
+       "cardNumber": "string (16 digits)",
+       "cvv": "string (3-4 digits)",
+       "amount": "number"
+     }
+   - Success Response (200):
+     {
+       "valid": true,
+       "transactionId": "TXN-{random-5-digit-number}"
+     }
+   - Error Responses:
+     * 400 Bad Request: Invalid card number format (not 16 digits) or malformed JSON
+       {"error": "Invalid card number format"}
+     * 401 Unauthorized: Missing or invalid API-Key header
+       {"error": "Unauthorized - Invalid API Key"}
+     * 422 Unprocessable Entity: Amount exceeds 10000
+       {"error": "Insufficient funds - amount exceeds limit"}
+     * 429 Too Many Requests: After 5 requests within sliding window
+       {"error": "Rate limit exceeded"}
+       Header: Retry-After: 60
+   - Network Latency: 100-300ms (average 200ms)
+   - Validation Rules:
+     * cardNumber must be exactly 16 digits
+     * cvv must be 3 or 4 digits
+     * amount must be positive number
+     * amount over 10000 triggers insufficient funds error
+
+2. POST /api/payments/charge
+   - Purpose: Processes the actual payment charge
+   - Required Headers:
+     * API-Key: payment-secret-123
+   - Request Body (JSON):
+     {
+       "transactionId": "string (TXN-xxxxx format)",
+       "amount": "number"
+     }
+   - Success Response (201):
+     {
+       "status": "completed",
+       "chargeId": "CHG-{random-5-digit-number}"
+     }
+   - Error Responses:
+     * 400 Bad Request: Malformed JSON or empty body
+       {"error": "Invalid request body"}
+     * 401 Unauthorized: Missing or invalid API-Key header
+       {"error": "Unauthorized - Invalid API Key"}
+     * 404 Not Found: TransactionId not previously validated
+       {"error": "Transaction not found"}
+   - Network Latency: 100-300ms (average 200ms)
+
+INVENTORY MANAGEMENT API
+========================
+
+Base Path: /api/inventory
+
+Initial State:
+{
+  "items": [
+    {"id": "ITEM-001", "name": "Widget", "stock": 100},
+    {"id": "ITEM-002", "name": "Gadget", "stock": 50}
+  ]
+}
+
+Endpoints:
+
+1. GET /api/inventory/items
+   - Purpose: Returns list of all items with current stock levels
+   - Required Headers: None
+   - Success Response (200):
+     {
+       "items": [
+         {"id": "ITEM-001", "name": "Widget", "stock": 100},
+         {"id": "ITEM-002", "name": "Gadget", "stock": 50}
+       ]
+     }
+   - Network Latency: 50-150ms (average 100ms)
+   - Note: Stock values must reflect current state after reservations
+
+2. GET /api/inventory/items/{itemId}
+   - Purpose: Returns details for a single item
+   - Required Headers: None
+   - Path Parameters:
+     * itemId: Item identifier (e.g., ITEM-001)
+   - Success Response (200):
+     {"id": "ITEM-001", "name": "Widget", "stock": 100}
+   - Error Responses:
+     * 404 Not Found: Item ID does not exist
+       {"error": "Item not found"}
+   - Network Latency: 50-150ms (average 100ms)
+
+3. POST /api/inventory/reserve
+   - Purpose: Reserves inventory, decreasing available stock
+   - Required Headers: None
+   - Request Body (JSON):
+     {
+       "itemId": "string",
+       "quantity": "number (positive integer)"
+     }
+   - Success Response (200):
+     {
+       "reserved": true,
+       "remainingStock": "number (stock after reservation)"
+     }
+   - Error Responses:
+     * 400 Bad Request: Invalid quantity (negative, zero, or non-integer) or malformed JSON
+       {"error": "Invalid quantity - must be positive integer"}
+     * 404 Not Found: Item ID does not exist
+       {"error": "Item not found"}
+     * 409 Conflict: Insufficient stock for requested quantity
+       {"error": "Insufficient stock available"}
+   - Network Latency: 50-150ms (average 100ms)
+   - Stateful Behavior:
+     * Each successful reservation MUST decrement the stock
+     * Stock updates must persist across requests
+     * Concurrent requests must be handled to prevent overselling
+     * Stock cannot go below zero
+
+SHIPPING CALCULATIONS API
+=========================
+
+Base Path: /api/shipping
+
+Endpoints:
+
+1. POST /api/shipping/calculate
+   - Purpose: Calculates shipping cost based on weight, destination, and service level
+   - Required Headers: None
+   - Request Body (JSON):
+     {
+       "weight": "number (kg, positive)",
+       "destination": "string (domestic/international)",
+       "serviceLevel": "string (standard/express)"
+     }
+   - Success Response (200):
+     {
+       "cost": "number (XX.XX format)",
+       "estimatedDays": "number",
+       "carrier": "string"
+     }
+   - Pricing Rules:
+     * Standard Domestic: 5.00 per kg, 3-5 days, carrier: "FastShip Domestic"
+     * Standard International: 15.00 per kg, 7-14 days, carrier: "GlobalExpress"
+     * Express Domestic: 10.00 per kg (double standard), 1-2 days, carrier: "FastShip Express"
+     * Express International: 30.00 per kg (double standard), 3-5 days, carrier: "GlobalExpress Priority"
+   - Error Responses:
+     * 400 Bad Request: Invalid weight (negative, zero, or non-numeric) or malformed JSON
+       {"error": "Invalid weight - must be positive number"}
+     * 422 Unprocessable Entity: Unsupported destination or service level
+       {"error": "Unsupported destination or service level"}
+   - Network Latency: 200-500ms (average 350ms)
+
+2. GET /api/shipping/zones
+   - Purpose: Returns list of supported shipping zones
+   - Required Headers: None
+   - Success Response (200):
+     {
+       "zones": ["domestic", "international"]
+     }
+   - Network Latency: 200-500ms (average 350ms)
+
+EDGE CASES AND ERROR HANDLING
+==============================
+
+1. Authentication Errors (401):
+   - Missing API-Key header when required
+   - Invalid API-Key value (not matching expected secret)
+   - Response: {"error": "Unauthorized - Invalid API Key"}
+
+2. Bad Request Errors (400):
+   - Malformed JSON in request body
+   - Empty request body when body is required
+   - Invalid data types (string where number expected)
+   - Response: {"error": "Bad request - malformed JSON"} or specific validation message
+
+3. Rate Limiting (429):
+   - Payment validation endpoint limited to 5 requests
+   - After threshold, returns 429 for subsequent requests
+   - Response: {"error": "Rate limit exceeded"}
+   - Header: Retry-After: 60
+
+4. Timeout Handling (504):
+   - Requests exceeding 5000ms should timeout
+   - Response: {"error": "Gateway timeout"}
+
+5. Concurrent Request Handling:
+   - Inventory reservations must handle simultaneous requests
+   - Stock decrements must be atomic
+   - Race conditions should not result in negative stock
+   - Last request may receive 409 if stock depleted by concurrent request
+
+6. Validation Errors:
+   - Negative quantities return 400
+   - Zero quantities return 400
+   - Invalid enum values (serviceLevel, destination) return 422
+   - Missing required fields return 400
+
+TESTING WORKFLOW REQUIREMENTS
+==============================
+
+1. Initial State:
+   - GET /api/inventory/items should return stock: Widget=100, Gadget=50
+   - GET /api/shipping/zones should return available zones
+
+2. Purchase Flow:
+   - POST /api/payments/validate with valid card
+   - POST /api/inventory/reserve to decrement stock
+   - POST /api/shipping/calculate for shipping cost
+   - POST /api/payments/charge to complete payment
+
+3. State Verification:
+   - After reservation, GET /api/inventory/items should show decreased stock
+   - Multiple reservations should compound stock decreases
+
+4. Error Scenarios:
+   - Invalid API key on payment endpoints returns 401
+   - Oversized payment amount returns 422
+   - Insufficient inventory returns 409
+   - Invalid shipping parameters return 400 or 422
+   - 6th payment validation request returns 429
+
+5. Performance:
+   - Inventory API: 50-150ms latency
+   - Payment API: 100-300ms latency
+   - Shipping API: 200-500ms latency

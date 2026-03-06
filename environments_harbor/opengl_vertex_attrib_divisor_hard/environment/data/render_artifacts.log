@@ -1,0 +1,38 @@
+RENDERING ARTIFACT LOG - 2024-01-15 14:32:01
+System: OpenGL 4.5 Renderer | Instance Count: 25 | Vertex Count per Instance: 36
+Configuration: attribute_config.yaml v1.2
+
+[2024-01-15 14:32:15] GEOMETRY_CORRUPTION
+Severe geometry distortion observed in instances 1-24. Instance 0 renders correctly with proper cube geometry, but subsequent instances show progressively corrupted vertex positions. Triangle faces appear stretched and non-planar. Vertices seem to be reading from wrong buffer offsets, suggesting vertex_position attribute may be advancing per-instance rather than being shared across all instances.
+
+[2024-01-15 14:32:18] COLOR_MISMATCH
+All 25 instances rendering with identical color (RGB: 0.8, 0.2, 0.1). Expected each instance to have unique color based on instance_color buffer data. Instance 0 color is correct, but instances 1-24 all display the same red color as instance 0. Strongly suggests instance_color divisor is set to 0 instead of 1, causing color attribute to not advance per instance.
+
+[2024-01-15 14:32:23] POSITION_ERROR
+All instances appearing at origin point (0.0, 0.0, 0.0) overlapping each other. Expected instance positions distributed across 5x5 grid pattern based on instance_position buffer. Instance_position attribute appears to be reading only first position value and not advancing. Visual result is 25 instances stacked at same location creating z-fighting artifacts.
+
+[2024-01-15 14:32:27] GEOMETRY_CORRUPTION
+Vertex normal data showing similar corruption pattern as position data. Instance 0 has correct smooth shading normals, but instances 1-24 display incorrect lighting response. Normals appear to advance per-instance rather than per-vertex, causing each instance to have uniform normal direction across all vertices. Results in flat shading appearance and incorrect light calculations.
+
+[2024-01-15 14:32:31] SCALE_MISMATCH
+Expected instances to have varying scales (0.5x to 2.0x) based on instance_scale buffer. All instances rendering at identical scale of 0.5x (first buffer value). Instances 5, 10, 15, 20 should be 1.5x scale but appear same as others. Instance_scale attribute not advancing between instances.
+
+[2024-01-15 14:32:36] COLOR_MISMATCH
+Confirmation: Instance 7 expected color (0.2, 0.9, 0.4) but observed (0.8, 0.2, 0.1). Instance 14 expected color (0.1, 0.5, 0.9) but observed (0.8, 0.2, 0.1). All instances using color from index 0 of instance_color buffer.
+
+[2024-01-15 14:32:40] POSITION_ERROR
+Grid layout validation failed. Expected instance 12 at position (2.0, 2.0, 0.0) but rendered at (0.0, 0.0, 0.0). Expected instance 24 at position (4.0, 4.0, 0.0) but rendered at (0.0, 0.0, 0.0). Position buffer contains correct data but attribute not reading beyond first element.
+
+[2024-01-15 14:32:45] GEOMETRY_CORRUPTION
+Texture coordinate corruption detected. Instance 0 has correct UV mapping (0.0-1.0 range per vertex), but subsequent instances show UV coordinates advancing incorrectly. Instance 5 has all UVs offset by approximately 5.0 units, suggesting per-instance advancement of vertex_texcoord attribute. Causes texture sampling from incorrect regions.
+
+[2024-01-15 14:32:51] SCALE_MISMATCH
+Instance 18 expected scale 1.8x but observed 0.5x. Instance 22 expected scale 2.0x but observed 0.5x. Scale variation completely absent in rendered output despite valid instance_scale buffer data containing 25 unique scale values.
+
+[2024-01-15 14:32:55] POSITION_ERROR
+Depth buffer analysis confirms all instances at Z=0.0. Expected instances 0-4 at Z=0.0, instances 5-9 at Z=0.2, continuing pattern. All position data collapsed to single point indicating instance_position divisor misconfiguration preventing per-instance position updates.
+
+[2024-01-15 14:33:01] GEOMETRY_CORRUPTION
+First instance renders correctly but subsequent instances show artifacts - classic symptom of per-vertex attributes incorrectly configured with non-zero divisor. Vertex_position, vertex_normal, and vertex_texcoord all suspect. Buffer data validation shows correct values, pointing to attribute divisor configuration as root cause.
+
+SUMMARY: Multiple attribute divisor misconfigurations detected. Instance-specific attributes (instance_color, instance_position, instance_scale) appear configured as per-vertex (divisor=0). Vertex attributes (vertex_position, vertex_normal, vertex_texcoord) may be configured as per-instance (divisor=1). Recommend immediate review of attribute_config.yaml divisor values.

@@ -1,0 +1,32 @@
+[
+  {
+    "job_name":"data_processing",
+    "docker_image":"python:3.9",
+    "command":"python process.py input.dat",
+    "input_files":"['process.py', 'input.dat']",
+    "output_files":"['results.txt']",
+    "cpu":2,
+    "memory_mb":1024,
+    "volume_mounts":"[{'host_path': '\/data\/shared', 'container_path': '\/mnt\/shared'}]"
+  },
+  {
+    "job_name":"genome_analysis",
+    "docker_image":"biocontainers\/blast:v2.2.31_cv2",
+    "command":"blastp -query proteins.fasta -db \/mnt\/db\/uniprot -out alignment.txt",
+    "input_files":"['proteins.fasta']",
+    "output_files":"['alignment.txt']",
+    "cpu":4,
+    "memory_mb":2048,
+    "volume_mounts":"[{'host_path': '\/datasets\/blast_db', 'container_path': '\/mnt\/db'}]"
+  },
+  {
+    "job_name":"monte_carlo_sim",
+    "docker_image":"gcc:latest",
+    "command":"\/bin\/bash -c 'gcc -o simulation sim.c -lm && .\/simulation config.ini'",
+    "input_files":"['sim.c', 'config.ini']",
+    "output_files":"['simulation_results.csv', 'statistics.log']",
+    "cpu":1,
+    "memory_mb":512,
+    "volume_mounts":"[]"
+  }
+]

@@ -1,0 +1,65 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: frontend-service
+  annotations:
+    min-cpu: "1000m"
+    min-memory: "2Gi"
+    description: "Frontend web service handling user requests"
+spec:
+  containers:
+  - name: nginx-frontend
+    image: nginx:1.24-alpine
+    resources:
+      requests:
+        cpu: "3000m"
+        memory: "5Gi"
+    ports:
+    - containerPort: 80
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: api-service
+  annotations:
+    min-cpu: "800m"
+    min-memory: "1536Mi"
+    description: "REST API service for backend operations"
+spec:
+  containers:
+  - name: api-backend
+    image: node:18-slim
+    resources:
+      requests:
+        cpu: "2500m"
+        memory: "4Gi"
+    ports:
+    - containerPort: 3000
+    env:
+    - name: NODE_ENV
+      value: "production"
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: cache-service
+  annotations:
+    min-cpu: "1200m"
+    min-memory: "2560Mi"
+    description: "Redis cache service for session management"
+spec:
+  containers:
+  - name: redis-cache
+    image: redis:7.0-alpine
+    resources:
+      requests:
+        cpu: "2000m"
+        memory: "6Gi"
+    ports:
+    - containerPort: 6379
+    command:
+    - redis-server
+    - "--maxmemory"
+    - "2gb"
+    - "--maxmemory-policy"
+    - "allkeys-lru"

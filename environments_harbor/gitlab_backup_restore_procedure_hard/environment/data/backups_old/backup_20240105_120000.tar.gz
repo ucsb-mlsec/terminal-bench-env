@@ -1,0 +1,71 @@
+import tarfile
+import io
+import gzip
+
+# Create the app.py content
+app_py_content = b"""#!/usr/bin/env python3
+\"\"\"
+Simple Flask Web Application
+Basic web service with minimal functionality
+\"\"\"
+
+from flask import Flask, render_template_string
+
+app = Flask(__name__)
+
+# Simple HTML template
+HOME_TEMPLATE = '''
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Web App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Hello World</h1>
+        <p>Welcome to the simple web application.</p>
+    </div>
+</body>
+</html>
+'''
+
+@app.route('/')
+def home():
+    \"\"\"Home route returning Hello World\"\"\"
+    return render_template_string(HOME_TEMPLATE)
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=False)
+"""
+
+# Create tar.gz archive
+tar_buffer = io.BytesIO()
+tar = tarfile.open(fileobj=tar_buffer, mode='w')
+
+# Add app.py to tar
+app_info = tarfile.TarInfo(name='app.py')
+app_info.size = len(app_py_content)
+app_info.mode = 0o644
+tar.addfile(app_info, io.BytesIO(app_py_content))
+
+tar.close()
+tar_buffer.seek(0)
+
+# Compress with gzip
+output = gzip.compress(tar_buffer.read())
+
+# Write binary output
+import sys
+sys.stdout.buffer.write(output)

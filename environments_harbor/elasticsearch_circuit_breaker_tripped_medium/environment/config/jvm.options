@@ -1,0 +1,64 @@
+# JVM Configuration for Elasticsearch 7.x
+# This file contains JVM options for the Elasticsearch process
+
+################################################################
+## CRITICAL: Heap Size Settings
+################################################################
+## Xms represents the initial size of total heap space
+## Xmx represents the maximum size of total heap space
+## Both values should be set to the same value to avoid heap resizing
+## Rule of thumb: Set to 50% of available RAM, but not more than 31GB
+
+-Xms8g
+-Xmx8g
+
+################################################################
+## Garbage Collection Settings
+################################################################
+## Use G1GC (Garbage First Garbage Collector)
+-XX:+UseG1GC
+
+## Reserve 25% of heap for G1 regions
+-XX:G1ReservePercent=25
+
+## Start concurrent GC when heap is 30% full
+-XX:InitiatingHeapOccupancyPercent=30
+
+################################################################
+## Error Handling and Debugging
+################################################################
+## Generate heap dump on out of memory errors
+-XX:+HeapDumpOnOutOfMemoryError
+
+## Path for heap dump files
+-XX:HeapDumpPath=/var/lib/elasticsearch
+
+## Path for JVM error logs
+-XX:ErrorFile=/var/log/elasticsearch/hs_err_pid%p.log
+
+################################################################
+## GC Logging Configuration
+################################################################
+## Detailed GC logging for troubleshooting
+-Xlog:gc*,gc+age=trace,safepoint:file=/var/log/elasticsearch/gc.log:utctime,pid,tags:filecount=32,filesize=64m
+
+################################################################
+## Performance Optimization
+################################################################
+## Pre-touch memory pages at startup
+-XX:+AlwaysPreTouch
+
+## Run in server mode for better optimization
+-server
+
+## Run in headless mode (no GUI)
+-Djava.awt.headless=true
+
+################################################################
+## Additional JVM Options
+################################################################
+## Ensure UTF-8 encoding
+-Dfile.encoding=UTF-8
+
+## Use the C2 compiler
+-XX:+UseCondCardMark

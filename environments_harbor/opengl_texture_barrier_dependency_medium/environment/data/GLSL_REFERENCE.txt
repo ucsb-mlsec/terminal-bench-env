@@ -1,0 +1,110 @@
+GLSL Image Load/Store Operations Reference
+
+========================================
+Image Load Operations
+========================================
+
+The imageLoad() function reads data from a texture image. This operation retrieves the current value stored at a specific coordinate in the image.
+
+Syntax: imageLoad(image, coord)
+
+Where:
+- image: The image variable to read from
+- coord: The coordinate to read (e.g., ivec2 for 2D images)
+
+Returns: A vec4 containing the color/data at that coordinate
+
+Example:
+    vec4 data = imageLoad(inputImage, ivec2(x, y));
+
+This reads the pixel value at position (x, y) from inputImage.
+
+========================================
+Image Store Operations
+========================================
+
+The imageStore() function writes data to a texture image. This operation sets the value at a specific coordinate in the image.
+
+Syntax: imageStore(image, coord, data)
+
+Where:
+- image: The image variable to write to
+- coord: The coordinate to write to (e.g., ivec2 for 2D images)
+- data: The vec4 value to store at that location
+
+Example:
+    imageStore(outputImage, ivec2(x, y), vec4(1.0, 0.0, 0.0, 1.0));
+
+This writes a red color (1.0, 0.0, 0.0, 1.0) to position (x, y) in outputImage.
+
+========================================
+Texture Barriers
+========================================
+
+Memory barriers ensure that write operations complete before subsequent read operations begin. In GLSL, memoryBarrier() or memoryBarrierImage() functions provide this synchronization.
+
+The memoryBarrierImage() function is specifically designed for image load/store operations. It ensures that all imageStore() operations issued before the barrier are completed and visible before any imageLoad() operations that follow.
+
+This barrier is required when reading from and writing to the same texture within a single shader invocation or pass, especially in compute shaders where multiple work items may access shared resources.
+
+Example:
+    imageStore(sharedTexture, ivec2(x, y), computedValue);
+    memoryBarrierImage();
+    vec4 result = imageLoad(sharedTexture, ivec2(x+1, y));
+
+Without the barrier, the imageLoad might execute before the imageStore completes, leading to undefined behavior.
+
+========================================
+Texture Dependency Violations
+========================================
+
+A texture dependency violation occurs when a shader has unsafe read-after-write patterns on the same texture without proper synchronization.
+
+A violation occurs when ALL of the following conditions are met:
+1. The shader performs imageStore() operations to write to a texture
+2. The shader performs imageLoad() operations to read from a texture
+3. Both operations target the same binding point (same texture)
+4. No memoryBarrier() or memoryBarrierImage() appears between the store and load operations
+
+Consequences:
+- Undefined behavior in shader execution
+- Visual artifacts such as flickering, incorrect colors, or corrupted pixels
+- Race conditions where read operations may see stale or partial data
+- Non-deterministic results that vary between GPU architectures and drivers
+
+Example of a VIOLATION:
+    layout(binding = 0) uniform image2D texture;
+    
+    imageStore(texture, ivec2(x, y), value1);
+    vec4 data = imageLoad(texture, ivec2(x, y));  // VIOLATION: No barrier!
+
+Example of CORRECT usage:
+    layout(binding = 0) uniform image2D texture;
+    
+    imageStore(texture, ivec2(x, y), value1);
+    memoryBarrierImage();
+    vec4 data = imageLoad(texture, ivec2(x, y));  // CORRECT: Barrier present
+
+========================================
+Image Bindings
+========================================
+
+Images in GLSL are bound to specific binding points using layout qualifiers. The binding number determines which texture resource the shader accesses.
+
+Syntax:
+    layout(binding = N) uniform image2D imageName;
+
+Where N is the binding point number (0, 1, 2, etc.)
+
+Key principle: Same binding number means same texture resource.
+
+Examples:
+    layout(binding = 0) uniform image2D myImage;
+    layout(binding = 1) uniform image2D anotherImage;
+    layout(binding = 0) uniform image2D sameAsMyImage;  // Same texture as myImage!
+
+In the above example, myImage and sameAsMyImage refer to the same texture because they share binding point 0. Any imageStore() to myImage affects the same data that imageLoad() from sameAsMyImage would read.
+
+When checking for texture dependency violations, compare the binding numbers:
+- If imageStore() and imageLoad() use images with the same binding number, they access the same texture
+- If they use different binding numbers, they access different textures (no violation)

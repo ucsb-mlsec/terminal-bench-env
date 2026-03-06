@@ -1,0 +1,98 @@
+PCM Parameters for Water Solvent
+==========================================
+
+BASIC SOLVENT PROPERTIES
+-------------------------
+- Solvent name: Water (H2O)
+- Dielectric constant (ε): 78.39 at 25°C
+- Refractive index (n): 1.33
+- Static dielectric constant for optical frequency: 1.78
+
+
+PCM VARIANT OPTIONS
+-------------------
+The following PCM variants are available in Q-Chem:
+
+- C-PCM (Conductor-like PCM): 
+  * Recommended for most applications
+  * Uses conductor boundary conditions
+  * Good balance between accuracy and computational cost
+  * Suitable for geometry optimizations and energy calculations
+
+- IEFPCM (Integral Equation Formalism PCM):
+  * Alternative formulation with different boundary conditions
+  * More rigorous treatment of electrostatics
+  * Slightly higher computational cost
+
+- SS(V)PE (Surface and Simulation of Volume Polarization for Electrostatics):
+  * Another variant available in Q-Chem
+  * Less commonly used for standard applications
+
+
+CAVITY CONSTRUCTION PARAMETERS
+-------------------------------
+- Cavity model: Van der Waals surface
+- Van der Waals radii scaling factors: Typically range from 1.0 to 1.2
+- Recommended scaling factor: 1.2 for geometry optimizations
+  * Provides a larger cavity that better represents first solvation shell
+  * Improves optimization convergence
+  * More realistic free energies of solvation
+
+- Tessellation method: GEPOL algorithm (GEometry for POLyhedra)
+  * Constructs molecular cavity as interlocking spheres
+  * Default tessellation scheme in Q-Chem
+
+
+Q-CHEM SPECIFIC KEYWORDS
+------------------------
+The following keywords should be included in the $pcm section:
+
+- Theory = CPCM (for Conductor-like PCM)
+- Method = SWIG (for surface generation)
+- Solver = INVERSION (default solver)
+- Radii = BONDI (van der Waals radii set)
+- VDWScale = 1.2 (scaling factor for van der Waals radii)
+
+The $solvent section should contain:
+- Dielectric = 78.39 (for water)
+- OpticalDielectric = 1.78 (optional, for non-equilibrium solvation)
+
+Alternative simplified syntax:
+- SOLVENT_METHOD = PCM (in $rem section)
+- Can also use SOLVENT_METHOD = CPCM
+
+
+GEOMETRY OPTIMIZATION WITH PCM
+-------------------------------
+- PCM can be used with JOBTYPE = OPT for geometry optimization in solution
+- The solvent reaction field is computed self-consistently at each optimization step
+- Important considerations:
+  * Use VDWScale = 1.2 for better convergence
+  * Optimization may require more steps than gas-phase calculations
+  * Ensure SCF convergence criteria are tight enough (SCF_CONVERGENCE = 8 recommended)
+  * The optimized geometry represents the equilibrium structure in solution
+
+- Cavity scaling importance:
+  * Too small cavity (scale < 1.1) may cause SCF convergence problems
+  * Scale = 1.2 is optimal for most organic molecules
+  * Larger scaling (1.3-1.4) may be needed for charged species
+
+- Energy calculations:
+  * PCM provides free energy of solvation
+  * Total energy includes both gas-phase and solvation contributions
+  * Suitable for comparing relative energies in solution
+
+
+EXAMPLE PCM SECTION STRUCTURE
+------------------------------
+$pcm
+   Theory CPCM
+   Method SWIG
+   Solver INVERSION
+   Radii BONDI
+   VDWScale 1.2
+$end
+
+$solvent
+   Dielectric 78.39
+$end

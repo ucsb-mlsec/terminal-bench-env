@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: database
+  namespace: dev-team-alpha
+  labels:
+    app: database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: database
+  template:
+    metadata:
+      labels:
+        app: database
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:13
+        resources:
+          requests:
+            cpu: '1000m'
+            memory: '2Gi'
+          limits:
+            cpu: '2000m'
+            memory: '4Gi'
+        env:
+        - name: POSTGRES_PASSWORD
+          value: mysecretpassword
+        - name: POSTGRES_DB
+          value: appdb
+        ports:
+        - containerPort: 5432
+          name: postgres

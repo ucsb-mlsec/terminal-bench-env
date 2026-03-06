@@ -1,0 +1,370 @@
+I'll help you create the Git repository with orphaned commits and then recover them. Let me start by creating the necessary structure.
+
+First, let me create the repository structure with orphaned commits:
+
+```bash
+cd /workspace
+mkdir -p repo/.git/objects
+cd repo
+
+# Initialize basic Git structure
+mkdir -p .git/objects/info .git/objects/pack .git/refs/heads .git/refs/tags
+echo "ref: refs/heads/main" > .git/HEAD
+git config --local user.name "Test User"
+git config --local user.email "test@example.com"
+
+# Create a tree object for the orphaned commits
+# Tree: empty tree for simplicity
+printf 'tree 0\0' | git hash-object -w --stdin -t tree
+
+# Let me create the proper objects
+```
+
+Actually, let me create this properly by generating the actual Git objects:
+
+```python
+#!/usr/bin/env python3
+import zlib
+import hashlib
+import os
+import struct
+
+def create_git_object(obj_type, content):
+    """Create a Git object with proper header"""
+    header = f"{obj_type} {len(content)}\0"
+    full_content = header.encode() + content.encode() if isinstance(content, str) else header.encode() + content
+    sha1 = hashlib.sha1(full_content).hexdigest()
+    compressed = zlib.compress(full_content)
+    return sha1, compressed
+
+# Create empty tree
+tree_sha, tree_data = create_git_object('tree', b'')
+
+# Create three orphaned commits with timestamps from yesterday afternoon
+# Timestamps: 16:00, 15:30, 15:00 UTC yesterday (1704124800, 1704123000, 1704121200)
+
+commits = []
+
+# Commit 1 (oldest) - 15:00
+commit1_content = f"""tree {tree_sha}
+author Test User <test@example.com> 1704121200 +0000
+committer Test User <test@example.com> 1704121200 +0000
+
+Bug fix: Fixed memory leak in cache system"""
+
+commit1_sha, commit1_data = create_git_object('commit', commit1_content)
+commits.append((commit1_sha, commit1_data, 1704121200))
+
+# Commit 2 (middle) - 15:30
+commit2_content = f"""tree {tree_sha}
+parent {commit1_sha}
+author Test User <test@example.com> 1704123000 +0000
+committer Test User <test@example.com> 1704123000 +0000
+
+Bug fix: Fixed null pointer exception in parser"""
+
+commit2_sha, commit2_data = create_git_object('commit', commit2_content)
+commits.append((commit2_sha, commit2_data, 1704123000))
+
+# Commit 3 (most recent) - 16:00
+commit3_content = f"""tree {tree_sha}
+parent {commit2_sha}
+author Test User <test@example.com> 1704124800 +0000
+committer Test User <test@example.com> 1704124800 +0000
+
+Bug fix: Fixed race condition in thread pool"""
+
+commit3_sha, commit3_data = create_git_object('commit', commit3_content)
+commits.append((commit3_sha, commit3_data, 1704124800))
+
+# Create the directory structure and write objects
+os.makedirs('/workspace/repo/.git/objects', exist_ok=True)
+
+# Write tree object
+tree_dir = f'/workspace/repo/.git/objects/{tree_sha[:2]}'
+os.makedirs(tree_dir, exist_ok=True)
+with open(f'{tree_dir}/{tree_sha[2:]}', 'wb') as f:
+    f.write(tree_data)
+
+# Write commit objects
+for sha, data, _ in commits:
+    commit_dir = f'/workspace/repo/.git/objects/{sha[:2]}'
+    os.makedirs(commit_dir, exist_ok=True)
+    with open(f'{commit_dir}/{sha[2:]}', 'wb') as f:
+        f.write(data)
+
+# Create a normal commit on main branch to make the repo valid
+normal_commit_content = f"""tree {tree_sha}
+author Test User <test@example.com> 1704110000 +0000
+committer Test User <test@example.com> 1704110000 +0000
+
+Initial commit"""
+
+normal_sha, normal_data = create_git_object('commit', normal_commit_content)
+normal_dir = f'/workspace/repo/.git/objects/{normal_sha[:2]}'
+os.makedirs(normal_dir, exist_ok=True)
+with open(f'{normal_dir}/{normal_sha[2:]}', 'wb') as f:
+    f.write(normal_data)
+
+# Create main branch pointing to normal commit
+os.makedirs('/workspace/repo/.git/refs/heads', exist_ok=True)
+with open('/workspace/repo/.git/refs/heads/main', 'w') as f:
+    f.write(normal_sha + '\n')
+
+print(f"Most recent orphaned commit: {commit3_sha}")
+print(f"Commits created: {len(commits)}")
+```
+
+Now let me create the recovery script:
+
+```python
+#!/usr/bin/env python3
+import os
+import zlib
+import subprocess
+from datetime import datetime
+
+def find_all_objects(repo_path):
+    """Find all objects in the Git object database"""
+    objects_dir = os.path.join(repo_path, '.git', 'objects')
+    all_objects = []
+    
+    for root, dirs, files in os.walk(objects_dir):
+        # Skip pack and info directories
+        if 'pack' in root or 'info' in root:
+            continue
+            
+        parent_dir = os.path.basename(root)
+        if len(parent_dir) == 2:
+            for file in files:
+                sha = parent_dir + file
+                if len(sha) == 40:
+                    all_objects.append(sha)
+    
+    return all_objects
+
+def get_reachable_objects(repo_path):
+    """Get all objects reachable from refs"""
+    os.chdir(repo_path)
+    try:
+        result = subprocess.run(['git', 'rev-list', '--all', '--objects'],
+                              capture_output=True, text=True, check=True)
+        reachable = set()
+        for line in result.stdout.strip().split('\n'):
+            if line:
+                sha = line.split()[0]
+                reachable.add(sha)
+        return reachable
+    except:
+        return set()
+
+def read_commit_timestamp(repo_path, sha):
+    """Read commit object and extract timestamp"""
+    try:
+        obj_path = os.path.join(repo_path, '.git', 'objects', sha[:2], sha[2:])
+        with open(obj_path, 'rb') as f:
+            compressed_data = f.read()
+        
+        decompressed = zlib.decompress(compressed_data)
+        
+        # Check if it's a commit
+        if not decompressed.startswith(b'commit '):
+            return None
+            
+        content = decompressed.decode('utf-8', errors='ignore')
+        
+        # Extract timestamp from committer line
+        for line in content.split('\n'):
+            if line.startswith('committer '):
+                parts = line.split()
+                for i, part in enumerate(parts):
+                    if part.isdigit() and len(part) == 10:
+                        return int(part)
+        return None
+    except Exception as e:
+        return None
+
+# Main recovery logic
+repo_path = '/workspace/repo'
+
+all_objects = find_all_objects(repo_path)
+reachable = get_reachable_objects(repo_path)
+
+orphaned_commits = []
+
+for obj in all_objects:
+    if obj not in reachable:
+        timestamp = read_commit_timestamp(repo_path, obj)
+        if timestamp:
+            orphaned_commits.append((obj, timestamp))
+
+# Sort by timestamp (most recent first)
+orphaned_commits.sort(key=lambda x: x[1], reverse=True)
+
+# Write results
+with open('/workspace/result.txt', 'w') as f:
+    f.write(f'ORPHANED_COUNT={len(orphaned_commits)}\n')
+    if orphaned_commits:
+        f.write(f'LATEST_COMMIT={orphaned_commits[0][0]}\n')
+
+print(f"Found {len(orphaned_commits)} orphaned commits")
+if orphaned_commits:
+    print(f"Most recent: {orphaned_commits[0][0]} at {orphaned_commits[0][1]}")
+```
+
+Let me now execute this to create the actual solution:
+
+```bash
+cd /workspace
+python3 << 'SETUP_EOF'
+import zlib
+import hashlib
+import os
+
+def create_git_object(obj_type, content):
+    if isinstance(content, str):
+        content = content.encode()
+    header = f"{obj_type} {len(content)}\0".encode()
+    full_content = header + content
+    sha1 = hashlib.sha1(full_content).hexdigest()
+    compressed = zlib.compress(full_content)
+    return sha1, compressed
+
+os.makedirs('/workspace/repo/.git/objects', exist_ok=True)
+os.makedirs('/workspace/repo/.git/refs/heads', exist_ok=True)
+
+with open('/workspace/repo/.git/HEAD', 'w') as f:
+    f.write('ref: refs/heads/main\n')
+
+tree_sha, tree_data = create_git_object('tree', b'')
+tree_dir = f'/workspace/repo/.git/objects/{tree_sha[:2]}'
+os.makedirs(tree_dir, exist_ok=True)
+with open(f'{tree_dir}/{tree_sha[2:]}', 'wb') as f:
+    f.write(tree_data)
+
+commit1_content = f"""tree {tree_sha}
+author Test User <test@example.com> 1704121200 +0000
+committer Test User <test@example.com> 1704121200 +0000
+
+Bug fix: Fixed memory leak in cache system"""
+
+commit1_sha, commit1_data = create_git_object('commit', commit1_content)
+commit1_dir = f'/workspace/repo/.git/objects/{commit1_sha[:2]}'
+os.makedirs(commit1_dir, exist_ok=True)
+with open(f'{commit1_dir}/{commit1_sha[2:]}', 'wb') as f:
+    f.write(commit1_data)
+
+commit2_content = f"""tree {tree_sha}
+parent {commit1_sha}
+author Test User <test@example.com> 1704123000 +0000
+committer Test User <test@example.com> 1704123000 +0000
+
+Bug fix: Fixed null pointer exception in parser"""
+
+commit2_sha, commit2_data = create_git_object('commit', commit2_content)
+commit2_dir = f'/workspace/repo/.git/objects/{commit2_sha[:2]}'
+os.makedirs(commit2_dir, exist_ok=True)
+with open(f'{commit2_dir}/{commit2_sha[2:]}', 'wb') as f:
+    f.write(commit2_data)
+
+commit3_content = f"""tree {tree_sha}
+parent {commit2_sha}
+author Test User <test@example.com> 1704124800 +0000
+committer Test User <test@example.com> 1704124800 +0000
+
+Bug fix: Fixed race condition in thread pool"""
+
+commit3_sha, commit3_data = create_git_object('commit', commit3_content)
+commit3_dir = f'/workspace/repo/.git/objects/{commit3_sha[:2]}'
+os.makedirs(commit3_dir, exist_ok=True)
+with open(f'{commit3_dir}/{commit3_sha[2:]}', 'wb') as f:
+    f.write(commit3_data)
+
+normal_commit_content = f"""tree {tree_sha}
+author Test User <test@example.com> 1704110000 +0000
+committer Test User <test@example.com> 1704110000 +0000
+
+Initial commit"""
+
+normal_sha, normal_data = create_git_object('commit', normal_commit_content)
+normal_dir = f'/workspace/repo/.git/objects/{normal_sha[:2]}'
+os.makedirs(normal_dir, exist_ok=True)
+with open(f'{normal_dir}/{normal_sha[2:]}', 'wb') as f:
+    f.write(normal_data)
+
+with open('/workspace/repo/.git/refs/heads/main', 'w') as f:
+    f.write(normal_sha + '\n')
+
+print(commit3_sha)
+SETUP_EOF
+
+python3 << 'RECOVER_EOF'
+import os
+import zlib
+import subprocess
+
+def find_all_objects(repo_path):
+    objects_dir = os.path.join(repo_path, '.git', 'objects')
+    all_objects = []
+    for root, dirs, files in os.walk(objects_dir):
+        if 'pack' in root or 'info' in root:
+            continue
+        parent_dir = os.path.basename(root)
+        if len(parent_dir) == 2:
+            for file in files:
+                sha = parent_dir + file
+                if len(sha) == 40:
+                    all_objects.append(sha)
+    return all_objects
+
+def get_reachable_objects(repo_path):
+    os.chdir(repo_path)
+    try:
+        result = subprocess.run(['git', 'rev-list', '--all', '--objects'],
+                              capture_output=True, text=True, check=False)
+        reachable = set()
+        for line in result.stdout.strip().split('\n'):
+            if line:
+                sha = line.split()[0]
+                reachable.add(sha)
+        return reachable
+    except:
+        return set()
+
+def read_commit_timestamp(repo_path, sha):
+    try:
+        obj_path = os.path.join(repo_path, '.git', 'objects', sha[:2], sha[2:])
+        with open(obj_path, 'rb') as f:
+            compressed_data = f.read()
+        decompressed = zlib.decompress(compressed_data)
+        if not decompressed.startswith(b'commit '):
+            return None
+        content = decompressed.decode('utf-8', errors='ignore')
+        for line in content.split('\n'):
+            if line.startswith('committer '):
+                parts = line.split()
+                for i, part in enumerate(parts):
+                    if part.isdigit() and len(part) == 10:
+                        return int(part)
+        return None
+    except:
+        return None
+
+repo_path = '/workspace/repo'
+all_objects = find_all_objects(repo_path)
+reachable = get_reachable_objects(repo_path)
+orphaned_commits = []
+
+for obj in all_objects:
+    if obj not in reachable:
+        timestamp = read_commit_timestamp(repo_path, obj)
+        if timestamp:
+            orphaned_commits.append((obj, timestamp))
+
+orphaned_commits.sort(key=lambda x: x[1], reverse=True)
+
+with open('/workspace/result.txt', 'w') as f:
+    f.write(f'ORPHANED_COUNT={len(orphaned_commits)}\n')
+    if orphaned_commits:
+        f.write(f'LATEST_COMMIT={orphaned_commits[0][0]}\n')
+RECOVER_EOF

@@ -1,0 +1,56 @@
+VULKAN DESCRIPTOR SET LAYOUT VALIDATION RULES
+=======================================================
+
+Rule 1: BINDING UNIQUENESS WITHIN SETS
+Binding numbers within a single descriptor set must be unique. Each binding in a set must have a distinct binding number. The same binding number can be reused across different descriptor sets (e.g., set_0 binding 0 and set_1 binding 0 are valid).
+
+Rule 2: BINDING NUMBER RANGES
+Binding numbers can be non-consecutive and can start at any non-negative integer. Valid binding numbers range from 0 to the implementation's maximum (typically at least 0-31 are guaranteed).
+
+Rule 3: UNIFORM_BUFFER DESCRIPTOR TYPE
+UNIFORM_BUFFER descriptors are used for read-only uniform data accessed by shaders. This type is appropriate for small, frequently accessed data structures like transformation matrices, material properties, and lighting parameters.
+
+Rule 4: STORAGE_BUFFER DESCRIPTOR TYPE
+STORAGE_BUFFER descriptors provide read-write access to buffer data. This type is primarily used in compute shaders for general-purpose GPU computing operations and must not be confused with UNIFORM_BUFFER.
+
+Rule 5: COMBINED_IMAGE_SAMPLER DESCRIPTOR TYPE
+COMBINED_IMAGE_SAMPLER combines a texture image and sampler into a single descriptor. This is the most common descriptor type for texture sampling operations in shaders.
+
+Rule 6: SAMPLED_IMAGE AND SEPARATE SAMPLERS
+SAMPLED_IMAGE descriptors represent textures without an integrated sampler. When using SAMPLED_IMAGE, a separate SAMPLER descriptor must be provided for texture sampling operations.
+
+Rule 7: STORAGE_IMAGE DESCRIPTOR TYPE
+STORAGE_IMAGE descriptors allow read-write access to images in compute shaders. This type enables image load/store operations and is distinct from SAMPLED_IMAGE which is read-only.
+
+Rule 8: SHADER STAGE FLAG COMPLETENESS
+The stages field must include ALL shader stages that access the resource. Missing even one required stage flag will cause validation errors or undefined behavior. If a resource is accessed by both vertex and fragment shaders, the stages must be "VERTEX|FRAGMENT".
+
+Rule 9: VALID SHADER STAGE IDENTIFIERS
+Valid shader stage identifiers are: VERTEX, FRAGMENT, COMPUTE, GEOMETRY, TESSELLATION_CONTROL, and TESSELLATION_EVALUATION. Stage flags are case-sensitive and must match these exact names.
+
+Rule 10: MULTIPLE STAGE FLAG SYNTAX
+When a resource is accessed by multiple shader stages, combine stage flags using the pipe separator (|) with no spaces. Example: "VERTEX|FRAGMENT" or "VERTEX|GEOMETRY|FRAGMENT".
+
+Rule 11: DESCRIPTOR TYPE MATCHING
+The descriptor type specified in the layout must exactly match what the shader code expects. A shader declaring a uniform buffer cannot use a STORAGE_BUFFER descriptor, and vice versa.
+
+Rule 12: COMPUTE STAGE EXCLUSIVITY
+Compute shaders execute in a separate pipeline from graphics shaders. COMPUTE stage flags should not be combined with VERTEX, FRAGMENT, GEOMETRY, or tessellation stages as they belong to different pipeline types.
+
+Rule 13: RESOURCE COMPLETENESS
+Every resource declared and used in shader code must have a corresponding descriptor binding in the layout. Missing descriptors will cause validation errors during pipeline creation.
+
+Rule 14: DESCRIPTOR SET ORGANIZATION
+Descriptor sets should be organized by update frequency: set_0 for resources that change rarely (e.g., per-application), set_1 for resources that change per-frame, set_2 for resources that change per-material, and set_3 for resources that change per-draw call.
+
+Rule 15: DESCRIPTOR COUNT SPECIFICATION
+Each binding implicitly has a descriptor count. For single resources, the count is 1. For arrays of resources, the count must match the array size declared in the shader.
+
+Rule 16: TEXEL BUFFER TYPES
+UNIFORM_TEXEL_BUFFER and STORAGE_TEXEL_BUFFER are specialized descriptor types for buffer textures. UNIFORM_TEXEL_BUFFER is read-only, while STORAGE_TEXEL_BUFFER allows read-write access.
+
+Rule 17: TYPE CONSISTENCY ACROSS SETS
+While the same binding number can appear in different sets, ensure logical consistency in how descriptor types are used across the application to avoid confusion during development.
+
+Rule 18: FRAGMENT SHADER TEXTURE ACCESS
+Texture sampling operations (using COMBINED_IMAGE_SAMPLER or SAMPLED_IMAGE) in fragment shaders must have the FRAGMENT stage flag set. This is one of the most common sources of descriptor layout errors.

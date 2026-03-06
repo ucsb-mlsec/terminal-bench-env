@@ -1,0 +1,52 @@
+#!/usr/bin/env python3
+import os
+import sys
+
+# Generate a 400MB binary cache file
+size_mb = 400
+size_bytes = size_mb * 1024 * 1024
+
+# Write the file in chunks to avoid memory issues
+chunk_size = 1024 * 1024  # 1MB chunks
+num_chunks = size_bytes // chunk_size
+
+# Create repeating pattern data that looks like temporary cache content
+# Mix of binary data, partial archive headers, and extraction metadata
+pattern_data = bytearray()
+
+# Add tar-like header fragments
+pattern_data.extend(b'ustar\x00')
+pattern_data.extend(b'00root\x00\x00\x00')
+pattern_data.extend(b'root\x00\x00\x00\x00')
+
+# Add typical extraction metadata
+pattern_data.extend(b'EXTRACT_TEMP_')
+pattern_data.extend(b'1234567890' * 10)
+
+# Add some compressed data patterns (gzip-like)
+pattern_data.extend(b'\x1f\x8b\x08\x00' * 5)
+
+# Add filesystem metadata fragments
+pattern_data.extend(b'drwxr-xr-x')
+pattern_data.extend(b'-rw-r--r--')
+pattern_data.extend(b'/var/www/html/')
+pattern_data.extend(b'/etc/config/')
+
+# Fill to 1KB pattern
+while len(pattern_data) < 1024:
+    pattern_data.extend(b'\x00')
+
+# Ensure exactly 1KB
+pattern_data = pattern_data[:1024]
+
+# Write file in chunks
+for i in range(num_chunks):
+    # Vary the pattern slightly per chunk to make it more realistic
+    chunk = bytearray()
+    for j in range(1024):  # 1024 repetitions of 1KB = 1MB
+        # Add chunk number as variation
+        varied_pattern = pattern_data[:]
+        varied_pattern[100:108] = str(i * 1024 + j).zfill(8).encode()
+        chunk.extend(varied_pattern)
+    
+    sys.stdout.buffer.write(bytes(chunk))

@@ -1,0 +1,59 @@
+CatBoost GPU Training Requirements
+===================================
+
+This document describes the required parameters and valid configurations
+for enabling GPU acceleration in CatBoost training.
+
+Required Parameters for GPU Training:
+--------------------------------------
+- task_type: Must be set to 'GPU' (string value)
+  Setting this to 'CPU' will force CPU execution even if GPU devices are specified
+  
+- devices: Specifies GPU device ID(s) as a string
+  Examples: '0' for single GPU, '0:1' for multiple GPUs
+  Optional but recommended to specify which GPU to use
+
+GPU-Incompatible Parameters:
+-----------------------------
+The following parameter settings are NOT compatible with GPU training:
+
+- boosting_type='Plain': This boosting type only works on CPU
+  For GPU training, use 'Ordered' (default) or omit this parameter
+  
+- bootstrap_type='Poisson': Not supported on GPU
+  Use 'Bayesian', 'Bernoulli', 'MVS', or 'No' instead
+
+- sampling_unit='Group': CPU-only feature
+  Use 'Object' for GPU training
+
+Valid Parameter Types and Ranges:
+----------------------------------
+- iterations: integer, range 1-100000, default 1000
+- learning_rate: float, range 0.001-1.0, default 0.03
+- depth: integer, range 1-16, default 6
+- border_count: integer, range 1-255, default 254
+- l2_leaf_reg: float, range 0.0-inf, default 3.0
+
+Common Configuration Mistakes:
+-------------------------------
+1. Setting task_type='CPU' while also specifying devices parameter
+   This creates a conflict - GPU devices are specified but CPU mode is forced
+   
+2. Using boosting_type='Plain' with task_type='GPU'
+   Plain boosting is CPU-only and will cause training to fail
+   
+3. Invalid device specifications like devices=0 (integer instead of string)
+   The devices parameter must be a string value
+   
+4. Mixing CPU-only and GPU-only parameters in the same configuration
+
+Correct GPU Configuration Example:
+-----------------------------------
+{
+  "task_type": "GPU",
+  "devices": "0",
+  "iterations": 1000,
+  "learning_rate": 0.03,
+  "depth": 6,
+  "border_count": 254
+}

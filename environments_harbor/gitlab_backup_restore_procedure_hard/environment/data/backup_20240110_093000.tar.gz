@@ -1,0 +1,103 @@
+#!/usr/bin/env python3
+
+import sqlite3
+import tarfile
+import io
+import os
+from datetime import datetime, timedelta
+
+# Create an in-memory SQLite database
+conn = sqlite3.connect(':memory:')
+cursor = conn.cursor()
+
+# Create the users table
+cursor.execute('''
+    CREATE TABLE users (
+        id INTEGER PRIMARY KEY,
+        name TEXT,
+        email TEXT,
+        created_at TEXT
+    )
+''')
+
+# Sample user data
+users = [
+    ("John Smith", "john.smith@email.com", "2023-11-15 08:23:45"),
+    ("Emily Johnson", "emily.j@webmail.com", "2023-11-16 10:15:22"),
+    ("Michael Brown", "m.brown@company.net", "2023-11-17 14:30:11"),
+    ("Sarah Davis", "sarah.davis@domain.com", "2023-11-18 09:45:33"),
+    ("Robert Wilson", "r.wilson@mail.org", "2023-11-19 11:20:56"),
+    ("Jennifer Martinez", "jmartinez@email.com", "2023-11-20 13:42:18"),
+    ("David Anderson", "d.anderson@webmail.com", "2023-11-21 16:05:40"),
+    ("Lisa Taylor", "lisa.t@company.net", "2023-11-22 08:55:12"),
+    ("James Thomas", "james.thomas@domain.com", "2023-11-23 10:33:27"),
+    ("Mary Moore", "mary.moore@mail.org", "2023-11-24 12:18:55"),
+    ("Christopher Jackson", "c.jackson@email.com", "2023-11-25 14:50:08"),
+    ("Patricia White", "patricia.w@webmail.com", "2023-11-26 09:22:34"),
+    ("Daniel Harris", "d.harris@company.net", "2023-11-27 11:40:19"),
+    ("Barbara Martin", "b.martin@domain.com", "2023-11-28 13:15:47"),
+    ("Matthew Thompson", "matt.thompson@mail.org", "2023-11-29 15:38:22"),
+    ("Susan Garcia", "susan.g@email.com", "2023-11-30 08:47:55"),
+    ("Joseph Martinez", "j.martinez@webmail.com", "2023-12-01 10:25:13"),
+    ("Jessica Robinson", "jessica.r@company.net", "2023-12-02 12:52:40"),
+    ("Andrew Clark", "a.clark@domain.com", "2023-12-03 14:10:28"),
+    ("Karen Rodriguez", "karen.rod@mail.org", "2023-12-04 16:33:51"),
+    ("Anthony Lewis", "anthony.l@email.com", "2023-12-05 09:08:17"),
+    ("Nancy Lee", "nancy.lee@webmail.com", "2023-12-06 11:44:30"),
+    ("Mark Walker", "mark.walker@company.net", "2023-12-07 13:20:45")
+]
+
+# Insert the user data
+for user in users:
+    cursor.execute('INSERT INTO users (name, email, created_at) VALUES (?, ?, ?)', user)
+
+conn.commit()
+
+# Write the database to a file
+db_bytes = io.BytesIO()
+for line in conn.iterdump():
+    db_bytes.write(f'{line}\n'.encode('utf-8'))
+
+# Create the actual SQLite file in memory
+conn_file = sqlite3.connect(':memory:')
+cursor_file = conn_file.cursor()
+cursor_file.executescript(db_bytes.getvalue().decode('utf-8'))
+conn_file.commit()
+
+# Save to bytes
+temp_db_path = '/tmp/data.db'
+conn_real = sqlite3.connect(temp_db_path)
+cursor_real = conn_real.cursor()
+cursor_real.execute('''
+    CREATE TABLE users (
+        id INTEGER PRIMARY KEY,
+        name TEXT,
+        email TEXT,
+        created_at TEXT
+    )
+''')
+for user in users:
+    cursor_real.execute('INSERT INTO users (name, email, created_at) VALUES (?, ?, ?)', user)
+conn_real.commit()
+conn_real.close()
+
+# Read the database file
+with open(temp_db_path, 'rb') as f:
+    db_content = f.read()
+
+# Create tar.gz archive
+tar_buffer = io.BytesIO()
+with tarfile.open(fileobj=tar_buffer, mode='w:gz') as tar:
+    # Add data.db
+    db_info = tarfile.TarInfo(name='data.db')
+    db_info.size = len(db_content)
+    db_info.mtime = datetime(2024, 1, 10, 9, 30, 0).timestamp()
+    tar.addfile(db_info, io.BytesIO(db_content))
+
+# Clean up temp file
+os.remove(temp_db_path)
+
+# Output the tar.gz content
+tar_buffer.seek(0)
+import sys
+sys.stdout.buffer.write(tar_buffer.read())

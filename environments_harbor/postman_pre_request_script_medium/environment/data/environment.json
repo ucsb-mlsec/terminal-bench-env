@@ -1,0 +1,287 @@
+[
+  {
+    "(async function() {":"    const baseUrl = pm.environment.get('API_BASE_URL');"
+  },
+  {
+    "(async function() {":"    const username = pm.environment.get('USERNAME');"
+  },
+  {
+    "(async function() {":"    const password = pm.environment.get('PASSWORD');"
+  },
+  {
+    "(async function() {":"    let accessToken = pm.environment.get('ACCESS_TOKEN');"
+  },
+  {
+    "(async function() {":"    let refreshToken = pm.environment.get('REFRESH_TOKEN');"
+  },
+  {
+    "(async function() {":"    let tokenExpiry = parseInt(pm.environment.get('TOKEN_EXPIRY') || '0');"
+  },
+  {
+    "(async function() {":"    let refreshExpiry = parseInt(pm.environment.get('REFRESH_EXPIRY') || '0');"
+  },
+  {
+    "(async function() {":"    const now = Date.now();"
+  },
+  {
+    "(async function() {":"    const bufferTime = 60000; \/\/ 1 minute buffer before expiry"
+  },
+  {
+    "(async function() {":"    const performLogin = async () => {"
+  },
+  {
+    "(async function() {":"        try {"
+  },
+  {
+    "(async function() {":"                pm.sendRequest({"
+  },
+  {
+    "(async function() {":"                    header: {"
+  },
+  {
+    "(async function() {":"                        'Content-Type': 'application\/json'"
+  },
+  {
+    "(async function() {":"                    body: {"
+  },
+  {
+    "(async function() {":"                        raw: JSON.stringify({"
+  },
+  {
+    "(async function() {":"                            password: password"
+  },
+  {
+    "(async function() {":"                        })"
+  },
+  {
+    "(async function() {":"                    }"
+  },
+  {
+    "(async function() {":"                    if (err) {"
+  },
+  {
+    "(async function() {":"                        reject(err);"
+  },
+  {
+    "(async function() {":"                    } else {"
+  },
+  {
+    "(async function() {":"                        resolve(response);"
+  },
+  {
+    "(async function() {":"                    }"
+  },
+  {
+    "(async function() {":"                });"
+  },
+  {
+    "(async function() {":"            });"
+  },
+  {
+    "(async function() {":"            if (loginResponse.code === 200 || loginResponse.code === 201) {"
+  },
+  {
+    "(async function() {":"                const data = loginResponse.json();"
+  },
+  {
+    "(async function() {":"                accessToken = data.access_token;"
+  },
+  {
+    "(async function() {":"                refreshToken = data.refresh_token;"
+  },
+  {
+    "(async function() {":"                tokenExpiry = now + (5 * 60 * 1000); \/\/ 5 minutes"
+  },
+  {
+    "(async function() {":"                refreshExpiry = now + (24 * 60 * 60 * 1000); \/\/ 24 hours"
+  },
+  {
+    "(async function() {":"                return true;"
+  },
+  {
+    "(async function() {":"            } else {"
+  },
+  {
+    "(async function() {":"                return false;"
+  },
+  {
+    "(async function() {":"            }"
+  },
+  {
+    "(async function() {":"        } catch (error) {"
+  },
+  {
+    "(async function() {":"            return false;"
+  },
+  {
+    "(async function() {":"        }"
+  },
+  {
+    "(async function() {":"    };"
+  },
+  {
+    "(async function() {":"    const performRefresh = async () => {"
+  },
+  {
+    "(async function() {":"        try {"
+  },
+  {
+    "(async function() {":"                pm.sendRequest({"
+  },
+  {
+    "(async function() {":"                    header: {"
+  },
+  {
+    "(async function() {":"                        'Content-Type': 'application\/json'"
+  },
+  {
+    "(async function() {":"                    body: {"
+  },
+  {
+    "(async function() {":"                        raw: JSON.stringify({"
+  },
+  {
+    "(async function() {":"                            refresh_token: refreshToken"
+  },
+  {
+    "(async function() {":"                        })"
+  },
+  {
+    "(async function() {":"                    }"
+  },
+  {
+    "(async function() {":"                    if (err) {"
+  },
+  {
+    "(async function() {":"                        reject(err);"
+  },
+  {
+    "(async function() {":"                    } else {"
+  },
+  {
+    "(async function() {":"                        resolve(response);"
+  },
+  {
+    "(async function() {":"                    }"
+  },
+  {
+    "(async function() {":"                });"
+  },
+  {
+    "(async function() {":"            });"
+  },
+  {
+    "(async function() {":"            if (refreshResponse.code === 200 || refreshResponse.code === 201) {"
+  },
+  {
+    "(async function() {":"                const data = refreshResponse.json();"
+  },
+  {
+    "(async function() {":"                accessToken = data.access_token;"
+  },
+  {
+    "(async function() {":"                tokenExpiry = now + (5 * 60 * 1000); \/\/ 5 minutes"
+  },
+  {
+    "(async function() {":"                return true;"
+  },
+  {
+    "(async function() {":"            } else {"
+  },
+  {
+    "(async function() {":"                return false;"
+  },
+  {
+    "(async function() {":"            }"
+  },
+  {
+    "(async function() {":"        } catch (error) {"
+  },
+  {
+    "(async function() {":"            return false;"
+  },
+  {
+    "(async function() {":"        }"
+  },
+  {
+    "(async function() {":"    };"
+  },
+  {
+    "(async function() {":"    \/\/ Check if refresh token is expired or missing"
+  },
+  {
+    "(async function() {":"    if (!refreshToken || refreshExpiry === 0 || now >= (refreshExpiry - bufferTime)) {"
+  },
+  {
+    "(async function() {":"        const loginSuccess = await performLogin();"
+  },
+  {
+    "(async function() {":"        if (!loginSuccess) {"
+  },
+  {
+    "(async function() {":"            throw new Error('Authentication failed: Unable to login');"
+  },
+  {
+    "(async function() {":"        }"
+  },
+  {
+    "(async function() {":"    }"
+  },
+  {
+    "(async function() {":"    \/\/ Check if access token is expired or missing"
+  },
+  {
+    "(async function() {":"    else if (!accessToken || tokenExpiry === 0 || now >= (tokenExpiry - bufferTime)) {"
+  },
+  {
+    "(async function() {":"        const refreshSuccess = await performRefresh();"
+  },
+  {
+    "(async function() {":"        if (!refreshSuccess) {"
+  },
+  {
+    "(async function() {":"            const loginSuccess = await performLogin();"
+  },
+  {
+    "(async function() {":"            if (!loginSuccess) {"
+  },
+  {
+    "(async function() {":"                throw new Error('Authentication failed: Unable to refresh or login');"
+  },
+  {
+    "(async function() {":"            }"
+  },
+  {
+    "(async function() {":"        }"
+  },
+  {
+    "(async function() {":"    }"
+  },
+  {
+    "(async function() {":"    \/\/ Set Authorization header for current request"
+  },
+  {
+    "(async function() {":"    if (accessToken) {"
+  },
+  {
+    "(async function() {":"        pm.request.headers.add({"
+  },
+  {
+    "(async function() {":"            value: `Bearer ${accessToken}`"
+  },
+  {
+    "(async function() {":"        });"
+  },
+  {
+    "(async function() {":"    } else {"
+  },
+  {
+    "(async function() {":"        throw new Error('Authentication failed: No access token available');"
+  },
+  {
+    "(async function() {":"    }"
+  },
+  {
+    "(async function() {":"})();"
+  }
+]

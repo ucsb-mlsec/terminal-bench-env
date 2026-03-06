@@ -1,0 +1,113 @@
+[
+  {
+    "#!\/bin\/bash":"# Configuration and environment setup"
+  },
+  {
+    "#!\/bin\/bash":"set -e"
+  },
+  {
+    "#!\/bin\/bash":"set -o pipefail"
+  },
+  {
+    "#!\/bin\/bash":"# Source directory to backup"
+  },
+  {
+    "#!\/bin\/bash":"SOURCE_DIR=\"\/opt\/appdata\""
+  },
+  {
+    "#!\/bin\/bash":"# S3 destination bucket"
+  },
+  {
+    "#!\/bin\/bash":"S3_BUCKET=\"s3:\/\/s3.example.com\/company-backups\""
+  },
+  {
+    "#!\/bin\/bash":"# Duplicity working directory"
+  },
+  {
+    "#!\/bin\/bash":"export TMPDIR=\"\/var\/cache\/duplicity\""
+  },
+  {
+    "#!\/bin\/bash":"# GPG encryption settings"
+  },
+  {
+    "#!\/bin\/bash":"export PASSPHRASE=$(cat \/root\/.backup_passphrase)"
+  },
+  {
+    "#!\/bin\/bash":"GPG_KEY=\"${BACKUP_GPG_KEY}\""
+  },
+  {
+    "#!\/bin\/bash":"# S3 configuration"
+  },
+  {
+    "#!\/bin\/bash":"export S3CFG=\"\/root\/.s3cfg\""
+  },
+  {
+    "#!\/bin\/bash":"# Ensure working directory exists"
+  },
+  {
+    "#!\/bin\/bash":"mkdir -p \"${TMPDIR}\""
+  },
+  {
+    "#!\/bin\/bash":"# FULL BACKUP"
+  },
+  {
+    "#!\/bin\/bash":"duplicity full \\"
+  },
+  {
+    "#!\/bin\/bash":"  --encrypt-key=\"${GPG_KEY}\" \\"
+  },
+  {
+    "#!\/bin\/bash":"  --s3-use-new-style \\"
+  },
+  {
+    "#!\/bin\/bash":"  --s3-config=\"${S3CFG}\" \\"
+  },
+  {
+    "#!\/bin\/bash":"  \"${SOURCE_DIR}\" \\"
+  },
+  {
+    "#!\/bin\/bash":"  \"${S3_BUCKET}\""
+  },
+  {
+    "#!\/bin\/bash":"# INCREMENTAL BACKUP"
+  },
+  {
+    "#!\/bin\/bash":"duplicity incremental \\"
+  },
+  {
+    "#!\/bin\/bash":"  --encrypt-key=\"${GPG_KEY}\" \\"
+  },
+  {
+    "#!\/bin\/bash":"  --s3-use-new-style \\"
+  },
+  {
+    "#!\/bin\/bash":"  --s3-config=\"${S3CFG}\" \\"
+  },
+  {
+    "#!\/bin\/bash":"  \"${SOURCE_DIR}\" \\"
+  },
+  {
+    "#!\/bin\/bash":"  \"${S3_BUCKET}\""
+  },
+  {
+    "#!\/bin\/bash":"# CLEANUP OLD BACKUPS"
+  },
+  {
+    "#!\/bin\/bash":"duplicity remove-older-than 30D \\"
+  },
+  {
+    "#!\/bin\/bash":"  --force \\"
+  },
+  {
+    "#!\/bin\/bash":"  --encrypt-key=\"${GPG_KEY}\" \\"
+  },
+  {
+    "#!\/bin\/bash":"  --s3-use-new-style \\"
+  },
+  {
+    "#!\/bin\/bash":"  --s3-config=\"${S3CFG}\" \\"
+  },
+  {
+    "#!\/bin\/bash":"  \"${S3_BUCKET}\""
+  }
+]

@@ -1,0 +1,71 @@
+FLUENTD PRODUCTION REQUIREMENTS DOCUMENT
+================================================
+
+SYSTEM CONTEXT
+--------------
+The production logging infrastructure is experiencing buffer overflow issues that are causing data loss during peak traffic periods. The system must be optimized to handle high-volume log ingestion with appropriate buffering mechanisms.
+
+Production Environment Characteristics:
+- Peak log burst rate: 1500 entries per second
+- Average log entry size: 512 bytes
+- Data throughput during bursts: ~768 KB/s (1500 entries × 512 bytes)
+- Current issue: Buffer overflows during peak traffic resulting in data loss
+
+
+PERFORMANCE REQUIREMENTS
+------------------------
+The Fluentd configuration must meet the following performance criteria:
+
+1. Traffic Burst Handling
+   - Must accommodate log bursts of up to 1500 entries per second
+   - Must sustain burst traffic for at least 30 seconds without data loss
+   - Total burst capacity: 45,000 log entries (1500 entries/sec × 30 seconds)
+   - Total burst data volume: ~22.5 MB (45,000 entries × 512 bytes)
+
+2. Latency Requirements
+   - Log data must be flushed to downstream systems within 10 seconds maximum
+   - Flush interval should not exceed 10 seconds to ensure timely log delivery
+   - Balance between batching efficiency and data freshness
+
+3. Reliability Requirements
+   - Zero data loss during normal peak traffic conditions
+   - Graceful handling of temporary downstream delays
+   - Buffer capacity must exceed minimum burst requirements for safety margin
+
+
+BUFFER CONFIGURATION REQUIREMENTS
+----------------------------------
+
+1. Total Buffer Capacity
+   - Minimum required: 15MB of buffered data
+   - Purpose: Handle 30-second traffic bursts with safety margin
+   - This ensures at least 15MB can be held in memory/disk during peak periods
+
+2. Chunk Size Configuration
+   - Minimum chunk size: 8MB per chunk
+   - Purpose: Support efficient batching and reduce overhead
+   - Larger chunks improve downstream write performance
+   - Must be sized to accommodate multiple seconds of peak traffic per chunk
+
+3. Buffer Queue Depth
+   - Minimum queue length: 8 chunks
+   - Purpose: Prevent overflow during temporary downstream delays
+   - Total queue capacity: 64MB minimum (8 chunks × 8MB per chunk)
+   - Provides buffer headroom for downstream system slowdowns
+
+4. Flush Timing
+   - Maximum flush interval: 10 seconds
+   - Purpose: Ensure timely delivery of log data
+   - Balance between batching efficiency and data freshness
+   - Must not exceed 10 seconds under any normal operating conditions
+
+
+CONFIGURATION VALIDATION CRITERIA
+----------------------------------
+The updated configuration must satisfy:
+- buffer_chunk_limit ≥ 8MB (to meet efficient batching requirement)
+- buffer_queue_limit ≥ 8 chunks (to provide adequate queue depth)
+- flush_interval ≤ 10 seconds (to meet latency requirement)
+- Total buffer capacity (chunk_limit × queue_limit) ≥ 15MB (minimum burst capacity)
+
+Note: The actual total buffer capacity should significantly exceed 15MB when calculated as (buffer_chunk_limit × buffer_queue_limit) to provide operational headroom during cascading delays or downstream issues.

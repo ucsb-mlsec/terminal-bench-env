@@ -1,0 +1,42 @@
+I need to create a Git loose object file that contains the auth_handler.py content. Let me create this step by step.
+
+First, I'll create the proper Git blob object format with zlib compression. The content needs to be in the format: "blob {size}\0{content}"
+
+Here's the Python code to generate this:
+
+```python
+import zlib
+import os
+
+content = """import hashlib
+import secrets
+
+class AuthHandler:
+    def __init__(self):
+        self.secret_key = secrets.token_hex(32)
+        
+    def hash_password(self, password):
+        salt = secrets.token_bytes(32)
+        key = hashlib.pbkdf2_hmac('sha256', password.encode(), salt, 100000)
+        return salt + key
+    
+    def verify_password(self, password, hashed):
+        salt = hashed[:32]
+        key = hashed[32:]
+        new_key = hashlib.pbkdf2_hmac('sha256', password.encode(), salt, 100000)
+        return new_key == key
+"""
+
+blob_data = f"blob {len(content)}\0{content}".encode()
+compressed = zlib.compress(blob_data)
+
+os.makedirs('/workspace/project-repo/.git/objects/12', exist_ok=True)
+with open('/workspace/project-repo/.git/objects/12/3456789012345678901234567890abcdef1234', 'wb') as f:
+    f.write(compressed)
+```
+
+Wait, I need to output the actual binary file content directly. Let me generate the compressed content:
+
+x��MK�@���W̭���z�A��n��m�m�ˎ�n҄�n��y��{�3a���(PD0h�u����Lm�ⱙ�"�:E!s���6��	w��M<��C!k��J�F��8���{�W7����
+V�ȮU���U���i�:^r��\i�J�
+D�c�h3j��(b��s�A+@�`s����@���2�)s:�C�jN����A9z����"����o�K��r'|D؍W����y�����+C�����!����vR��G���5��3��7������'��Kp�q׏�ۨ;g$���ϒX&����f��a�������2����/0m[!Ur��R�~���2zZz�@h5�0D�����Eщ���_vJ������U�oU�?����

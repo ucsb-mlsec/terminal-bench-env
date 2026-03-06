@@ -1,0 +1,74 @@
+I'll generate the numpy array file for layer 0, sentence 2 with realistic attention weights.
+
+```python
+import numpy as np
+
+# Set random seed for reproducibility
+np.random.seed(42)
+
+# Create attention weights with shape [12, 18, 18]
+seq_len = 18
+num_heads = 12
+
+attention_weights = np.zeros((num_heads, seq_len, seq_len), dtype=np.float32)
+
+# Generate different patterns for each head
+for head in range(num_heads):
+    for token in range(seq_len):
+        # Create varied attention patterns based on head index
+        if head == 0:
+            # Head 0: Mostly uniform attention (low variance candidate)
+            weights = np.ones(seq_len) + np.random.randn(seq_len) * 0.05
+        elif head == 1:
+            # Head 1: Strong diagonal attention
+            weights = np.random.rand(seq_len) * 0.3
+            weights[token] = 5.0
+        elif head == 2:
+            # Head 2: Attention to beginning tokens
+            weights = np.exp(-np.arange(seq_len) * 0.3) + np.random.rand(seq_len) * 0.1
+        elif head == 3:
+            # Head 3: Nearly uniform (low variance candidate)
+            weights = np.ones(seq_len) + np.random.randn(seq_len) * 0.03
+        elif head == 4:
+            # Head 4: Local attention window
+            dist = np.abs(np.arange(seq_len) - token)
+            weights = np.exp(-dist * 0.5) + np.random.rand(seq_len) * 0.2
+        elif head == 5:
+            # Head 5: Attention to end tokens
+            weights = np.arange(seq_len) * 0.3 + np.random.rand(seq_len) * 0.5
+        elif head == 6:
+            # Head 6: Random sparse attention
+            weights = np.random.rand(seq_len) * 0.2
+            idx = np.random.choice(seq_len, 3, replace=False)
+            weights[idx] += 2.0
+        elif head == 7:
+            # Head 7: Bimodal attention
+            weights = np.random.rand(seq_len) * 0.3
+            weights[:seq_len//2] += 1.5
+        elif head == 8:
+            # Head 8: Adjacent token attention
+            weights = np.random.rand(seq_len) * 0.2
+            if token > 0:
+                weights[token-1] += 1.5
+            if token < seq_len - 1:
+                weights[token+1] += 1.5
+        elif head == 9:
+            # Head 9: Complex pattern
+            weights = np.sin(np.arange(seq_len) * 0.5 + token) + 1.5 + np.random.rand(seq_len) * 0.3
+        elif head == 10:
+            # Head 10: Punctuation-like attention (every 3rd token)
+            weights = np.random.rand(seq_len) * 0.3
+            weights[::3] += 1.0
+        else:
+            # Head 11: Mixed pattern
+            weights = np.random.rand(seq_len) + 0.5
+            weights[token] += 0.8
+        
+        # Ensure all weights are positive
+        weights = np.abs(weights)
+        
+        # Normalize to sum to 1 (valid attention distribution)
+        attention_weights[head, token, :] = weights / weights.sum()
+
+# Save the file
+np.save('/tmp/sentence_2_layer_0.npy', attention_weights)

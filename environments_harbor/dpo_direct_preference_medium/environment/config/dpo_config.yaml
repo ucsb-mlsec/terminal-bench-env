@@ -1,0 +1,41 @@
+# DPO Training Configuration
+# Configuration file for Direct Preference Optimization training pipeline
+
+# Base model configuration
+model_name_or_path: 'gpt2'  # Pretrained model to fine-tune
+
+# Dataset configuration
+dataset:
+  data_path: '/workspace/data/preference_data.jsonl'  # Path to preference dataset
+  required_fields:  # Fields that must be present in each example
+    - 'prompt'
+    - 'chosen'
+    - 'rejected'
+  validation_split: 0.1  # Fraction of data to use for validation
+
+# Training arguments
+training_arguments:
+  learning_rate: 5e-5  # Learning rate for optimizer
+  per_device_train_batch_size: 4  # Batch size per GPU/CPU
+  num_train_epochs: 3  # Number of training epochs
+  output_dir: '/workspace/outputs/dpo_model'  # Directory to save model checkpoints
+  logging_steps: 100  # Log metrics every N steps
+  save_steps: 500  # Save checkpoint every N steps
+  eval_steps: 500  # Evaluate every N steps
+  warmup_steps: 100  # Number of warmup steps for learning rate scheduler
+  gradient_accumulation_steps: 1  # Steps to accumulate gradients
+  fp16: false  # Use mixed precision training
+  remove_unused_columns: false  # Keep all columns in dataset
+
+# DPO-specific parameters
+dpo_parameters:
+  beta: 0.1  # DPO temperature parameter (controls strength of preference optimization)
+  max_length: 512  # Maximum sequence length for responses
+  max_prompt_length: 256  # Maximum length for prompts
+  label_smoothing: 0.0  # Label smoothing factor
+  loss_type: 'sigmoid'  # Loss function type (sigmoid or hinge)
+
+# Logging and monitoring
+logging:
+  report_to: 'tensorboard'  # Logging framework
+  logging_dir: '/workspace/outputs/logs'  # Directory for logs

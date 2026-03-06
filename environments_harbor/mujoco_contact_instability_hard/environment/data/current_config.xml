@@ -1,0 +1,61 @@
+<mujoco model="robot_manipulation">
+  <option timestep="0.02" iterations="25" solver="Newton" gravity="0 0 -9.81"/>
+  
+  <default>
+    <geom solref="0.001 0.5" solimp="0.9 0.95 0.001" friction="1.0 0.005 0.0001"/>
+    <joint damping="0.5" armature="0.1"/>
+  </default>
+  
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="512"/>
+    <texture name="texplane" type="2d" builtin="checker" rgb1="0.2 0.3 0.4" rgb2="0.1 0.15 0.2" width="512" height="512" mark="cross" markrgb="0.8 0.8 0.8"/>
+    <material name="matplane" reflectance="0.3" texture="texplane" texrepeat="1 1" texuniform="true"/>
+  </asset>
+  
+  <worldbody>
+    <light directional="true" diffuse="0.8 0.8 0.8" specular="0.2 0.2 0.2" pos="0 0 5" dir="0 0 -1"/>
+    <geom name="ground" type="plane" size="2 2 0.1" material="matplane" condim="3"/>
+    
+    <body name="robot_base" pos="0 0 0.5">
+      <geom name="base" type="cylinder" size="0.08 0.15" rgba="0.7 0.7 0.7 1" mass="2.5"/>
+      <joint name="base_rotate" type="hinge" axis="0 0 1" range="-180 180"/>
+      
+      <body name="link1" pos="0 0 0.15">
+        <geom name="link1_geom" type="capsule" size="0.04 0.25" rgba="0.8 0.3 0.3 1" mass="1.2"/>
+        <joint name="shoulder" type="hinge" axis="0 1 0" range="-120 120"/>
+        
+        <body name="link2" pos="0 0 0.25">
+          <geom name="link2_geom" type="capsule" size="0.035 0.22" rgba="0.3 0.8 0.3 1" mass="0.8"/>
+          <joint name="elbow" type="hinge" axis="0 1 0" range="-150 150"/>
+          
+          <body name="gripper" pos="0 0 0.22">
+            <geom name="gripper_palm" type="box" size="0.05 0.04 0.03" rgba="0.3 0.3 0.8 1" mass="0.3"/>
+            
+            <body name="finger1" pos="0.05 0 0">
+              <geom name="finger1_geom" type="box" size="0.01 0.015 0.04" rgba="0.5 0.5 0.5 1" mass="0.05"/>
+              <joint name="finger1_joint" type="slide" axis="1 0 0" range="0 0.03"/>
+            </body>
+            
+            <body name="finger2" pos="-0.05 0 0">
+              <geom name="finger2_geom" type="box" size="0.01 0.015 0.04" rgba="0.5 0.5 0.5 1" mass="0.05"/>
+              <joint name="finger2_joint" type="slide" axis="-1 0 0" range="0 0.03"/>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+    
+    <body name="target_object" pos="0.4 0.2 0.6">
+      <geom name="object" type="box" size="0.04 0.04 0.04" rgba="0.9 0.7 0.1 1" mass="0.15"/>
+      <joint name="obj_free" type="free"/>
+    </body>
+  </worldbody>
+  
+  <actuator>
+    <motor name="motor_base" joint="base_rotate" gear="50" ctrllimited="true" ctrlrange="-1 1"/>
+    <motor name="motor_shoulder" joint="shoulder" gear="100" ctrllimited="true" ctrlrange="-1 1"/>
+    <motor name="motor_elbow" joint="elbow" gear="80" ctrllimited="true" ctrlrange="-1 1"/>
+    <motor name="motor_finger1" joint="finger1_joint" gear="20" ctrllimited="true" ctrlrange="-1 1"/>
+    <motor name="motor_finger2" joint="finger2_joint" gear="20" ctrllimited="true" ctrlrange="-1 1"/>
+  </actuator>
+</mujoco>

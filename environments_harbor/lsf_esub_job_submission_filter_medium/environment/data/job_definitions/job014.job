@@ -1,0 +1,107 @@
+I'll create the validator.py script and the malformed job file.
+
+First, here's the malformed job file content for /workspace/job_definitions/job014.job:
+
+JOB_NAME=malformed_job
+CORES=
+MEMORY_GB=abc
+EMAIL=user14@company.com
+
+Now, here's the validator.py script:
+
+#!/usr/bin/env python3
+
+import os
+import glob
+
+def parse_job_file(filepath):
+    """Parse a job definition file and return a dictionary of parameters."""
+    params = {}
+    try:
+        with open(filepath, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if not line or '=' not in line:
+                    continue
+                key, value = line.split('=', 1)
+                params[key.strip()] = value.strip()
+    except Exception:
+        return None
+    return params
+
+def get_param_value(params, key, default, value_type=str):
+    """Get parameter value with default and type conversion."""
+    if params is None:
+        return default
+    
+    value = params.get(key, '')
+    
+    if value == '':
+        return default
+    
+    if value_type == int:
+        try:
+            return int(value)
+        except ValueError:
+            return default
+    
+    return value
+
+def validate_job(params):
+    """Validate a job against all policies. Returns True if valid, False otherwise."""
+    if params is None:
+        return False
+    
+    # Get parameters with defaults
+    cores = get_param_value(params, 'CORES', 1, int)
+    memory_gb = get_param_value(params, 'MEMORY_GB', 4, int)
+    runtime_hours = get_param_value(params, 'RUNTIME_HOURS', -1, int)
+    gpu_count = get_param_value(params, 'GPU_COUNT', 0, int)
+    project_code = get_param_value(params, 'PROJECT_CODE', '')
+    email = get_param_value(params, 'EMAIL', '')
+    queue = get_param_value(params, 'QUEUE', 'normal')
+    
+    # Policy 1: Jobs requesting more than 16 cores must have a project code
+    if cores > 16 and not project_code:
+        return False
+    
+    # Policy 2: Jobs requesting more than 64GB memory must have runtime limit
+    if memory_gb > 64 and runtime_hours == -1:
+        return False
+    
+    # Policy 3: Jobs submitted to "gpu" queue must request at least 1 GPU
+    if queue == 'gpu' and gpu_count < 1:
+        return False
+    
+    # Policy 4: All jobs must have an email address
+    if not email:
+        return False
+    
+    return True
+
+def main():
+    job_dir = '/workspace/job_definitions/'
+    output_file = '/workspace/validation_summary.txt'
+    
+    # Find all .job files
+    job_files = glob.glob(os.path.join(job_dir, '*.job'))
+    
+    total_jobs = len(job_files)
+    valid_jobs = 0
+    invalid_jobs = 0
+    
+    for job_file in job_files:
+        params = parse_job_file(job_file)
+        if validate_job(params):
+            valid_jobs += 1
+        else:
+            invalid_jobs += 1
+    
+    # Write summary
+    with open(output_file, 'w') as f:
+        f.write(f'TOTAL_JOBS={total_jobs}\n')
+        f.write(f'VALID_JOBS={valid_jobs}\n')
+        f.write(f'INVALID_JOBS={invalid_jobs}\n')
+
+if __name__ == '__main__':
+    main()

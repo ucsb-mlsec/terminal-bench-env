@@ -1,0 +1,158 @@
+critical_security:
+  description: Changes that create immediate security vulnerabilities
+  examples:
+    - SSH access open to internet (0.0.0.0/0)
+    - RDS publicly accessible when should be private
+    - IAM roles with AdministratorAccess for applications
+    - Unencrypted sensitive data stores
+    - Security group rules allowing unrestricted ingress
+    - Database instances without encryption at rest
+    - S3 buckets with public read/write access
+    - IAM policies granting excessive permissions
+  severity: critical
+  action: immediate revert required
+  detection_rules:
+    - cidr_block: 0.0.0.0/0 on ingress rules for SSH/RDP
+    - publicly_accessible: true on RDS instances
+    - policy_arn: arn:aws:iam::aws:policy/AdministratorAccess on application roles
+    - encryption_enabled: false on data stores
+    - acl: public-read or public-read-write on S3 buckets
+  response_time: immediate
+  notification: security team + management
+
+policy_violations:
+  description: Changes that violate organizational policies but not immediate security threats
+  examples:
+    - Missing required tags (environment, owner, cost_center)
+    - S3 public access not blocked at bucket level
+    - Resources with prohibited naming conventions
+    - Instance types not in approved list
+    - Resources in non-approved regions
+    - Missing backup configurations
+    - Log retention periods below minimum
+    - Resources without monitoring enabled
+  severity: high
+  action: revert or obtain exception approval
+  detection_rules:
+    - missing_tags: environment, owner, cost_center, application
+    - block_public_acls: false on S3 buckets
+    - naming_pattern: must match ^(prod|dev|staging)-[a-z0-9-]+$
+    - instance_types: only t3.*, m5.*, c5.* approved
+    - regions: only us-east-1, us-west-2 approved
+  response_time: within 24 hours
+  notification: infrastructure team + resource owner
+
+acceptable_changes:
+  description: Manual changes that align with best practices and should be preserved
+  examples:
+    - Adding encryption to S3 buckets
+    - Increasing backup retention periods
+    - Adding CloudWatch monitoring
+    - Increasing log retention for compliance
+    - Enabling versioning on S3 buckets
+    - Adding MFA delete protection
+    - Implementing cross-region replication
+    - Adding lifecycle policies for cost optimization
+    - Enabling enhanced monitoring on RDS
+    - Adding detailed CloudWatch metrics
+  severity: low
+  action: import into Terraform to preserve
+  detection_rules:
+    - encryption: enabled when previously disabled
+    - backup_retention: increased from configured value
+    - monitoring_enabled: true when previously false
+    - versioning: enabled on storage buckets
+    - lifecycle_rules: added for cost management
+  response_time: next maintenance window
+  notification: infrastructure team
+
+configuration_improvements:
+  description: Performance or capacity adjustments that may be legitimate
+  examples:
+    - Instance type upgrades for performance
+    - Storage capacity increases
+    - Additional monitoring and alerting
+    - Increased IOPS for databases
+    - Memory or CPU limit increases
+    - Auto-scaling threshold adjustments
+    - Cache size increases
+    - Connection pool size optimizations
+  severity: medium
+  action: review and import if approved
+  detection_rules:
+    - instance_type: changed to larger tier
+    - storage_size: increased beyond configured value
+    - iops: increased from baseline
+    - memory_allocation: increased
+    - max_connections: increased
+    - cache_size: increased
+  response_time: within 48 hours
+  notification: infrastructure team + application owner
+  approval_required: manager or architect
+
+unmanaged_resources:
+  description: Resources created outside Terraform
+  examples:
+    - EC2 instances created manually
+    - Security groups not in state
+    - S3 buckets created by application teams
+    - IAM roles for testing or debugging
+    - Lambda functions deployed outside pipeline
+    - CloudWatch alarms created manually
+    - DNS records added directly
+    - Load balancers for temporary workloads
+  severity: varies
+  action: import if legitimate, delete if unauthorized
+  detection_rules:
+    - resource_exists: true in cloud but not in state
+    - creation_method: console, CLI, or API (not Terraform)
+    - managed_by_tag: missing or not set to terraform
+  response_time: within 72 hours
+  notification: infrastructure team
+  validation_required: confirm with resource creator
+
+drift_detection_schedule:
+  continuous: true
+  scan_interval: 1 hour
+  full_reconciliation: daily at 02:00 UTC
+  reporting: daily summary + immediate alerts for critical
+
+reconciliation_workflow:
+  step1_detect:
+    - Run terraform plan -refresh-only
+    - Compare state with actual resources
+    - Classify each drift by category
+  step2_analyze:
+    - Determine root cause of drift
+    - Identify change author if possible
+    - Assess business impact
+  step3_categorize:
+    - Apply detection rules from categories
+    - Flag critical and policy violations
+    - Identify acceptable changes
+  step4_remediate:
+    - Revert critical security issues immediately
+    - Import acceptable changes to state
+    - Create tickets for policy violations
+    - Review configuration improvements with stakeholders
+  step5_prevent:
+    - Update IAM policies to restrict manual changes
+    - Implement approval workflows
+    - Add drift detection to CI/CD pipeline
+    - Document approved manual change procedures
+
+reporting_requirements:
+  daily_summary:
+    - Total drift instances detected
+    - Breakdown by category
+    - Remediation status
+    - Outstanding exceptions
+  incident_reports:
+    - Critical security drifts
+    - Policy violation trends
+    - Repeat offenders
+  metrics:
+    - Mean time to detect drift
+    - Mean time to remediate
+    - Drift by resource type
+    - Drift by team/owner

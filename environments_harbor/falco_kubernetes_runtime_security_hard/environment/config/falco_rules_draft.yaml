@@ -1,0 +1,61 @@
+- macro: container
+  condition: container.id != host
+
+- macro: spawned_process
+  condition: evt.type = execve and evt.dir = <
+
+- macro: open_read
+  condition: (evt.type = open or evt.type = openat) and evt.is_open_read = true and fd.typechar = 'f'
+
+- macro: open_write
+  condition: (evt.type = open or evt.type = openat) and evt.is_open_write = true and fd.typechar = 'f'
+
+- macro: bin_dir
+  condition: fd.name startswith /usr/bin/ or fd.name startswith /usr/sbin/
+
+- rule: Read SSH Private Keys
+  desc: Detect attempts to read SSH private key files
+  condition: open_read and (fd.name startswith /root/.ssh/ or fd.name contains /.ssh/) and fd.name contains id_rsa
+  output: "SSH private key access detected (user=%user.name process=%proc.name file=%fd.name)"
+  priority: CRITICAL
+
+- rule: Shell Spawned in Container
+  desc: Detect interactive shells spawned in running containers
+  condition: container and spawned_process and proc.name in (bash, sh, zsh) and proc.pname != containerd-shim
+  output: "Shell spawned in container (container=%container.name shell=%proc.name parent=%proc.pname)"
+  priority: WARNING
+
+- rule: Modify System Binary
+  desc: Detect modifications to system binaries
+  condition: open_write and bin_dir
+  output: "System binary modification detected (file=%fd.name process=%proc.name user=%user.name)"
+  priority: ERROR
+
+- rule: Suspicious Network Connection
+  desc: Detect outbound connections to malicious IP ranges
+  condition: evt.type = connect and fd.sip startswith 185.220 and evt.dir = <
+  output: "Connection to suspicious IP (ip=%fd.sip process=%proc.name"
+  priority: ERROR
+
+- rule: Container Privilege Escalation
+  desc: Detect privilege escalation via setuid calls
+  condition: container.spawned_process and evt.type in (setuid, setgid) and proc.name != sudo
+  output: "Privilege escalation attempt in container (container=%container.id process=%proc.name syscall=%evt.type)"
+  priority: CRITICAL
+
+- rule: Access Sensitive Files
+  desc: Monitor access to sensitive configuration files
+  condition: evt.type==open and fd.name contains /etc/shadow or fd.name contains /etc/passwd
+  output: "Sensitive file accessed (file=%fd.name process=%proc.name user=%user.name)"
+
+- rule: Write to Tmp Directory
+  desc: Detect writes to temporary directories
+  condition: open_write
+  output: "File written to system (file=%fd.name process=%proc.name)"
+  priority: WARNING
+
+- rule: Process Execution Monitoring
+  desc: Monitor all process executions in containers
+  condition: container and evt.type = execve
+  output: "Process executed in container (process=%proc.name container=%container.name cmdline=%proc.cmdline)"
+  priority: WARNING

@@ -1,0 +1,106 @@
+docker_images:
+  - image_name: tensorflow/tensorflow:2.12.0-gpu
+    registry: dockerhub
+    size_mb: 4250
+    runtime_requirements:
+      requires_gpu: true
+      cuda_version: '11.8'
+      min_docker_version: '20.10.0'
+      privileged_mode: false
+    network_requirements:
+      requires_internet: true
+      exposed_ports: [6006, 8888]
+      dns_servers: ['8.8.8.8', '8.8.4.4']
+    storage_requirements:
+      min_disk_gb: 25
+      writable_tmp: true
+    environment_defaults:
+      PYTHONUNBUFFERED: '1'
+      TF_CPP_MIN_LOG_LEVEL: '2'
+      CUDA_VISIBLE_DEVICES: '0'
+      TF_FORCE_GPU_ALLOW_GROWTH: 'true'
+    tags: ['ml', 'gpu', 'tensorflow']
+
+  - image_name: pytorch/pytorch:2.0.1-cuda11.7
+    registry: dockerhub
+    size_mb: 3890
+    runtime_requirements:
+      requires_gpu: true
+      cuda_version: '11.7'
+      min_docker_version: '20.10.0'
+      privileged_mode: false
+    network_requirements:
+      requires_internet: true
+      exposed_ports: [8080]
+      dns_servers: []
+    storage_requirements:
+      min_disk_gb: 30
+      writable_tmp: true
+    environment_defaults:
+      PYTHONUNBUFFERED: '1'
+      TORCH_HOME: '/tmp/torch'
+      CUDA_LAUNCH_BLOCKING: '0'
+    tags: ['ml', 'gpu', 'pytorch']
+
+  - image_name: python:3.11-slim
+    registry: dockerhub
+    size_mb: 520
+    runtime_requirements:
+      requires_gpu: false
+      cuda_version: null
+      min_docker_version: '19.03.0'
+      privileged_mode: false
+    network_requirements:
+      requires_internet: true
+      exposed_ports: [5000]
+      dns_servers: []
+    storage_requirements:
+      min_disk_gb: 10
+      writable_tmp: true
+    environment_defaults:
+      PYTHONUNBUFFERED: '1'
+      PYTHONDONTWRITEBYTECODE: '1'
+      PIP_NO_CACHE_DIR: '1'
+    tags: ['data-processing', 'python', 'lightweight']
+
+  - image_name: rocker/r-base:4.3.0
+    registry: dockerhub
+    size_mb: 1850
+    runtime_requirements:
+      requires_gpu: false
+      cuda_version: null
+      min_docker_version: '19.03.0'
+      privileged_mode: false
+    network_requirements:
+      requires_internet: true
+      exposed_ports: [8787]
+      dns_servers: ['1.1.1.1']
+    storage_requirements:
+      min_disk_gb: 15
+      writable_tmp: true
+    environment_defaults:
+      R_LIBS_USER: '/tmp/R_libs'
+      DISABLE_AUTH: 'true'
+      ROOT: 'true'
+    tags: ['statistics', 'r', 'analysis']
+
+  - image_name: nvidia/cuda:12.0.0-runtime
+    registry: dockerhub
+    size_mb: 2100
+    runtime_requirements:
+      requires_gpu: true
+      cuda_version: '12.0'
+      min_docker_version: '20.10.0'
+      privileged_mode: false
+    network_requirements:
+      requires_internet: false
+      exposed_ports: []
+      dns_servers: []
+    storage_requirements:
+      min_disk_gb: 20
+      writable_tmp: true
+    environment_defaults:
+      NVIDIA_VISIBLE_DEVICES: 'all'
+      NVIDIA_DRIVER_CAPABILITIES: 'compute,utility'
+      LD_LIBRARY_PATH: '/usr/local/cuda/lib64'
+    tags: ['cuda', 'gpu', 'runtime']

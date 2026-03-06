@@ -1,0 +1,230 @@
+<abi-descriptor version="1.2.3">
+  <!-- Connection Management Functions -->
+  <function name="middleware_init" return_type="int">
+    <parameter name="config" type="struct Config*"/>
+  </function>
+  
+  <function name="middleware_connect" return_type="int">
+    <parameter name="host" type="const char*"/>
+    <parameter name="port" type="uint16_t"/>
+    <parameter name="timeout" type="uint32_t"/>
+  </function>
+  
+  <function name="middleware_disconnect" return_type="void">
+    <parameter name="conn" type="struct Connection*"/>
+  </function>
+  
+  <function name="middleware_close" return_type="void">
+    <parameter name="conn" type="struct Connection*"/>
+  </function>
+  
+  <function name="middleware_reconnect" return_type="int">
+    <parameter name="conn" type="struct Connection*"/>
+    <parameter name="timeout" type="uint32_t"/>
+  </function>
+  
+  <!-- Data Processing Functions -->
+  <function name="middleware_send" return_type="ssize_t">
+    <parameter name="conn" type="struct Connection*"/>
+    <parameter name="data" type="const void*"/>
+    <parameter name="size" type="size_t"/>
+  </function>
+  
+  <function name="middleware_receive" return_type="ssize_t">
+    <parameter name="conn" type="struct Connection*"/>
+    <parameter name="buffer" type="void*"/>
+    <parameter name="size" type="size_t"/>
+  </function>
+  
+  <function name="middleware_process" return_type="int">
+    <parameter name="request" type="struct Request*"/>
+    <parameter name="response" type="struct Response*"/>
+  </function>
+  
+  <function name="middleware_transform" return_type="int">
+    <parameter name="input" type="const void*"/>
+    <parameter name="input_size" type="size_t"/>
+    <parameter name="output" type="void*"/>
+    <parameter name="output_size" type="size_t*"/>
+  </function>
+  
+  <function name="middleware_batch_process" return_type="int">
+    <parameter name="requests" type="struct Request**"/>
+    <parameter name="count" type="size_t"/>
+    <parameter name="callback" type="ProcessCallback"/>
+  </function>
+  
+  <!-- Configuration Functions -->
+  <function name="middleware_set_config" return_type="int">
+    <parameter name="conn" type="struct Connection*"/>
+    <parameter name="key" type="const char*"/>
+    <parameter name="value" type="const char*"/>
+  </function>
+  
+  <function name="middleware_get_config" return_type="const char*">
+    <parameter name="conn" type="struct Connection*"/>
+    <parameter name="key" type="const char*"/>
+  </function>
+  
+  <function name="middleware_validate_config" return_type="int">
+    <parameter name="config" type="struct Config*"/>
+  </function>
+  
+  <function name="middleware_load_config" return_type="struct Config*">
+    <parameter name="filename" type="const char*"/>
+  </function>
+  
+  <function name="middleware_save_config" return_type="int">
+    <parameter name="config" type="struct Config*"/>
+    <parameter name="filename" type="const char*"/>
+  </function>
+  
+  <!-- Error Handling Functions -->
+  <function name="middleware_get_error" return_type="const char*">
+    <parameter name="conn" type="struct Connection*"/>
+  </function>
+  
+  <function name="middleware_clear_error" return_type="void">
+    <parameter name="conn" type="struct Connection*"/>
+  </function>
+  
+  <function name="middleware_get_error_code" return_type="int">
+    <parameter name="conn" type="struct Connection*"/>
+  </function>
+  
+  <function name="middleware_set_error_handler" return_type="void">
+    <parameter name="handler" type="ErrorCallback"/>
+    <parameter name="user_data" type="void*"/>
+  </function>
+  
+  <!-- Memory Management Functions -->
+  <function name="middleware_alloc_connection" return_type="struct Connection*"/>
+  
+  <function name="middleware_free_connection" return_type="void">
+    <parameter name="conn" type="struct Connection*"/>
+  </function>
+  
+  <function name="middleware_alloc_request" return_type="struct Request*">
+    <parameter name="size" type="size_t"/>
+  </function>
+  
+  <function name="middleware_free_request" return_type="void">
+    <parameter name="request" type="struct Request*"/>
+  </function>
+  
+  <function name="middleware_alloc_response" return_type="struct Response*">
+    <parameter name="size" type="size_t"/>
+  </function>
+  
+  <function name="middleware_free_response" return_type="void">
+    <parameter name="response" type="struct Response*"/>
+  </function>
+  
+  <!-- Status and Monitoring Functions -->
+  <function name="middleware_get_status" return_type="int">
+    <parameter name="conn" type="struct Connection*"/>
+  </function>
+  
+  <function name="middleware_is_connected" return_type="int">
+    <parameter name="conn" type="struct Connection*"/>
+  </function>
+  
+  <function name="middleware_get_stats" return_type="void">
+    <parameter name="conn" type="struct Connection*"/>
+    <parameter name="stats" type="struct Statistics*"/>
+  </function>
+  
+  <function name="middleware_reset_stats" return_type="void">
+    <parameter name="conn" type="struct Connection*"/>
+  </function>
+  
+  <!-- Utility Functions -->
+  <function name="middleware_version" return_type="const char*"/>
+  
+  <function name="middleware_set_log_level" return_type="void">
+    <parameter name="level" type="int"/>
+  </function>
+  
+  <function name="middleware_set_timeout" return_type="int">
+    <parameter name="conn" type="struct Connection*"/>
+    <parameter name="timeout_ms" type="uint32_t"/>
+  </function>
+  
+  <function name="middleware_get_timeout" return_type="uint32_t">
+    <parameter name="conn" type="struct Connection*"/>
+  </function>
+  
+  <function name="middleware_clone_connection" return_type="struct Connection*">
+    <parameter name="conn" type="struct Connection*"/>
+  </function>
+  
+  <!-- Struct Definitions -->
+  <struct name="Connection">
+    <field name="fd" type="int" offset="0"/>
+    <field name="host" type="char*" offset="8"/>
+    <field name="port" type="uint16_t" offset="16"/>
+    <field name="state" type="int" offset="20"/>
+    <field name="error_code" type="int" offset="24"/>
+  </struct>
+  
+  <struct name="Request">
+    <field name="id" type="uint64_t" offset="0"/>
+    <field name="type" type="int" offset="8"/>
+    <field name="data" type="void*" offset="16"/>
+    <field name="size" type="size_t" offset="24"/>
+    <field name="timestamp" type="uint64_t" offset="32"/>
+  </struct>
+  
+  <struct name="Response">
+    <field name="id" type="uint64_t" offset="0"/>
+    <field name="status" type="int" offset="8"/>
+    <field name="data" type="void*" offset="16"/>
+    <field name="size" type="size_t" offset="24"/>
+    <field name="error_msg" type="char*" offset="32"/>
+  </struct>
+  
+  <struct name="Config">
+    <field name="max_connections" type="int" offset="0"/>
+    <field name="buffer_size" type="size_t" offset="8"/>
+    <field name="timeout" type="uint32_t" offset="16"/>
+    <field name="log_level" type="int" offset="20"/>
+    <field name="flags" type="uint32_t" offset="24"/>
+  </struct>
+  
+  <struct name="Statistics">
+    <field name="bytes_sent" type="uint64_t" offset="0"/>
+    <field name="bytes_received" type="uint64_t" offset="8"/>
+    <field name="requests_processed" type="uint64_t" offset="16"/>
+    <field name="errors" type="uint64_t" offset="24"/>
+  </struct>
+  
+  <struct name="ErrorInfo">
+    <field name="code" type="int" offset="0"/>
+    <field name="message" type="char*" offset="8"/>
+    <field name="timestamp" type="uint64_t" offset="16"/>
+  </struct>
+  
+  <struct name="Buffer">
+    <field name="data" type="void*" offset="0"/>
+    <field name="size" type="size_t" offset="8"/>
+    <field name="capacity" type="size_t" offset="16"/>
+  </struct>
+  
+  <struct name="ConnectionPool">
+    <field name="connections" type="struct Connection**" offset="0"/>
+    <field name="count" type="size_t" offset="8"/>
+    <field name="capacity" type="size_t" offset="16"/>
+  </struct>
+  
+  <!-- Type Definitions -->
+  <typedef name="ProcessCallback" base_type="int (*)(struct Request*, struct Response*)"/>
+  <typedef name="ErrorCallback" base_type="void (*)(int, const char*, void*)"/>
+  <typedef name="LogCallback" base_type="void (*)(int, const char*)"/>
+  <typedef name="ConnectionHandle" base_type="struct Connection*"/>
+  <typedef name="RequestHandle" base_type="struct Request*"/>
+  <typedef name="ResponseHandle" base_type="struct Response*"/>
+  <typedef name="ConfigHandle" base_type="struct Config*"/>
+  <typedef name="StatusCode" base_type="int"/>
+  <typedef name="ErrorCode" base_type="int"/>
+  <typedef name="TimeoutValue" base_type="uint32_t"/>
+</abi-descriptor>

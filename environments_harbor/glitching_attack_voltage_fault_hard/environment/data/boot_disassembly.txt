@@ -1,0 +1,85 @@
+1     0x08001000    push {r4, r5, r6, r7, lr}
+2     0x08001004    sub sp, sp, #0x20
+3     0x08001008    mov r4, r0
+4     0x0800100c    mov r5, r1
+5     0x08001010    ldr r0, =0x20004000
+6     0x08001014    ldr r1, =0x200
+7     0x08001018    bl memset
+8     0x0800101c    ldr r0, =flash_signature_addr
+9     0x08001020    ldr r6, [r0]
+10    0x08001024    cmp r6, #0
+11    0x08001028    beq error_handler
+12    0x0800102c    mov r0, r6
+13    0x08001030    bl validate_signature_format
+14    0x08001034    cmp r0, #0
+15    0x08001038    beq error_handler
+16    0x0800103c    ldr r0, =0x20004000
+17    0x08001040    mov r1, r6
+18    0x08001044    ldr r2, =0x100
+19    0x08001048    bl memcpy
+20    0x0800104c    ldr r0, =public_key_addr
+21    0x08001050    ldr r7, [r0]
+22    0x08001054    mov r0, r7
+23    0x08001058    bl validate_public_key
+24    0x0800105c    cmp r0, #1
+25    0x08001060    bne error_handler
+26    0x08001064    mov r0, r4
+27    0x08001068    mov r1, r5
+28    0x0800106c    bl calculate_image_hash
+29    0x08001070    mov r5, r0
+30    0x08001074    cmp r5, #0
+31    0x08001078    beq error_handler
+32    0x0800107c    str r5, [sp, #0x10]
+33    0x08001080    ldr r0, =crypto_context
+34    0x08001084    bl init_crypto_engine
+35    0x08001088    cmp r0, #0
+36    0x0800108c    bne error_handler
+37    0x08001090    ldr r0, =crypto_context
+38    0x08001094    mov r1, r7
+39    0x08001098    ldr r2, =0x20004000
+40    0x0800109c    mov r3, r5
+41    0x080010a0    bl verify_signature
+42    0x080010a4    mov r6, r0
+43    0x080010a8    str r6, [sp, #0x14]
+44    0x080010ac    ldr r0, =crypto_context
+45    0x080010b0    bl cleanup_crypto_engine
+46    0x080010b4    mov r0, r5
+47    0x080010b8    bl free_hash_buffer
+48    0x080010bc    ldr r0, [sp, #0x14]
+49    0x080010c0    cmp r0, #0
+50    0x080010c4    bne 0x080010d8
+51    0x080010c8    ldr r0, =auth_failed_msg
+52    0x080010cc    bl log_error
+53    0x080010d0    b error_handler
+54    0x080010d4    nop
+55    0x080010d8    ldr r0, =auth_success_msg
+56    0x080010dc    bl log_info
+57    0x080010e0    mov r0, #1
+58    0x080010e4    str r0, [sp, #0x1c]
+59    0x080010e8    ldr r1, =boot_flags_addr
+60    0x080010ec    str r0, [r1]
+61    0x080010f0    ldr r0, =0x08002000
+62    0x080010f4    ldr r1, [r0]
+63    0x080010f8    cmp r1, #0
+64    0x080010fc    beq error_handler
+65    0x08001100    mov r0, r4
+66    0x08001104    bl setup_secure_environment
+67    0x08001108    ldr r0, =interrupt_vector_table
+68    0x0800110c    bl configure_ivt
+69    0x08001110    bl enable_mpu
+70    0x08001114    bl enable_cache
+71    0x08001118    ldr r0, [sp, #0x1c]
+72    0x0800111c    add sp, sp, #0x20
+73    0x08001120    pop {r4, r5, r6, r7, pc}
+74    0x08001124    nop
+75    0x08001128    error_handler:
+76    0x08001128    ldr r0, =error_led_gpio
+77    0x0800112c    mov r1, #1
+78    0x08001130    bl gpio_write
+79    0x08001134    ldr r0, =watchdog_addr
+80    0x08001138    mov r1, #0
+81    0x0800113c    str r1, [r0]
+82    0x08001140    halt_loop:
+83    0x08001140    wfi
+84    0x08001144    b halt_loop
+85    0x08001148    nop

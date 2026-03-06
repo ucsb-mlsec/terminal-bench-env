@@ -1,0 +1,178 @@
+# Census Sync Configuration Schema Documentation
+# This file documents the correct structure and field names for Census sync configurations
+
+version: "1.0"
+description: "Schema definition for Census reverse ETL sync configurations"
+
+# Required Configuration Structure
+configuration_structure:
+  format: "JSON"
+  description: "Census sync configurations must be valid JSON with the following structure"
+  
+  required_fields:
+    - sync_name
+    - destination
+    - mappings
+  
+  schema:
+    sync_name:
+      type: "string"
+      description: "Unique identifier for the sync job"
+      required: true
+      example: "Customer Engagement Sync to Salesforce"
+    
+    destination:
+      type: "string"
+      description: "Target system for the sync"
+      required: true
+      valid_values:
+        - "Salesforce"
+      example: "Salesforce"
+    
+    mappings:
+      type: "array"
+      description: "Array of field mapping objects from source to destination"
+      required: true
+      min_items: 1
+      
+      mapping_object:
+        type: "object"
+        required_properties:
+          - source_field
+          - destination_field
+        
+        properties:
+          source_field:
+            type: "string"
+            description: "Field name from the data warehouse source table"
+          
+          destination_field:
+            type: "string"
+            description: "Field API name in the destination system (Salesforce)"
+
+# Data Warehouse Source Fields
+source_fields:
+  description: "Available fields from the data warehouse customer engagement table"
+  
+  fields:
+    customer_id:
+      type: "string"
+      description: "Primary identifier for customer records"
+      required: true
+      usage: "Maps to Salesforce external ID field for matching records"
+    
+    engagement_score:
+      type: "numeric"
+      description: "Customer engagement score calculated from various interactions"
+      required: true
+      usage: "Syncs to Salesforce engagement score custom field"
+    
+    last_activity_date:
+      type: "timestamp"
+      description: "Timestamp of the customer's most recent activity"
+      required: true
+      usage: "Syncs to Salesforce last activity date custom field"
+
+# Salesforce Destination Fields
+destination_fields:
+  description: "Salesforce Contact object custom field API names"
+  object: "Contact"
+  
+  fields:
+    External_ID__c:
+      type: "string"
+      description: "External identifier custom field for matching records"
+      required: true
+      maps_from: "customer_id"
+      notes: "Used as unique identifier for upsert operations"
+    
+    Engagement_Score__c:
+      type: "number"
+      description: "Engagement score custom field on Contact object"
+      required: true
+      maps_from: "engagement_score"
+      notes: "Stores calculated engagement score value"
+    
+    Last_Activity_Date__c:
+      type: "datetime"
+      description: "Last activity date custom field on Contact object"
+      required: true
+      maps_from: "last_activity_date"
+      notes: "Tracks most recent customer activity timestamp"
+
+# Required Field Mappings
+required_mappings:
+  description: "The three required field mappings for the customer engagement sync"
+  
+  mappings:
+    - mapping_id: 1
+      source_field: "customer_id"
+      destination_field: "External_ID__c"
+      description: "Customer identifier mapping for record matching"
+    
+    - mapping_id: 2
+      source_field: "engagement_score"
+      destination_field: "Engagement_Score__c"
+      description: "Engagement score data sync"
+    
+    - mapping_id: 3
+      source_field: "last_activity_date"
+      destination_field: "Last_Activity_Date__c"
+      description: "Last activity timestamp sync"
+
+# Configuration Example
+example_configuration:
+  description: "Complete example of a valid Census sync configuration"
+  
+  json_example: |
+    {
+      "sync_name": "Customer Engagement Sync to Salesforce",
+      "destination": "Salesforce",
+      "mappings": [
+        {
+          "source_field": "customer_id",
+          "destination_field": "External_ID__c"
+        },
+        {
+          "source_field": "engagement_score",
+          "destination_field": "Engagement_Score__c"
+        },
+        {
+          "source_field": "last_activity_date",
+          "destination_field": "Last_Activity_Date__c"
+        }
+      ]
+    }
+
+# Common Configuration Errors
+common_errors:
+  - error: "Invalid JSON syntax"
+    description: "Missing commas, quotes, or brackets"
+    solution: "Validate JSON structure using a JSON validator"
+  
+  - error: "Incorrect field names"
+    description: "Misspelled or incorrect source/destination field names"
+    solution: "Reference this schema for correct field names"
+  
+  - error: "Missing required parameters"
+    description: "sync_name, destination, or mappings not included"
+    solution: "Ensure all required fields are present in configuration"
+  
+  - error: "Invalid destination value"
+    description: "Destination set to incorrect value"
+    solution: "Destination must be exactly 'Salesforce'"
+  
+  - error: "Incomplete mappings"
+    description: "Not all three required field mappings present"
+    solution: "Include all three mappings: customer_id, engagement_score, last_activity_date"
+
+# Validation Checklist
+validation_checklist:
+  - item: "Configuration is valid JSON format"
+  - item: "sync_name field is present and non-empty"
+  - item: "destination field is set to 'Salesforce'"
+  - item: "mappings array contains exactly 3 mapping objects"
+  - item: "customer_id maps to External_ID__c"
+  - item: "engagement_score maps to Engagement_Score__c"
+  - item: "last_activity_date maps to Last_Activity_Date__c"
+  - item: "All source_field and destination_field properties are correctly spelled"

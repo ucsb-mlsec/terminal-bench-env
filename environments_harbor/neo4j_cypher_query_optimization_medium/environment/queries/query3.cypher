@@ -1,0 +1,1 @@
+MATCH (u1:User)-[:FOLLOWS]->(u2:User)-[:FOLLOWS]->(u3:User), (u3)-[:FOLLOWS]->(u1) WHERE u1.id < u2.id AND u2.id < u3.id AND u1.city = 'New York' AND u2.city = 'New York' AND u3.city = 'New York' RETURN u1.name, u2.name, u3.name, u1.id, u2.id, u3.id ORDER BY u1.id, u2.id, u3.id LIMIT 100;

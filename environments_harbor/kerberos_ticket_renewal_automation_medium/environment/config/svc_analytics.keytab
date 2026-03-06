@@ -1,0 +1,132 @@
+#!/bin/bash
+
+#########################################################
+# Kerberos Ticket Renewal Script
+# Purpose: Automated renewal of Kerberos tickets for service accounts
+# Location: /opt/kerberos/ticket_renewal.sh
+#########################################################
+
+# Load configuration
+CONFIG_FILE="/opt/kerberos/renewal.conf"
+
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "ERROR: Configuration file not found at $CONFIG_FILE" >&2
+    exit 1
+fi
+
+# Source configuration
+source "$CONFIG_FILE"
+
+# Validate required variables
+if [ -z "$SERVICE_ACCOUNT" ] || [ -z "$KEYTAB_PATH" ] || [ -z "$REALM" ] || [ -z "$RENEWAL_INTERVAL" ]; then
+    echo "ERROR: Missing required configuration variables" >&2
+    exit 1
+fi
+
+# Set log file location
+LOG_FILE="/var/log/kerberos_renewal.log"
+PRINCIPAL="${SERVICE_ACCOUNT}@${REALM}"
+
+# Function to log messages
+log_message() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" | tee -a "$LOG_FILE"
+}
+
+# Function to check if ticket exists and is valid
+check_ticket() {
+    klist -s 2>/dev/null
+    return $?
+}
+
+# Function to get ticket or renew it
+initialize_ticket() {
+    log_message "Initializing Kerberos ticket for $PRINCIPAL"
+    
+    if [ ! -f "$KEYTAB_PATH" ]; then
+        log_message "ERROR: Keytab file not found at $KEYTAB_PATH"
+        return 1
+    fi
+    
+    kinit -kt "$KEYTAB_PATH" "$PRINCIPAL" 2>&1 | tee -a "$LOG_FILE"
+    
+    if [ $? -eq 0 ]; then
+        log_message "SUCCESS: Ticket obtained successfully"
+        return 0
+    else
+        log_message "ERROR: Failed to obtain ticket"
+        return 1
+    fi
+}
+
+# Function to renew existing ticket
+renew_ticket() {
+    log_message "Attempting to renew Kerberos ticket"
+    
+    # Try to renew existing ticket first
+    kinit -R 2>/dev/null
+    
+    if [ $? -eq 0 ]; then
+        log_message "SUCCESS: Ticket renewed successfully"
+        return 0
+    else
+        log_message "WARNING: Renewal failed, re-initializing ticket"
+        initialize_ticket
+        return $?
+    fi
+}
+
+# Function to display current ticket status
+show_ticket_status() {
+    log_message "Current ticket status:"
+    klist 2>&1 | tee -a "$LOG_FILE"
+}
+
+# Main execution function
+main() {
+    log_message "========================================="
+    log_message "Kerberos Ticket Renewal Service Starting"
+    log_message "Service Account: $SERVICE_ACCOUNT"
+    log_message "Realm: $REALM"
+    log_message "Renewal Interval: $RENEWAL_INTERVAL seconds"
+    log_message "========================================="
+    
+    # Initial ticket acquisition
+    if ! check_ticket; then
+        log_message "No valid ticket found, initializing..."
+        if ! initialize_ticket; then
+            log_message "FATAL: Failed to initialize ticket on startup"
+            exit 1
+        fi
+    else
+        log_message "Valid ticket already exists"
+    fi
+    
+    show_ticket_status
+    
+    # Continuous renewal loop
+    while true; do
+        sleep "$RENEWAL_INTERVAL"
+        
+        log_message "Renewal interval elapsed, checking ticket status..."
+        
+        if check_ticket; then
+            renew_ticket
+        else
+            log_message "WARNING: No valid ticket found, re-initializing..."
+            initialize_ticket
+        fi
+        
+        if [ $? -ne 0 ]; then
+            log_message "ERROR: Ticket renewal/initialization failed, will retry in $RENEWAL_INTERVAL seconds"
+        fi
+        
+        # Periodic status display
+        show_ticket_status
+    done
+}
+
+# Trap signals for graceful shutdown
+trap 'log_message "Received termination signal, shutting down..."; exit 0' SIGTERM SIGINT
+
+# Start the main process
+main

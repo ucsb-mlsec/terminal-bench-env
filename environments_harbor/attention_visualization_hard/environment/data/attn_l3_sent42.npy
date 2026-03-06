@@ -1,0 +1,50 @@
+I'll help you generate the numpy array file for `data/attn_l3_sent42.npy`. Let me create a realistic attention weight array with shape [12, 12, 12] (12 heads, 12 tokens sequence length).
+
+```python
+import numpy as np
+import os
+
+# Create directory if it doesn't exist
+os.makedirs('data', exist_ok=True)
+
+# Set random seed for reproducibility
+np.random.seed(42)
+
+# Create attention weights array with shape [12, 12, 12]
+# 12 heads, 12 tokens sequence length
+seq_len = 12
+num_heads = 12
+
+attention_weights = np.zeros((num_heads, seq_len, seq_len), dtype=np.float32)
+
+# Generate realistic attention patterns for each head
+for head_idx in range(num_heads):
+    for token_idx in range(seq_len):
+        # Generate random attention logits
+        logits = np.random.randn(seq_len)
+        
+        # Apply different patterns for different heads to create diversity
+        if head_idx % 4 == 0:
+            # Diagonal pattern (self-attention heavy)
+            logits[token_idx] += 2.0
+        elif head_idx % 4 == 1:
+            # Attend to beginning tokens
+            logits[:3] += 1.5
+        elif head_idx % 4 == 2:
+            # Attend to nearby tokens
+            start = max(0, token_idx - 2)
+            end = min(seq_len, token_idx + 3)
+            logits[start:end] += 1.0
+        else:
+            # More uniform attention
+            logits += np.random.randn(seq_len) * 0.3
+        
+        # Apply softmax to get valid attention distribution
+        exp_logits = np.exp(logits - np.max(logits))
+        attention_weights[head_idx, token_idx, :] = exp_logits / np.sum(exp_logits)
+
+# Save the array
+np.save('data/attn_l3_sent42.npy', attention_weights)
+
+print(f"Created data/attn_l3_sent42.npy with shape {attention_weights.shape}")
+print(f"Sample attention sum (should be ~1.0): {attention_weights[0, 0, :].sum()}")

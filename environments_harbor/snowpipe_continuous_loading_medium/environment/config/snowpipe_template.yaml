@@ -1,0 +1,301 @@
+-- ============================================================================
+-- Snowpipe Setup Script for Continuous Data Loading from S3
+-- ============================================================================
+-- Purpose: Configure Snowpipe for automated ingestion of customer transaction
+--          data from S3 bucket into Snowflake
+-- Source: s3://company-data-lake/transactions/incoming/
+-- Data Format: Pipe-delimited CSV with headers
+-- ============================================================================
+
+-- ============================================================================
+-- Section 1: Database and Schema Setup
+-- ============================================================================
+
+CREATE DATABASE IF NOT EXISTS ANALYTICS_DB
+    COMMENT = 'Analytics database for transaction data processing';
+
+USE DATABASE ANALYTICS_DB;
+
+CREATE SCHEMA IF NOT EXISTS ANALYTICS_DB.STAGING
+    COMMENT = 'Staging schema for incoming transaction data';
+
+USE SCHEMA ANALYTICS_DB.STAGING;
+
+-- ============================================================================
+-- Section 2: Table Definition
+-- ============================================================================
+-- Creates the target table for transaction records with appropriate data types
+-- and constraints to handle incoming CSV data structure
+-- ============================================================================
+
+CREATE OR REPLACE TABLE ANALYTICS_DB.STAGING.TRANSACTIONS (
+    transaction_id VARCHAR(50) NOT NULL,
+    customer_id VARCHAR(50) NOT NULL,
+    transaction_date TIMESTAMP_NTZ,
+    transaction_amount DECIMAL(18,2),
+    transaction_type VARCHAR(50),
+    merchant_name VARCHAR(200),
+    merchant_category VARCHAR(100),
+    payment_method VARCHAR(50),
+    transaction_status VARCHAR(30),
+    currency_code VARCHAR(3),
+    country_code VARCHAR(2),
+    device_type VARCHAR(50),
+    ip_address VARCHAR(45),
+    session_id VARCHAR(100),
+    created_timestamp TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),
+    loaded_timestamp TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),
+    source_file_name VARCHAR(500),
+    CONSTRAINT pk_transactions PRIMARY KEY (transaction_id)
+)
+COMMENT = 'Customer transaction records loaded via Snowpipe from S3';
+
+-- ============================================================================
+-- Section 3: Storage Integration Setup
+-- ============================================================================
+-- Creates storage integration for secure S3 access without embedded credentials
+-- Note: This requires ACCOUNTADMIN privileges
+-- ============================================================================
+
+CREATE OR REPLACE STORAGE INTEGRATION S3_TRANSACTION_INTEGRATION
+    TYPE = EXTERNAL_STAGE
+    STORAGE_PROVIDER = 'S3'
+    ENABLED = TRUE
+    STORAGE_AWS_ROLE_ARN = 'arn:aws:iam::123456789012:role/snowflake-s3-access-role'
+    STORAGE_ALLOWED_LOCATIONS = ('s3://company-data-lake/transactions/incoming/')
+    COMMENT = 'Storage integration for transaction data ingestion from S3';
+
+-- Grant usage on integration to appropriate role
+GRANT USAGE ON INTEGRATION S3_TRANSACTION_INTEGRATION TO ROLE SYSADMIN;
+
+-- ============================================================================
+-- Section 4: Stage Creation
+-- ============================================================================
+-- Creates external stage pointing to S3 bucket location
+-- ============================================================================
+
+CREATE OR REPLACE STAGE ANALYTICS_DB.STAGING.S3_TRANSACTION_STAGE
+    URL = 's3://company-data-lake/transactions/incoming/'
+    STORAGE_INTEGRATION = S3_TRANSACTION_INTEGRATION
+    DIRECTORY = (ENABLE = TRUE AUTO_REFRESH = TRUE)
+    COMMENT = 'External stage for S3 transaction files';
+
+-- ============================================================================
+-- Section 5: File Format Specification
+-- ============================================================================
+-- Defines CSV file format with pipe delimiter and error handling
+-- ============================================================================
+
+CREATE OR REPLACE FILE FORMAT ANALYTICS_DB.STAGING.CSV_PIPE_FORMAT
+    TYPE = 'CSV'
+    FIELD_DELIMITER = '|'
+    SKIP_HEADER = 1
+    FIELD_OPTIONALLY_ENCLOSED_BY = '"'
+    ESCAPE_UNENCLOSED_FIELD = 'NONE'
+    ENCODING = 'UTF8'
+    DATE_FORMAT = 'AUTO'
+    TIMESTAMP_FORMAT = 'YYYY-MM-DD HH24:MI:SS'
+    NULL_IF = ('NULL', 'null', '', '\\N')
+    COMPRESSION = 'AUTO'
+    ERROR_ON_COLUMN_COUNT_MISMATCH = FALSE
+    TRIM_SPACE = TRUE
+    EMPTY_FIELD_AS_NULL = TRUE
+    SKIP_BLANK_LINES = TRUE
+    COMMENT = 'Pipe-delimited CSV format for transaction files';
+
+-- ============================================================================
+-- Section 6: Error Logging Table
+-- ============================================================================
+-- Creates table to capture records that fail validation or loading
+-- ============================================================================
+
+CREATE OR REPLACE TABLE ANALYTICS_DB.STAGING.TRANSACTION_LOAD_ERRORS (
+    error_id NUMBER AUTOINCREMENT,
+    error_timestamp TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),
+    file_name VARCHAR(500),
+    row_number NUMBER,
+    error_message VARCHAR(5000),
+    rejected_record VARCHAR(16777216),
+    CONSTRAINT pk_load_errors PRIMARY KEY (error_id)
+)
+COMMENT = 'Error log for failed transaction loads';
+
+-- ============================================================================
+-- Section 7: Snowpipe Creation
+-- ============================================================================
+-- Creates Snowpipe with auto-ingest enabled for continuous data loading
+-- Performance target: Process files within 1 minute of arrival
+-- Max file size: 100MB
+-- ============================================================================
+
+CREATE OR REPLACE PIPE ANALYTICS_DB.STAGING.TRANSACTION_PIPE
+    AUTO_INGEST = TRUE
+    AWS_SNS_TOPIC = 'arn:aws:sns:us-east-1:123456789012:snowflake-s3-notification'
+    COMMENT = 'Automated pipe for continuous transaction data ingestion'
+AS
+COPY INTO ANALYTICS_DB.STAGING.TRANSACTIONS (
+    transaction_id,
+    customer_id,
+    transaction_date,
+    transaction_amount,
+    transaction_type,
+    merchant_name,
+    merchant_category,
+    payment_method,
+    transaction_status,
+    currency_code,
+    country_code,
+    device_type,
+    ip_address,
+    session_id,
+    source_file_name
+)
+FROM (
+    SELECT 
+        $1::VARCHAR(50) AS transaction_id,
+        $2::VARCHAR(50) AS customer_id,
+        TO_TIMESTAMP_NTZ($3, 'YYYY-MM-DD HH24:MI:SS') AS transaction_date,
+        TRY_TO_DECIMAL($4, 18, 2) AS transaction_amount,
+        $5::VARCHAR(50) AS transaction_type,
+        $6::VARCHAR(200) AS merchant_name,
+        $7::VARCHAR(100) AS merchant_category,
+        $8::VARCHAR(50) AS payment_method,
+        $9::VARCHAR(30) AS transaction_status,
+        $10::VARCHAR(3) AS currency_code,
+        $11::VARCHAR(2) AS country_code,
+        $12::VARCHAR(50) AS device_type,
+        $13::VARCHAR(45) AS ip_address,
+        $14::VARCHAR(100) AS session_id,
+        METADATA$FILENAME AS source_file_name
+    FROM @ANALYTICS_DB.STAGING.S3_TRANSACTION_STAGE
+)
+FILE_FORMAT = (FORMAT_NAME = 'ANALYTICS_DB.STAGING.CSV_PIPE_FORMAT')
+ON_ERROR = 'CONTINUE'
+SIZE_LIMIT = 104857600
+PURGE = FALSE
+FORCE = FALSE;
+
+-- ============================================================================
+-- Section 8: Monitoring Views
+-- ============================================================================
+-- Creates views for monitoring Snowpipe performance and status
+-- ============================================================================
+
+CREATE OR REPLACE VIEW ANALYTICS_DB.STAGING.V_PIPE_STATUS AS
+SELECT 
+    PIPE_NAME,
+    PIPE_SCHEMA,
+    DEFINITION,
+    OWNER,
+    NOTIFICATION_CHANNEL_NAME,
+    COMMENT
+FROM TABLE(INFORMATION_SCHEMA.PIPES)
+WHERE PIPE_SCHEMA = 'STAGING'
+    AND PIPE_NAME = 'TRANSACTION_PIPE';
+
+CREATE OR REPLACE VIEW ANALYTICS_DB.STAGING.V_PIPE_LOAD_HISTORY AS
+SELECT 
+    FILE_NAME,
+    STAGE_LOCATION,
+    LAST_LOAD_TIME,
+    ROW_COUNT,
+    ROW_PARSED,
+    FILE_SIZE,
+    FIRST_ERROR_MESSAGE,
+    FIRST_ERROR_LINE_NUMBER,
+    FIRST_ERROR_CHARACTER_POS,
+    FIRST_ERROR_COLUMN_NAME,
+    ERROR_COUNT,
+    ERROR_LIMIT,
+    STATUS,
+    PIPE_RECEIVED_TIME
+FROM TABLE(INFORMATION_SCHEMA.COPY_HISTORY(
+    TABLE_NAME => 'ANALYTICS_DB.STAGING.TRANSACTIONS',
+    START_TIME => DATEADD(DAYS, -7, CURRENT_TIMESTAMP())
+))
+ORDER BY LAST_LOAD_TIME DESC;
+
+-- ============================================================================
+-- Section 9: Grant Permissions
+-- ============================================================================
+-- Grants necessary permissions for Snowpipe operation
+-- ============================================================================
+
+GRANT USAGE ON DATABASE ANALYTICS_DB TO ROLE SYSADMIN;
+GRANT USAGE ON SCHEMA ANALYTICS_DB.STAGING TO ROLE SYSADMIN;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE ANALYTICS_DB.STAGING.TRANSACTIONS TO ROLE SYSADMIN;
+GRANT SELECT, INSERT ON TABLE ANALYTICS_DB.STAGING.TRANSACTION_LOAD_ERRORS TO ROLE SYSADMIN;
+GRANT USAGE ON STAGE ANALYTICS_DB.STAGING.S3_TRANSACTION_STAGE TO ROLE SYSADMIN;
+GRANT USAGE ON FILE FORMAT ANALYTICS_DB.STAGING.CSV_PIPE_FORMAT TO ROLE SYSADMIN;
+GRANT OWNERSHIP ON PIPE ANALYTICS_DB.STAGING.TRANSACTION_PIPE TO ROLE SYSADMIN;
+GRANT OPERATE ON PIPE ANALYTICS_DB.STAGING.TRANSACTION_PIPE TO ROLE SYSADMIN;
+
+-- ============================================================================
+-- Section 10: Verification Queries
+-- ============================================================================
+-- Useful queries for validating the setup and monitoring operations
+-- ============================================================================
+
+-- Show pipe configuration
+SHOW PIPES IN SCHEMA ANALYTICS_DB.STAGING;
+
+-- Describe pipe details
+DESC PIPE ANALYTICS_DB.STAGING.TRANSACTION_PIPE;
+
+-- Check pipe status
+SELECT SYSTEM$PIPE_STATUS('ANALYTICS_DB.STAGING.TRANSACTION_PIPE');
+
+-- View recent load history
+SELECT * FROM ANALYTICS_DB.STAGING.V_PIPE_LOAD_HISTORY LIMIT 10;
+
+-- Check for loading errors
+SELECT 
+    FILE_NAME,
+    FIRST_ERROR_MESSAGE,
+    ERROR_COUNT,
+    STATUS
+FROM ANALYTICS_DB.STAGING.V_PIPE_LOAD_HISTORY
+WHERE STATUS = 'LOAD_FAILED'
+ORDER BY LAST_LOAD_TIME DESC;
+
+-- Count records loaded in last hour
+SELECT COUNT(*) AS records_loaded_last_hour
+FROM ANALYTICS_DB.STAGING.TRANSACTIONS
+WHERE loaded_timestamp >= DATEADD(HOUR, -1, CURRENT_TIMESTAMP());
+
+-- Validate data quality
+SELECT 
+    transaction_status,
+    COUNT(*) AS count,
+    MIN(transaction_date) AS earliest_transaction,
+    MAX(transaction_date) AS latest_transaction,
+    SUM(transaction_amount) AS total_amount
+FROM ANALYTICS_DB.STAGING.TRANSACTIONS
+WHERE loaded_timestamp >= DATEADD(HOUR, -1, CURRENT_TIMESTAMP())
+GROUP BY transaction_status
+ORDER BY count DESC;
+
+-- ============================================================================
+-- Section 11: Maintenance Procedures
+-- ============================================================================
+
+-- Procedure to pause the pipe
+-- CALL: ALTER PIPE ANALYTICS_DB.STAGING.TRANSACTION_PIPE SET PIPE_EXECUTION_PAUSED = TRUE;
+
+-- Procedure to resume the pipe
+-- CALL: ALTER PIPE ANALYTICS_DB.STAGING.TRANSACTION_PIPE SET PIPE_EXECUTION_PAUSED = FALSE;
+
+-- Procedure to refresh pipe (process any pending files)
+-- CALL: ALTER PIPE ANALYTICS_DB.STAGING.TRANSACTION_PIPE REFRESH;
+
+-- ============================================================================
+-- End of Snowpipe Setup Script
+-- ============================================================================
+-- Post-Setup Steps Required:
+-- 1. Update Storage Integration ARN with actual AWS IAM role
+-- 2. Configure S3 Event Notifications to publish to SNS topic
+-- 3. Update SNS topic ARN in the pipe definition
+-- 4. Test with sample files before production deployment
+-- 5. Set up alerting for pipe failures and performance monitoring
+-- 6. Document the external_id from DESC STORAGE INTEGRATION for AWS trust policy
+-- ============================================================================

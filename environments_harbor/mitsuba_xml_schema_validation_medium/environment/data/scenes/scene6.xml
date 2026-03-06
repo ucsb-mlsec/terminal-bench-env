@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<scene version="3.0.0">
+    <!-- Valid integrator -->
+    <integrator type="path">
+        <integer name="max_depth" value="8"/>
+    </integrator>
+
+    <!-- Valid sensor -->
+    <sensor type="perspective" id="main_camera">
+        <string name="fov_axis" value="x"/>
+        <float name="fov" value="45.0"/>
+        <transform name="to_world">
+            <lookat origin="0, 0, 5" target="0, 0, 0" up="0, 1, 0"/>
+        </transform>
+        <sampler type="independent">
+            <integer name="sample_count" value="64"/>
+        </sampler>
+        <film type="hdrfilm">
+            <integer name="width" value="1024"/>
+            <integer name="height" value="768"/>
+        </film>
+    </sensor>
+
+    <!-- Valid BSDF definition -->
+    <bsdf type="diffuse" id="valid_diffuse">
+        <rgb name="reflectance" value="0.8, 0.8, 0.8"/>
+    </bsdf>
+
+    <!-- Valid shape with inline BSDF -->
+    <shape type="sphere">
+        <transform name="to_world">
+            <translate x="0" y="1" z="0"/>
+            <scale value="0.5"/>
+        </transform>
+        <bsdf type="conductor">
+            <string name="material" value="Au"/>
+        </bsdf>
+    </shape>
+
+    <!-- VIOLATION 1: Reference to undefined BSDF -->
+    <shape type="sphere">
+        <transform name="to_world">
+            <translate x="-2" y="0.5" z="0"/>
+        </transform>
+        <ref id="undefined_bsdf"/>
+    </shape>
+
+    <!-- VIOLATION 2: Reference to missing mesh file -->
+    <shape type="obj">
+        <string name="filename" value="missing_mesh.obj"/>
+        <ref id="valid_diffuse"/>
+    </shape>
+
+    <!-- VIOLATION 3: Envmap with nonexistent file -->
+    <emitter type="envmap">
+        <string name="filename" value="nonexistent.exr"/>
+        <transform name="to_world">
+            <rotate x="1" angle="90"/>
+        </transform>
+    </emitter>
+
+    <!-- VIOLATION 4: Reference to undefined sensor -->
+    <shape type="rectangle">
+        <transform name="to_world">
+            <scale x="10" y="10"/>
+            <translate z="-1"/>
+        </transform>
+        <bsdf type="diffuse">
+            <rgb name="reflectance" value="0.5, 0.5, 0.5"/>
+        </bsdf>
+        <ref id="undefined_sensor"/>
+    </shape>
+
+    <!-- Valid area light -->
+    <shape type="rectangle">
+        <transform name="to_world">
+            <translate y="3" z="0"/>
+            <scale value="2"/>
+        </transform>
+        <emitter type="area">
+            <rgb name="radiance" value="10, 10, 10"/>
+        </emitter>
+    </shape>
+
+</scene>

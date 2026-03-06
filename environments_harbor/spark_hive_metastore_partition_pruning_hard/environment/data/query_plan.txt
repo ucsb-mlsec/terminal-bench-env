@@ -1,0 +1,54 @@
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Project [sale_id#10, product#11, amount#12, year#13, month#14, region#15]
+   +- Filter ((year#13 = 2023) AND (month#14 = 12) AND (region#15 = WEST))
+      +- FileScan parquet default.sales[sale_id#10,product#11,amount#12,year#13,month#14,region#15] 
+         Batched: true
+         Location: InMemoryFileIndex[hdfs://namenode:8020/data/sales]
+         PartitionCount: 144
+         PartitionFilters: []
+         Pushed Filters: []
+         ReadSchema: struct<sale_id:string,product:string,amount:decimal(10,2)>
+         SelectedBucketsCount: 0 out of 0
+         
+PartitionsScanned: 144 partitions
+   year=2020/month=1/region=EAST
+   year=2020/month=1/region=WEST
+   year=2020/month=1/region=NORTH
+   year=2020/month=1/region=SOUTH
+   year=2020/month=2/region=EAST
+   year=2020/month=2/region=WEST
+   ... (138 more partitions)
+   year=2023/month=12/region=EAST
+   year=2023/month=12/region=WEST
+   year=2023/month=12/region=NORTH
+   year=2023/month=12/region=SOUTH
+
+Path Pattern: /data/sales/year=*/month=*/region=*
+
+== Statistics ==
+Total files scanned: 14,400 files
+Data size to scan: 2.5 TB
+Estimated rows to scan: 50,000,000 rows
+Partition filters applied: NONE
+Dynamic Partition Pruning: disabled
+
+== Execution Stages ==
+Stage 0
+  Operation: Scan parquet 
+  Partitions: 144/144 (100% of table)
+  Files: 14,400
+  Filter pushdown: Not applied to partitions
+  
+Stage 1
+  Operation: Filter
+  Input rows: 50,000,000 (estimated)
+  Output rows: 347,222 (estimated)
+  Note: Post-scan filtering - inefficient due to lack of partition pruning
+
+== Performance Warning ==
+This query plan indicates that partition pruning is NOT occurring.
+All 144 partitions are being scanned despite specific partition filters in the query.
+Expected behavior: Should scan only 1 partition (year=2023/month=12/region=WEST)
+Actual behavior: Scanning all 144 partitions and filtering after data read
+This results in reading 2.5 TB instead of ~17 GB (99.3% unnecessary I/O)

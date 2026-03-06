@@ -1,0 +1,42 @@
+Contact Stability Criteria for MuJoCo Simulations
+========================================================
+
+This document defines the thresholds and requirements for determining whether a MuJoCo contact simulation exhibits stable behavior. A simulation configuration is considered STABLE only if ALL of the following criteria are satisfied simultaneously.
+
+PENETRATION DEPTH CRITERION
+----------------------------
+Maximum Penetration Depth: <= 0.005 meters
+
+Rationale: Excessive penetration depth indicates that contact constraints are not being enforced adequately. Penetration depths exceeding 5mm suggest insufficient contact stiffness or inadequate solver resolution. Such penetrations can lead to unrealistic physics behavior and visual artifacts in the simulation.
+
+
+CONTACT FORCE CRITERION
+------------------------
+Peak Contact Force: <= 500 Newtons
+
+Rationale: While contact forces vary based on the physical scenario, excessively high force spikes (above 500N for typical manipulation tasks) often indicate numerical instability rather than realistic physics. These force spikes can propagate through the system causing secondary instabilities and are typically artifacts of poorly tuned contact parameters.
+
+
+SOLVER CONVERGENCE CRITERION
+-----------------------------
+Solver Convergence: Must be True
+
+Rationale: The constraint solver must successfully converge within the allocated iterations. Non-convergence (False status) indicates that the solver cannot find a feasible solution to the contact constraints, leading to unpredictable and physically incorrect behavior. This is a critical failure mode that invalidates simulation results.
+
+
+CONTACT JITTER CRITERION
+-------------------------
+Contact Jitter: Must be False (Absent)
+
+Rationale: Contact jitter manifests as rapid oscillations or bouncing at contact interfaces. The presence of jitter (True status) indicates chattering behavior where contacts are repeatedly made and broken in quick succession. This phenomenon suggests inadequate damping, incorrect time stepping, or poorly configured contact parameters. Jitter-free contact is essential for stable manipulation and realistic physical interactions.
+
+
+STABILITY DETERMINATION
+------------------------
+A parameter configuration achieves STABLE status if and only if:
+  - Penetration Depth <= 0.005 meters AND
+  - Peak Contact Force <= 500 Newtons AND
+  - Solver Convergence == True AND
+  - Contact Jitter == False
+
+Any violation of these criteria classifies the configuration as UNSTABLE.

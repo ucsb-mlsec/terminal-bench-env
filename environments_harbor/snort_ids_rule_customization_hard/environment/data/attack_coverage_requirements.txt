@@ -1,0 +1,188 @@
+# ATTACK COVERAGE REQUIREMENTS
+
+## 1. SQL Injection Attacks
+Required detection patterns:
+- Classic SQL injection: OR 1=1, OR '1'='1', ' OR 1=1--, " OR "1"="1
+- UNION-based injection: UNION SELECT, UNION ALL SELECT, UNION+SELECT
+- Comment injection: --, /*, #, ;--, /**/, --+
+- Time-based blind: SLEEP(), BENCHMARK(), WAITFOR DELAY, pg_sleep()
+- Stacked queries: ; DROP TABLE, ; DELETE FROM, ; UPDATE, ; INSERT INTO
+- Authentication bypass: admin'--, ' or 1=1--, admin' #, ' OR '1'='1
+- Function-based: CONCAT(), CHAR(), ASCII(), SUBSTRING()
+- Error-based: EXTRACTVALUE(), UPDATEXML(), exp()
+- Boolean-based: AND 1=1, AND 1=2, OR 'x'='x
+- Hex encoding: 0x, CHAR(, unhex()
+
+Minimum patterns: 10 distinct detection rules covering common and advanced SQL injection techniques
+Performance requirement: Fast pattern matching on SQL keywords
+Expected false positive rate: <3%
+
+## 2. Cross-Site Scripting (XSS)
+Required detection patterns:
+- Script tags: <script>, </script>, <script/>, <script src=
+- Event handlers: onerror=, onload=, onclick=, onmouseover=, onfocus=, oninput=
+- JavaScript protocol: javascript:, vbscript:, data:text/html
+- Encoded variants: %3Cscript%3E, &#60;script&#62;, \x3cscript\x3e, &lt;script&gt;
+- DOM-based: document.write, innerHTML, document.cookie, eval(, setTimeout(
+- Image-based: <img src=x onerror=, <img/src/onerror=
+- SVG-based: <svg/onload=, <svg><script>
+- iframe injection: <iframe src=, <iframe/src=
+- Style-based: <style>@import, expression(, -moz-binding
+- HTML5 events: onwheel=, onanimationstart=, ontransitionend=
+
+Minimum patterns: 10 distinct detection rules covering stored, reflected, and DOM-based XSS
+Performance requirement: Content matching with depth and offset limits
+Expected false positive rate: <5%
+
+## 3. Command Injection
+Required detection patterns:
+- Shell metacharacters: ;, |, &&, ||, `, $(), <, >, >>, 2>&1
+- Command chaining: /bin/sh, /bin/bash, cmd.exe, powershell.exe, sh -c
+- Path traversal with commands: ../../../etc/passwd, ..\..\..\windows\system32
+- Common Unix commands: cat, ls, whoami, id, uname, pwd, wget, curl
+- Common Windows commands: dir, type, net user, ipconfig, systeminfo
+- Environment variables: $PATH, $HOME, %SYSTEMROOT%, %TEMP%
+- Command substitution: $(command), `command`, %0a, %0d
+- File operations: rm -rf, del /f, copy, move, chmod, chown
+
+Minimum patterns: 8 distinct detection rules covering Unix and Windows command injection
+Performance requirement: PCRE optimization for metacharacter detection
+Expected false positive rate: <4%
+
+## 4. Port Scanning
+Required detection patterns:
+- Vertical scans: Single source scanning >10 ports on one destination within 30 seconds
+- Horizontal scans: Single source scanning one port across >10 destinations within 60 seconds
+- SYN scans: TCP SYN packets without three-way handshake completion (>15 in 20 seconds)
+- NULL scans: TCP packets with no flags set to multiple ports
+- FIN scans: TCP FIN packets without established connection
+- Xmas scans: TCP packets with FIN, PSH, URG flags set simultaneously
+- ACK scans: Unsolicited ACK packets to determine firewall rules
+- Window scans: TCP window size manipulation patterns
+- Protocol scans: Sequential connection attempts across multiple protocols
+
+Detection thresholds:
+- SYN scan: >15 different ports in 20 seconds from single source
+- Connection attempts: >20 failed connections in 30 seconds
+- Port sweep: Same source to >10 destinations on same port in 60 seconds
+
+Minimum patterns: 6 detection rules using threshold and stream5 preprocessor
+Performance requirement: Stateful tracking with memory optimization
+Expected false positive rate: <2%
+
+## 5. Denial of Service (DoS)
+Required detection patterns:
+- High connection rate: >100 new connections per second from single source
+- SYN floods: >200 SYN packets without corresponding ACK within 10 seconds
+- UDP floods: >500 UDP packets per second to single destination
+- ICMP floods: >100 ICMP echo requests per second from single source
+- Slowloris attacks: >50 incomplete HTTP requests from single source maintaining open connections
+- HTTP GET floods: >200 HTTP GET requests per second from single source
+- DNS amplification: DNS responses >512 bytes with mismatched query patterns
+- NTP amplification: NTP monlist responses indicating amplification attack
+- Fragmentation attacks: Excessive fragmented packets (>100 fragments in 10 seconds)
+- RST floods: Excessive RST packets to established connections
+- Application layer DoS: Repeated requests to resource-intensive endpoints
+
+Detection thresholds:
+- Connection rate: >100/second from single IP
+- Packet rate: >500 packets/second of same type to single destination
+- Bandwidth: Sustained >10Mbps from single source to single destination
+
+Minimum patterns: 8 detection rules using threshold and rate_filter
+Performance requirement: Efficient threshold tracking with minimal memory overhead
+Expected false positive rate: <3%
+
+## 6. Protocol-Specific Attacks
+
+### Web (HTTP/HTTPS):
+- Directory traversal: ../, ..\, %2e%2e/, %2e%2e%5c, ..%2f, ..%5c
+- HTTP smuggling: Dual Content-Length headers, Transfer-Encoding manipulation
+- HTTP response splitting: %0d%0a (CRLF), \r\n injection in headers
+- HTTP parameter pollution: Multiple same-named parameters
+- Host header injection: Malformed or multiple Host headers
+- HTTP method tampering: Unusual methods (TRACE, TRACK, DEBUG)
+- Malformed headers: Excessive header length (>8192 bytes), null bytes in headers
+- WebDAV exploits: PROPFIND, LOCK, UNLOCK method abuse
+
+### DNS:
+- DNS tunneling: Excessive subdomain levels (>5), long subdomain names (>63 chars)
+- DNS amplification: ANY queries, excessive response sizes
+- DNS cache poisoning: Response without corresponding query
+- Domain generation algorithms: High entropy in domain names
+- DNS exfiltration: TXT record queries with encoded data
+
+### SSH:
+- Brute force attempts: >5 failed authentication attempts in 60 seconds from single source
+- SSH version scanning: Multiple SSH banner exchanges without authentication
+- SSH tunneling abuse: Excessive data transfer patterns
+- Protocol mismatch: SSH connections to non-SSH ports
+
+### Database (MySQL):
+- Authentication bypass attempts on port 3306
+- Excessive failed login attempts (>10 in 60 seconds)
+- Abnormal query patterns indicating automated tools
+
+Minimum patterns: 12 detection rules covering all critical protocols
+Performance requirement: Protocol-aware inspection with minimal overhead
+Expected false positive rate: <4%
+
+## 7. Malware and Exploit Patterns
+Required detection patterns:
+- Shellcode signatures: NOP sleds (\x90 repetition), common x86/x64 opcodes
+- Metasploit payloads: Known encoded payload patterns, meterpreter signatures
+- C&C communication: Beacon patterns, known C&C domains, suspicious TLD patterns (.tk, .ml)
+- Suspicious user-agent strings: Scanner tools (sqlmap, nikto, nmap NSE), outdated browsers
+- Encoded payloads: Base64 encoded executables, PowerShell encoded commands
+- Exploit kits: Known exploit kit landing page patterns (Angler, RIG, Magnitude)
+- Webshells: Common webshell signatures (c99, r57, b374k, WSO)
+- Reverse shell patterns: /bin/sh -i, nc -e, perl reverse shell
+- Privilege escalation: Suspicious sudo usage, SUID exploitation patterns
+- Lateral movement: psexec patterns, WMI command execution, SMB exploitation
+
+Minimum patterns: 8 detection rules covering major malware families and exploit techniques
+Performance requirement: Signature matching with fast_pattern optimization
+Expected false positive rate: <2%
+
+## 8. Additional Attack Vectors
+
+### Path Traversal:
+- Directory traversal: ../../../, ..\..\..\.., %2e%2e%2f, %252e%252e%252f
+- Absolute path access: /etc/passwd, c:\windows\system32\, /proc/self/
+- Null byte injection: %00, \x00 to bypass extension checks
+
+### XML/XXE Attacks:
+- External entity injection: <!ENTITY, <!DOCTYPE, SYSTEM, PUBLIC
+- XML bomb (billion laughs): Recursive entity expansion patterns
+
+### LDAP Injection:
+- LDAP filter injection: *, |, &, !, =, >=, <=, ~=
+- Authentication bypass: *)(uid=*)(|, *)(|(password=*)
+
+### File Upload Attacks:
+- Executable uploads: .php, .jsp, .asp, .aspx, .exe content in POST
+- Double extension bypass: .php.jpg, .asp;.jpg
+- MIME type mismatch: Executable content with image MIME type
+
+## Coverage Requirements Summary:
+- Total minimum detection rules: 50+ optimized rules
+- Each attack category must have multiple detection variants
+- Rules must cover both common attacks and evasion techniques
+- All patterns must include performance optimizations (fast_pattern, depth, offset, distance)
+- False positive rate target: <5% overall, <3% for critical services
+- Detection coverage: >95% for known attack patterns in OWASP Top 10
+- Rule organization: Group by attack type with clear commenting
+- Network-specific tuning: Exclude false positives from legitimate internal traffic
+- Regular expression efficiency: All PCRE patterns must be optimized for performance
+- Content matching: Use fast_pattern directive on longest/most unique content
+- Protocol awareness: Utilize appropriate preprocessors (http_inspect, stream5)
+- Threshold tuning: Balance detection sensitivity with performance impact
+
+## Performance Optimization Requirements:
+- Average packet processing time: <5ms per packet
+- Memory usage: <2GB for ruleset and state tracking
+- CPU utilization: <70% during peak traffic hours
+- Rule evaluation order: Most specific/frequent matches first
+- Fast pattern selection: Optimal content for fast pattern matching engine
+- Depth and offset: Limit pattern matching scope where possible
+- PCRE alternatives: Use content matching over regex when feasible

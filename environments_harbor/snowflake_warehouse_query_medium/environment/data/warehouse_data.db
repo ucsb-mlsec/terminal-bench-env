@@ -1,0 +1,107 @@
+import sqlite3
+import random
+from datetime import datetime, timedelta
+
+# Create database connection
+conn = sqlite3.connect('/tmp/warehouse_data.db')
+cursor = conn.cursor()
+
+# Create transactions table
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS transactions (
+    transaction_id TEXT,
+    customer_id TEXT,
+    product_category TEXT,
+    amount REAL,
+    transaction_date TEXT,
+    region TEXT
+)
+''')
+
+# Define data parameters
+categories = ['Electronics', 'Clothing', 'Home & Garden', 'Books', 'Sports', 'Toys', 'Food & Beverage']
+regions = ['North', 'South', 'East', 'West', 'Central']
+num_customers = 75
+customers = [f'CUST{str(i).zfill(3)}' for i in range(1, num_customers + 1)]
+
+# Define category weights to ensure Electronics is top revenue
+category_weights = {
+    'Electronics': (500, 5000, 50),  # (min, max, count)
+    'Clothing': (50, 800, 30),
+    'Home & Garden': (100, 2000, 25),
+    'Books': (10, 150, 20),
+    'Sports': (80, 1500, 20),
+    'Toys': (20, 300, 15),
+    'Food & Beverage': (15, 200, 15)
+}
+
+# Define region weights to ensure West has highest average
+region_avg_targets = {
+    'West': (800, 3000),    # Higher average
+    'East': (200, 1200),
+    'North': (150, 1000),
+    'South': (100, 900),
+    'Central': (80, 800)
+}
+
+# Generate transactions
+transactions = []
+transaction_id_counter = 1
+
+start_date = datetime(2024, 1, 1)
+end_date = datetime(2024, 3, 31)
+date_range = (end_date - start_date).days
+
+for category, (min_amt, max_amt, count) in category_weights.items():
+    for _ in range(count):
+        transaction_id = f'TXN{str(transaction_id_counter).zfill(6)}'
+        customer_id = random.choice(customers)
+        amount = round(random.uniform(min_amt, max_amt), 2)
+        
+        # Generate random date in Q1 2024
+        random_days = random.randint(0, date_range)
+        transaction_date = (start_date + timedelta(days=random_days)).strftime('%Y-%m-%d')
+        
+        # Assign region based on amount to control averages
+        if amount >= 800:
+            region = 'West'
+        elif amount >= 500:
+            region = random.choice(['West', 'East'])
+        elif amount >= 300:
+            region = random.choice(['East', 'North', 'West'])
+        elif amount >= 150:
+            region = random.choice(['North', 'South', 'East'])
+        else:
+            region = random.choice(['South', 'Central', 'North'])
+        
+        transactions.append((transaction_id, customer_id, category, amount, transaction_date, region))
+        transaction_id_counter += 1
+
+# Add some additional transactions to reach ~180 total and balance regions
+additional_count = 5
+for _ in range(additional_count):
+    transaction_id = f'TXN{str(transaction_id_counter).zfill(6)}'
+    customer_id = random.choice(customers)
+    category = random.choice(categories)
+    
+    # Add more high-value West transactions
+    amount = round(random.uniform(1500, 2800), 2)
+    region = 'West'
+    
+    random_days = random.randint(0, date_range)
+    transaction_date = (start_date + timedelta(days=random_days)).strftime('%Y-%m-%d')
+    
+    transactions.append((transaction_id, customer_id, category, amount, transaction_date, region))
+    transaction_id_counter += 1
+
+# Insert all transactions
+cursor.executemany('''
+    INSERT INTO transactions (transaction_id, customer_id, product_category, amount, transaction_date, region)
+    VALUES (?, ?, ?, ?, ?, ?)
+''', transactions)
+
+# Commit and close
+conn.commit()
+conn.close()
+
+print(f"Database created with {len(transactions)} transactions")

@@ -1,0 +1,47 @@
+File: cuda_specs/sequential_pattern.txt
+
+PATTERN NAME: Sequential Write Pattern
+
+MEMORY ACCESS SEQUENCE:
+- Buffer size: 64 MB (67108864 bytes)
+- Access pattern: Sequential writes from byte 0 to byte 67108863
+- Write order: Addresses are accessed in strictly increasing order: 0, 4, 8, 12, 16, 20, 24, 28, 32, ...
+- Write size: 4-byte (32-bit) writes aligned on 4-byte boundaries
+- Total number of writes: 16777216 writes
+- No read operations are performed on the buffer before data transfer to GPU
+- Write operations are performed exactly once per location
+- No interleaving or out-of-order access
+
+BUFFER ALIGNMENT:
+- Buffer is allocated with 256-byte alignment
+- Starting address is guaranteed to be aligned on 256-byte boundary
+- All writes are naturally aligned (4-byte writes on 4-byte boundaries)
+- Alignment satisfies all CUDA memory requirements
+- Buffer address modulo 256 equals 0
+
+CURRENT MEMORY ALLOCATION:
+- Using standard pinned memory (cudaHostAlloc with cudaHostAllocDefault flag)
+- Memory is cacheable
+- CPU cache is utilized during write operations
+- Cache lines are 64 bytes on target architecture
+- Write-allocate cache policy in effect
+
+OBSERVED PERFORMANCE CHARACTERISTICS:
+- Current throughput: 3.2 GB/s write bandwidth
+- Cache hit rate: High (approximately 95%)
+- Write pattern exhibits excellent spatial locality
+- No write-after-read dependencies
+- No read-modify-write operations
+- Data is written once and then transferred to GPU immediately
+- CPU writes traverse L1/L2/L3 cache hierarchy
+- Memory traffic includes cache coherency overhead
+- Write operations incur cache line allocation overhead
+
+USE CASE:
+- Image preprocessing: Converting raw camera data to GPU-processable format
+- Data flows from camera buffer → CPU pinned buffer → GPU device memory
+- CPU performs sequential format conversion and writes results sequentially
+- Typical operation: Read from camera DMA buffer, convert pixel format, write to pinned buffer
+- No requirement to read back data once written
+- Buffer is consumed by cudaMemcpy immediately after writes complete
+- Time-critical path in real-time video processing pipeline

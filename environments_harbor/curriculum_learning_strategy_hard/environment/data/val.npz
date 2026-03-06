@@ -1,0 +1,135 @@
+import numpy as np
+
+# Set random seed for reproducibility
+np.random.seed(42)
+
+# Parameters
+n_samples = 1000
+img_size = 28
+n_classes = 10
+samples_per_class = n_samples // n_classes
+
+# Initialize arrays
+images = np.zeros((n_samples, img_size, img_size), dtype=np.uint8)
+labels = np.zeros(n_samples, dtype=np.uint8)
+
+# Generate validation data for each digit class
+for digit in range(n_classes):
+    start_idx = digit * samples_per_class
+    end_idx = start_idx + samples_per_class
+    
+    for i in range(start_idx, end_idx):
+        img = np.zeros((img_size, img_size), dtype=np.uint8)
+        
+        # Create basic digit shape with some variation
+        center_x, center_y = 14, 14
+        
+        if digit == 0:
+            # Draw circle/oval
+            for y in range(28):
+                for x in range(28):
+                    dist = np.sqrt((x - center_x)**2 + (y - center_y)**2)
+                    if 6 < dist < 10:
+                        img[y, x] = 200 + np.random.randint(-50, 50)
+        
+        elif digit == 1:
+            # Draw vertical line
+            for y in range(5, 23):
+                for x in range(12, 16):
+                    img[y, x] = 200 + np.random.randint(-50, 50)
+        
+        elif digit == 2:
+            # Draw curved 2
+            for y in range(28):
+                for x in range(28):
+                    if (5 < y < 10 and 8 < x < 20) or (10 < y < 18 and 15 < x < 20) or (18 < y < 23 and 8 < x < 20):
+                        img[y, x] = 200 + np.random.randint(-50, 50)
+        
+        elif digit == 3:
+            # Draw two curves
+            for y in range(28):
+                for x in range(28):
+                    if (5 < y < 10 and 10 < x < 20) or (12 < y < 16 and 10 < x < 18) or (18 < y < 23 and 10 < x < 20):
+                        img[y, x] = 200 + np.random.randint(-50, 50)
+        
+        elif digit == 4:
+            # Draw 4 shape
+            for y in range(28):
+                for x in range(28):
+                    if (5 < y < 18 and 8 < x < 12) or (14 < y < 18 and 8 < x < 20) or (5 < y < 23 and 16 < x < 20):
+                        img[y, x] = 200 + np.random.randint(-50, 50)
+        
+        elif digit == 5:
+            # Draw 5 shape
+            for y in range(28):
+                for x in range(28):
+                    if (5 < y < 10 and 8 < x < 20) or (10 < y < 15 and 8 < x < 12) or (15 < y < 18 and 10 < x < 18) or (18 < y < 23 and 8 < x < 18):
+                        img[y, x] = 200 + np.random.randint(-50, 50)
+        
+        elif digit == 6:
+            # Draw 6 shape
+            for y in range(28):
+                for x in range(28):
+                    dist_top = np.sqrt((x - 12)**2 + (y - 10)**2)
+                    dist_bottom = np.sqrt((x - 14)**2 + (y - 18)**2)
+                    if (6 < dist_top < 9 and y > 10) or (4 < dist_bottom < 7):
+                        img[y, x] = 200 + np.random.randint(-50, 50)
+        
+        elif digit == 7:
+            # Draw 7 shape
+            for y in range(28):
+                for x in range(28):
+                    if (5 < y < 10 and 8 < x < 20) or (10 < y < 23 and 14 < x < 18):
+                        img[y, x] = 200 + np.random.randint(-50, 50)
+        
+        elif digit == 8:
+            # Draw two circles
+            for y in range(28):
+                for x in range(28):
+                    dist_top = np.sqrt((x - 14)**2 + (y - 10)**2)
+                    dist_bottom = np.sqrt((x - 14)**2 + (y - 18)**2)
+                    if (3 < dist_top < 6) or (3 < dist_bottom < 6):
+                        img[y, x] = 200 + np.random.randint(-50, 50)
+        
+        elif digit == 9:
+            # Draw 9 shape
+            for y in range(28):
+                for x in range(28):
+                    dist_top = np.sqrt((x - 14)**2 + (y - 10)**2)
+                    if (4 < dist_top < 7) or (y > 16 and 16 < x < 20 and y < 23):
+                        img[y, x] = 200 + np.random.randint(-50, 50)
+        
+        # Add varying difficulty levels
+        difficulty = (i - start_idx) % 4
+        
+        # Add noise based on difficulty
+        if difficulty > 0:
+            noise = np.random.randint(0, 30 * difficulty, (img_size, img_size), dtype=np.uint8)
+            img = np.clip(img.astype(np.int16) + noise.astype(np.int16), 0, 255).astype(np.uint8)
+        
+        # Add rotation for some samples
+        if difficulty >= 2:
+            angle = np.random.randint(-15, 15)
+            # Simple rotation simulation by shifting
+            shift = angle // 5
+            if shift != 0:
+                img = np.roll(img, shift, axis=1)
+        
+        # Add blur/degradation for harder samples
+        if difficulty == 3:
+            mask = np.random.random((img_size, img_size)) > 0.15
+            img = img * mask.astype(np.uint8)
+        
+        images[i] = img
+        labels[i] = digit
+
+# Shuffle the validation set
+indices = np.random.permutation(n_samples)
+images = images[indices]
+labels = labels[indices]
+
+# Clip values to valid range
+images = np.clip(images, 0, 255).astype(np.uint8)
+
+# Save to npz file
+np.savez('/workspace/data/val.npz', images=images, labels=labels)

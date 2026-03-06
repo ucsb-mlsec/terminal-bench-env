@@ -1,0 +1,47 @@
+rabbitmq:
+  host: rabbitmq.prod.local
+  port: 5672
+  vhost: /
+  username: email_user
+  password: email_service_pass_2024
+
+consumer:
+  queue_name: email_notifications
+  prefetch_count: 5
+  auto_ack: false
+  retry_policy:
+    max_attempts: 3
+    backoff_multiplier: 2
+    initial_delay_ms: 1000
+    max_delay_ms: 30000
+
+application:
+  service_name: email-notification-service
+  log_level: INFO
+  workers: 4
+  health_check_port: 8082
+  metrics_enabled: true
+
+smtp:
+  host: smtp.company.com
+  port: 587
+  use_tls: true
+  username: notifications@company.com
+  password: smtp_password_secure
+  from_address: notifications@company.com
+  timeout_seconds: 30
+  max_recipients_per_email: 50
+
+rate_limiting:
+  max_emails_per_minute: 100
+  burst_size: 20
+
+templates:
+  base_path: /app/templates
+  cache_enabled: true
+  default_language: en
+
+monitoring:
+  sentry_dsn: https://sentry.company.com/email-service
+  log_retention_days: 30
+  alert_on_failures: true

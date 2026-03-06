@@ -1,0 +1,45 @@
+import numpy as np
+
+# Set random seed for reproducibility
+np.random.seed(42)
+
+# Define cluster centers for 5 topics in 64-dimensional space
+n_topics = 5
+n_docs_per_topic = 300
+n_dimensions = 64
+total_docs = n_topics * n_docs_per_topic
+
+# Create base cluster centers for each topic
+cluster_centers = np.array([
+    # Topic 0 center
+    np.concatenate([[2.0, 1.5], np.random.randn(62) * 1.5 + 1.0]),
+    # Topic 1 center
+    np.concatenate([[-1.0, 2.0], np.random.randn(62) * 1.5 - 0.5]),
+    # Topic 2 center
+    np.concatenate([[0.0, -2.5], np.random.randn(62) * 1.5 + 0.5]),
+    # Topic 3 center
+    np.concatenate([[3.0, -1.0], np.random.randn(62) * 1.5 - 1.0]),
+    # Topic 4 center
+    np.concatenate([[-2.5, 0.5], np.random.randn(62) * 1.5 + 0.8])
+])
+
+# Ensure cluster centers are well-separated
+cluster_centers[0] = cluster_centers[0] + np.concatenate([[0, 0], np.sin(np.arange(62)) * 0.5])
+cluster_centers[1] = cluster_centers[1] + np.concatenate([[0, 0], np.cos(np.arange(62)) * 0.5])
+cluster_centers[2] = cluster_centers[2] + np.concatenate([[0, 0], np.sin(np.arange(62) * 2) * 0.5])
+cluster_centers[3] = cluster_centers[3] + np.concatenate([[0, 0], np.cos(np.arange(62) * 2) * 0.5])
+cluster_centers[4] = cluster_centers[4] + np.concatenate([[0, 0], np.sin(np.arange(62) + np.pi) * 0.5])
+
+# Generate document vectors
+vectors = np.zeros((total_docs, n_dimensions))
+
+for topic_idx in range(n_topics):
+    start_idx = topic_idx * n_docs_per_topic
+    end_idx = start_idx + n_docs_per_topic
+    
+    # Add random noise around cluster center
+    noise = np.random.randn(n_docs_per_topic, n_dimensions) * 0.5
+    vectors[start_idx:end_idx] = cluster_centers[topic_idx] + noise
+
+# Save as numpy binary file
+np.save('/workspace/embeddings/vectors.npy', vectors)

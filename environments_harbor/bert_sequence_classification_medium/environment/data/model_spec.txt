@@ -1,0 +1,53 @@
+BERT Base Model Architecture Specification
+=====================================================
+
+VOCABULARY CONFIGURATION
+------------------------
+BERT base uses WordPiece tokenization with a fixed vocabulary size of 30,522 tokens. This vocabulary was created from the training corpus and includes:
+- Common words and subwords
+- Special tokens ([CLS], [SEP], [PAD], [UNK], [MASK])
+- WordPiece subunits for handling out-of-vocabulary words
+
+The vocabulary size must be set to exactly 30,522 for BERT base models to ensure compatibility with pretrained weights.
+
+
+HIDDEN LAYER DIMENSIONS
+-----------------------
+BERT base architecture uses a hidden size of 768 dimensions. This refers to:
+- The size of embeddings for each token
+- The dimension of hidden states in each transformer layer
+- The output dimension of feed-forward networks within each layer
+
+This 768-dimensional representation is consistent across all 12 layers of the BERT base model.
+
+
+ATTENTION MECHANISM
+-------------------
+BERT base employs multi-head self-attention with 12 attention heads. Key requirements:
+- Number of attention heads: 12
+- Hidden size: 768
+- Constraint: hidden_size MUST be evenly divisible by num_attention_heads
+- Calculation: 768 / 12 = 64 dimensions per attention head
+
+This divisibility ensures that the hidden states can be evenly split across all attention heads during the attention computation.
+
+
+SEQUENCE CLASSIFICATION CONFIGURATION
+-------------------------------------
+For sequence classification tasks, BERT adds a classification head on top of the base model:
+- Binary classification: num_labels = 2 (e.g., positive/negative, spam/not spam)
+- Multi-class classification: num_labels = number of classes in your task
+- The [CLS] token's final hidden state is used as the aggregate sequence representation
+
+For binary classification tasks, num_labels should be set to 2.
+
+
+COMMON CONFIGURATION MISTAKES
+-----------------------------
+When configuring BERT models, avoid these frequent errors:
+• Mismatched attention heads: Using a number of heads that doesn't evenly divide hidden_size
+• Incorrect vocabulary size: Using 30,000 or other approximations instead of exactly 30,522
+• Wrong number of labels: Forgetting to set num_labels or using incorrect values for the task type
+• Inconsistent parameter pairs: Changing hidden_size without adjusting num_attention_heads accordingly
+
+Always validate your configuration before initializing the model to catch these issues early.

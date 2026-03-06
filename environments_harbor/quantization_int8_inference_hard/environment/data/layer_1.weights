@@ -1,0 +1,153 @@
+import numpy as np
+import json
+import os
+import struct
+
+# Set random seed for reproducibility
+np.random.seed(42)
+
+# Create workspace directories
+os.makedirs('/workspace/model', exist_ok=True)
+os.makedirs('/workspace/solution/quantized', exist_ok=True)
+
+# Generate layer_1.weights file with realistic neural network weight distribution
+# Normal distribution N(0, 0.25)
+weights_layer_1 = np.random.normal(loc=0.0, scale=0.25, size=1024).astype(np.float32)
+
+# Write binary file in little-endian FP32 format
+with open('/workspace/model/layer_1.weights', 'wb') as f:
+    f.write(weights_layer_1.tobytes())
+
+# Generate additional layers for a more complete model
+# Layer 0: 512 parameters
+weights_layer_0 = np.random.normal(loc=0.0, scale=0.3, size=512).astype(np.float32)
+with open('/workspace/model/layer_0.weights', 'wb') as f:
+    f.write(weights_layer_0.tobytes())
+
+# Layer 2: 2048 parameters
+weights_layer_2 = np.random.normal(loc=0.0, scale=0.2, size=2048).astype(np.float32)
+with open('/workspace/model/layer_2.weights', 'wb') as f:
+    f.write(weights_layer_2.tobytes())
+
+# Layer 3: 256 parameters
+weights_layer_3 = np.random.normal(loc=0.0, scale=0.28, size=256).astype(np.float32)
+with open('/workspace/model/layer_3.weights', 'wb') as f:
+    f.write(weights_layer_3.tobytes())
+
+# Create model_config.json
+model_config = {
+    "layers": [
+        {"name": "layer_0", "shape": [512], "type": "dense"},
+        {"name": "layer_1", "shape": [1024], "type": "dense"},
+        {"name": "layer_2", "shape": [2048], "type": "dense"},
+        {"name": "layer_3", "shape": [256], "type": "dense"}
+    ]
+}
+
+with open('/workspace/model/model_config.json', 'w') as f:
+    json.dump(model_config, f, indent=2)
+
+# Now implement the quantization solution
+
+def symmetric_quantize(weights):
+    """
+    Perform symmetric INT8 quantization on weight array.
+    Returns: quantized weights (int8), scale factor (float)
+    """
+    # Handle edge case: all zeros
+    if np.all(weights == 0):
+        return np.zeros_like(weights, dtype=np.int8), 1.0
+    
+    # Calculate scale factor
+    max_abs = np.max(np.abs(weights))
+    
+    # Handle very small values
+    if max_abs < 1e-10:
+        return np.zeros_like(weights, dtype=np.int8), 1.0
+    
+    scale = max_abs / 127.0
+    
+    # Quantize: Q = round(clip(W / scale, -128, 127))
+    quantized = np.round(weights / scale)
+    quantized = np.clip(quantized, -128, 127).astype(np.int8)
+    
+    return quantized, scale
+
+def dequantize(quantized_weights, scale):
+    """Dequantize INT8 weights back to FP32."""
+    return quantized_weights.astype(np.float32) * scale
+
+def calculate_mae(original, dequantized):
+    """Calculate mean absolute error."""
+    return np.mean(np.abs(original - dequantized))
+
+# Load and quantize all layers
+layer_files = sorted([f for f in os.listdir('/workspace/model') if f.endswith('.weights')])
+
+quantized_data = {
+    "layer_count": len(layer_files),
+    "total_params_original": 0,
+    "total_params_quantized": 0,
+    "compression_ratio": 0.0,
+    "max_quantization_error": 0.0,
+    "scales": {}
+}
+
+max_error = 0.0
+total_original_size = 0
+total_quantized_size = 0
+
+for layer_file in layer_files:
+    # Extract layer number
+    layer_name = layer_file.replace('.weights', '')
+    
+    # Load FP32 weights
+    with open(f'/workspace/model/{layer_file}', 'rb') as f:
+        weights_bytes = f.read()
+        weights = np.frombuffer(weights_bytes, dtype=np.float32)
+    
+    num_params = len(weights)
+    quantized_data["total_params_original"] += num_params
+    quantized_data["total_params_quantized"] += num_params
+    
+    # Calculate sizes
+    original_size = num_params * 4  # FP32 = 4 bytes
+    quantized_size = num_params * 1  # INT8 = 1 byte
+    total_original_size += original_size
+    total_quantized_size += quantized_size
+    
+    # Perform quantization
+    quantized_weights, scale = symmetric_quantize(weights)
+    
+    # Store scale factor
+    quantized_data["scales"][layer_name] = float(scale)
+    
+    # Verify quantization error
+    dequantized_weights = dequantize(quantized_weights, scale)
+    mae = calculate_mae(weights, dequantized_weights)
+    max_error = max(max_error, mae)
+    
+    # Save quantized weights as binary INT8 file
+    output_path = f'/workspace/solution/quantized/{layer_name}.int8'
+    with open(output_path, 'wb') as f:
+        f.write(quantized_weights.tobytes())
+
+# Account for scale factors in compression ratio
+scale_storage = len(layer_files) * 4  # Each scale is a float32
+total_quantized_size += scale_storage
+
+quantized_data["compression_ratio"] = float(total_original_size / total_quantized_size)
+quantized_data["max_quantization_error"] = float(max_error)
+
+# Save quantized model metadata
+with open('/workspace/solution/quantized_model.json', 'w') as f:
+    json.dump(quantized_data, f, indent=2)
+
+# Print summary
+print("Quantization Complete!")
+print(f"Layers quantized: {quantized_data['layer_count']}")
+print(f"Total parameters: {quantized_data['total_params_original']}")
+print(f"Compression ratio: {quantized_data['compression_ratio']:.2f}x")
+print(f"Max quantization error: {quantized_data['max_quantization_error']:.6f}")
+print(f"Success: Error < 0.01: {quantized_data['max_quantization_error'] < 0.01}")
+print(f"Success: Compression > 3.5x: {quantized_data['compression_ratio'] > 3.5}")

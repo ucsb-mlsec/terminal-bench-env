@@ -1,0 +1,54 @@
+#!/bin/bash
+
+# Backup Audit Script
+# This script audits backup files across multiple directories and generates a report
+
+# Define backup directories
+BACKUP_DIRS=("daily" "weekly" "monthly")
+BACKUP_BASE="/opt/backups"
+
+# Define backup patterns (without wildcards and extensions)
+BACKUP_TYPES=("db_backup" "config_backup" "logs_backup")
+BACKUP_EXTENSIONS=("*.sql" "*.tar.gz" "*.zip")
+
+# Output report file
+REPORT_FILE="/home/user/backup_report.txt"
+
+# Clear the report file if it exists
+> "$REPORT_FILE"
+
+# Disable error messages for unmatched globs
+shopt -s nullglob
+
+# Loop through each directory
+for dir in "${BACKUP_DIRS[@]}"; do
+    FULL_DIR="${BACKUP_BASE}/${dir}"
+    
+    # Process each backup type
+    for i in "${!BACKUP_TYPES[@]}"; do
+        backup_type="${BACKUP_TYPES[$i]}"
+        extension="${BACKUP_EXTENSIONS[$i]}"
+        
+        # Count matching files
+        count=0
+        
+        # Check if directory exists
+        if [ -d "$FULL_DIR" ]; then
+            # Create pattern
+            pattern="${FULL_DIR}/${backup_type}_${extension}"
+            
+            # Count files matching pattern
+            files=($pattern)
+            count=${#files[@]}
+        fi
+        
+        # Write to report
+        echo "${dir}/${backup_type}=${count}" >> "$REPORT_FILE"
+    done
+done
+
+# Re-enable default glob behavior
+shopt -u nullglob
+
+# Exit successfully
+exit 0

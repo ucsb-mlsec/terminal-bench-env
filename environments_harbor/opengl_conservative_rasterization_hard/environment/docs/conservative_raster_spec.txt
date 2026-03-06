@@ -1,0 +1,61 @@
+CONSERVATIVE RASTERIZATION SPECIFICATION
+=============================================
+
+Version 1.2
+Last Updated: 2024
+
+INTRODUCTION
+------------
+This document specifies the requirements for implementing conservative
+rasterization in the graphics rendering pipeline. Conservative rasterization
+ensures predictable fragment generation behavior for collision detection,
+voxelization, and other advanced rendering techniques.
+
+REQUIRED EXTENSION
+------------------
+The system must use the following OpenGL extension:
+  GL_NV_conservative_raster
+
+This extension must be present and enabled in the extensions.conf file.
+Alternative extensions are not supported in this version.
+
+RASTERIZATION MODES
+-------------------
+Two modes are supported:
+
+1. overestimate: Fragments are generated for any pixel that is touched by
+   a primitive, even partially. This ensures no geometry is missed but may
+   produce extra fragments.
+
+2. underestimate: Fragments are only generated for pixels that are fully
+   covered by the primitive. This produces fewer fragments but guarantees
+   complete coverage where fragments are generated.
+
+DILATION FACTOR SPECIFICATIONS
+------------------------------
+The dilation factor controls pixel boundary expansion for conservative tests.
+
+Valid range: 0.0 to 1.0 (inclusive)
+Default recommended value: 0.5
+Factors must be positive (greater than or equal to 0.0)
+
+A dilation factor of 0.0 means no dilation (standard rasterization).
+A dilation factor of 1.0 means maximum dilation (full pixel expansion).
+
+Values outside this range will cause validation failure.
+
+PIXEL COVERAGE GUARANTEES
+-------------------------
+overestimate mode: Guarantees that if any part of a primitive touches a pixel,
+that pixel will generate a fragment. No geometry can be missed.
+
+underestimate mode: Guarantees that only pixels completely inside the primitive
+boundary will generate fragments. Useful for conservative occlusion culling.
+
+CONFIGURATION REQUIREMENTS
+--------------------------
+1. All configuration files (pipeline.conf, extensions.conf, rasterizer.conf)
+   must specify the same rasterization mode
+2. Extension identifier must exactly match the required extension string
+3. Dilation factor must be within valid range and consistent across files
+4. No conflicting parameters are allowed between configuration files

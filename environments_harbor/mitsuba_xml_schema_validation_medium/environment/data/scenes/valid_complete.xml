@@ -1,0 +1,112 @@
+<scene version="3.0.0">
+    <!-- Path tracer integrator with max depth -->
+    <integrator type="path">
+        <integer name="max_depth" value="8"/>
+    </integrator>
+
+    <!-- Perspective camera sensor -->
+    <sensor type="perspective">
+        <!-- HDR film configuration -->
+        <film type="hdrfilm">
+            <integer name="width" value="1920"/>
+            <integer name="height" value="1080"/>
+            <string name="pixel_format" value="rgb"/>
+        </film>
+        
+        <!-- Independent sampler -->
+        <sampler type="independent">
+            <integer name="sample_count" value="64"/>
+        </sampler>
+        
+        <!-- Camera transform using lookat -->
+        <transform name="to_world">
+            <lookat origin="5, 5, 5" target="0, 0, 0" up="0, 0, 1"/>
+        </transform>
+        
+        <!-- Field of view -->
+        <float name="fov" value="45.0"/>
+    </sensor>
+
+    <!-- Reusable diffuse BSDF with id -->
+    <bsdf type="diffuse" id="red_diffuse">
+        <rgb name="reflectance" value="0.8, 0.2, 0.2"/>
+    </bsdf>
+
+    <!-- Sphere with diffuse BSDF -->
+    <shape type="sphere">
+        <transform name="to_world">
+            <translate x="0" y="0" z="1"/>
+            <scale value="1.0"/>
+        </transform>
+        <bsdf type="diffuse">
+            <rgb name="reflectance" value="0.6, 0.6, 0.8"/>
+        </bsdf>
+    </shape>
+
+    <!-- Another shape with conductor BSDF -->
+    <shape type="sphere">
+        <transform name="to_world">
+            <translate x="-2" y="0" z="0.5"/>
+            <scale value="0.5"/>
+        </transform>
+        <bsdf type="conductor">
+            <string name="material" value="Au"/>
+        </bsdf>
+    </shape>
+
+    <!-- Shape with plastic BSDF -->
+    <shape type="sphere">
+        <transform name="to_world">
+            <translate x="2" y="0" z="0.5"/>
+            <scale value="0.5"/>
+        </transform>
+        <bsdf type="plastic">
+            <rgb name="diffuse_reflectance" value="0.1, 0.4, 0.8"/>
+            <float name="int_ior" value="1.5"/>
+            <float name="ext_ior" value="1.0"/>
+        </bsdf>
+    </shape>
+
+    <!-- Shape referencing the defined BSDF -->
+    <shape type="rectangle">
+        <transform name="to_world">
+            <scale x="10" y="10" z="1"/>
+            <rotate x="1" y="0" z="0" angle="90"/>
+        </transform>
+        <ref id="red_diffuse"/>
+    </shape>
+
+    <!-- Environment map emitter -->
+    <emitter type="envmap">
+        <string name="filename" value="textures/sky.exr"/>
+        <float name="scale" value="1.0"/>
+    </emitter>
+
+    <!-- Point light emitter -->
+    <emitter type="point">
+        <rgb name="intensity" value="100, 100, 100"/>
+        <transform name="to_world">
+            <translate x="3" y="3" z="5"/>
+        </transform>
+    </emitter>
+
+    <!-- Area light attached to shape -->
+    <shape type="rectangle">
+        <transform name="to_world">
+            <translate x="0" y="0" z="4"/>
+            <scale value="2"/>
+        </transform>
+        <emitter type="area">
+            <rgb name="radiance" value="5, 5, 5"/>
+        </emitter>
+        <bsdf type="diffuse">
+            <rgb name="reflectance" value="0.0, 0.0, 0.0"/>
+        </bsdf>
+    </shape>
+
+    <!-- Boolean property example -->
+    <integrator type="path">
+        <boolean name="hide_emitters" value="false"/>
+    </integrator>
+
+</scene>

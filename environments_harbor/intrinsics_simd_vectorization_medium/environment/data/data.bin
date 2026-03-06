@@ -1,0 +1,265 @@
+I'll create a solution for this data validation optimization problem. Let me start by generating the binary data file and then implementing an optimized checksum computation.
+
+First, let me create the binary data file and reference implementation:
+
+```python
+#!/usr/bin/env python3
+import struct
+import random
+
+# Set seed for reproducibility
+random.seed(42)
+
+# Generate 10 MB of binary data (2,621,440 uint32 values)
+num_integers = 10485760 // 4
+data = []
+
+with open('/tmp/data.bin', 'wb') as f:
+    for i in range(num_integers):
+        # Generate random 32-bit unsigned integer
+        value = random.randint(0, 0xFFFFFFFF)
+        data.append(value)
+        f.write(struct.pack('<I', value))
+
+# Compute reference checksum
+checksum = sum(data) % (2**32)
+
+with open('/tmp/reference_checksum.txt', 'w') as f:
+    f.write(str(checksum) + '\n')
+
+print(f"Generated data.bin with {num_integers} integers")
+print(f"Reference checksum: {checksum}")
+```
+
+Now let me create an optimized C implementation using SIMD instructions:
+
+```c
+#include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <time.h>
+#include <emmintrin.h>  // SSE2
+#include <tmmintrin.h>  // SSSE3
+#include <smmintrin.h>  // SSE4.1
+
+#define FILE_SIZE 10485760
+#define NUM_INTEGERS (FILE_SIZE / 4)
+
+double get_time_ms() {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return ts.tv_sec * 1000.0 + ts.tv_nsec / 1000000.0;
+}
+
+uint32_t compute_checksum_optimized(const uint32_t* data, size_t count) {
+    // Use SSE to process 4 uint32s at a time
+    __m128i sum1 = _mm_setzero_si128();
+    __m128i sum2 = _mm_setzero_si128();
+    __m128i sum3 = _mm_setzero_si128();
+    __m128i sum4 = _mm_setzero_si128();
+    
+    size_t i = 0;
+    size_t vec_count = count / 16 * 16;  // Process 16 integers at a time (4 vectors)
+    
+    // Process 16 integers per iteration (loop unrolling)
+    for (i = 0; i < vec_count; i += 16) {
+        __m128i v1 = _mm_loadu_si128((__m128i*)&data[i]);
+        __m128i v2 = _mm_loadu_si128((__m128i*)&data[i + 4]);
+        __m128i v3 = _mm_loadu_si128((__m128i*)&data[i + 8]);
+        __m128i v4 = _mm_loadu_si128((__m128i*)&data[i + 12]);
+        
+        sum1 = _mm_add_epi32(sum1, v1);
+        sum2 = _mm_add_epi32(sum2, v2);
+        sum3 = _mm_add_epi32(sum3, v3);
+        sum4 = _mm_add_epi32(sum4, v4);
+    }
+    
+    // Combine the four accumulators
+    sum1 = _mm_add_epi32(sum1, sum2);
+    sum3 = _mm_add_epi32(sum3, sum4);
+    sum1 = _mm_add_epi32(sum1, sum3);
+    
+    // Extract and sum the four 32-bit values
+    uint32_t result[4];
+    _mm_storeu_si128((__m128i*)result, sum1);
+    uint64_t total = (uint64_t)result[0] + result[1] + result[2] + result[3];
+    
+    // Process remaining elements
+    for (; i < count; i++) {
+        total += data[i];
+    }
+    
+    return (uint32_t)(total & 0xFFFFFFFF);
+}
+
+int main() {
+    // Allocate aligned memory
+    uint32_t* data = (uint32_t*)aligned_alloc(16, FILE_SIZE);
+    if (!data) {
+        fprintf(stderr, "Memory allocation failed\n");
+        return 1;
+    }
+    
+    // Read data file
+    FILE* f = fopen("/tmp/data.bin", "rb");
+    if (!f) {
+        fprintf(stderr, "Cannot open data file\n");
+        free(data);
+        return 1;
+    }
+    
+    size_t read_bytes = fread(data, 1, FILE_SIZE, f);
+    fclose(f);
+    
+    if (read_bytes != FILE_SIZE) {
+        fprintf(stderr, "Failed to read complete file\n");
+        free(data);
+        return 1;
+    }
+    
+    // Warm up cache
+    compute_checksum_optimized(data, NUM_INTEGERS);
+    
+    // Measure performance
+    double start = get_time_ms();
+    uint32_t checksum = compute_checksum_optimized(data, NUM_INTEGERS);
+    double end = get_time_ms();
+    double elapsed = end - start;
+    
+    // Write results
+    FILE* out = fopen("/tmp/checksum_result.txt", "w");
+    if (!out) {
+        fprintf(stderr, "Cannot write output file\n");
+        free(data);
+        return 1;
+    }
+    
+    fprintf(out, "%u\n", checksum);
+    fprintf(out, "%.1f\n", elapsed);
+    fclose(out);
+    
+    printf("Checksum: %u\n", checksum);
+    printf("Time: %.1f ms\n", elapsed);
+    
+    free(data);
+    return 0;
+}
+```
+
+Now let me create a build and run script:
+
+```bash
+#!/bin/bash
+
+# Generate test data and reference checksum
+python3 << 'PYSCRIPT'
+import struct
+import random
+
+random.seed(42)
+num_integers = 10485760 // 4
+data = []
+
+with open('/tmp/data.bin', 'wb') as f:
+    for i in range(num_integers):
+        value = random.randint(0, 0xFFFFFFFF)
+        data.append(value)
+        f.write(struct.pack('<I', value))
+
+checksum = sum(data) % (2**32)
+
+with open('/tmp/reference_checksum.txt', 'w') as f:
+    f.write(str(checksum) + '\n')
+
+print(f"Reference checksum: {checksum}")
+PYSCRIPT
+
+# Compile optimized version
+cat > /tmp/checksum_opt.c << 'CCODE'
+#include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <time.h>
+#include <emmintrin.h>
+#include <smmintrin.h>
+
+#define FILE_SIZE 10485760
+#define NUM_INTEGERS (FILE_SIZE / 4)
+
+double get_time_ms() {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return ts.tv_sec * 1000.0 + ts.tv_nsec / 1000000.0;
+}
+
+uint32_t compute_checksum_optimized(const uint32_t* data, size_t count) {
+    __m128i sum1 = _mm_setzero_si128();
+    __m128i sum2 = _mm_setzero_si128();
+    __m128i sum3 = _mm_setzero_si128();
+    __m128i sum4 = _mm_setzero_si128();
+    
+    size_t i = 0;
+    size_t vec_count = count / 16 * 16;
+    
+    for (i = 0; i < vec_count; i += 16) {
+        __m128i v1 = _mm_loadu_si128((__m128i*)&data[i]);
+        __m128i v2 = _mm_loadu_si128((__m128i*)&data[i + 4]);
+        __m128i v3 = _mm_loadu_si128((__m128i*)&data[i + 8]);
+        __m128i v4 = _mm_loadu_si128((__m128i*)&data[i + 12]);
+        
+        sum1 = _mm_add_epi32(sum1, v1);
+        sum2 = _mm_add_epi32(sum2, v2);
+        sum3 = _mm_add_epi32(sum3, v3);
+        sum4 = _mm_add_epi32(sum4, v4);
+    }
+    
+    sum1 = _mm_add_epi32(sum1, sum2);
+    sum3 = _mm_add_epi32(sum3, sum4);
+    sum1 = _mm_add_epi32(sum1, sum3);
+    
+    uint32_t result[4];
+    _mm_storeu_si128((__m128i*)result, sum1);
+    uint64_t total = (uint64_t)result[0] + result[1] + result[2] + result[3];
+    
+    for (; i < count; i++) {
+        total += data[i];
+    }
+    
+    return (uint32_t)(total & 0xFFFFFFFF);
+}
+
+int main() {
+    uint32_t* data = (uint32_t*)aligned_alloc(16, FILE_SIZE);
+    if (!data) return 1;
+    
+    FILE* f = fopen("/tmp/data.bin", "rb");
+    if (!f) { free(data); return 1; }
+    
+    fread(data, 1, FILE_SIZE, f);
+    fclose(f);
+    
+    compute_checksum_optimized(data, NUM_INTEGERS);
+    
+    double start = get_time_ms();
+    uint32_t checksum = compute_checksum_optimized(data, NUM_INTEGERS);
+    double end = get_time_ms();
+    
+    FILE* out = fopen("/tmp/checksum_result.txt", "w");
+    fprintf(out, "%u\n%.1f\n", checksum, end - start);
+    fclose(out);
+    
+    printf("Checksum: %u\nTime: %.1f ms\n", checksum, end - start);
+    
+    free(data);
+    return 0;
+}
+CCODE
+
+gcc -O3 -march=native -msse4.2 -o /tmp/checksum_opt /tmp/checksum_opt.c
+/tmp/checksum_opt
+
+# Verify results
+echo "Expected checksum:"
+cat /tmp/reference_checksum.txt
+echo "Actual results:"
+cat /tmp/checksum_result.txt

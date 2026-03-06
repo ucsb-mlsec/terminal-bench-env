@@ -1,0 +1,52 @@
+#!/bin/bash
+
+# Backup Audit Script
+# Audits backup files across daily, weekly, and monthly directories
+
+# Set variables
+BACKUP_BASE="/opt/backups"
+REPORT_FILE="/home/user/backup_report.txt"
+DIRECTORIES=("daily" "weekly" "monthly")
+BACKUP_TYPES=("db_backup" "config_backup" "logs_backup")
+EXTENSIONS=("sql" "tar.gz" "zip")
+
+# Clear or create report file
+> "$REPORT_FILE"
+
+# Disable nullglob initially and enable it for our operations
+shopt -s nullglob
+
+# Loop through each directory
+for dir in "${DIRECTORIES[@]}"; do
+    DIR_PATH="${BACKUP_BASE}/${dir}"
+    
+    # Check db_backup files
+    count=0
+    if [ -d "$DIR_PATH" ]; then
+        files=("$DIR_PATH"/db_backup_*.sql)
+        count=${#files[@]}
+    fi
+    echo "${dir}/db_backup=${count}" >> "$REPORT_FILE"
+    
+    # Check config_backup files
+    count=0
+    if [ -d "$DIR_PATH" ]; then
+        files=("$DIR_PATH"/config_backup_*.tar.gz)
+        count=${#files[@]}
+    fi
+    echo "${dir}/config_backup=${count}" >> "$REPORT_FILE"
+    
+    # Check logs_backup files
+    count=0
+    if [ -d "$DIR_PATH" ]; then
+        files=("$DIR_PATH"/logs_backup_*.zip)
+        count=${#files[@]}
+    fi
+    echo "${dir}/logs_backup=${count}" >> "$REPORT_FILE"
+done
+
+# Restore nullglob setting
+shopt -u nullglob
+
+# Exit successfully
+exit 0

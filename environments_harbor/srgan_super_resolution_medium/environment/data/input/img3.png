@@ -1,0 +1,96 @@
+import os
+import numpy as np
+from PIL import Image
+from scipy import ndimage
+
+def normalize_image(image):
+    """Normalize image from [0, 255] to [-1, 1]"""
+    return (image.astype(np.float32) / 127.5) - 1.0
+
+def denormalize_image(image):
+    """Denormalize image from [-1, 1] to [0, 255]"""
+    return np.clip((image + 1.0) * 127.5, 0, 255).astype(np.uint8)
+
+def upscale_image(image, scale_factor=4):
+    """Upscale image using bicubic interpolation"""
+    height, width, channels = image.shape
+    new_height = height * scale_factor
+    new_width = width * scale_factor
+    
+    # Process each channel separately
+    upscaled = np.zeros((new_height, new_width, channels), dtype=np.float32)
+    for c in range(channels):
+        upscaled[:, :, c] = ndimage.zoom(image[:, :, c], scale_factor, order=3)
+    
+    return upscaled
+
+def process_image(input_path, output_path):
+    """Complete processing pipeline for a single image"""
+    # Read image
+    img = Image.open(input_path).convert('RGB')
+    img_array = np.array(img)
+    
+    # Get original size
+    original_size = img_array.shape[0]  # Assume square
+    
+    # Normalize
+    normalized = normalize_image(img_array)
+    
+    # Upscale
+    upscaled = upscale_image(normalized, scale_factor=4)
+    
+    # Denormalize
+    output = denormalize_image(upscaled)
+    
+    # Save
+    output_img = Image.fromarray(output)
+    output_img.save(output_path)
+    
+    return original_size, output.shape[0]
+
+def main():
+    input_dir = '/workspace/input/'
+    output_dir = '/workspace/output/'
+    
+    # Create output directory if it doesn't exist
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Get all PNG files
+    png_files = [f for f in os.listdir(input_dir) if f.lower().endswith('.png')]
+    
+    total_input_size = 0
+    total_output_size = 0
+    images_processed = 0
+    
+    # Process each image
+    for filename in png_files:
+        input_path = os.path.join(input_dir, filename)
+        output_path = os.path.join(output_dir, filename)
+        
+        try:
+            input_size, output_size = process_image(input_path, output_path)
+            total_input_size += input_size
+            total_output_size += output_size
+            images_processed += 1
+            print(f"Processed: {filename}")
+        except Exception as e:
+            print(f"Error processing {filename}: {e}")
+    
+    # Calculate averages
+    if images_processed > 0:
+        avg_input_size = total_input_size // images_processed
+        avg_output_size = total_output_size // images_processed
+    else:
+        avg_input_size = 0
+        avg_output_size = 0
+    
+    # Write results
+    with open('/workspace/results.txt', 'w') as f:
+        f.write(f"images_processed={images_processed}\n")
+        f.write(f"average_input_size={avg_input_size}\n")
+        f.write(f"average_output_size={avg_output_size}\n")
+    
+    print(f"\nCompleted! Processed {images_processed} images.")
+
+if __name__ == "__main__":
+    main()

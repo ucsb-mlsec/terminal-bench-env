@@ -1,0 +1,27 @@
+# Dask UCX Configuration - Contains multiple issues requiring correction
+# This configuration is intended for InfiniBand deployment but has several errors
+
+ucx:
+  transport: ucx
+  infiniband_device: mlx4_0  # Using older mlx4 device but cluster has mlx5 hardware
+  rdma:
+    enable: true
+    # Missing memory registration settings like UCX_RCACHE_ENABLE
+
+distributed:
+  scheduler:
+    protocol: ucx
+    address: ucx://10.0.0.1:8786
+  worker:
+    protocol: ucx
+    interface: 0.0.0.0  # Incorrect - should specify IB interface like ib0
+    memory:
+      target: 0.8
+      spill: 0.9
+
+environment:
+  UCX_TLS: rc  # Only RC transport without TCP fallback - will fail if IB unavailable
+  UCX_NET_DEVICES: mlx4_0:1  # Mismatched with actual mlx5 hardware
+  UCX_RNDV_THRESH: 0  # Invalid threshold value - should be positive like 8192
+  UCX_MEMTYPE_CACHE: y
+  # Missing UCX_SOCKADDR_TLS_PRIORITY for proper transport selection

@@ -1,0 +1,65 @@
+checkpoint_storage:
+  root_directory: /checkpoints
+  storage_type: hdfs
+  capacity_gb: 5000
+  replication_factor: 3
+  backup_enabled: true
+  compression: snappy
+  max_checkpoint_age_days: 90
+
+validation_rules:
+  path_pattern: /checkpoints/{application_id}/{job_name}
+  allowed_root_directories:
+    - /checkpoints
+  application_id_regex: ^[a-zA-Z0-9_]+$
+  job_name_regex: ^[a-zA-Z0-9_]+$
+  require_unique_paths: true
+  check_overlapping_paths: true
+  min_path_length: 20
+  max_path_length: 255
+  validate_on_submission: true
+
+naming_conventions:
+  application_id_format: Alphanumeric characters and underscores only, must start with a letter
+  job_name_format: Alphanumeric characters and underscores only, descriptive and unique per application
+  prohibited_characters:
+    - '-'
+    - '.'
+    - '/'
+    - ' '
+    - '!'
+    - '@'
+    - '#'
+    - '$'
+    - '%'
+    - '^'
+    - '&'
+    - '*'
+    - '('
+    - ')'
+  max_application_id_length: 50
+  max_job_name_length: 100
+  case_sensitive: true
+
+enforcement:
+  strict_mode: true
+  auto_correct: false
+  notify_on_violation: true
+  block_invalid_submissions: true
+  quarantine_violating_jobs: false
+  grace_period_hours: 0
+
+monitoring:
+  track_checkpoint_size: true
+  alert_on_size_threshold_gb: 100
+  track_checkpoint_age: true
+  alert_on_stale_checkpoints_days: 30
+  log_all_validations: true
+  audit_trail_enabled: true
+
+metadata:
+  cluster_name: production-spark-cluster
+  environment: production
+  config_version: 2.1.0
+  last_updated: 2024-01-15T10:30:00Z
+  maintained_by: platform-team@company.com

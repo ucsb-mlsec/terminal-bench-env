@@ -1,0 +1,74 @@
+import struct
+import numpy as np
+import json
+
+# Set random seed for reproducibility
+np.random.seed(42)
+
+# Define the structure
+num_matrices = 3
+matrix_specs = [
+    (128, 64),
+    (64, 32),
+    (32, 10)
+]
+
+# Create the binary file
+with open('/workspace/model_weights.bin', 'wb') as f:
+    # Write number of matrices
+    f.write(struct.pack('<i', num_matrices))
+    
+    # Generate and write each matrix
+    for rows, cols in matrix_specs:
+        # Write dimensions
+        f.write(struct.pack('<i', rows))
+        f.write(struct.pack('<i', cols))
+        
+        # Generate realistic weights with normal distribution
+        weights = np.random.normal(0, 0.1, (rows, cols)).astype(np.float32)
+        
+        # Write weights
+        f.write(weights.tobytes())
+
+# Now read the file and perform quantization
+matrices_info = []
+
+with open('/workspace/model_weights.bin', 'rb') as f:
+    # Read number of matrices
+    num_matrices = struct.unpack('<i', f.read(4))[0]
+    
+    for _ in range(num_matrices):
+        # Read dimensions
+        rows = struct.unpack('<i', f.read(4))[0]
+        cols = struct.unpack('<i', f.read(4))[0]
+        
+        # Read weights
+        num_weights = rows * cols
+        weight_bytes = f.read(num_weights * 4)
+        weights = np.frombuffer(weight_bytes, dtype=np.float32).reshape(rows, cols)
+        
+        # Calculate scale factor for symmetric quantization
+        max_abs_weight = np.max(np.abs(weights))
+        
+        # Handle edge case of all-zero weights
+        if max_abs_weight == 0:
+            scale = 1.0
+        else:
+            scale = max_abs_weight / 127.0
+        
+        # Store matrix info
+        matrices_info.append({
+            "scale": float(scale),
+            "rows": int(rows),
+            "cols": int(cols)
+        })
+
+# Create output JSON
+output = {
+    "num_matrices": num_matrices,
+    "matrices": matrices_info
+}
+
+# Write to JSON file
+with open('/workspace/quantized_model.json', 'w') as f:
+    json.dump(output, f, indent=2)

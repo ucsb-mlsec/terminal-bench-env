@@ -1,0 +1,33 @@
+---
+- name: Deploy Web Application
+  hosts: localhost
+  become: yes
+
+  vars:
+    environment: production
+    app_version: 1.0.0
+    worker_processes: 2
+    debug_mode: no
+
+  tasks:
+    - name: Create application directory
+      file:
+        path: /var/www/app
+        state: directory
+        mode: '0755'
+
+    - name: Deploy configuration file
+      copy:
+        content: |
+          {
+            "environment": "{{ environment }}",
+            "version": "{{ app_version }}",
+            "workers": {{ worker_processes }},
+            "debug": {{ debug_mode | bool | lower }}
+          }
+        dest: /var/www/app/config.json
+        mode: '0644'
+
+    - name: Display deployment summary
+      debug:
+        msg: "Deployed application version {{ app_version }} to {{ environment }} environment with {{ worker_processes }} workers"

@@ -1,0 +1,142 @@
+import base64
+import pickle
+from typing import List, Optional
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel, validator
+import numpy as np
+
+# Initialize FastAPI app
+app = FastAPI(title="Image Classification API", version="1.0.0")
+
+# Global variable to store the model
+model = None
+model_loaded = False
+
+# Pydantic models for request/response validation
+class PredictRequest(BaseModel):
+    image_data: List[float]
+    
+    @validator('image_data')
+    def validate_image_data(cls, v):
+        if not isinstance(v, list):
+            raise ValueError('image_data must be a list')
+        if len(v) == 0:
+            raise ValueError('image_data cannot be empty')
+        return v
+
+class PredictResponse(BaseModel):
+    prediction: int
+
+class BatchRequest(BaseModel):
+    images: List[List[float]]
+    
+    @validator('images')
+    def validate_images(cls, v):
+        if not isinstance(v, list):
+            raise ValueError('images must be a list')
+        if len(v) == 0:
+            raise ValueError('images cannot be empty')
+        if len(v) > 50:
+            raise HTTPException(status_code=400, detail="Batch size cannot exceed 50 images")
+        for i, img in enumerate(v):
+            if not isinstance(img, list):
+                raise ValueError(f'images[{i}] must be a list')
+            if len(img) == 0:
+                raise ValueError(f'images[{i}] cannot be empty')
+        return v
+
+class BatchResponse(BaseModel):
+    predictions: List[int]
+
+class HealthResponse(BaseModel):
+    status: str
+
+# Startup event to load the model
+@app.on_event("startup")
+async def load_model():
+    global model, model_loaded
+    try:
+        # First, create the model file from base64
+        model_b64 = "gASVpwEAAAAAAACMC2NsYXNzaWZpZXKUjAxfX21haW5fX5SMCk1vY2tNb2RlbJSTlCmBfZQojAZwYXJhbXOUfZQojAVpbnB1dJSMBW5wLmFycmF5KFsuLi5dKZSMBm91dHB1dJRoB3VijAhwcmVkaWN0lGNjbG91ZHBpY2tsZS5jbG91ZHBpY2tsZV9mYXN0CmNsb3VkcGlja2xlCl9tYWtlX2Z1bmN0aW9uCnEAKGNjbG91ZHBpY2tsZS5jbG91ZHBpY2tsZV9mYXN0Cl9mdW5jdGlvbl9zZXRzdGF0ZQpxAWgAKGNjb2RlCm5ld2NvZGUKcQJLAUsASwBLAUsBSwNDCHwAfABkAYEBU5ROhZRoB4WUjAFzlIWUjBQ8c3RyaW5nPpSMCHByZWRpY3SUSwBDAoAAlCmpdJRSlH2UKIwLX19wYWNrYWdlX1+UTowIX19uYW1lX1+UjAhfX21haW5fX5SMCF9fZmlsZV9flIwIPHN0cmluZz6UdU50Uh1jYnVpbHRpbnMKZ2V0YXR0cgpxA2NudW1weS5jb3JlLm11bHRpYXJyYXkKX3JlY29uc3RydWN0CnEEY251bXB5Cm5kYXJyYXkKcQVLAIWUQwFilHSUUpQoSwFLAYWUY251bXB5CmR0eXBlCnEGjAJpOJSTlImIh5RSlChLA4wBPJROTk5K/////0r/////SwB0lGKJQwgAAAAAAAAAAJR0lGKGUoWUUpR1Yi4="
+        
+        with open('/workspace/classifier_model.pkl', 'wb') as f:
+            f.write(base64.b64decode(model_b64))
+        
+        # Load the model
+        with open('/workspace/classifier_model.pkl', 'rb') as f:
+            model = pickle.load(f)
+        
+        model_loaded = True
+        print("Model loaded successfully")
+    except Exception as e:
+        print(f"Failed to load model: {str(e)}")
+        model_loaded = False
+
+# Endpoint 1: Single prediction
+@app.post("/predict", response_model=PredictResponse)
+async def predict(request: PredictRequest):
+    global model, model_loaded
+    
+    if not model_loaded or model is None:
+        raise HTTPException(status_code=500, detail="Model not loaded")
+    
+    try:
+        # Convert input to numpy array
+        image_array = np.array(request.image_data)
+        
+        # Make prediction
+        prediction = model.predict(image_array)
+        
+        # Extract the prediction value (handle both scalar and array returns)
+        if isinstance(prediction, np.ndarray):
+            pred_value = int(prediction[0])
+        else:
+            pred_value = int(prediction)
+        
+        return PredictResponse(prediction=pred_value)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
+
+# Endpoint 2: Batch prediction
+@app.post("/batch", response_model=BatchResponse)
+async def batch_predict(request: BatchRequest):
+    global model, model_loaded
+    
+    if not model_loaded or model is None:
+        raise HTTPException(status_code=500, detail="Model not loaded")
+    
+    # Additional validation for batch size
+    if len(request.images) > 50:
+        raise HTTPException(status_code=400, detail="Batch size cannot exceed 50 images")
+    
+    try:
+        predictions = []
+        
+        for image_data in request.images:
+            # Convert input to numpy array
+            image_array = np.array(image_data)
+            
+            # Make prediction
+            prediction = model.predict(image_array)
+            
+            # Extract the prediction value
+            if isinstance(prediction, np.ndarray):
+                pred_value = int(prediction[0])
+            else:
+                pred_value = int(prediction)
+            
+            predictions.append(pred_value)
+        
+        return BatchResponse(predictions=predictions)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Batch prediction failed: {str(e)}")
+
+# Endpoint 3: Health check
+@app.get("/health", response_model=HealthResponse)
+async def health_check():
+    global model, model_loaded
+    
+    if model_loaded and model is not None:
+        return HealthResponse(status="healthy")
+    else:
+        return HealthResponse(status="unhealthy")

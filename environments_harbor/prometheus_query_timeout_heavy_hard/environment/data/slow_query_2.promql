@@ -1,0 +1,9 @@
+sum(rate(container_cpu_usage_seconds_total{environment=~".*"}[5m])) by (service, environment, region, pod) / on(service, environment, region, pod) group_left sum(container_spec_cpu_quota{environment=~".*"}) by (service, environment, region, pod) / 100000 
+and 
+quantile(0.95, 
+  sum(rate(container_cpu_usage_seconds_total{environment=~".*"}[5m])) by (service, environment, region, pod) / on(service, environment, region, pod) group_left sum(container_spec_cpu_quota{environment=~".*"}) by (service, environment, region, pod) / 100000
+) by (service, environment, region)
+or
+quantile(0.99, 
+  sum(rate(container_cpu_usage_seconds_total{environment=~".*"}[5m])) by (service, environment, region, pod) / on(service, environment, region, pod) group_left sum(container_spec_cpu_quota{environment=~".*"}) by (service, environment, region, pod) / 100000
+) by (service, environment, region)

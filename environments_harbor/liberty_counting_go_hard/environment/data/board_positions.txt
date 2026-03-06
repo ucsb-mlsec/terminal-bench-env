@@ -1,0 +1,473 @@
+I'll create a comprehensive solution for this Go board liberty counting system.
+
+First, let me create the board_positions.txt file with diverse test cases:
+
+...................
+.BBB...............
+.B.................
+...................
+.....WWW...........
+.....W.............
+...................
+...................
+...................
+...................
+...................
+...................
+...................
+...................
+...................
+...................
+...................
+...................
+...................
+
+...................
+.BB................
+.BB................
+...................
+...................
+BBBBBBBBBBB........
+B.................B
+B.................B
+BBBBBBBBBBB........
+...................
+.....WW............
+.....WW............
+...................
+.........W.........
+.........WWW.......
+.........W.........
+...................
+...................
+...................
+
+B..................
+BB.................
+B..................
+...................
+...................
+...................
+...................
+...................
+...................
+...................
+...................
+...................
+................W..
+................WW.
+................W..
+...................
+...................
+...................
+..................W
+
+BBBBBBBBBBBBBBBBBBB
+...................
+...................
+WWW................
+W..................
+W..................
+...................
+...................
+.........BBBB......
+.........B..B......
+.........B..B......
+.........BBBB......
+...................
+...................
+...................
+WWWWWWWWWWWWWWWWWWW
+...................
+...................
+BBBBBBBBBBBBBBBBBBB
+
+B.W.B.W.B.W.B.W.B..
+...................
+W.B.W.B.W.B.W.B.W..
+...................
+B.W.B.W.B.W.B.W.B..
+...................
+W.B.W.B.W.B.W.B.W..
+...................
+B.W.B.W.B.W.B.W.B..
+...................
+...................
+...................
+...................
+...................
+...................
+...................
+...................
+...................
+...................
+
+BBBBBBBBBBBBBBBBBBB
+BBBBBBBBBBBBBBBBBBB
+BB...............BB
+BB...............BB
+BB...............BB
+BB...............BB
+BB...............BB
+BB...............BB
+BB...............BB
+BB...............BB
+BB...............BB
+BB...............BB
+BB...............BB
+BB...............BB
+BB...............BB
+BBBBBBBBBBBBBBBBBBB
+BBBBBBBBBBBBBBBBBBB
+...................
+...................
+
+...................
+...BBBBB...........
+...B...B...........
+...B.W.B...........
+...B.WWB...........
+...BBBBB...........
+...................
+...................
+.........WWWWW.....
+.........W...W.....
+.........W.B.W.....
+.........W.BBW.....
+.........WWWWW.....
+...................
+...................
+...................
+...................
+...................
+...................
+
+BWBWBWBWBWBWBWBWBWB
+WBWBWBWBWBWBWBWBWBW
+BWBWBWBWBWBWBWBWBWB
+WBWBWBWBWBWBWBWBWBW
+BWBWBWBWBWBWBWBWBWB
+WBWBWBWBWBWBWBWBWBW
+BWBWBWBWBWBWBWBWBWB
+WBWBWBWBWBWBWBWBWBW
+BWBWBWBWBWBWBWBWBWB
+WBWBWBWBWBWBWBWBWBW
+BWBWBWBWBWBWBWBWBWB
+WBWBWBWBWBWBWBWBWBW
+BWBWBWBWBWBWBWBWBWB
+WBWBWBWBWBWBWBWBWBW
+BWBWBWBWBWBWBWBWBWB
+WBWBWBWBWBWBWBWBWBW
+BWBWBWBWBWBWBWBWBWB
+WBWBWBWBWBWBWBWBWBW
+BWBWBWBWBWBWBWBWBWB
+
+...................
+...................
+...................
+...................
+...................
+...................
+...................
+.......BBBBB.......
+.......BWWWB.......
+.......BWBWB.......
+.......BWWWB.......
+.......BBBBB.......
+...................
+...................
+...................
+...................
+...................
+...................
+...................
+
+..........WWWWWWWWW
+..........W........
+..........W........
+BBBBBBBBBBWBBBBBBBB
+B.................B
+B.................B
+B.................B
+B.................B
+B.................B
+B.................B
+B.................B
+B.................B
+B.................B
+B.................B
+B.................B
+BBBBBBBBBBBBBBBBBB.
+...................
+WWW................
+W..................
+
+Now, let me create the Python solution:
+
+```python
+#!/usr/bin/env python3
+import json
+from collections import deque
+
+def read_board_positions(filename):
+    """Read board positions from file and return list of boards."""
+    with open(filename, 'r') as f:
+        content = f.read()
+    
+    boards = []
+    current_board = []
+    
+    for line in content.split('\n'):
+        if line.strip() == '':
+            if current_board:
+                boards.append(current_board)
+                current_board = []
+        else:
+            current_board.append(line)
+    
+    if current_board:
+        boards.append(current_board)
+    
+    return boards
+
+def find_groups(board):
+    """Find all groups on the board using flood fill."""
+    rows = len(board)
+    cols = len(board[0]) if rows > 0 else 0
+    visited = [[False] * cols for _ in range(rows)]
+    groups = []
+    
+    def bfs(start_row, start_col, color):
+        """Perform BFS to find connected stones of the same color."""
+        queue = deque([(start_row, start_col)])
+        visited[start_row][start_col] = True
+        group_positions = [(start_row, start_col)]
+        
+        while queue:
+            row, col = queue.popleft()
+            
+            # Check all four directions
+            for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                new_row, new_col = row + dr, col + dc
+                
+                if (0 <= new_row < rows and 0 <= new_col < cols and
+                    not visited[new_row][new_col] and
+                    board[new_row][new_col] == color):
+                    visited[new_row][new_col] = True
+                    queue.append((new_row, new_col))
+                    group_positions.append((new_row, new_col))
+        
+        return group_positions
+    
+    # Find all groups
+    for row in range(rows):
+        for col in range(cols):
+            if not visited[row][col] and board[row][col] in ['B', 'W']:
+                color = board[row][col]
+                positions = bfs(row, col, color)
+                groups.append({
+                    'color': color,
+                    'positions': positions
+                })
+    
+    return groups
+
+def count_liberties(board, group_positions):
+    """Count unique liberties for a group."""
+    rows = len(board)
+    cols = len(board[0]) if rows > 0 else 0
+    liberties = set()
+    
+    for row, col in group_positions:
+        # Check all four adjacent positions
+        for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            new_row, new_col = row + dr, col + dc
+            
+            if (0 <= new_row < rows and 0 <= new_col < cols and
+                board[new_row][new_col] == '.'):
+                liberties.add((new_row, new_col))
+    
+    return len(liberties)
+
+def analyze_board(board):
+    """Analyze a single board position."""
+    groups = find_groups(board)
+    results = []
+    
+    for group in groups:
+        positions = sorted(group['positions'])
+        liberty_count = count_liberties(board, group['positions'])
+        
+        results.append({
+            'color': group['color'],
+            'size': len(positions),
+            'liberties': liberty_count,
+            'positions': [[row, col] for row, col in positions]
+        })
+    
+    # Sort groups: color (B before W), then size (descending), then first position
+    results.sort(key=lambda g: (
+        0 if g['color'] == 'B' else 1,
+        -g['size'],
+        g['positions'][0] if g['positions'] else [0, 0]
+    ))
+    
+    return results
+
+def main():
+    # Read board positions
+    boards = read_board_positions('/workspace/board_positions.txt')
+    
+    # Analyze each board
+    all_results = []
+    for case_id, board in enumerate(boards, start=1):
+        groups = analyze_board(board)
+        all_results.append({
+            'case_id': case_id,
+            'groups': groups
+        })
+    
+    # Write results to JSON
+    with open('/workspace/liberty_analysis.json', 'w') as f:
+        json.dump(all_results, f, indent=2)
+    
+    print(f"Analyzed {len(boards)} board positions")
+    print(f"Results saved to /workspace/liberty_analysis.json")
+
+if __name__ == '__main__':
+    main()
+```
+
+Let me save this as a Python script and execute it:
+
+#!/usr/bin/env python3
+import json
+from collections import deque
+
+def read_board_positions(filename):
+    """Read board positions from file and return list of boards."""
+    with open(filename, 'r') as f:
+        content = f.read()
+    
+    boards = []
+    current_board = []
+    
+    for line in content.split('\n'):
+        if line.strip() == '':
+            if current_board:
+                boards.append(current_board)
+                current_board = []
+        else:
+            current_board.append(line)
+    
+    if current_board:
+        boards.append(current_board)
+    
+    return boards
+
+def find_groups(board):
+    """Find all groups on the board using flood fill."""
+    rows = len(board)
+    cols = len(board[0]) if rows > 0 else 0
+    visited = [[False] * cols for _ in range(rows)]
+    groups = []
+    
+    def bfs(start_row, start_col, color):
+        """Perform BFS to find connected stones of the same color."""
+        queue = deque([(start_row, start_col)])
+        visited[start_row][start_col] = True
+        group_positions = [(start_row, start_col)]
+        
+        while queue:
+            row, col = queue.popleft()
+            
+            # Check all four directions
+            for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                new_row, new_col = row + dr, col + dc
+                
+                if (0 <= new_row < rows and 0 <= new_col < cols and
+                    not visited[new_row][new_col] and
+                    board[new_row][new_col] == color):
+                    visited[new_row][new_col] = True
+                    queue.append((new_row, new_col))
+                    group_positions.append((new_row, new_col))
+        
+        return group_positions
+    
+    # Find all groups
+    for row in range(rows):
+        for col in range(cols):
+            if not visited[row][col] and board[row][col] in ['B', 'W']:
+                color = board[row][col]
+                positions = bfs(row, col, color)
+                groups.append({
+                    'color': color,
+                    'positions': positions
+                })
+    
+    return groups
+
+def count_liberties(board, group_positions):
+    """Count unique liberties for a group."""
+    rows = len(board)
+    cols = len(board[0]) if rows > 0 else 0
+    liberties = set()
+    
+    for row, col in group_positions:
+        # Check all four adjacent positions
+        for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            new_row, new_col = row + dr, col + dc
+            
+            if (0 <= new_row < rows and 0 <= new_col < cols and
+                board[new_row][new_col] == '.'):
+                liberties.add((new_row, new_col))
+    
+    return len(liberties)
+
+def analyze_board(board):
+    """Analyze a single board position."""
+    groups = find_groups(board)
+    results = []
+    
+    for group in groups:
+        positions = sorted(group['positions'])
+        liberty_count = count_liberties(board, group['positions'])
+        
+        results.append({
+            'color': group['color'],
+            'size': len(positions),
+            'liberties': liberty_count,
+            'positions': [[row, col] for row, col in positions]
+        })
+    
+    # Sort groups: color (B before W), then size (descending), then first position
+    results.sort(key=lambda g: (
+        0 if g['color'] == 'B' else 1,
+        -g['size'],
+        g['positions'][0] if g['positions'] else [0, 0]
+    ))
+    
+    return results
+
+def main():
+    # Read board positions
+    boards = read_board_positions('/workspace/board_positions.txt')
+    
+    # Analyze each board
+    all_results = []
+    for case_id, board in enumerate(boards, start=1):
+        groups = analyze_board(board)
+        all_results.append({
+            'case_id': case_id,
+            'groups': groups
+        })
+    
+    # Write results to JSON
+    with open('/workspace/liberty_analysis.json', 'w') as f:
+        json.dump(all_results, f, indent=2)
+    
+    print(f"Analyzed {len(boards)} board positions")
+    print(f"Results saved to /workspace/liberty_analysis.json")
+
+if __name__ == '__main__':
+    main()

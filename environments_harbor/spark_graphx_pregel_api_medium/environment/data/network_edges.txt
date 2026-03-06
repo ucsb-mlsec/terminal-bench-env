@@ -1,0 +1,82 @@
+#!/usr/bin/env python3
+"""
+Triangle counting script for social network analysis.
+Counts the number of triangles (3-cliques) in an undirected graph.
+"""
+
+def count_triangles(edge_file_path):
+    """
+    Count triangles in an undirected graph from an edge list.
+    
+    Args:
+        edge_file_path: Path to file containing edge list
+        
+    Returns:
+        Integer count of triangles in the graph
+    """
+    # Build adjacency list representation
+    adjacency = {}
+    
+    # Read edges and build graph
+    with open(edge_file_path, 'r') as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            
+            parts = line.split()
+            if len(parts) != 2:
+                continue
+                
+            u, v = int(parts[0]), int(parts[1])
+            
+            # Add both directions since graph is undirected
+            if u not in adjacency:
+                adjacency[u] = set()
+            if v not in adjacency:
+                adjacency[v] = set()
+            
+            adjacency[u].add(v)
+            adjacency[v].add(u)
+    
+    # Count triangles
+    triangle_count = 0
+    nodes = sorted(adjacency.keys())
+    
+    # For each node, check if its neighbors are connected to each other
+    for node in nodes:
+        neighbors = list(adjacency[node])
+        
+        # Check all pairs of neighbors
+        for i in range(len(neighbors)):
+            for j in range(i + 1, len(neighbors)):
+                neighbor1 = neighbors[i]
+                neighbor2 = neighbors[j]
+                
+                # Only count triangle if node < neighbor1 < neighbor2
+                # This ensures each triangle is counted exactly once
+                if node < neighbor1 < neighbor2:
+                    # Check if neighbor1 and neighbor2 are connected
+                    if neighbor2 in adjacency[neighbor1]:
+                        triangle_count += 1
+    
+    return triangle_count
+
+
+def main():
+    """Main execution function."""
+    input_file = '/data/network_edges.txt'
+    output_file = '/solution/result.txt'
+    
+    # Count triangles
+    count = count_triangles(input_file)
+    
+    # Write result
+    with open(output_file, 'w') as f:
+        f.write(f"{count}\n")
+    
+    print(f"Triangle count: {count}")
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,86 @@
+TRAFFIC LIGHT CONTROL SYSTEM SPECIFICATION
+==============================================
+
+1. STATES SECTION
+-----------------
+
+The traffic light control system operates in three distinct states:
+
+RED: The traffic light displays a red signal, indicating that vehicles must stop and remain stopped until the light changes. This is the most restrictive state for safety purposes.
+
+YELLOW: The traffic light displays a yellow (amber) signal, indicating that vehicles should prepare to stop as the light is about to turn red. Vehicles already in the intersection may proceed through.
+
+GREEN: The traffic light displays a green signal, indicating that vehicles may proceed through the intersection safely.
+
+At any given moment, the system should be in exactly one of these three states.
+
+
+2. TRANSITIONS SECTION
+----------------------
+
+The system follows a specific cycle of state transitions with timing constraints:
+
+From RED to GREEN: After the light has been red for 30 to 45 seconds, it transitions directly to green. This transition allows stopped traffic to begin moving.
+
+From GREEN to YELLOW: After the light has been green for 60 to 90 seconds, it must transition to yellow. This provides adequate time for traffic flow while maintaining cycle efficiency.
+
+From YELLOW to RED: After the light has been yellow for 3 to 5 seconds, it transitions to red. This brief warning period allows drivers to react appropriately.
+
+PROHIBITED TRANSITIONS: The following transitions are explicitly forbidden:
+- RED to YELLOW: The light must never go directly from red to yellow
+- YELLOW to GREEN: The light must never go directly from yellow to green  
+- GREEN to RED: The light must never skip the yellow warning state and go directly to red
+
+
+3. SAFETY REQUIREMENTS SECTION
+-------------------------------
+
+The following safety properties are critical and must never be violated:
+
+MUTUAL EXCLUSION: The light must never be in more than one state simultaneously. It is impossible and dangerous for the light to show red and green at the same time, for example.
+
+NO STATE SKIPPING: When transitioning from GREEN to RED, the system must always pass through the YELLOW state. Skipping yellow would not give drivers adequate warning.
+
+DEFINED STATE: The system must always be in one of the three defined states (RED, YELLOW, or GREEN). It must never be in an undefined, null, or error state. If the system loses track of its current state, this represents a critical failure.
+
+TRANSITION ATOMICITY: State transitions should be instantaneous. There should be no intermediate period where the system is between states.
+
+
+4. LIVENESS REQUIREMENTS SECTION
+---------------------------------
+
+The system must demonstrate continuous progress and cycling:
+
+NO DEADLOCK: From any state, the system must eventually transition to another state. The light cannot get stuck indefinitely in any single state.
+
+INFINITE CYCLING: Each of the three states (RED, YELLOW, GREEN) must be visited infinitely often during system operation. The system cannot stop cycling or skip states permanently.
+
+EVENTUAL GREEN: From the RED state, the system must eventually reach the GREEN state. Traffic cannot be held at red forever.
+
+EVENTUAL RED: From the GREEN state, the system must eventually return to the RED state, passing through YELLOW. This ensures the cycle continues properly.
+
+BOUNDED PROGRESS: Within a reasonable time frame (not more than 150 seconds), the system should complete at least some forward progress through its cycle.
+
+
+5. TIMING CONSTRAINTS SECTION
+------------------------------
+
+State dwell times must respect the following boundaries:
+
+RED state: minimum 30 seconds, maximum 45 seconds
+GREEN state: minimum 60 seconds, maximum 90 seconds  
+YELLOW state: minimum 3 seconds, maximum 5 seconds
+
+TOTAL CYCLE TIME: A complete cycle from RED through GREEN and YELLOW and back to RED should take between 90 and 150 seconds total. This is computed as the sum of minimum times (93 seconds) to maximum times (140 seconds).
+
+The timing ensures adequate traffic flow while maintaining safety margins.
+
+
+6. INITIALIZATION SECTION
+--------------------------
+
+SAFE STARTUP: For maximum safety, the system should initialize in the RED state. This ensures that when the system starts or restarts, traffic is held rather than allowed to proceed through a potentially unsafe intersection.
+
+STARTUP TIMING: Upon initialization in RED, the system should remain in RED for the full minimum duration (30 seconds) before its first transition to GREEN.
+
+Alternative consideration: In some scenarios, the system might resume operation in whatever state is appropriate based on the time of day or traffic conditions, but RED is preferred for safety.

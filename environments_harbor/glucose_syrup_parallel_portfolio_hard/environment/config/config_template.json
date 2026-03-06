@@ -1,0 +1,254 @@
+[
+  {
+    "#!\/bin\/bash":"# Portfolio SAT Solver Orchestration Script"
+  },
+  {
+    "#!\/bin\/bash":"# This script runs multiple solver instances in parallel for each CNF problem"
+  },
+  {
+    "#!\/bin\/bash":"set -e"
+  },
+  {
+    "#!\/bin\/bash":"# Configuration"
+  },
+  {
+    "#!\/bin\/bash":"SOLVER=\"\/workspace\/bin\/mock_solver.py\""
+  },
+  {
+    "#!\/bin\/bash":"PROBLEMS_DIR=\"\/workspace\/problems\""
+  },
+  {
+    "#!\/bin\/bash":"OUTPUT_DIR=\"\/workspace\/output\""
+  },
+  {
+    "#!\/bin\/bash":"RESULTS_FILE=\"\/workspace\/results.txt\""
+  },
+  {
+    "#!\/bin\/bash":"SEEDS=(1001 2002 3003 4004)"
+  },
+  {
+    "#!\/bin\/bash":"TIMEOUT=30"
+  },
+  {
+    "#!\/bin\/bash":"# Create output directory"
+  },
+  {
+    "#!\/bin\/bash":"mkdir -p \"$OUTPUT_DIR\""
+  },
+  {
+    "#!\/bin\/bash":"# Clear previous results"
+  },
+  {
+    "#!\/bin\/bash":"> \"$RESULTS_FILE\""
+  },
+  {
+    "#!\/bin\/bash":"# Find all CNF files"
+  },
+  {
+    "#!\/bin\/bash":"find \"$PROBLEMS_DIR\" -type f -name \"*.cnf\" | sort | while read -r problem_file; do"
+  },
+  {
+    "#!\/bin\/bash":"    problem_name=$(basename \"$problem_file\")"
+  },
+  {
+    "#!\/bin\/bash":"    echo \"Processing: $problem_name\""
+  },
+  {
+    "#!\/bin\/bash":"    # Create temporary directory for this problem"
+  },
+  {
+    "#!\/bin\/bash":"    temp_dir=$(mktemp -d)"
+  },
+  {
+    "#!\/bin\/bash":"    # Track start time"
+  },
+  {
+    "#!\/bin\/bash":"    start_time=$(date +%s.%N)"
+  },
+  {
+    "#!\/bin\/bash":"    # Flag file to signal when first solution is found"
+  },
+  {
+    "#!\/bin\/bash":"    solution_file=\"$temp_dir\/solution\""
+  },
+  {
+    "#!\/bin\/bash":"    # Launch 4 parallel instances"
+  },
+  {
+    "#!\/bin\/bash":"    pids=()"
+  },
+  {
+    "#!\/bin\/bash":"    for seed in \"${SEEDS[@]}\"; do"
+  },
+  {
+    "#!\/bin\/bash":"        output_file=\"$temp_dir\/output_${seed}.txt\""
+  },
+  {
+    "#!\/bin\/bash":"        time_file=\"$temp_dir\/time_${seed}.txt\""
+  },
+  {
+    "#!\/bin\/bash":"        ("
+  },
+  {
+    "#!\/bin\/bash":"            instance_start=$(date +%s.%N)"
+  },
+  {
+    "#!\/bin\/bash":"            python3 \"$SOLVER\" -i \"$problem_file\" -s \"$seed\" -t \"$TIMEOUT\" -o \"$output_file\" 2>\/dev\/null || echo \"TIMEOUT\" > \"$output_file\""
+  },
+  {
+    "#!\/bin\/bash":"            instance_end=$(date +%s.%N)"
+  },
+  {
+    "#!\/bin\/bash":"            instance_time=$(echo \"$instance_end - $instance_start\" | bc)"
+  },
+  {
+    "#!\/bin\/bash":"            echo \"$instance_time\" > \"$time_file\""
+  },
+  {
+    "#!\/bin\/bash":"            # Check if this is a definitive answer"
+  },
+  {
+    "#!\/bin\/bash":"            result=$(cat \"$output_file\" 2>\/dev\/null || echo \"TIMEOUT\")"
+  },
+  {
+    "#!\/bin\/bash":"            if [[ \"$result\" == \"SAT\" || \"$result\" == \"UNSAT\" ]]; then"
+  },
+  {
+    "#!\/bin\/bash":"                # First to write wins"
+  },
+  {
+    "#!\/bin\/bash":"                if [ ! -f \"$solution_file\" ]; then"
+  },
+  {
+    "#!\/bin\/bash":"                    echo \"$result\" > \"$solution_file\""
+  },
+  {
+    "#!\/bin\/bash":"                    echo \"$instance_time\" >> \"$solution_file\""
+  },
+  {
+    "#!\/bin\/bash":"                    # Kill other instances"
+  },
+  {
+    "#!\/bin\/bash":"                    for pid in \"${pids[@]}\"; do"
+  },
+  {
+    "#!\/bin\/bash":"                        kill \"$pid\" 2>\/dev\/null || true"
+  },
+  {
+    "#!\/bin\/bash":"                    done"
+  },
+  {
+    "#!\/bin\/bash":"                fi"
+  },
+  {
+    "#!\/bin\/bash":"            fi"
+  },
+  {
+    "#!\/bin\/bash":"        ) &"
+  },
+  {
+    "#!\/bin\/bash":"        pids+=($!)"
+  },
+  {
+    "#!\/bin\/bash":"    done"
+  },
+  {
+    "#!\/bin\/bash":"    # Wait for all instances to complete or be killed"
+  },
+  {
+    "#!\/bin\/bash":"    for pid in \"${pids[@]}\"; do"
+  },
+  {
+    "#!\/bin\/bash":"        wait \"$pid\" 2>\/dev\/null || true"
+  },
+  {
+    "#!\/bin\/bash":"    done"
+  },
+  {
+    "#!\/bin\/bash":"    # Determine result"
+  },
+  {
+    "#!\/bin\/bash":"    if [ -f \"$solution_file\" ]; then"
+  },
+  {
+    "#!\/bin\/bash":"        # Got a definitive answer"
+  },
+  {
+    "#!\/bin\/bash":"        result=$(head -n 1 \"$solution_file\")"
+  },
+  {
+    "#!\/bin\/bash":"        time=$(tail -n 1 \"$solution_file\")"
+  },
+  {
+    "#!\/bin\/bash":"    else"
+  },
+  {
+    "#!\/bin\/bash":"        # All timed out - find the fastest timeout"
+  },
+  {
+    "#!\/bin\/bash":"        result=\"TIMEOUT\""
+  },
+  {
+    "#!\/bin\/bash":"        time=\"30.0\""
+  },
+  {
+    "#!\/bin\/bash":"        for seed in \"${SEEDS[@]}\"; do"
+  },
+  {
+    "#!\/bin\/bash":"            output_file=\"$temp_dir\/output_${seed}.txt\""
+  },
+  {
+    "#!\/bin\/bash":"            time_file=\"$temp_dir\/time_${seed}.txt\""
+  },
+  {
+    "#!\/bin\/bash":"            if [ -f \"$time_file\" ]; then"
+  },
+  {
+    "#!\/bin\/bash":"                instance_time=$(cat \"$time_file\")"
+  },
+  {
+    "#!\/bin\/bash":"                if (( $(echo \"$instance_time < $time\" | bc -l) )); then"
+  },
+  {
+    "#!\/bin\/bash":"                    time=\"$instance_time\""
+  },
+  {
+    "#!\/bin\/bash":"                fi"
+  },
+  {
+    "#!\/bin\/bash":"            fi"
+  },
+  {
+    "#!\/bin\/bash":"        done"
+  },
+  {
+    "#!\/bin\/bash":"        if (( $(echo \"$time >= $TIMEOUT\" | bc -l) )); then"
+  },
+  {
+    "#!\/bin\/bash":"            time=\"30.0\""
+  },
+  {
+    "#!\/bin\/bash":"        fi"
+  },
+  {
+    "#!\/bin\/bash":"    fi"
+  },
+  {
+    "#!\/bin\/bash":"    # Write result"
+  },
+  {
+    "#!\/bin\/bash":"    printf \"%s %s %.1f\\n\" \"$problem_name\" \"$result\" \"$time\" >> \"$RESULTS_FILE\""
+  },
+  {
+    "#!\/bin\/bash":"    # Cleanup"
+  },
+  {
+    "#!\/bin\/bash":"    rm -rf \"$temp_dir\""
+  },
+  {
+    "#!\/bin\/bash":"done"
+  },
+  {
+    "#!\/bin\/bash":"echo \"Portfolio solving complete. Results saved to $RESULTS_FILE\""
+  }
+]

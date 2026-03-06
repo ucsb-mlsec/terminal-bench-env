@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            padding: 20px;
+            margin: 0;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        
+        #dashboard-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 20px;
+        }
+        
+        .metric-widget {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: transform 0.2s;
+        }
+        
+        .metric-widget:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        
+        .metric-name {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .metric-value {
+            font-size: 28px;
+            color: #2196F3;
+            font-weight: bold;
+        }
+        
+        .update-indicator {
+            text-align: center;
+            color: #888;
+            font-size: 12px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Real-Time System Dashboard</h1>
+    <div id="dashboard-container"></div>
+    <div class="update-indicator">Last updated: <span id="last-update">Never</span></div>
+    
+    <script>
+        const metricNames = [
+            'CPU Usage',
+            'Memory',
+            'Disk I/O',
+            'Network Traffic',
+            'Active Users'
+        ];
+        
+        function generateRandomValue(metricName) {
+            switch(metricName) {
+                case 'CPU Usage':
+                    return Math.floor(Math.random() * 100) + '%';
+                case 'Memory':
+                    return (Math.random() * 16).toFixed(2) + ' GB';
+                case 'Disk I/O':
+                    return Math.floor(Math.random() * 500) + ' MB/s';
+                case 'Network Traffic':
+                    return (Math.random() * 1000).toFixed(1) + ' Mbps';
+                case 'Active Users':
+                    return Math.floor(Math.random() * 1000);
+                default:
+                    return '0';
+            }
+        }
+        
+        function updateDashboard() {
+            const container = document.getElementById('dashboard-container');
+            
+            // Completely clear and rebuild the container - this invalidates all previous element references
+            container.innerHTML = '';
+            
+            // Create fresh widget elements
+            metricNames.forEach((name, index) => {
+                const widget = document.createElement('div');
+                widget.className = 'metric-widget';
+                widget.setAttribute('data-widget-id', 'widget-' + index);
+                
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'metric-name';
+                nameDiv.textContent = name;
+                
+                const valueDiv = document.createElement('div');
+                valueDiv.className = 'metric-value';
+                valueDiv.textContent = generateRandomValue(name);
+                
+                widget.appendChild(nameDiv);
+                widget.appendChild(valueDiv);
+                container.appendChild(widget);
+            });
+            
+            // Update timestamp
+            const now = new Date();
+            document.getElementById('last-update').textContent = now.toLocaleTimeString();
+        }
+        
+        // Initial load
+        updateDashboard();
+        
+        // Update every 2 seconds - completely refreshes DOM elements
+        setInterval(updateDashboard, 2000);
+    </script>
+</body>
+</html>

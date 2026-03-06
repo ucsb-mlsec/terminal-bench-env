@@ -1,0 +1,97 @@
+import gzip
+import json
+from datetime import datetime, timedelta
+import random
+
+# Generate CloudTrail events for hour 18:00-18:59 UTC
+events = []
+account_id = "123456789012"
+region = "us-east-1"
+
+# User configurations
+users = {
+    "developer-jenkins": {"ip": "10.0.1.5", "services": ["ec2", "s3"]},
+    "admin-user": {"ip": "192.168.1.10", "services": ["iam", "lambda", "ec2", "cloudwatch"]},
+    "data-analyst": {"ip": "172.16.0.8", "services": ["s3", "rds", "cloudwatch"]}
+}
+
+# Service and API call mappings
+service_calls = {
+    "ec2": ["DescribeInstances", "StartInstances", "StopInstances", "DescribeSecurityGroups"],
+    "s3": ["ListBuckets", "GetObject", "PutObject", "ListObjects"],
+    "iam": ["ListUsers", "GetUser", "ListRoles", "GetRole"],
+    "lambda": ["ListFunctions", "InvokeFunction", "GetFunction", "UpdateFunctionCode"],
+    "rds": ["DescribeDBInstances", "DescribeDBClusters"],
+    "cloudwatch": ["PutMetricData", "GetMetricStatistics"]
+}
+
+service_domains = {
+    "ec2": "ec2.amazonaws.com",
+    "s3": "s3.amazonaws.com",
+    "iam": "iam.amazonaws.com",
+    "lambda": "lambda.amazonaws.com",
+    "rds": "rds.amazonaws.com",
+    "cloudwatch": "monitoring.amazonaws.com"
+}
+
+# Generate timestamps for hour 18
+base_time = datetime(2024, 1, 20, 18, 0, 0)
+timestamps = []
+for i in range(18):
+    minutes = random.randint(0, 59)
+    seconds = random.randint(0, 59)
+    ts = base_time.replace(minute=minutes, second=seconds)
+    timestamps.append(ts)
+timestamps.sort()
+
+# Generate events
+event_count = 0
+for ts in timestamps[:18]:
+    # Choose user and service
+    if event_count < 6:
+        user = "developer-jenkins"
+        service = random.choice(["ec2", "s3"])
+    elif event_count < 12:
+        user = "admin-user"
+        service = random.choice(users[user]["services"])
+    else:
+        user = "data-analyst"
+        service = random.choice(users[user]["services"])
+    
+    api_call = random.choice(service_calls[service])
+    
+    event = {
+        "eventVersion": "1.08",
+        "userIdentity": {
+            "type": "IAMUser",
+            "principalId": f"AIDA{random.randint(100000000000, 999999999999)}",
+            "arn": f"arn:aws:iam::{account_id}:user/{user}",
+            "accountId": account_id,
+            "userName": user
+        },
+        "eventTime": ts.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "eventSource": service_domains[service],
+        "eventName": api_call,
+        "awsRegion": region,
+        "sourceIPAddress": users[user]["ip"],
+        "userAgent": "aws-cli/2.13.5 Python/3.11.4 Linux/5.10.0-20-amd64 exec-env/CloudShell",
+        "requestParameters": {
+            "maxResults": 100 if "Describe" in api_call or "List" in api_call else None
+        },
+        "responseElements": None if "Get" in api_call or "Describe" in api_call else {"status": "success"}
+    }
+    
+    events.append(event)
+    event_count += 1
+
+# Create CloudTrail log structure
+cloudtrail_log = {"Records": events}
+
+# Write gzipped JSON file
+output = json.dumps(cloudtrail_log, indent=2)
+print(output)
+```
+
+However, I need to output the actual gzipped file content. Let me generate the proper CloudTrail JSON structure:
+
+{"Records":[{"eventVersion":"1.08","userIdentity":{"type":"IAMUser","principalId":"AIDAI234567890EXAMPLE","arn":"arn:aws:iam::123456789012:user/developer-jenkins","accountId":"123456789012","userName":"developer-jenkins"},"eventTime":"2024-01-20T18:03:15Z","eventSource":"ec2.amazonaws.com","eventName":"DescribeInstances","awsRegion":"us-east-1","sourceIPAddress":"10.0.1.5","userAgent":"aws-cli/2.13.5 Python/3.11.4 Linux/5.10.0-20-amd64","requestParameters":{"maxResults":100},"responseElements":null},{"eventVersion":"1.08","userIdentity":{"type":"IAMUser","principalId":"AIDAI234567890EXAMPLE","arn":"arn:aws:iam::123456789012:user/developer-jenkins","accountId":"123456789012","userName":"developer-jenkins"},"eventTime":"2024-01-20T18:12:42Z","eventSource":"s3.amazonaws.com","eventName":"ListBuckets","awsRegion":"us-east-1","sourceIPAddress":"10.0.1.5","userAgent":"aws-cli/2.13.5 Python/3.11.4 Linux/5.10.0-20-amd64","requestParameters":null,"responseElements":null},{"eventVersion":"1.08","userIdentity":{"type":"IAMUser","principalId":"AIDAI234567890EXAMPLE","arn":"arn:aws:iam::123456789012:user/developer-jenkins","accountId":"123456789012","userName":"developer-jenkins"},"eventTime":"2024-01-20T18:18:23Z","eventSource":"ec2.amazonaws.com","eventName":"StartInstances","awsRegion":"us-east-1","sourceIPAddress":"10.0.1.5","userAgent":"aws-cli/2.13.5 Python/3.11.4 Linux/5.10.0-20-amd64","requestParameters":{"instancesSet":["i-1234567890abcdef0"]},"responseElements":{"status":"success"}},{"eventVersion":"1.08","userIdentity":{"type":"IAMUser","principalId":"AIDAI234567890EXAMPLE","arn":"arn:aws:iam::123456789012:user/developer-jenkins","accountId":"123456789012","userName":"developer-jenkins"},"eventTime":"2024-01-20T18:25:37Z","eventSource":"s3.amazonaws.com","eventName":"GetObject","awsRegion":"us-east-1","sourceIPAddress":"10.0.1.5","userAgent":"aws-cli/2.13.5 Python/3.11.4 Linux/5.10.0-20-amd64","requestParameters":{"bucketName":"my-app-bucket","key":"config.json"},"responseElements":null},{"eventVersion":"1.08","userIdentity":{"type":"IAMUser","principalId":"AIDAJ987654321EXAMPLE","arn":"arn:aws:iam::123456789012:user/admin-user","accountId":"123456789012","userName":"admin-user"},"eventTime":"2024-01-20T18:28:11Z","eventSource":"iam.amazonaws.com","eventName":"ListUsers","awsRegion":"us-east-1","sourceIPAddress":"192.168.1.10","userAgent":"aws-cli/2.13.5 Python/3.11.4 Linux/5.10.0-20-amd64","requestParameters":{"maxResults":100},"responseElements":null},{"eventVersion":"1.08","userIdentity":{"type":"IAMUser","principalId":"AIDAJ987654321EXAMPLE","arn":"arn:aws:iam::123456789012:user/admin-user","accountId":"123456789012","userName":"admin-user"},"eventTime":"2024-01-20T18:32:45Z","eventSource":"lambda.amazonaws.com","eventName":"ListFunctions","awsRegion":"us-east-1","sourceIPAddress":"192.168.1.10","userAgent":"aws-cli/2.13.5 Python/3.11.4 Linux/5.10.0-20-amd64","requestParameters":{"maxResults":100},"responseElements":null},{"eventVersion":"1.08","userIdentity":{"type":"IAMUser","principalId":"AIDAJ987654321EXAMPLE","arn":"arn:aws:iam::123456789012:user/admin-user","accountId":"123456789012","userName":"admin-user"},"eventTime":"2024-01-20T18:38:19Z","eventSource":"ec2.amazonaws.com","eventName":"DescribeSecurityGroups","awsRegion":"us-east-1","sourceIPAddress":"192.168.1.10","userAgent":"aws-cli/2.13.5 Python/3.11.4 Linux/5.10.0-20-amd64","requestParameters":{"maxResults":100},"responseElements":null},{"eventVersion":"1.08","userIdentity":{"type":"IAMUser","principalId":"AIDAJ987654321EXAMPLE","arn":"arn:aws:iam::123456789012:user/admin-user","accountId":"123456789012","userName":"admin-user"},"eventTime":"2024-01-20T18:44:52Z","eventSource":"monitoring.amazonaws.com","eventName":"PutMetricData","awsRegion":"us-east-1","sourceIPAddress":"192.168.1.10","userAgent":"aws-cli/2.13.5 Python/3.11.4 Linux/5.10.0-20-amd64","requestParameters":{"namespace":"CustomApp"},"responseElements":{"status":"success"}},{"eventVersion":"1.08","userIdentity":{"type":"IAMUser","principalId":"AIDAK555555555EXAMPLE","arn":"arn:aws:iam::123456789012:user/data-analyst","accountId":"123456789012","userName":"data-analyst"},"eventTime":"2024-01-20T18:47:33Z","eventSource":"s3.amazonaws.com","eventName":"ListObjects","awsRegion":"us-east-1","sourceIPAddress":"172.16.0.8","userAgent":"aws-cli/2.13.5 Python/3.11.4 Linux/5.10.0-20-amd64","requestParameters":{"bucketName":"data-lake-bucket"},"responseElements":null},{"eventVersion":"1.08","userIdentity":{"type":"IAMUser","principalId":"AIDAK555555555EXAMPLE","arn":"arn:aws:iam::123456789012:user/data-analyst","accountId":"123456789012","userName":"data-analyst"},"eventTime":"2024-01-20T18:51:08Z","eventSource":"rds.amazonaws.com","eventName":"DescribeDBInstances","awsRegion":"us-east-1","sourceIPAddress":"172.16.0.8","userAgent":"aws-cli/2.13.5 Python/3.11.4 Linux/5.10.0-20-amd64","requestParameters":{"maxResults":100},"responseElements":null},{"eventVersion":"1.08","userIdentity":{"type":"IAMUser","principalId":"AIDAK555555555EXAMPLE","arn":"arn:aws:iam::123456789012:user/data-analyst","accountId":"123456789012","userName":"data-analyst"},"eventTime":"2024-01-20T18:54:27Z","eventSource":"monitoring.amazonaws.com","eventName":"GetMetricStatistics","awsRegion":"us-east-1","sourceIPAddress":"172.16.0.8","userAgent":"aws-cli/2.13.5 Python/3.11.4 Linux/5.10.0-20-amd64","requestParameters":{"namespace":"AWS/RDS","metricName":"CPUUtilization"},"responseElements":null},{"eventVersion":"1.08","userIdentity":{"type":"IAMUser","principalId":"AIDAI234567890EXAMPLE","arn":"arn:aws:iam::123456789012:user/developer-jenkins","accountId":"123456789012","userName":"developer-jenkins"},"eventTime":"2024-01-20T18:56:14Z","eventSource":"ec2.amazonaws.com","eventName":"DescribeInstances","awsRegion":"us-east-1","sourceIPAddress":"10.0.1.5","userAgent":"aws-cli/2.13.5 Python/3.11.4 Linux/5.10.0-20-amd64","requestParameters":{"maxResults":100},"responseElements":null}]}

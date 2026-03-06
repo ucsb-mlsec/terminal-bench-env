@@ -1,0 +1,42 @@
+[
+  {
+    "id":"q1",
+    "original_query":"sum(rate(http_requests_total[5m]))",
+    "performance_issues":"\"Missing specific label filters like status and endpoint which causes unnecessary time series scanning; No grouping by important labels; Scans all http_requests_total series regardless of relevance\"",
+    "cardinality_estimate":15000,
+    "time_range":"5m",
+    "operation_types":"\"rate; sum\""
+  },
+  {
+    "id":"q2",
+    "original_query":"rate(rate(container_memory_usage_bytes{namespace=\"production\"}[5m])[5m])",
+    "performance_issues":"Double rate calculation is redundant and computationally expensive; Rate should only be applied once to counter metrics; Unnecessary nested range vector operations",
+    "cardinality_estimate":8000,
+    "time_range":"5m",
+    "operation_types":"\"rate; rate\""
+  },
+  {
+    "id":"q3",
+    "original_query":"sum(node_cpu_seconds_total{mode!=\"idle\"}) by (instance) \/ sum(node_cpu_seconds_total) by (instance)",
+    "performance_issues":"Aggregation happens before rate calculation which is inefficient for counters; Should apply rate first then aggregate; Missing rate function for counter metric causes incorrect results",
+    "cardinality_estimate":25000,
+    "time_range":"5m",
+    "operation_types":"\"sum; by; division\""
+  },
+  {
+    "id":"q4",
+    "original_query":"(sum(rate(http_requests_total[5m])) * 60 * 5) \/ (sum(rate(http_requests_total[5m])) * 60 * 5) * 100",
+    "performance_issues":"Duplicate identical subqueries waste computation; Mathematical operations cancel out to just return 100; Complex expression can be drastically simplified",
+    "cardinality_estimate":12000,
+    "time_range":"5m",
+    "operation_types":"\"rate; sum; multiplication; division\""
+  },
+  {
+    "id":"q5",
+    "original_query":"container_memory_usage_bytes{namespace=\"default\"}",
+    "performance_issues":"Using instant vector for memory metric that should show trend over time; Should use rate or delta for meaningful metrics; No aggregation for high-cardinality metric; Time window missing for proper analysis",
+    "cardinality_estimate":35000,
+    "time_range":"instant",
+    "operation_types":"\"instant_vector\""
+  }
+]

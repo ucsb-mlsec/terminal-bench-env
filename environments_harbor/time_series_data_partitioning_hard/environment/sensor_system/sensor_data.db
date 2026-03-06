@@ -1,0 +1,108 @@
+import sqlite3
+import random
+from datetime import datetime, timedelta
+import os
+
+# Create directory if it doesn't exist
+os.makedirs('/home/agent/sensor_system', exist_ok=True)
+
+# Database path
+db_path = '/home/agent/sensor_system/sensor_data.db'
+
+# Remove existing database if present
+if os.path.exists(db_path):
+    os.remove(db_path)
+
+# Connect to database
+conn = sqlite3.connect(db_path)
+cursor = conn.cursor()
+
+# Create the readings table without indexes
+cursor.execute('''
+CREATE TABLE readings (
+    timestamp TEXT,
+    sensor_id TEXT,
+    temperature REAL,
+    humidity REAL
+)
+''')
+
+# Configuration
+start_date = datetime(2021, 1, 1)
+end_date = datetime(2023, 12, 31)
+total_days = (end_date - start_date).days + 1
+target_records = 500000
+records_per_day = target_records // total_days
+
+# Generate sensor IDs
+sensor_ids = [f'SENSOR_{str(i).zfill(3)}' for i in range(1, 16)]
+
+print(f"Generating approximately {target_records} records...")
+print(f"Date range: {start_date.date()} to {end_date.date()}")
+print(f"Total days: {total_days}")
+print(f"Records per day: ~{records_per_day}")
+
+# Generate and insert data
+records = []
+record_count = 0
+
+for day_offset in range(total_days):
+    current_date = start_date + timedelta(days=day_offset)
+    
+    # Vary the number of records per day slightly for realism
+    num_records_today = records_per_day + random.randint(-5, 5)
+    
+    for _ in range(num_records_today):
+        # Generate random time within the day
+        hour = random.randint(0, 23)
+        minute = random.randint(0, 59)
+        second = random.randint(0, 59)
+        
+        timestamp = current_date.replace(hour=hour, minute=minute, second=second)
+        timestamp_str = timestamp.strftime('%Y-%m-%d %H:%M:%S')
+        
+        # Random sensor
+        sensor_id = random.choice(sensor_ids)
+        
+        # Random temperature and humidity
+        temperature = round(random.uniform(15.0, 35.0), 2)
+        humidity = round(random.uniform(30.0, 90.0), 2)
+        
+        records.append((timestamp_str, sensor_id, temperature, humidity))
+        record_count += 1
+    
+    # Insert in batches for performance
+    if len(records) >= 10000:
+        cursor.executemany(
+            'INSERT INTO readings (timestamp, sensor_id, temperature, humidity) VALUES (?, ?, ?, ?)',
+            records
+        )
+        conn.commit()
+        records = []
+        print(f"Progress: {record_count} records inserted (day {day_offset + 1}/{total_days})")
+
+# Insert remaining records
+if records:
+    cursor.executemany(
+        'INSERT INTO readings (timestamp, sensor_id, temperature, humidity) VALUES (?, ?, ?, ?)',
+        records
+    )
+    conn.commit()
+
+print(f"\nTotal records inserted: {record_count}")
+
+# Verify the data
+cursor.execute('SELECT COUNT(*) FROM readings')
+final_count = cursor.fetchone()[0]
+print(f"Verified record count: {final_count}")
+
+cursor.execute('SELECT MIN(timestamp), MAX(timestamp) FROM readings')
+min_ts, max_ts = cursor.fetchone()
+print(f"Date range in database: {min_ts} to {max_ts}")
+
+cursor.execute('SELECT COUNT(DISTINCT sensor_id) FROM readings')
+sensor_count = cursor.fetchone()[0]
+print(f"Number of unique sensors: {sensor_count}")
+
+conn.close()
+print(f"\nDatabase created successfully at: {db_path}")

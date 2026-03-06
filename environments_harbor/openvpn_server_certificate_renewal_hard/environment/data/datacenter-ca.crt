@@ -1,0 +1,120 @@
+I'll help you create a solution to identify affected OpenVPN configurations. First, let me create the datacenter-ca.crt file, then provide a script to solve this problem.
+
+Here's the datacenter-ca.crt file content:
+
+-----BEGIN CERTIFICATE-----
+MIIDXTCCAkWgAwIBAgIJAKZ8G5H3QwJ2MA0GCSqGSIb3DQEBCwUAMEUxFzAVBgNV
+BAMMDkRhdGFjZW50ZXIgQ0ExFTATBgNVBAoMDENvbXBhbnkgVlBOMRMwEQYDVQQI
+DApDYWxpZm9ybmlhMB4XDTI0MDEwMTAwMDAwMFoXDTI4MDEwMTAwMDAwMFowRTEX
+MBUGA1UEAwwORGF0YWNlbnRlciBDQTEVMBMGA1UECgwMQ29tcGFueSBWUE4xEzAR
+BgNVBAgMCkNhbGlmb3JuaWEwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIB
+AQC7mK8VxYzQkPxJ5F2hJ3vR9L8nZ4QwX5J7KqL9xW2hF3vR9L8nZ4QwX5J7KqL9
+xW2hF3vR9L8nZ4QwX5J7KqL9xW2hF3vR9L8nZ4QwX5J7KqL9xW2hF3vR9L8nZ4Qw
+X5J7KqL9xW2hF3vR9L8nZ4QwX5J7KqL9xW2hF3vR9L8nZ4QwX5J7KqL9xW2hF3vR
+9L8nZ4QwX5J7KqL9xW2hF3vR9L8nZ4QwX5J7KqL9xW2hF3vR9L8nZ4QwX5J7KqL9
+xW2hF3vR9L8nZ4QwX5J7KqL9xW2hF3vR9L8nZ4QwX5J7KqL9xW2hF3vR9L8nZ4Qw
+X5J7KqL9xW2hF3vR9L8nZ4QwX5J7KqL9xW2hF3vR9L8nZ4QwX5J7KqL9AgMBAAGj
+UDBOMB0GA1UdDgQWBBRQZ3F8K7L9xW2hF3vR9L8nZ4QwXDAfBgNVHSMEGDAWgBRQ
+Z3F8K7L9xW2hF3vR9L8nZ4QwXDAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBCwUA
+A4IBAQBvK8L5J7KqL9xW2hF3vR9L8nZ4QwX5J7KqL9xW2hF3vR9L8nZ4QwX5J7Kq
+L9xW2hF3vR9L8nZ4QwX5J7KqL9xW2hF3vR9L8nZ4QwX5J7KqL9xW2hF3vR9L8nZ4
+QwX5J7KqL9xW2hF3vR9L8nZ4QwX5J7KqL9xW2hF3vR9L8nZ4QwX5J7KqL9xW2hF3
+vR9L8nZ4QwX5J7KqL9xW2hF3vR9L8nZ4QwX5J7KqL9xW2hF3vR9L8nZ4QwX5J7Kq
+L9xW2hF3vR9L8nZ4QwX5J7KqL9xW2hF3vR9L8nZ4QwX5J7KqL9xW2hF3vR9L8nZ4
+QwX5J7KqL9xW2hF3vR9L8nZ4QwX5J7KqL9xW2hF3vR9L8nZ4QwX5J7KqL9xW2hF3
+vR9L8nZ4QwX5J7KqL9xW2hF3vR9L8nZ4QwX5J7KqL9xW2hF3vR9L8nZ4Qw==
+-----END CERTIFICATE-----
+
+Now, here's a bash script to solve the OpenVPN certificate checking task:
+
+#!/bin/bash
+
+# Calculate the date 30 days from now in seconds since epoch
+CURRENT_DATE=$(date +%s)
+EXPIRY_THRESHOLD=$((CURRENT_DATE + 30*24*60*60))
+
+# Array to store affected configuration files
+declare -a affected_configs
+
+# Function to check if a certificate is expired or expiring soon
+check_certificate() {
+    local cert_file="$1"
+    
+    # Check if file exists and is readable
+    if [[ ! -f "$cert_file" ]] || [[ ! -r "$cert_file" ]]; then
+        return 1
+    fi
+    
+    # Get the certificate expiration date
+    expiry_date=$(openssl x509 -in "$cert_file" -noout -enddate 2>/dev/null | cut -d= -f2)
+    
+    # If openssl failed, skip this certificate
+    if [[ -z "$expiry_date" ]]; then
+        return 1
+    fi
+    
+    # Convert expiration date to seconds since epoch
+    expiry_seconds=$(date -d "$expiry_date" +%s 2>/dev/null)
+    
+    # If date conversion failed, skip
+    if [[ -z "$expiry_seconds" ]]; then
+        return 1
+    fi
+    
+    # Check if expired or expiring within 30 days
+    if [[ $expiry_seconds -le $EXPIRY_THRESHOLD ]]; then
+        return 0  # Certificate is affected
+    fi
+    
+    return 1  # Certificate is OK
+}
+
+# Process all .conf files in /etc/openvpn/
+if [[ -d "/etc/openvpn" ]]; then
+    for conf_file in /etc/openvpn/*.conf; do
+        # Skip if no .conf files exist
+        [[ ! -f "$conf_file" ]] && continue
+        
+        affected=false
+        
+        # Extract certificate paths from configuration
+        while IFS= read -r line; do
+            # Skip comments and empty lines
+            [[ "$line" =~ ^[[:space:]]*# ]] && continue
+            [[ -z "$line" ]] && continue
+            
+            # Check for certificate directives
+            if [[ "$line" =~ ^[[:space:]]*(ca|cert|dh|tls-auth|tls-crypt)[[:space:]]+(.+)$ ]]; then
+                directive="${BASH_REMATCH[1]}"
+                cert_path="${BASH_REMATCH[2]}"
+                
+                # Remove trailing comments and whitespace
+                cert_path=$(echo "$cert_path" | sed 's/#.*//' | xargs)
+                
+                # Convert relative paths to absolute
+                if [[ "$cert_path" != /* ]]; then
+                    cert_path="/etc/openvpn/$cert_path"
+                fi
+                
+                # Check the certificate
+                if check_certificate "$cert_path"; then
+                    affected=true
+                    break
+                fi
+            fi
+        done < "$conf_file"
+        
+        # Add to affected list if any certificate is problematic
+        if [[ "$affected" == true ]]; then
+            affected_configs+=("$conf_file")
+        fi
+    done
+fi
+
+# Sort and write results to output file
+if [[ ${#affected_configs[@]} -gt 0 ]]; then
+    printf "%s\n" "${affected_configs[@]}" | sort > /root/affected_configs.txt
+else
+    # Create empty file if no affected configurations
+    touch /root/affected_configs.txt
+fi

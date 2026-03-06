@@ -1,0 +1,88 @@
+Render Engine Shader Specification v1.0
+================================================================================
+
+OVERVIEW
+--------
+This rendering pipeline implements a basic 3D graphics system using modern OpenGL
+and GLSL shaders. The system consists of two shader stages that work together:
+
+- A vertex shader that transforms 3D geometry from object space to clip space
+- A fragment shader that calculates lighting for each pixel
+
+These shaders must be compatible and work in tandem to render lit 3D objects.
+The vertex shader processes each vertex of the geometry, transforming positions
+and normals. The fragment shader receives interpolated data and performs per-pixel
+lighting calculations to produce the final rendered image.
+
+
+VERTEX SHADER REQUIREMENTS
+---------------------------
+The vertex shader must meet the following specifications:
+
+• GLSL Version: Must use version 330 core or higher
+• Input Attributes:
+  - aPosition (vec3): Vertex position in object space
+  - aNormal (vec3): Vertex normal vector in object space
+  
+• Uniform Variables:
+  - uModel (mat4): Model transformation matrix (object to world space)
+  - uView (mat4): View transformation matrix (world to camera space)
+  - uProjection (mat4): Projection matrix (camera to clip space)
+  
+• Output Variables:
+  - vFragPos (vec3): Fragment position in world space
+  - vNormal (vec3): Transformed normal vector in world space
+  
+• Required Operations:
+  - Transform vertex position through all matrices (projection * view * model * position)
+  - Set gl_Position to the fully transformed position
+  - Calculate world-space position for lighting (model * position)
+  - Transform normals using the model matrix or proper normal matrix
+  - Pass transformed data to fragment shader stage
+
+
+FRAGMENT SHADER REQUIREMENTS
+-----------------------------
+The fragment shader must meet the following specifications:
+
+• GLSL Version: Must use version 330 core or higher
+• Input Variables (from vertex shader):
+  - vFragPos (vec3): Fragment position in world space
+  - vNormal (vec3): Transformed normal vector
+  
+• Uniform Variables:
+  - uLightPos (vec3): Position of the light source in world space
+  - uLightColor (vec3): Color/intensity of the light source
+  - uAmbientColor (vec3): Ambient light color component
+  - uDiffuseColor (vec3): Material diffuse color
+  
+• Output Variables:
+  - FragColor (vec4): Final pixel color with alpha channel
+  
+• Required Operations:
+  - Normalize the incoming normal vector
+  - Calculate light direction vector (from fragment to light)
+  - Normalize the light direction
+  - Compute diffuse term using dot product of normal and light direction
+  - Clamp diffuse term to prevent negative values
+  - Calculate ambient component
+  - Calculate diffuse component (diffuse term * light color * material diffuse color)
+  - Combine ambient and diffuse for final color
+  - Output final color with alpha = 1.0
+
+
+PIPELINE COMPATIBILITY
+----------------------
+Critical requirement: The vertex shader outputs MUST exactly match the fragment
+shader inputs in both name and type. Mismatched variable names or types will
+cause a pipeline linking failure.
+
+Vertex shader outputs:
+  - vFragPos (vec3)
+  - vNormal (vec3)
+
+Fragment shader inputs:
+  - vFragPos (vec3)
+  - vNormal (vec3)
+
+These must match exactly for the shaders to form a valid rendering pipeline.

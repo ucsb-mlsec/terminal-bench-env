@@ -1,0 +1,178 @@
+I'll create a SQLite database with the audit_log table and populate it with realistic data including the required incident window entries.
+
+```python
+import sqlite3
+import random
+from datetime import datetime, timedelta
+
+# Create database
+conn = sqlite3.connect('/workspace/evidence/app.db')
+cursor = conn.cursor()
+
+# Create table
+cursor.execute('''
+CREATE TABLE audit_log (
+  timestamp TEXT,
+  user_id INTEGER,
+  action TEXT,
+  ip_address TEXT,
+  status TEXT
+)
+''')
+
+# Helper function to generate random IP
+def random_ip():
+    ip_pools = [
+        lambda: f"192.168.{random.randint(1,255)}.{random.randint(1,255)}",
+        lambda: f"10.0.{random.randint(0,255)}.{random.randint(1,255)}",
+        lambda: f"172.16.{random.randint(0,255)}.{random.randint(1,255)}",
+        lambda: f"203.0.113.{random.randint(1,255)}",
+        lambda: f"198.51.100.{random.randint(1,255)}",
+        lambda: f"192.0.2.{random.randint(1,255)}"
+    ]
+    return random.choice(ip_pools)()
+
+# Data
+actions = ['login', 'logout', 'file_access', 'data_export', 'config_change', 'password_change']
+statuses = ['success', 'failed']
+user_ids = [1001, 1045, 1123, 1456, 2301, 2456, 3001, 3456, 4001, 4567, 5672, 6001, 6789, 7001, 7890, 8001, 8456, 9001, 9999]
+
+audit_entries = []
+
+# Required incident window entries - failed logins
+required_entries = [
+    ('2024-01-15 08:15:23', 1045, 'login', '203.0.113.45', 'failed'),
+    ('2024-01-15 09:22:11', 2301, 'login', '198.51.100.22', 'failed'),
+    ('2024-01-15 10:05:47', 1045, 'login', '203.0.113.45', 'failed'),
+    ('2024-01-15 11:30:15', 5672, 'login', '192.0.2.100', 'failed'),
+    ('2024-01-15 08:45:33', 1001, 'login', '198.51.100.88', 'failed'),
+    ('2024-01-15 08:30:12', 3456, 'login', '203.0.113.67', 'failed'),
+    ('2024-01-15 09:15:44', 4567, 'login', '198.51.100.33', 'failed'),
+    ('2024-01-15 09:45:22', 6789, 'login', '192.0.2.55', 'failed'),
+    ('2024-01-15 10:20:18', 7890, 'login', '203.0.113.88', 'failed'),
+    ('2024-01-15 10:55:39', 3456, 'login', '203.0.113.67', 'failed'),
+    ('2024-01-15 11:10:05', 8456, 'login', '198.51.100.99', 'failed'),
+    ('2024-01-15 08:22:50', 2301, 'login', '198.51.100.22', 'failed'),
+    ('2024-01-15 09:33:17', 1001, 'login', '198.51.100.88', 'failed'),
+    ('2024-01-15 10:40:28', 9001, 'login', '192.0.2.111', 'failed'),
+    ('2024-01-15 11:25:43', 4567, 'login', '198.51.100.33', 'failed'),
+    ('2024-01-15 08:50:11', 7890, 'login', '203.0.113.88', 'failed'),
+    ('2024-01-15 09:05:55', 6789, 'login', '192.0.2.55', 'failed'),
+    ('2024-01-15 11:45:20', 1123, 'login', '203.0.113.12', 'failed'),
+]
+
+audit_entries.extend(required_entries)
+
+# Add successful logins during incident window
+incident_success = [
+    ('2024-01-15 08:10:15', 1456, 'login', '192.168.1.50', 'success'),
+    ('2024-01-15 08:35:22', 6001, 'login', '10.0.0.45', 'success'),
+    ('2024-01-15 09:12:40', 3001, 'login', '172.16.0.30', 'success'),
+    ('2024-01-15 09:50:33', 8001, 'login', '192.168.2.100', 'success'),
+    ('2024-01-15 10:15:28', 2456, 'login', '10.0.1.25', 'success'),
+    ('2024-01-15 10:45:10', 7001, 'login', '172.16.5.60', 'success'),
+    ('2024-01-15 11:20:55', 4001, 'login', '192.168.3.75', 'success'),
+    ('2024-01-15 11:55:12', 9999, 'login', '10.0.2.88', 'success'),
+]
+
+audit_entries.extend(incident_success)
+
+# Add other actions during incident window
+incident_other = [
+    ('2024-01-15 08:20:30', 1456, 'file_access', '192.168.1.50', 'success'),
+    ('2024-01-15 08:40:15', 6001, 'data_export', '10.0.0.45', 'success'),
+    ('2024-01-15 09:25:45', 3001, 'config_change', '172.16.0.30', 'success'),
+    ('2024-01-15 09:55:20', 8001, 'file_access', '192.168.2.100', 'success'),
+    ('2024-01-15 10:30:50', 2456, 'logout', '10.0.1.25', 'success'),
+    ('2024-01-15 11:05:35', 7001, 'password_change', '172.16.5.60', 'success'),
+    ('2024-01-15 11:40:18', 4001, 'file_access', '192.168.3.75', 'success'),
+]
+
+audit_entries.extend(incident_other)
+
+# Generate entries before incident window (2024-01-14 06:00:00 to 2024-01-15 07:59:59)
+start_date = datetime(2024, 1, 14, 6, 0, 0)
+incident_start = datetime(2024, 1, 15, 8, 0, 0)
+
+current = start_date
+for i in range(50):
+    delta = random.randint(0, int((incident_start - start_date).total_seconds()))
+    timestamp = start_date + timedelta(seconds=delta)
+    ts_str = timestamp.strftime('%Y-%m-%d %H:%M:%S')
+    
+    user_id = random.choice(user_ids)
+    action = random.choice(actions)
+    ip = random_ip()
+    
+    if action == 'login':
+        status = random.choices(['success', 'failed'], weights=[0.85, 0.15])[0]
+    else:
+        status = random.choices(['success', 'failed'], weights=[0.95, 0.05])[0]
+    
+    audit_entries.append((ts_str, user_id, action, ip, status))
+
+# Generate entries after incident window (2024-01-15 12:00:01 to 2024-01-16 18:00:00)
+incident_end = datetime(2024, 1, 15, 12, 0, 1)
+end_date = datetime(2024, 1, 16, 18, 0, 0)
+
+for i in range(60):
+    delta = random.randint(0, int((end_date - incident_end).total_seconds()))
+    timestamp = incident_end + timedelta(seconds=delta)
+    ts_str = timestamp.strftime('%Y-%m-%d %H:%M:%S')
+    
+    user_id = random.choice(user_ids)
+    action = random.choice(actions)
+    ip = random_ip()
+    
+    if action == 'login':
+        status = random.choices(['success', 'failed'], weights=[0.9, 0.1])[0]
+    else:
+        status = random.choices(['success', 'failed'], weights=[0.96, 0.04])[0]
+    
+    audit_entries.append((ts_str, user_id, action, ip, status))
+
+# Insert all entries
+cursor.executemany('INSERT INTO audit_log VALUES (?, ?, ?, ?, ?)', audit_entries)
+
+# Commit and close
+conn.commit()
+conn.close()
+
+print(f"Database created with {len(audit_entries)} entries")
+```
+
+Now I'll create the solution script to analyze the database:
+
+```python
+import sqlite3
+import os
+
+# Create solution directory if it doesn't exist
+os.makedirs('/workspace/solution', exist_ok=True)
+
+# Connect to database
+conn = sqlite3.connect('/workspace/evidence/app.db')
+cursor = conn.cursor()
+
+# Query for failed login attempts during incident window
+query = '''
+SELECT DISTINCT user_id 
+FROM audit_log 
+WHERE action = 'login' 
+  AND status = 'failed' 
+  AND timestamp >= '2024-01-15 08:00:00' 
+  AND timestamp <= '2024-01-15 12:00:00'
+ORDER BY user_id ASC
+'''
+
+cursor.execute(query)
+results = cursor.fetchall()
+
+# Write results to file
+with open('/workspace/solution/targeted_accounts.txt', 'w') as f:
+    for row in results:
+        f.write(f"{row[0]}\n")
+
+conn.close()
+
+print(f"Found {len(results)} targeted accounts")

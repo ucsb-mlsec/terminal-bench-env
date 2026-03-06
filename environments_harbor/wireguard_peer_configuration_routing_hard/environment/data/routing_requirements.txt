@@ -1,0 +1,49 @@
+=== WireGuard VPN Routing Requirements ===
+Last Updated: 2024-01-15
+
+This document specifies the routing configuration for each WireGuard peer.
+The AllowedIPs field in the server configuration must match these requirements.
+
+----------------------------------------
+PEER 1: Mobile Employee
+----------------------------------------
+Description: Mobile device requiring full VPN tunnel
+PublicKey: mF8xYvK3L9pQr2sT4uV6wX8yZ0aB1cD3eF5gH7iJ9kL=
+Routing Requirement: ALL traffic through VPN (full tunnel)
+AllowedIPs Setting: 0.0.0.0/0
+Reason: Company policy requires all mobile traffic to be routed through corporate infrastructure for security and monitoring
+
+----------------------------------------
+PEER 2: Home Office
+----------------------------------------
+Description: Home office worker with split tunnel requirements
+PublicKey: nG9zAwL4M0qRs3tU5vW7xY9zA1bC2dE4fG6hI8jK0mN=
+Routing Requirement: Corporate networks only
+AllowedIPs Setting: 10.100.0.0/16, 10.200.0.0/16
+Reason: User needs access to main corporate network (10.100.0.0/16) and secondary office network (10.200.0.0/16), but should use local internet for other traffic
+
+----------------------------------------
+PEER 3: Branch Office
+----------------------------------------
+Description: Branch office gateway requiring limited access
+PublicKey: oH0aB1xM5n1qS4rU6tW8vY0xA2zC3bD5eF7gH9iJ1kL=
+Routing Requirement: Main office network only
+AllowedIPs Setting: 10.100.0.0/16
+Reason: Branch office only needs connectivity to main office resources. Has separate internet connection and doesn't require access to secondary networks
+
+----------------------------------------
+PEER 4: Remote Developer
+----------------------------------------
+Description: Developer requiring access to development environments
+PublicKey: pI1bC2yN6o2rT5sV7uX9wZ1yB3aC4cE6fG8hI0jK2mN=
+Routing Requirement: Development networks
+AllowedIPs Setting: 10.150.0.0/24, 10.151.0.0/24, 10.152.0.0/24
+Reason: Developer needs access to dev environment (10.150.0.0/24), staging environment (10.151.0.0/24), and CI/CD infrastructure (10.152.0.0/24). No access to production networks needed.
+
+========================================
+NOTES:
+- AllowedIPs determines which destination IPs the server will route to each peer
+- 0.0.0.0/0 means all traffic (full tunnel)
+- Specific subnets create split tunneling (only matching traffic routed through VPN)
+- Multiple subnets should be comma-separated in the configuration
+========================================

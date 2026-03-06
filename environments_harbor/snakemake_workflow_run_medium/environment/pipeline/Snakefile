@@ -1,0 +1,25 @@
+rule all:
+    input:
+        "results/summary.txt"
+
+rule count_lines:
+    input:
+        "data/sample{n}.txt"
+    output:
+        "result/sample{n}.count"
+    shell:
+        "wc -l < {input} > {output}"
+
+rule summary:
+    input:
+        "results/sample1.count",
+        "results/sample2.count",
+        "results/sample3.count"
+    output:
+        "results/summary.txt"
+    shell:
+        """
+        echo "Line Count Summary" > {output}
+        echo "==================" >> {output}
+        cat {input} | awk '{{sum+=$1}} END {{print "Total lines: " sum}}' >> {output}
+        """

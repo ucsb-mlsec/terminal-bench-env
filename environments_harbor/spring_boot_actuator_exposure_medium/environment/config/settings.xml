@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <appSettings>
+        <application>
+            <name>Enterprise Web Portal</name>
+            <version>2.4.1</version>
+            <mode>production</mode>
+            <description><![CDATA[Main enterprise application for customer management and analytics]]></description>
+            <timezone>UTC</timezone>
+            <locale>en_US</locale>
+        </application>
+        <features>
+            <feature name="analytics" enabled="true"/>
+            <feature name="reporting" enabled="true"/>
+            <feature name="export" enabled="true"/>
+            <feature name="notifications" enabled="false"/>
+        </features>
+    </appSettings>
+
+    <server>
+        <host>0.0.0.0</host>
+        <port>8080</port>
+        <protocol>https</protocol>
+        <contextPath>/api/v1</contextPath>
+        <maxThreads>200</maxThreads>
+        <connectionTimeout>30000</connectionTimeout>
+        <compression enabled="true">
+            <mimeTypes>text/html,text/xml,text/plain,application/json</mimeTypes>
+            <minSize>2048</minSize>
+        </compression>
+    </server>
+
+    <security>
+        <cors>
+            <enabled>true</enabled>
+            <allowedOrigins>
+                <origin>https://app.example.com</origin>
+                <origin>https://dashboard.example.com</origin>
+                <origin>https://admin.example.com</origin>
+            </allowedOrigins>
+            <allowedMethods>GET,POST,PUT,DELETE,OPTIONS</allowedMethods>
+            <allowedHeaders>Content-Type,Authorization,X-Requested-With</allowedHeaders>
+            <maxAge>3600</maxAge>
+        </cors>
+        <ssl>
+            <enabled>true</enabled>
+            <keyStore>/etc/ssl/certs/keystore.jks</keyStore>
+            <keyStoreType>JKS</keyStoreType>
+            <protocol>TLSv1.3</protocol>
+        </ssl>
+        <authentication>
+            <sessionTimeout>1800</sessionTimeout>
+            <maxLoginAttempts>5</maxLoginAttempts>
+            <lockoutDuration>900</lockoutDuration>
+        </authentication>
+    </security>
+
+    <modules>
+        <module name="user-management" enabled="true">
+            <priority>1</priority>
+            <config>
+                <maxUsers>10000</maxUsers>
+                <passwordPolicy>strong</passwordPolicy>
+            </config>
+        </module>
+        <module name="analytics-engine" enabled="true">
+            <priority>2</priority>
+            <config>
+                <cacheSize>512MB</cacheSize>
+                <refreshInterval>300</refreshInterval>
+            </config>
+        </module>
+        <module name="notification-service" enabled="false">
+            <priority>3</priority>
+        </module>
+    </modules>
+
+    <integrations>
+        <service name="payment-gateway">
+            <endpoint>https://payments.gateway.com/api</endpoint>
+            <timeout>15000</timeout>
+            <retryAttempts>3</retryAttempts>
+        </service>
+        <service name="email-service">
+            <provider>smtp</provider>
+            <host>smtp.mailserver.com</host>
+            <port>587</port>
+            <useTLS>true</useTLS>
+        </service>
+        <service name="cache-service">
+            <type>redis</type>
+            <host>cache.internal.local</host>
+            <port>6379</port>
+            <ttl>3600</ttl>
+        </service>
+    </integrations>
+
+    <monitoring>
+        <metrics>
+            <enabled>true</enabled>
+            <endpoint>/metrics</endpoint>
+            <interval>60</interval>
+            <collectors>
+                <collector>jvm</collector>
+                <collector>http</collector>
+                <collector>database</collector>
+            </collectors>
+        </metrics>
+        <healthCheck>
+            <enabled>true</enabled>
+            <endpoint>/health</endpoint>
+            <checks>
+                <check name="database" timeout="5000"/>
+                <check name="cache" timeout="2000"/>
+                <check name="disk-space" threshold="90"/>
+            </checks>
+        </healthCheck>
+        <logging>
+            <level>INFO</level>
+            <format>json</format>
+            <destination>/var/log/webapp/application.log</destination>
+            <maxFileSize>100MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+        </logging>
+    </monitoring>
+</configuration>

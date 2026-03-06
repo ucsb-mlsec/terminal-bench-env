@@ -1,0 +1,48 @@
+---
+- name: Application Setup
+  hosts: localhost
+  connection: local
+  gather_facts: yes
+  tasks:
+    - name: Create config directory
+      file:
+        path: /var/app/config
+        state: directory
+        mode: '0755'
+    
+    - name: Deploy main config with timestamp
+      copy:
+        content: |
+          app_name: MyApp
+          deployed_at: {{ ansible_date_time.iso8601 }}
+          environment: production
+          version: 1.0.0
+        dest: /var/app/config/app.conf
+        mode: '0644'
+    
+    - name: Set application permissions
+      shell: chmod 644 /var/app/config/app.conf
+    
+    - name: Create database configuration
+      copy:
+        content: |
+          db_host: localhost
+          db_port: 5432
+          db_name: appdb
+          connection_id: {{ 999999999 | random }}
+        dest: /var/app/config/database.conf
+    
+    - name: Add API endpoint to settings
+      lineinfile:
+        path: /var/app/config/settings.txt
+        line: 'api_endpoint=https://api.example.com'
+        create: yes
+    
+    - name: Generate session secret
+      shell: echo "session_secret=$(date +%s)" > /var/app/config/secret.key
+    
+    - name: Create log directory
+      command: mkdir -p /var/app/logs
+    
+    - name: Set ownership on config files
+      shell: chown {{ ansible_user_id }}:{{ ansible_user_id }} /var/app/config/*.conf

@@ -1,0 +1,99 @@
+2024-01-15T14:23:11.2847293Z ##[section]Starting: monitoring_setup
+2024-01-15T14:23:11.3012456Z ##[section]Running workflow: monitoring_setup
+2024-01-15T14:23:11.3156789Z Current runner version: '2.311.0'
+2024-01-15T14:23:11.3289012Z Runner name: 'runner-prod-08'
+2024-01-15T14:23:11.3421234Z Runner group name: 'Default'
+2024-01-15T14:23:11.3567890Z Machine name: 'fv-az412-monitoring'
+2024-01-15T14:23:11.4123456Z ##[group]Operating System
+2024-01-15T14:23:11.4287654Z Ubuntu 22.04.3 LTS
+2024-01-15T14:23:11.4398765Z ##[endgroup]
+2024-01-15T14:23:12.1234567Z ##[group]Runner Image
+2024-01-15T14:23:12.1456789Z Image: ubuntu-22.04
+2024-01-15T14:23:12.1678901Z Version: 20240110.1.0
+2024-01-15T14:23:12.1890123Z ##[endgroup]
+2024-01-15T14:23:12.5678901Z Preparing workflow directory
+2024-01-15T14:23:13.0123456Z ##[section]Checking out repository
+2024-01-15T14:23:13.2345678Z Syncing repository: company/infrastructure
+2024-01-15T14:23:13.4567890Z Getting Git version info
+2024-01-15T14:23:13.6789012Z ##[group]Git version
+2024-01-15T14:23:13.8901234Z git version 2.43.0
+2024-01-15T14:23:13.9012345Z ##[endgroup]
+2024-01-15T14:23:14.1234567Z Fetching the repository
+2024-01-15T14:23:15.3456789Z ##[section]Setup Monitoring Environment
+2024-01-15T14:23:15.5678901Z Installing monitoring dependencies
+2024-01-15T14:23:16.7890123Z + apt-get update -qq
+2024-01-15T14:23:18.9012345Z + apt-get install -y prometheus grafana-server alertmanager
+2024-01-15T14:23:22.1234567Z Prometheus installed: v2.48.1
+2024-01-15T14:23:22.3456789Z Grafana installed: v10.2.3
+2024-01-15T14:23:22.5678901Z Alertmanager installed: v0.26.0
+2024-01-15T14:23:23.7890123Z ##[section]Configure Monitoring Credentials
+2024-01-15T14:23:23.9012345Z Setting up monitoring authentication
+2024-01-15T14:23:24.1234567Z Loading monitoring credentials from environment
+2024-01-15T14:23:24.3456789Z + export MONITOR_TOKEN=62573975583352766132746661567058326949304e55355164446878544452745569647a5644463257773d3d
+2024-01-15T14:23:24.5678901Z + echo "Monitor token configured"
+2024-01-15T14:23:24.7890123Z Monitor token configured
+2024-01-15T14:23:24.9012345Z ##[section]Setup Prometheus Configuration
+2024-01-15T14:23:25.1234567Z Creating Prometheus configuration file
+2024-01-15T14:23:25.3456789Z + cat > /etc/prometheus/prometheus.yml
+2024-01-15T14:23:25.5678901Z global:
+2024-01-15T14:23:25.7890123Z   scrape_interval: 15s
+2024-01-15T14:23:25.9012345Z   evaluation_interval: 15s
+2024-01-15T14:23:26.1234567Z   external_labels:
+2024-01-15T14:23:26.3456789Z     cluster: 'production'
+2024-01-15T14:23:26.5678901Z     datacenter: 'us-east-1'
+2024-01-15T14:23:27.7890123Z scrape_configs:
+2024-01-15T14:23:27.9012345Z   - job_name: 'node-exporter'
+2024-01-15T14:23:28.1234567Z     static_configs:
+2024-01-15T14:23:28.3456789Z       - targets: ['localhost:9100']
+2024-01-15T14:23:28.5678901Z   - job_name: 'application-metrics'
+2024-01-15T14:23:28.7890123Z     static_configs:
+2024-01-15T14:23:28.9012345Z       - targets: ['app-server:8080']
+2024-01-15T14:23:29.1234567Z Prometheus configuration created successfully
+2024-01-15T14:23:29.3456789Z ##[section]Setup Grafana Dashboards
+2024-01-15T14:23:29.5678901Z Configuring Grafana data sources
+2024-01-15T14:23:30.7890123Z + curl -X POST http://localhost:3000/api/datasources
+2024-01-15T14:23:31.9012345Z Datasource 'Prometheus' created (ID: 1)
+2024-01-15T14:23:32.1234567Z Importing system metrics dashboard
+2024-01-15T14:23:32.3456789Z + grafana-cli plugins install grafana-piechart-panel
+2024-01-15T14:23:33.5678901Z Installing plugin: grafana-piechart-panel
+2024-01-15T14:23:34.7890123Z Plugin installed successfully
+2024-01-15T14:23:35.9012345Z ##[section]Configure Alert Rules
+2024-01-15T14:23:36.1234567Z Creating alerting rules
+2024-01-15T14:23:36.3456789Z + cat > /etc/prometheus/alerts.yml
+2024-01-15T14:23:36.5678901Z groups:
+2024-01-15T14:23:36.7890123Z   - name: system_alerts
+2024-01-15T14:23:36.9012345Z     rules:
+2024-01-15T14:23:37.1234567Z       - alert: HighCPUUsage
+2024-01-15T14:23:37.3456789Z         expr: cpu_usage > 80
+2024-01-15T14:23:37.5678901Z         for: 5m
+2024-01-15T14:23:37.7890123Z       - alert: HighMemoryUsage
+2024-01-15T14:23:37.9012345Z         expr: memory_usage > 90
+2024-01-15T14:23:38.1234567Z         for: 5m
+2024-01-15T14:23:38.3456789Z Alert rules configured successfully
+2024-01-15T14:23:38.5678901Z ##[section]Start Monitoring Services
+2024-01-15T14:23:38.7890123Z Starting Prometheus service
+2024-01-15T14:23:39.9012345Z + systemctl start prometheus
+2024-01-15T14:23:41.1234567Z Prometheus started successfully on port 9090
+2024-01-15T14:23:41.3456789Z Starting Grafana service
+2024-01-15T14:23:42.5678901Z + systemctl start grafana-server
+2024-01-15T14:23:43.7890123Z Grafana started successfully on port 3000
+2024-01-15T14:23:43.9012345Z ##[section]Health Check Validation
+2024-01-15T14:23:44.1234567Z Running health checks on monitoring stack
+2024-01-15T14:23:45.3456789Z + curl http://localhost:9090/-/healthy
+2024-01-15T14:23:45.5678901Z Prometheus is healthy
+2024-01-15T14:23:45.7890123Z + curl http://localhost:3000/api/health
+2024-01-15T14:23:45.9012345Z {"status":"ok","database":"ok","version":"10.2.3"}
+2024-01-15T14:23:46.1234567Z Grafana is healthy
+2024-01-15T14:23:46.3456789Z ##[section]Verify Metrics Collection
+2024-01-15T14:23:47.5678901Z Checking if metrics are being collected
+2024-01-15T14:23:48.7890123Z + curl http://localhost:9090/api/v1/targets
+2024-01-15T14:23:49.9012345Z All targets are up and collecting metrics
+2024-01-15T14:23:50.1234567Z Target 'node-exporter': UP
+2024-01-15T14:23:50.3456789Z Target 'application-metrics': UP
+2024-01-15T14:23:51.5678901Z ##[section]Monitoring Setup Complete
+2024-01-15T14:23:51.7890123Z Monitoring stack deployed successfully
+2024-01-15T14:23:51.9012345Z Dashboard URL: http://grafana.company.internal:3000
+2024-01-15T14:23:52.1234567Z Prometheus URL: http://prometheus.company.internal:9090
+2024-01-15T14:23:52.3456789Z ##[section]Finishing: monitoring_setup
+2024-01-15T14:23:52.5678901Z Cleaning up temporary files
+2024-01-15T14:23:52.7890123Z ##[section]Completed workflow run

@@ -1,0 +1,112 @@
+#!/bin/bash
+
+# Create the directory structure
+mkdir -p /workspace/project/data
+mkdir -p /workspace/project/images
+mkdir -p /workspace/project/assets/fonts
+mkdir -p /workspace/project/lib
+mkdir -p /workspace/backup/data
+mkdir -p /workspace/backup/images
+mkdir -p /workspace/backup/assets/fonts
+
+# Create LFS pointer files in project directory
+
+# Pointer file 1: data/model.bin
+cat > /workspace/project/data/model.bin << 'EOF'
+version https://git-lfs.github.com/spec/v1
+oid sha256:4d7a214614ab2935c943f9e0ff69d22ebbe855502638e819d1e4d0a6e4b1c9a6
+size 2097152
+EOF
+
+# Pointer file 2: images/banner.png
+cat > /workspace/project/images/banner.png << 'EOF'
+version https://git-lfs.github.com/spec/v1
+oid sha256:a3c5e9f2d8b4a1e6c7f8d9e0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0
+size 524288
+EOF
+
+# Pointer file 3: assets/fonts/custom.ttf
+cat > /workspace/project/assets/fonts/custom.ttf << 'EOF'
+version https://git-lfs.github.com/spec/v1
+oid sha256:1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b
+size 1048576
+EOF
+
+# Pointer file 4: data/dataset.zip (this one will have NO backup - should FAIL)
+cat > /workspace/project/data/dataset.zip << 'EOF'
+version https://git-lfs.github.com/spec/v1
+oid sha256:9f8e7d6c5b4a3e2d1c0b9a8f7e6d5c4b3a2e1d0c9b8a7f6e5d4c3b2a1e0d9c8b
+size 5242880
+EOF
+
+# Create some regular files that should NOT be detected as pointers
+cat > /workspace/project/README.md << 'EOF'
+# Project Repository
+
+This is a sample project with some large files managed by Git LFS.
+EOF
+
+cat > /workspace/project/data/config.json << 'EOF'
+{
+  "version": "1.0.0",
+  "settings": {
+    "enabled": true
+  }
+}
+EOF
+
+cat > /workspace/project/lib/helper.py << 'EOF'
+def process_data():
+    # version control comment
+    return "processed"
+EOF
+
+# Create actual binary content files in backup directory
+
+# Backup for model.bin
+dd if=/dev/urandom of=/workspace/backup/data/model.bin bs=1024 count=2048 2>/dev/null
+
+# Backup for banner.png
+dd if=/dev/urandom of=/workspace/backup/images/banner.png bs=1024 count=512 2>/dev/null
+
+# Backup for custom.ttf
+dd if=/dev/urandom of=/workspace/backup/assets/fonts/custom.ttf bs=1024 count=1024 2>/dev/null
+
+# Note: No backup for dataset.zip - this will be a FAILED restoration
+
+# Now run the restoration script
+
+FOUND=0
+RESTORED=0
+FAILED=0
+
+# Find all files in /workspace/project and check if they are LFS pointer files
+while IFS= read -r -d '' file; do
+    # Check if file starts with the LFS pointer signature
+    if [ -f "$file" ]; then
+        first_line=$(head -n 1 "$file" 2>/dev/null)
+        if [ "$first_line" = "version https://git-lfs.github.com/spec/v1" ]; then
+            FOUND=$((FOUND + 1))
+            
+            # Get relative path from project directory
+            rel_path="${file#/workspace/project/}"
+            backup_file="/workspace/backup/$rel_path"
+            
+            # Check if backup file exists
+            if [ -f "$backup_file" ]; then
+                # Replace pointer with actual content
+                cp "$backup_file" "$file"
+                RESTORED=$((RESTORED + 1))
+            else
+                FAILED=$((FAILED + 1))
+            fi
+        fi
+    fi
+done < <(find /workspace/project -type f -print0)
+
+# Write results to result.txt
+cat > /workspace/result.txt << EOF
+FOUND=$FOUND
+RESTORED=$RESTORED
+FAILED=$FAILED
+EOF

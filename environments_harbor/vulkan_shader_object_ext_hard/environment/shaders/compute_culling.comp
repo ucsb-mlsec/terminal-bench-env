@@ -1,0 +1,44 @@
+#version 450
+
+layout(local_size_x = 64) in;
+
+layout(std430, binding = 0) buffer ObjectBuffer {
+    mat4 transforms[];
+};
+
+layout(binding = 1) buffer VisibilityBuffer {
+    uint visible[];
+};
+
+uniform mat4 viewProj;
+
+bool isVisible(vec4 worldPos) {
+    vec4 clipPos = viewProj * worldPos;
+    
+    if (clipPos.w <= 0.0) return false;
+    
+    vec3 ndc = clipPos.xyz / clipPos.w;
+    
+    if (abs(ndc.x) > 1.0 || abs(ndc.y) > 1.0 || abs(ndc.z) > 1.0) {
+        return false;
+    }
+    
+    for (int i = 0; i < 6; i++) {
+        if (dot(frustumPlanes[i], worldPos) < 0.0) {
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+void main() {
+    uint idx = gl_GlobalInvocationID.x;
+    
+    if (idx >= transforms.length()) return;
+    
+    mat4 transform = transforms[idx];
+    vec3 worldPos = vec3(transform[3].xyz);
+    
+    visible[idx] = isVisible(worldPos) ? 1u : 0u;
+}

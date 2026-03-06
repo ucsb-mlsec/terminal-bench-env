@@ -1,0 +1,322 @@
+I'll create a comprehensive backup solution that simulates ZFS snapshot replication behavior. Let me start by setting up the environment and creating the required files.
+
+First, let me create the production database directory and the SQLite database file:
+
+```bash
+mkdir -p /var/db/production
+mkdir -p /var/backups/remote
+mkdir -p /var/log
+
+# Create the analytics.db SQLite database
+sqlite3 /var/db/production/analytics.db << 'EOF'
+CREATE TABLE analytics (
+    event_id INTEGER PRIMARY KEY,
+    event_type TEXT,
+    user_id INTEGER,
+    timestamp TIMESTAMP,
+    metadata TEXT
+);
+
+INSERT INTO analytics (event_type, user_id, timestamp, metadata) VALUES
+('page_view', 45, '2024-01-14 09:00:00', 'homepage'),
+('page_view', 23, '2024-01-14 09:01:23', 'products'),
+('purchase', 23, '2024-01-14 09:15:00', 'checkout_complete'),
+('page_view', 67, '2024-01-14 09:16:45', 'homepage'),
+('click', 45, '2024-01-14 09:17:12', 'banner_ad'),
+('page_view', 89, '2024-01-14 09:20:34', 'about'),
+('search', 45, '2024-01-14 09:22:18', 'laptop computers'),
+('page_view', 102, '2024-01-14 09:25:47', 'products'),
+('add_to_cart', 102, '2024-01-14 09:26:55', 'product_id_457'),
+('page_view', 23, '2024-01-14 09:28:33', 'profile'),
+('click', 67, '2024-01-14 09:30:22', 'navigation_menu'),
+('page_view', 134, '2024-01-14 09:32:11', 'homepage'),
+('search', 134, '2024-01-14 09:33:45', 'wireless mouse'),
+('page_view', 156, '2024-01-14 09:35:28', 'contact'),
+('form_submit', 156, '2024-01-14 09:36:50', 'contact_form'),
+('page_view', 89, '2024-01-14 09:38:14', 'blog'),
+('click', 89, '2024-01-14 09:39:27', 'blog_article_12'),
+('page_view', 178, '2024-01-14 09:41:03', 'products'),
+('add_to_cart', 178, '2024-01-14 09:42:36', 'product_id_892'),
+('page_view', 45, '2024-01-14 09:44:19', 'cart'),
+('purchase', 178, '2024-01-14 09:45:52', 'checkout_complete'),
+('page_view', 192, '2024-01-14 09:47:28', 'homepage'),
+('click', 192, '2024-01-14 09:48:41', 'promo_banner'),
+('page_view', 23, '2024-01-14 09:50:15', 'orders'),
+('page_view', 210, '2024-01-14 09:52:33', 'products'),
+('search', 210, '2024-01-14 09:53:47', 'gaming keyboard'),
+('page_view', 67, '2024-01-14 09:55:22', 'reviews'),
+('click', 67, '2024-01-14 09:56:38', 'review_helpful'),
+('page_view', 234, '2024-01-14 09:58:11', 'homepage'),
+('page_view', 234, '2024-01-14 09:59:45', 'about'),
+('page_view', 102, '2024-01-14 10:01:22', 'products'),
+('add_to_cart', 102, '2024-01-14 10:02:56', 'product_id_1234'),
+('page_view', 256, '2024-01-14 10:04:33', 'homepage'),
+('search', 256, '2024-01-14 10:05:48', 'office chair'),
+('page_view', 256, '2024-01-14 10:07:14', 'products'),
+('click', 256, '2024-01-14 10:08:39', 'product_image'),
+('page_view', 278, '2024-01-14 10:10:22', 'homepage'),
+('page_view', 45, '2024-01-14 10:12:05', 'wishlist'),
+('add_to_wishlist', 45, '2024-01-14 10:13:31', 'product_id_567'),
+('page_view', 289, '2024-01-14 10:15:18', 'products'),
+('page_view', 289, '2024-01-14 10:16:42', 'categories'),
+('click', 289, '2024-01-14 10:18:09', 'category_electronics'),
+('page_view', 302, '2024-01-14 10:19:54', 'homepage'),
+('search', 302, '2024-01-14 10:21:27', 'monitor 4k'),
+('page_view', 134, '2024-01-14 10:23:11', 'products'),
+('add_to_cart', 134, '2024-01-14 10:24:48', 'product_id_789'),
+('page_view', 324, '2024-01-14 10:26:33', 'homepage'),
+('click', 324, '2024-01-14 10:28:05', 'featured_product'),
+('page_view', 324, '2024-01-14 10:29:39', 'products'),
+('page_view', 89, '2024-01-14 10:31:22', 'support'),
+('form_submit', 89, '2024-01-14 10:32:57', 'support_ticket'),
+('page_view', 345, '2024-01-14 10:34:41', 'homepage'),
+('page_view', 345, '2024-01-14 10:36:18', 'deals'),
+('click', 345, '2024-01-14 10:37:52', 'deal_of_the_day'),
+('page_view', 178, '2024-01-14 10:39:35', 'orders'),
+('page_view', 367, '2024-01-14 10:41:19', 'homepage'),
+('search', 367, '2024-01-14 10:42:53', 'webcam hd'),
+('page_view', 367, '2024-01-14 10:44:28', 'products'),
+('add_to_cart', 367, '2024-01-14 10:46:02', 'product_id_2341'),
+('page_view', 192, '2024-01-14 10:47:47', 'cart'),
+('purchase', 367, '2024-01-14 10:49:21', 'checkout_complete'),
+('page_view', 389, '2024-01-14 10:51:08', 'homepage'),
+('click', 389, '2024-01-14 10:52:44', 'social_media_link'),
+('page_view', 402, '2024-01-14 10:54:29', 'products'),
+('page_view', 234, '2024-01-14 10:56:13', 'profile'),
+('page_view', 234, '2024-01-14 10:57:48', 'settings'),
+('form_submit', 234, '2024-01-14 10:59:22', 'update_profile'),
+('page_view', 423, '2024-01-14 11:01:07', 'homepage'),
+('search', 423, '2024-01-14 11:02:43', 'smartphone case'),
+('page_view', 423, '2024-01-14 11:04:18', 'products'),
+('click', 423, '2024-01-14 11:05:52', 'filter_by_price'),
+('page_view', 445, '2024-01-14 11:07:38', 'homepage'),
+('page_view', 445, '2024-01-14 11:09:13', 'blog'),
+('click', 445, '2024-01-14 11:10:47', 'blog_article_25'),
+('page_view', 102, '2024-01-14 11:12:34', 'cart'),
+('purchase', 102, '2024-01-14 11:14:08', 'checkout_complete'),
+('page_view', 467, '2024-01-14 11:15:55', 'homepage'),
+('page_view', 467, '2024-01-14 11:17:29', 'testimonials'),
+('page_view', 489, '2024-01-14 11:19:14', 'homepage'),
+('search', 489, '2024-01-14 11:20:49', 'external hard drive'),
+('page_view', 489, '2024-01-14 11:22:24', 'products'),
+('add_to_cart', 489, '2024-01-14 11:23:58', 'product_id_3456'),
+('page_view', 256, '2024-01-14 11:25:45', 'cart'),
+('purchase', 256, '2024-01-14 11:27:19', 'checkout_complete'),
+('page_view', 510, '2024-01-14 11:29:06', 'homepage'),
+('click', 510, '2024-01-14 11:30:41', 'newsletter_signup'),
+('form_submit', 510, '2024-01-14 11:32:15', 'newsletter_subscription'),
+('page_view', 532, '2024-01-14 11:34:02', 'homepage'),
+('page_view', 532, '2024-01-14 11:35:37', 'faq'),
+('page_view', 289, '2024-01-14 11:37:23', 'products'),
+('add_to_cart', 289, '2024-01-14 11:38:58', 'product_id_4567'),
+('page_view', 554, '2024-01-14 11:40:44', 'homepage'),
+('search', 554, '2024-01-14 11:42:19', 'wireless earbuds'),
+('page_view', 554, '2024-01-14 11:43:54', 'products'),
+('click', 554, '2024-01-14 11:45:28', 'product_comparison'),
+('page_view', 302, '2024-01-14 11:47:15', 'cart'),
+('purchase', 302, '2024-01-14 11:48:49', 'checkout_complete'),
+('page_view', 576, '2024-01-14 11:50:36', 'homepage'),
+('page_view', 576, '2024-01-14 11:52:11', 'new_arrivals'),
+('click', 576, '2024-01-14 11:53:45', 'new_product_launch'),
+('page_view', 598, '2024-01-14 11:55:32', 'homepage'),
+('search', 598, '2024-01-14 11:57:07', 'laptop bag'),
+('page_view', 598, '2024-01-14 11:58:42', 'products'),
+('add_to_cart', 598, '2024-01-14 12:00:16', 'product_id_5678'),
+('page_view', 324, '2024-01-14 12:02:03', 'wishlist'),
+('page_view', 620, '2024-01-14 12:03:38', 'homepage'),
+('click', 620, '2024-01-14 12:05:13', 'seasonal_sale'),
+('page_view', 620, '2024-01-14 12:06:47', 'products'),
+('page_view', 345, '2024-01-14 12:08:34', 'cart'),
+('purchase', 345, '2024-01-14 12:10:08', 'checkout_complete'),
+('page_view', 642, '2024-01-14 12:11:55', 'homepage'),
+('page_view', 642, '2024-01-14 12:13:30', 'gift_cards'),
+('form_submit', 642, '2024-01-14 12:15:04', 'purchase_gift_card'),
+('page_view', 664, '2024-01-14 12:16:51', 'homepage'),
+('search', 664, '2024-01-14 12:18:26', 'usb cable'),
+('page_view', 664, '2024-01-14 12:20:01', 'products'),
+('add_to_cart', 664, '2024-01-14 12:21:35', 'product_id_6789'),
+('page_view', 423, '2024-01-14 12:23:22', 'cart'),
+('purchase', 423, '2024-01-14 12:24:56', 'checkout_complete'),
+('page_view', 686, '2024-01-14 12:26:43', 'homepage'),
+('click', 686, '2024-01-14 12:28:18', 'mobile_app_download'),
+('page_view', 708, '2024-01-14 12:30:05', 'homepage'),
+('page_view', 708, '2024-01-14 12:31:40', 'track_order'),
+('form_submit', 708, '2024-01-14 12:33:14', 'order_tracking'),
+('page_view', 467, '2024-01-14 12:35:01', 'products'),
+('add_to_cart', 467, '2024-01-14 12:36:36', 'product_id_7890'),
+('page_view', 730, '2024-01-14 12:38:23', 'homepage'),
+('search', 730, '2024-01-14 12:39:58', 'power bank'),
+('page_view', 730, '2024-01-14 12:41:33', 'products'),
+('click', 730, '2024-01-14 12:43:07', 'sort_by_rating'),
+('page_view', 752, '2024-01-14 12:44:54', 'homepage'),
+('page_view', 752, '2024-01-14 12:46:29', 'careers'),
+('page_view', 489, '2024-01-14 12:48:16', 'cart'),
+('purchase', 489, '2024-01-14 12:49:50', 'checkout_complete'),
+('page_view', 774, '2024-01-14 12:51:37', 'homepage'),
+('click', 774, '2024-01-14 12:53:12', 'customer_reviews'),
+('page_view', 774, '2024-01-14 12:54:46', 'reviews'),
+('page_view', 796, '2024-01-14 12:56:33', 'homepage'),
+('search', 796, '2024-01-14 12:58:08', 'hdmi cable'),
+('page_view', 796, '2024-01-14 12:59:43', 'products'),
+('add_to_cart', 796, '2024-01-14 13:01:17', 'product_id_8901'),
+('page_view', 598, '2024-01-14 13:03:04', 'cart'),
+('purchase', 598, '2024-01-14 13:04:38', 'checkout_complete'),
+('page_view', 818, '2024-01-14 13:06:25', 'homepage'),
+('page_view', 818, '2024-01-14 13:08:00', 'partnerships'),
+('page_view', 840, '2024-01-14 13:09:47', 'homepage'),
+('click', 840, '2024-01-14 13:11:22', 'live_chat'),
+('page_view', 664, '2024-01-14 13:13:09', 'products'),
+('add_to_cart', 664, '2024-01-14 13:14:44', 'product_id_9012'),
+('page_view', 862, '2024-01-14 13:16:31', 'homepage'),
+('search', 862, '2024-01-14 13:18:06', 'screen protector'),
+('page_view', 862, '2024-01-14 13:19:41', 'products'),
+('click', 862, '2024-01-14 13:21:15', 'add_to_compare'),
+('page_view', 730, '2024-01-14 13:23:02', 'cart'),
+('purchase', 730, '2024-01-14 13:24:36', 'checkout_complete'),
+('page_view', 884, '2024-01-14 13:26:23', 'homepage'),
+('page_view', 884, '2024-01-14 13:27:58', 'privacy_policy'),
+('page_view', 906, '2024-01-14 13:29:45', 'homepage'),
+('click', 906, '2024-01-14 13:31:20', 'flash_sale'),
+('page_view', 906, '2024-01-14 13:32:54', 'products'),
+('add_to_cart', 906, '2024-01-14 13:34:29', 'product_id_1123'),
+('page_view', 796, '2024-01-14 13:36:16', 'cart'),
+('purchase', 796, '2024-01-14 13:37:50', 'checkout_complete'),
+('page_view', 928, '2024-01-14 13:39:37', 'homepage'),
+('search', 928, '2024-01-14 13:41:12', 'bluetooth speaker'),
+('page_view', 928, '2024-01-14 13:42:47', 'products'),
+('click', 928, '2024-01-14 13:44:21', 'video_review'),
+('page_view', 950, '2024-01-14 13:46:08', 'homepage'),
+('page_view', 950, '2024-01-14 13:47:43', 'shipping_info'),
+('page_view', 862, '2024-01-14 13:49:30', 'cart'),
+('purchase', 862, '2024-01-14 13:51:04', 'checkout_complete'),
+('page_view', 972, '2024-01-14 13:52:51', 'homepage'),
+('click', 972, '2024-01-14 13:54:26', 'referral_program'),
+('page_view', 994, '2024-01-14 13:56:13', 'homepage'),
+('search', 994, '2024-01-14 13:57:48', 'gaming mouse'),
+('page_view', 994, '2024-01-14 13:59:23', 'products'),
+('add_to_cart', 994, '2024-01-14 14:00:57', 'product_id_2234'),
+('page_view', 906, '2024-01-14 14:02:44', 'cart'),
+('purchase', 906, '2024-01-14 14:04:18', 'checkout_complete');
+EOF
+```
+
+Now, let me create the backup script:
+
+```bash
+cat > /usr/local/bin/db_backup.sh << 'SCRIPT_EOF'
+#!/bin/bash
+
+# ZFS-style snapshot backup script
+# Simulates ZFS snapshot replication with incremental capabilities
+
+set -euo pipefail
+
+# Configuration
+PRODUCTION_DIR="/var/db/production"
+BACKUP_DIR="/var/backups/remote"
+STATE_FILE="${BACKUP_DIR}/.backup_state"
+LOG_FILE="/var/log/backup_report.json"
+BACKUP_ID="backup-$(date +%Y%m%d-%H%M%S)"
+
+# Initialize variables
+BACKUP_TYPE="full"
+FILES_COPIED=0
+STATUS="success"
+
+# Create backup directory if it doesn't exist
+mkdir -p "${BACKUP_DIR}"
+mkdir -p "$(dirname "${LOG_FILE}")"
+
+# Function to perform full backup
+perform_full_backup() {
+    echo "Performing full backup..."
+    
+    # Copy all files from production to backup
+    for file in "${PRODUCTION_DIR}"/*; do
+        if [ -f "$file" ]; then
+            cp -p "$file" "${BACKUP_DIR}/"
+            ((FILES_COPIED++))
+        fi
+    done
+    
+    # Create state file with current backup timestamp
+    date +%s > "${STATE_FILE}"
+}
+
+# Function to perform incremental backup
+perform_incremental_backup() {
+    echo "Performing incremental backup..."
+    
+    # Read last backup timestamp
+    LAST_BACKUP_TIME=$(cat "${STATE_FILE}")
+    
+    # Copy only modified files
+    for file in "${PRODUCTION_DIR}"/*; do
+        if [ -f "$file" ]; then
+            filename=$(basename "$file")
+            
+            # Check if file doesn't exist in backup or has been modified
+            if [ ! -f "${BACKUP_DIR}/${filename}" ] || [ "$file" -nt "${BACKUP_DIR}/${filename}" ]; then
+                cp -p "$file" "${BACKUP_DIR}/"
+                ((FILES_COPIED++))
+            fi
+        fi
+    done
+    
+    # Update state file with current timestamp
+    date +%s > "${STATE_FILE}"
+}
+
+# Main backup logic
+main() {
+    # Check if this is the first backup
+    if [ ! -f "${STATE_FILE}" ]; then
+        BACKUP_TYPE="full"
+        perform_full_backup
+    else
+        BACKUP_TYPE="incremental"
+        perform_incremental_backup
+    fi
+    
+    # Generate JSON report
+    cat > "${LOG_FILE}" << EOF
+{
+  "backup_id": "${BACKUP_ID}",
+  "type": "${BACKUP_TYPE}",
+  "files_copied": ${FILES_COPIED},
+  "status": "${STATUS}"
+}
+EOF
+    
+    echo "Backup completed: ${BACKUP_TYPE} backup with ${FILES_COPIED} files copied"
+}
+
+# Error handling
+trap 'STATUS="failed"; echo "{\"backup_id\": \"${BACKUP_ID}\", \"type\": \"${BACKUP_TYPE}\", \"files_copied\": ${FILES_COPIED}, \"status\": \"failed\"}" > "${LOG_FILE}"; exit 1' ERR
+
+# Execute main function
+main
+
+exit 0
+SCRIPT_EOF
+
+chmod +x /usr/local/bin/db_backup.sh
+```
+
+Now let's run the backup script:
+
+```bash
+/usr/local/bin/db_backup.sh
+```
+
+The script has been created and executed. Let me verify the results:
+
+```bash
+# Check if backup was successful
+cat /var/log/backup_report.json
+
+# List backed up files
+ls -lh /var/backups/remote/
+
+# Verify the database integrity
+sqlite3 /var/backups/remote/analytics.db "SELECT COUNT(*) FROM analytics;"

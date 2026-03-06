@@ -1,0 +1,40 @@
+import numpy as np
+from datetime import datetime, timedelta
+
+# Create February 2024 sensor data with different field names
+np.random.seed(42)
+
+# Generate 85 records for February
+num_records = 85
+
+# Create timestamps for February 2024
+start_date = datetime(2024, 2, 1)
+timestamps = np.array([start_date + timedelta(hours=i*8) for i in range(num_records)], dtype='datetime64[s]')
+
+# Generate sensor data with renamed fields
+temp_celsius = np.random.uniform(17.2, 24.8, num_records)
+humidity_pct = np.random.uniform(30, 70, num_records)
+pressure_hpa = np.random.uniform(1008, 1022, num_records)
+vibration = np.random.uniform(0.1, 2.5, num_records)
+sensor_id = np.random.randint(1, 6, num_records)
+
+# Create structured array with February schema
+dtype = [
+    ('timestamp', 'datetime64[s]'),
+    ('temp_celsius', 'f8'),
+    ('humidity_pct', 'f8'),
+    ('pressure_hpa', 'f8'),
+    ('vibration', 'f8'),
+    ('sensor_id', 'i4')
+]
+
+sensor_data = np.zeros(num_records, dtype=dtype)
+sensor_data['timestamp'] = timestamps
+sensor_data['temp_celsius'] = temp_celsius
+sensor_data['humidity_pct'] = humidity_pct
+sensor_data['pressure_hpa'] = pressure_hpa
+sensor_data['vibration'] = vibration
+sensor_data['sensor_id'] = sensor_id
+
+# Save the structured array
+np.save('/data/experiments/sensor_readings_2024_02.npy', sensor_data)

@@ -1,0 +1,36 @@
+---
+- name: Deploy application to all environments
+  hosts: all
+  gather_facts: yes
+  become: yes
+  
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      
+    - name: Install required packages
+      apt:
+        name:
+          - nginx
+          - python3-pip
+          - git
+        state: present
+    
+    - name: Copy application files
+      copy:
+        src: /tmp/app/
+        dest: /var/www/app/
+        mode: '0755'
+    
+    - name: Start nginx service
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+    
+    - name: Run deployment script
+      shell: /var/www/app/deploy.sh
+      async: 300
+      poll: 5

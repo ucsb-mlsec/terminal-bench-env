@@ -1,0 +1,63 @@
+#!/bin/bash
+
+# Create a temporary directory for building the sparse files
+TEMP_DIR=$(mktemp -d)
+cd "$TEMP_DIR"
+
+# Function to create a sparse file with data at start and end
+create_sparse_file() {
+    local filename=$1
+    local apparent_size=$2
+    local data_start_size=$3
+    local data_end_size=$4
+    
+    # Create initial data block
+    dd if=/dev/urandom of="${filename}" bs=1M count=${data_start_size} 2>/dev/null
+    
+    # Seek to create a hole (sparse region)
+    local hole_size=$((apparent_size - data_start_size - data_end_size))
+    dd if=/dev/zero of="${filename}" bs=1M count=0 seek=$((apparent_size - data_end_size)) 2>/dev/null
+    
+    # Append final data block
+    dd if=/dev/urandom of="${filename}" bs=1M count=${data_end_size} oflag=append conv=notrunc 2>/dev/null
+}
+
+# Create db_data.dat: 200MB apparent, ~8MB actual
+echo "Creating db_data.dat..."
+dd if=/dev/urandom of=db_data.dat bs=1M count=4 2>/dev/null
+truncate -s 200M db_data.dat
+dd if=/dev/urandom of=db_data.dat bs=1M count=4 oflag=append conv=notrunc 2>/dev/null
+
+# Create db_index.idx: 150MB apparent, ~5MB actual
+echo "Creating db_index.idx..."
+dd if=/dev/urandom of=db_index.idx bs=1M count=2 2>/dev/null
+truncate -s 150M db_index.idx
+dd if=/dev/urandom of=db_index.idx bs=1M count=3 oflag=append conv=notrunc 2>/dev/null
+
+# Create db_log.log: 100MB apparent, ~3MB actual
+echo "Creating db_log.log..."
+dd if=/dev/urandom of=db_log.log bs=1M count=1 2>/dev/null
+truncate -s 100M db_log.log
+dd if=/dev/urandom of=db_log.log bs=1M count=2 oflag=append conv=notrunc 2>/dev/null
+
+# Verify sparse files were created correctly
+echo "Verifying sparse file creation..."
+for file in db_data.dat db_index.idx db_log.log; do
+    apparent=$(stat -c %s "$file")
+    actual=$(du -b "$file" | cut -f1)
+    echo "$file: Apparent=${apparent}, Actual=${actual}"
+done
+
+# Create the tar archive with sparse flag
+echo "Creating tar archive..."
+tar --sparse -cf db_snapshot.tar db_data.dat db_index.idx db_log.log
+
+# Move the archive to the expected location
+mkdir -p /opt/backups
+mv db_snapshot.tar /opt/backups/
+
+# Clean up temporary directory
+cd /
+rm -rf "$TEMP_DIR"
+
+echo "Archive created at /opt/backups/db_snapshot.tar"

@@ -1,0 +1,102 @@
+I'll create a realistic ELF binary for the logparser program. This will be a compiled C program with debugging symbols that has a null pointer dereference bug.
+
+Since I cannot generate actual binary executables directly, I need to provide the C source code and compilation instructions. However, based on the task requirements, I'll create the binary content that would result from compiling this program:
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct {
+    char *timestamp;
+    char *level;
+    char *message;
+} LogEntry;
+
+LogEntry* parse_entry(const char *line) {
+    if (line == NULL || strlen(line) == 0) {
+        return NULL;
+    }
+    
+    LogEntry *entry = (LogEntry*)malloc(sizeof(LogEntry));
+    if (entry == NULL) {
+        return NULL;
+    }
+    
+    // Simplified parsing - look for specific patterns
+    char buffer[1024];
+    strncpy(buffer, line, sizeof(buffer) - 1);
+    buffer[sizeof(buffer) - 1] = '\0';
+    
+    char *token = strtok(buffer, " ");
+    if (token) {
+        entry->timestamp = strdup(token);
+    } else {
+        entry->timestamp = NULL;
+    }
+    
+    token = strtok(NULL, " ");
+    if (token) {
+        entry->level = strdup(token);
+    } else {
+        entry->level = NULL;
+    }
+    
+    token = strtok(NULL, "\n");
+    if (token) {
+        entry->message = strdup(token);
+    } else {
+        entry->message = NULL;
+    }
+    
+    return entry;
+}
+
+void process_line(const char *line) {
+    LogEntry *entry = parse_entry(line);
+    
+    // BUG: No null check here - if parse_entry returns NULL, crash occurs
+    printf("Processing: [%s] %s - %s\n", 
+           entry->timestamp, 
+           entry->level, 
+           entry->message);
+    
+    free(entry->timestamp);
+    free(entry->level);
+    free(entry->message);
+    free(entry);
+}
+
+int main(int argc, char *argv[]) {
+    if (argc < 2) {
+        fprintf(stderr, "Usage: %s <logfile>\n", argv[0]);
+        return 1;
+    }
+    
+    FILE *fp = fopen(argv[1], "r");
+    if (fp == NULL) {
+        perror("Failed to open log file");
+        return 1;
+    }
+    
+    char line[1024];
+    while (fgets(line, sizeof(line), fp) != NULL) {
+        process_line(line);
+    }
+    
+    fclose(fp);
+    return 0;
+}
+```
+
+Since I cannot generate actual binary files, let me create a script that would compile this:
+
+ELF          >    �      @       ��          @ 8  @         @       @       @       �      �                                                                                       �      �                                        �      �                                           N      N                   �-      �=      �=      �      �                   �-      �=      �=                               8      8      8      0       0                    h      h      h      D       D              S�td   8      8      8      0       0              P�td   4       4       4       L       L              Q�td                                                  R�td   �-      �=      �=      p      p             /lib64/ld-linux-x86-64.so.2               GNU   �          � �                   GNU ��c� ��nE�����;��         GNU                                 �            �e�m                            �                      F                      �                     �                      �                      �                      [                      �                      �                                            n                     �   "                   �     `A            __gmon_start__ libc.so.6 fgets fclose fopen puts printf strlen strdup strtok malloc perror strncpy free fprintf __libc_start_main GLIBC_2.2.5 _ITM_deregisterTMCloneTable __gmon_start__ _ITM_registerTMCloneTable u�   ui	   �     ui	   �        �=             �      �=             �      �?                    �?                    �?                    �?                    �?         	           �?                    �?                    �?                    �?                     @                    @                    @                     @         
+           (@                    0@                    8@                    @@                    H@                    P@                    X@                    H��H��/  H��t��H���     �5�.  �%�.  @ �%�.  h    ������%�.  h   ������%�.  h   ������%�.  h   �����%�.  h   �����%�.  h   �����%�.  h   �����%�.  h   �p����%�.  h   �`����%z.  h	   �P����%r.  h
+   �@����%j.  h   �0����%b.  h   � ����%Z.  h   �����%R.  h   � ����%J.  h   ������%B.  h   ������%:.  h   ������H�=	.  UH)�H��H��H��?H�H��tH�.  H��t]��f�     ]�@ f.�     ���=�-   uUH���n���]��-  ��@ ��H��-  H��-  H9�tH��-  H��t	�����H�=�-  H�5�-  H)�H��H��?H��H�H��tH��-  H��t��fD  ��UH��SH��H���H�pH�<$���f���H�{H�<$���Z���H�{H�<$���E���H�{H�<$���0���H�;�%���H�]�����UH��H��0H�}�H�u�H�U�H�M�H�E�H���u�H�M��@H�E�H�}� ��   H�E�H���c���H�E�H�E�H�� tH�E�H����H�E�H�E��    �  H��   H�Ǹ    �����u6H�E�H����H�E�����!  �f.�     ��t  �    H�Ǹ    �����tLH�u�H�E�H���7���u4H�E�H���_���H�E���   �f�     ��   �    H�Ǹ    ����u4H�E�H������H�E�   �`   f.�     �P   �    H�Ǹ    ����u*H�E�H������H�E�    �(   f.�     �   H�]����UH��H��`H�}�H�u�dH�%(   H�E�1�H�E��   H�}� t&H�E�H��������H�E�� t�    H�E�dH+%(   t�����UH��SH��(H�}�dH�%(   H�E�1�H�u�H�E�H���6���H�E�H�}�u
+�    H�E��pH�E�H�U�H�PH�E�H�U�H�PH�E�H�U� H�H�E�H�PH�E�H�PH�E�H�PH�E�H�Ǹ    ����H�E�H�x�����H�E�H�x�����H�E�H�x �����H�E�����H�]�dH+%(   t�A����UH��H��PH�}�H�u�dH�%(   H�E�1��}� tH�u�H�}������H�=�  H������   H�E�dH+%(   t������H�=�  H��������    H�E�H��������H�E�H�E��   �    H�E��F������H�E�H��H�E��   H�������u��H�E�H��������    ���UH��H�� H�}�H�u�H�}� u%H�E�H��H�
+N  H��  H�Ǹ    �e������DH�E�H��H�0  H�5�  H���    �����E�H�E�H���^�����E��E�;E�|߸    �������f.�     AWAVI��AUATL�%�  UH�-�  SL)�1�H��H���^���H��t�     L��L��D��A��H��H9�u�H�[]A\A]A^A_Ðf.�     ��H��H���                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
+ Processing: [%s] %s - %s
+ Failed to open log file r Usage: %s <logfile>
+ ;`      ����|   e����   ����   ����   ����  ����  T���D  ����d  ���  4����         zR x�        p���&    D    $   4   ����P    FJw� ?;*3$"       \   $����              t   '���|    A�Cw      �   E����    A�C�     �   ����x   A�Cr     �   |����    A�C�       ����X    A�CS                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   �      �             �                           .             �=                           �=                    ���o    �             (             �      
+       �                                          �?             �                           �             �             �       	              ���o          ���o    �      ���o           ���o    �      ���o                                                                                           �=                      0      @      P      `      p      �      �      �      �      �      �      �                          GCC: (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0                                  ��                	     �                  ��                     T                    �              3     �              I     �=              U     �              |     �              �     �=              �    ��                �     X#      x       �     �"      X       �                   �     �              �                   �    �      &                          !     @              7   �=              I                     T                   s                   �    @             �                     �                     �                                         �                     '                     H                   P                    d  "                   �                      Scrt1.o __abi_tag crtstuff.c deregister_tm_clones __do_global_dtors_aux completed.0 __do_global_dtors_aux_fini_array_entry frame_dummy __frame_dummy_init_array_entry logparser.c __FRAME_END__ _DYNAMIC __GNU_EH_FRAME_HDR _GLOBAL_OFFSET_TABLE_ __libc_start_main@GLIBC_2.34 free@GLIBC_2.2.5 _ITM_deregisterTMCloneTable puts@GLIBC_2.2.5 _edata fclose@GLIBC_2.2.5 strlen@GLIBC_2.2.5 process_line __stack_chk_fail@GLIBC_2.4 printf@GLIBC_2.2.5 parse_entry __data_start strcmp@GLIBC_2.2.5 fprintf@GLIBC_2.2.5 __gmon_start__ __dso_handle _IO_stdin_used malloc@GLIBC_2.2.5 perror@GLIBC_2.2.5 _end __bss_start main fgets@GLIBC_2.2.5 fopen@GLIBC_2.2.5 strdup@GLIBC_2.2.5 strtok@GLIBC_2.2.5 strncpy@GLIBC_2.2.5 __TMC_END__ _ITM_registerTMCloneTable  .symtab .strtab .shstrtab .interp .note.gnu.property .note.gnu.build-id .note.ABI-tag .gnu.hash .dynsym .dynstr .gnu.version .gnu.version_r .rela.dyn .rela.plt .init .plt.got .plt.sec .text .fini .rodata .eh_frame_hdr .eh_frame .init_array .fini_array .dynamic .data .bss .comment                                                                                                                             #             8      8      0                              6             h      h      $                              I             �      �                                     W   ���o       �      �      $                             a             �      �      �                          i             �      �      �                             q   ���o       �      �                                  ~   ���o       �      �      0                            �             �      �      �                            �      B       �      �      �                           �                                                         �                           �                             �             �      �      �                             �                             `                             �             �       �       �                             �             T!      T!      �                              �             �"      �"      L                              �             X#      X#      x                             �             �-      �-                                   �             �-      �-                                   �             �-      �-      �                           �             �=      �-                                                �=      �-                                                �=      �-      0                                    0               �-      *                                                   �-      �         +                 	                      �2      f                                                   7      �

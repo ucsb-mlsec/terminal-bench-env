@@ -1,0 +1,59 @@
+import struct
+import numpy as np
+
+# Set random seed for reproducibility
+np.random.seed(42)
+
+# Create a 2048x2048 matrix with values between -1000.0 and +1000.0
+matrix = np.random.uniform(-1000.0, 1000.0, (2048, 2048)).astype(np.float32)
+
+# Write to binary file in row-major order
+with open('/workspace/matrix_input.bin', 'wb') as f:
+    f.write(matrix.tobytes())
+
+# Create and write the reference transpose
+matrix_transposed = matrix.T
+with open('/workspace/reference_transpose.bin', 'wb') as f:
+    f.write(matrix_transposed.tobytes())
+
+# Create README.txt
+readme_content = """Matrix Data Format Specification
+=================================
+
+File: matrix_input.bin
+- Dimensions: 2048 × 2048
+- Total elements: 16,777,216
+- Data type: IEEE 754 single-precision (32-bit) floating-point
+- Byte order: Little-endian
+- Storage layout: Row-major order
+- File size: 67,108,864 bytes (16,777,216 × 4 bytes)
+- Value range: -1000.0 to +1000.0
+
+Memory Layout:
+--------------
+Element [i,j] is stored at byte offset: (i × 2048 + j) × 4
+
+Row-major means:
+- Bytes 0-8191: All elements of row 0 (columns 0-2047)
+- Bytes 8192-16383: All elements of row 1 (columns 0-2047)
+- ...
+- Bytes 67100672-67108863: All elements of row 2047 (columns 0-2047)
+
+Transpose Operation:
+-------------------
+Element at position [i,j] in input should appear at position [j,i] in output.
+Output file should maintain the same format (row-major, 32-bit float, little-endian).
+
+File: reference_transpose.bin
+- Contains the correctly transposed matrix
+- Use this to verify your implementation
+- Must match bit-for-bit (binary identical)
+"""
+
+with open('/workspace/README.txt', 'w') as f:
+    f.write(readme_content)
+
+print("Files generated successfully:")
+print(f"- matrix_input.bin: {2048*2048*4} bytes")
+print(f"- reference_transpose.bin: {2048*2048*4} bytes")
+print("- README.txt")

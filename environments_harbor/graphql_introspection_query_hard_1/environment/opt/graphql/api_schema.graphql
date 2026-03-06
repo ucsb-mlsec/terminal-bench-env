@@ -1,0 +1,467 @@
+# GraphQL API Schema - Production Environment
+# WARNING: This schema is exposed via introspection
+
+"""
+Main query entry point for the API
+"""
+type Query {
+  """
+  Retrieve all users with full details - No authentication required
+  """
+  users: [User!]!
+  
+  """
+  Get user by ID including sensitive fields
+  """
+  user(id: ID!): User
+  
+  """
+  Administrative access to user management
+  """
+  adminUsers(filter: String): [User!]!
+  
+  """
+  System health monitoring - exposes internal infrastructure
+  """
+  systemHealth: SystemHealth!
+  
+  """
+  Administrative dashboard data
+  """
+  adminDashboard: AdminDashboard!
+  
+  """
+  Manage user accounts and permissions
+  """
+  manageAccounts: [Account!]!
+  
+  """
+  Retrieve all posts
+  """
+  posts: [Post!]!
+  
+  """
+  Get post by ID
+  """
+  post(id: ID!): Post
+  
+  """
+  List all products
+  """
+  products: [Product!]!
+  
+  """
+  Search across all content
+  """
+  search(query: String!): SearchResults!
+  
+  """
+  Access database statistics - internal only
+  """
+  databaseStats: DatabaseStats!
+  
+  """
+  System configuration details
+  """
+  systemConfig: SystemConfig!
+  
+  """
+  Retrieve all orders with payment information
+  """
+  orders: [Order!]!
+  
+  """
+  Administrative access to audit logs
+  """
+  adminAuditLogs: [AuditLog!]!
+}
+
+"""
+Mutation operations for data modification
+"""
+type Mutation {
+  """
+  Create a new post
+  """
+  createPost(title: String!, content: String!): Post!
+  
+  """
+  Update user profile
+  """
+  updateProfile(userId: ID!, input: ProfileInput!): User!
+  
+  """
+  User authentication
+  """
+  login(username: String!, password: String!): AuthPayload!
+  
+  """
+  Administrative user deletion - removes all user data
+  """
+  deleteUser(userId: ID!): Boolean!
+  
+  """
+  Administrative post deletion
+  """
+  adminDeletePost(postId: ID!): Boolean!
+  
+  """
+  System reset - wipes all data
+  """
+  systemReset(confirmationCode: String!): Boolean!
+  
+  """
+  Manage user permissions and roles
+  """
+  managePermissions(userId: ID!, permissions: [String!]!): User!
+  
+  """
+  Administrative account suspension
+  """
+  adminSuspendAccount(userId: ID!, reason: String!): Boolean!
+  
+  """
+  Create administrative user
+  """
+  createAdminUser(input: AdminInput!): Admin!
+  
+  """
+  Process payment with full card details
+  """
+  processPayment(input: PaymentInput!): Payment!
+  
+  """
+  Update system configuration
+  """
+  updateSystemConfig(config: SystemConfigInput!): SystemConfig!
+}
+
+"""
+User account with all sensitive information
+"""
+type User {
+  id: ID!
+  username: String!
+  email: String!
+  """
+  Hashed password - should not be exposed
+  """
+  password: String!
+  firstName: String!
+  lastName: String!
+  """
+  Social Security Number - highly sensitive
+  """
+  ssn: String
+  """
+  Credit card number on file
+  """
+  creditCard: String
+  """
+  User role for access control
+  """
+  role: String!
+  """
+  Physical address details
+  """
+  address: Address
+  phoneNumber: String
+  dateOfBirth: String
+  """
+  Account creation timestamp
+  """
+  createdAt: String!
+  """
+  Last login timestamp
+  """
+  lastLogin: String
+  """
+  User's posts
+  """
+  posts: [Post!]!
+  """
+  User's orders
+  """
+  orders: [Order!]!
+  """
+  Account balance in cents
+  """
+  accountBalance: Int!
+}
+
+"""
+Administrative user with elevated privileges
+"""
+type Admin {
+  id: ID!
+  username: String!
+  email: String!
+  privileges: [String!]!
+  department: String!
+  """
+  Internal access token
+  """
+  accessToken: String!
+  lastAccessedAt: String!
+}
+
+"""
+User address information
+"""
+type Address {
+  street: String!
+  city: String!
+  state: String!
+  zipCode: String!
+  country: String!
+}
+
+"""
+Blog post or content item
+"""
+type Post {
+  id: ID!
+  title: String!
+  content: String!
+  author: User!
+  createdAt: String!
+  updatedAt: String!
+  published: Boolean!
+  views: Int!
+}
+
+"""
+Product in the catalog
+"""
+type Product {
+  id: ID!
+  name: String!
+  description: String!
+  price: Float!
+  """
+  Internal inventory count
+  """
+  inventory: Int!
+  """
+  Internal SKU identifier
+  """
+  sku: String!
+  category: String!
+  """
+  Wholesale cost - internal only
+  """
+  wholesaleCost: Float!
+}
+
+"""
+Customer order with payment details
+"""
+type Order {
+  id: ID!
+  user: User!
+  products: [Product!]!
+  totalAmount: Float!
+  status: String!
+  """
+  Payment information including card details
+  """
+  payment: Payment!
+  shippingAddress: Address!
+  createdAt: String!
+}
+
+"""
+Payment transaction with sensitive card data
+"""
+type Payment {
+  id: ID!
+  cardNumber: String!
+  cardholderName: String!
+  expirationDate: String!
+  cvv: String!
+  amount: Float!
+  status: String!
+  processedAt: String!
+}
+
+"""
+System health metrics - internal infrastructure details
+"""
+type SystemHealth {
+  status: String!
+  uptime: Int!
+  """
+  Database connection string - should be private
+  """
+  databaseUrl: String!
+  memoryUsage: Float!
+  cpuUsage: Float!
+  activeConnections: Int!
+  """
+  Internal server hostname
+  """
+  serverHostname: String!
+}
+
+"""
+Administrative dashboard statistics
+"""
+type AdminDashboard {
+  totalUsers: Int!
+  totalPosts: Int!
+  totalRevenue: Float!
+  activeOrders: Int!
+  systemAlerts: [String!]!
+  recentActivity: [AuditLog!]!
+}
+
+"""
+User account management structure
+"""
+type Account {
+  id: ID!
+  user: User!
+  status: String!
+  permissions: [String!]!
+  """
+  Internal account flags
+  """
+  flags: [String!]!
+  createdBy: Admin
+}
+
+"""
+Search results aggregation
+"""
+type SearchResults {
+  users: [User!]!
+  posts: [Post!]!
+  products: [Product!]!
+  totalResults: Int!
+}
+
+"""
+Database performance statistics - internal only
+"""
+type DatabaseStats {
+  totalQueries: Int!
+  averageQueryTime: Float!
+  """
+  Database version information
+  """
+  databaseVersion: String!
+  """
+  Table sizes in MB
+  """
+  tableSizes: [TableSize!]!
+  connectionPoolSize: Int!
+}
+
+"""
+Database table size information
+"""
+type TableSize {
+  tableName: String!
+  sizeInMB: Float!
+  rowCount: Int!
+}
+
+"""
+System configuration - exposes internal settings
+"""
+type SystemConfig {
+  id: ID!
+  """
+  API keys for third-party services
+  """
+  apiKeys: [String!]!
+  """
+  Feature flags
+  """
+  featureFlags: [String!]!
+  """
+  Database configuration
+  """
+  databaseConfig: String!
+  """
+  SMTP credentials for email
+  """
+  smtpSettings: String!
+  environment: String!
+}
+
+"""
+Audit log entry for compliance
+"""
+type AuditLog {
+  id: ID!
+  userId: ID!
+  action: String!
+  timestamp: String!
+  ipAddress: String!
+  userAgent: String!
+  details: String!
+}
+
+"""
+Authentication response payload
+"""
+type AuthPayload {
+  token: String!
+  user: User!
+  expiresAt: String!
+}
+
+"""
+Input for profile updates
+"""
+input ProfileInput {
+  firstName: String
+  lastName: String
+  email: String
+  phoneNumber: String
+  address: AddressInput
+}
+
+"""
+Input for address information
+"""
+input AddressInput {
+  street: String!
+  city: String!
+  state: String!
+  zipCode: String!
+  country: String!
+}
+
+"""
+Input for creating admin users
+"""
+input AdminInput {
+  username: String!
+  email: String!
+  password: String!
+  privileges: [String!]!
+  department: String!
+}
+
+"""
+Input for payment processing
+"""
+input PaymentInput {
+  cardNumber: String!
+  cardholderName: String!
+  expirationDate: String!
+  cvv: String!
+  amount: Float!
+}
+
+"""
+Input for system configuration updates
+"""
+input SystemConfigInput {
+  apiKeys: [String!]
+  featureFlags: [String!]
+  databaseConfig: String
+  smtpSettings: String
+}

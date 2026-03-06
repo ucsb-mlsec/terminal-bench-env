@@ -1,0 +1,506 @@
+[
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"```python"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"#!\/usr\/bin\/env python3"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"\"\nSolution for handling OAuth2 token expiration during long-running data migration.\n\""
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"import json"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"import sqlite3"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"import requests"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"import time"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"class TokenRefreshingMigration:"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        self.config_path = config_path"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        self.db_path = db_path"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        self.access_token: Optional[str] = None"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        self.refresh_token: Optional[str] = None"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        self.refresh_count = 0"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        self.pages_processed = 0"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        self.records_inserted = 0"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        # Load OAuth configuration"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"            self.config = json.load(f)"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        # Initialize database connection"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        self.init_database()"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"    def init_database(self):"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        \"\"\"Initialize database connection and create table if needed.\"\"\""
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        self.conn = sqlite3.connect(self.db_path)"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        self.cursor = self.conn.cursor()"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        self.cursor.execute('''"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"            CREATE TABLE IF NOT EXISTS customers ("
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                created_at TEXT NOT NULL"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"            )"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        ''')"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        self.conn.commit()"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"    def get_initial_token(self) -> bool:"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        \"\"\"Obtain initial access token using client credentials.\"\"\""
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        try:"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"            response = requests.post("
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                json={"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                    'grant_type': 'client_credentials'"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                }"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"            )"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"            if response.status_code == 200:"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                data = response.json()"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                self.access_token = data['access_token']"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                self.refresh_token = data.get('refresh_token')"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                print(f\"\u2713 Obtained initial access token\")"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                return True"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"            else:"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                print(f\"\u2717 Failed to obtain token: {response.status_code}\")"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                return False"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        except Exception as e:"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"            print(f\"\u2717 Error obtaining token: {e}\")"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"            return False"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"    def refresh_access_token(self) -> bool:"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        \"\"\"Refresh the access token using refresh token.\"\"\""
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        if not self.refresh_token:"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"            print(\"\u2717 No refresh token available\")"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"            return False"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        try:"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"            response = requests.post("
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                json={"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                    'client_secret': self.config['client_secret']"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                }"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"            )"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"            if response.status_code == 200:"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                data = response.json()"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                self.access_token = data['access_token']"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                # Update refresh token if server rotates it"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                if 'refresh_token' in data:"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                    self.refresh_token = data['refresh_token']"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                self.refresh_count += 1"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                print(f\"\u2713 Token refreshed (refresh #{self.refresh_count})\")"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                return True"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"            else:"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                print(f\"\u2717 Failed to refresh token: {response.status_code}\")"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                return False"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        except Exception as e:"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"            print(f\"\u2717 Error refreshing token: {e}\")"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"            return False"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        url = f\"{self.config['api_base_url']}\/customers\""
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        params = {'page': page_num}"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        headers = {'Authorization': f'Bearer {self.access_token}'}"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        max_retries = 3"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        for attempt in range(max_retries):"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"            try:"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                if response.status_code == 200:"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                    return response.json()"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                elif response.status_code == 401:"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                    # Token expired or invalid - refresh and retry"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                    if self.refresh_access_token():"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                        # Update headers with new token and retry"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                        headers = {'Authorization': f'Bearer {self.access_token}'}"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                        continue"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                    else:"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                        return None"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                else:"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                    print(f\"\u2717 Unexpected status {response.status_code} on page {page_num}\")"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                    return None"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"            except Exception as e:"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                print(f\"\u2717 Error fetching page {page_num}: {e}\")"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                if attempt < max_retries - 1:"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                    time.sleep(1)"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                    continue"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                return None"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        return None"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        for customer in customers:"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"            try:"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                self.cursor.execute('''"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                    customer['created_at']"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                ))"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                if self.cursor.rowcount > 0:"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                    self.records_inserted += 1"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"            except Exception as e:"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                print(f\"\u2717 Error inserting customer {customer.get('customer_id')}: {e}\")"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        self.conn.commit()"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"    def run_migration(self):"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        \"\"\"Execute the complete migration process.\"\"\""
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        print(\"Starting migration...\")"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        print(\"=\" * 60)"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        # Get initial token"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        if not self.get_initial_token():"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"            print(\"\u2717 Migration failed: Could not obtain initial token\")"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"            return False"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        # Process all pages"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        page_num = 1"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        while True:"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"            print(f\"\\nProcessing page {page_num}...\")"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"            page_data = self.fetch_page_with_retry(page_num)"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"            if page_data is None:"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                print(f\"\u2717 Failed to fetch page {page_num}\")"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                break"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"            if not customers:"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                # No more pages"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                print(f\"\u2713 Reached end of data at page {page_num}\")"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"                break"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"            # Insert customers into database"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"            self.insert_customers(customers)"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"            self.pages_processed += 1"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"            print(f\"\u2713 Page {page_num} complete ({len(customers)} customers)\")"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"            page_num += 1"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        print(\"\\n\" + \"=\" * 60)"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        print(\"Migration complete!\")"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        print(f\"Pages processed: {self.pages_processed}\")"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        print(f\"Records inserted: {self.records_inserted}\")"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        print(f\"Token refreshes: {self.refresh_count}\")"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        return True"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        \"\"\"Write migration summary to file.\"\"\""
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"            f.write(f\"records={self.records_inserted}\\n\")"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"            f.write(f\"pages={self.pages_processed}\\n\")"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"            f.write(f\"refreshes={self.refresh_count}\\n\")"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"    def close(self):"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        \"\"\"Close database connection.\"\"\""
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        if self.conn:"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"            self.conn.close()"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"def main():"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"    migration = TokenRefreshingMigration("
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        db_path='\/workspace\/customers.db'"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"    )"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"    try:"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        success = migration.run_migration()"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        if success:"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"            migration.write_summary('\/workspace\/summary.txt')"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"            print(\"\\n\u2713 Summary written to \/workspace\/summary.txt\")"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        else:"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"            print(\"\\n\u2717 Migration failed\")"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"            return 1"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"    finally:"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"        migration.close()"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"    return 0"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"if __name__ == '__main__':"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"    exit(main())"
+  },
+  {
+    "I'll analyze the task and create a solution for the token expiration issue during data migration.":"```"
+  }
+]

@@ -1,0 +1,63 @@
+# Ray Cluster Configuration - Production
+# Last modified: Failed spot instance migration attempt - 2024-01-15
+# TODO: Fix validation errors before deploying
+
+cluster_name: production-ray-cluster
+
+provider:
+  type: aws
+  region: us-west-2
+  availability_zone:
+  # availability_zone was cleared during migration attempt
+
+# Head node configuration
+head_node_type: ray.head.default
+
+# Autoscaling configuration - NEEDS FIX
+autoscaling:
+  minimum_workers: 2
+  maximum_workers: 20
+idle_timeout: 300
+
+# Available node types
+available_node_types:
+  ray.head.default:
+    node_config:
+      InstanceType: m5.large
+      ImageId: ami-0abcdef1234567890
+    resources: {}
+    
+  ray.worker.ondemand:
+      node_config:
+        InstanceType: m5.xlarge
+        ImageId: ami-0abcdef1234567890
+      on_demand: true
+    min_workers: 1
+    max_workers: 10
+    resources:
+      CPU: 4
+
+  ray.worker.compute:
+    node_config:
+    InstanceType: c5.2xlarge
+      ImageId: ami-0abcdef1234567890
+      on_demand: true
+    resources:
+      CPU: 8
+    # Spot configuration was attempted here but removed due to errors
+    # max_price was set but caused validation failure
+
+# Setup commands - need to verify these still work
+setup_commands:
+  - pip install -U ray[default]
+  - pip install boto3
+
+# Start Ray on head node
+head_start_ray_commands:
+  - ray stop
+  - ray start --head --port=6379 --object-manager-port=8076 --autoscaling-config=~/ray_bootstrap_config.yaml
+
+# Start Ray on worker nodes  
+worker_start_ray_commands:
+- ray stop
+  - ray start --address=$RAY_HEAD_IP:6379 --object-manager-port=8076

@@ -1,0 +1,35 @@
+---
+- name: Test playbook for timeout issues
+  hosts: all
+  gather_facts: true
+  become: yes
+  
+  tasks:
+    - name: Display gathered system facts
+      debug:
+        msg: "Host {{ ansible_hostname }} running {{ ansible_distribution }} {{ ansible_distribution_version }} with {{ ansible_processor_vcpus }} CPUs"
+    
+    - name: Check system uptime
+      shell: uptime
+      register: uptime_output
+      changed_when: false
+    
+    - name: Display uptime information
+      debug:
+        var: uptime_output.stdout
+    
+    - name: Ensure curl package is installed
+      package:
+        name: curl
+        state: present
+    
+    - name: Check SSH service status
+      service:
+        name: "{{ 'sshd' if ansible_os_family == 'RedHat' else 'ssh' }}"
+        state: started
+      check_mode: yes
+      register: ssh_status
+    
+    - name: Report SSH service status
+      debug:
+        msg: "SSH service is {{ 'running' if ssh_status.changed == false else 'not running properly' }}"

@@ -1,0 +1,82 @@
+fingerprinting_rules:
+  # Valid rule 1: type matcher for WorkerError
+  - type: WorkerError
+    fingerprint:
+      - worker-error
+      - "{{ type }}"
+
+  # Valid rule 2: using transaction and default
+  - type: TimeoutError
+    fingerprint:
+      - "{{ transaction }}"
+      - "{{ default }}"
+
+  # Valid rule 3: path matcher with wildcard for worker endpoints
+  - path: "*/worker/*"
+    fingerprint:
+      - worker-path
+      - "{{ path }}"
+
+  # Valid rule 4: logger matcher for worker logs
+  - logger: worker.tasks
+    fingerprint:
+      - worker-logger
+      - "{{ logger }}"
+
+  # Valid rule 5: exception.value with specific error text
+  - exception.value: "*Task execution failed*"
+    fingerprint:
+      - task-execution-failure
+
+  # Valid rule 6: platform matcher
+  - platform: python
+    fingerprint:
+      - python-worker
+      - "{{ platform }}"
+
+  # Valid rule 7: message matcher
+  - message: "*Worker timeout*"
+    fingerprint:
+      - worker-timeout-msg
+
+  # Valid rule 8: multiple matchers combined
+  - type: WorkerTaskError
+    logger: worker.processor
+    fingerprint:
+      - task-processor-error
+
+  # Invalid rule 1: deprecated 'match' keyword
+  - match: WorkerException
+    fingerprint:
+      - deprecated-match
+
+  # Invalid rule 2: worker_id as matcher (not valid)
+  - worker_id: "worker-123"
+    fingerprint:
+      - invalid-worker-id
+
+  # Invalid rule 3: fingerprint as string not list
+  - type: QueueError
+    fingerprint: worker-task
+
+  # Invalid rule 4: task_name variable not valid
+  - type: TaskError
+    fingerprint:
+      - "{{ task_name }}"
+      - task-error
+
+  # Invalid rule 5: match and matchers mixed together
+  - match: JobError
+    matchers:
+      - type: JobError
+    fingerprint:
+      - mixed-syntax
+
+  # Invalid rule 6: missing fingerprint field entirely
+  - type: BackgroundJobError
+    logger: worker.background
+
+  # Invalid rule 7: malformed YAML with extra colons
+  - type:: WorkerCrash
+    fingerprint::
+      - malformed-yaml

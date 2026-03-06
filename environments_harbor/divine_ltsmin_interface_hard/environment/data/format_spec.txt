@@ -1,0 +1,73 @@
+State Vector Binary Format Specification v2.1
+=====================================================
+
+Document Version: 2.1
+Last Updated: 2024-01
+Status: CURRENT SPECIFICATION
+
+Overview
+--------
+This document defines the binary format for state vector records used in the distributed model checking system. State vectors are exchanged between system components for verification and validation purposes.
+
+Binary Format Definition
+------------------------
+
+Each state vector record must be exactly 17 bytes with the following packed structure (no padding):
+
+Field Layout:
+1. state_id: 4 bytes, unsigned 32-bit integer, little-endian
+   - Range: 0 to 4,294,967,295
+   - Unique identifier for the state
+
+2. timestamp: 4 bytes, 32-bit float, little-endian
+   - IEEE 754 single-precision floating point
+   - Represents time in seconds since system start
+
+3. status: 1 byte, unsigned 8-bit integer
+   - Valid values: 0=inactive, 1=active
+   - Any other value is considered invalid
+
+4. value: 8 bytes, 64-bit double, little-endian
+   - IEEE 754 double-precision floating point
+   - Primary state value being tracked
+
+5. count: 4 bytes, signed 32-bit integer, little-endian
+   - Range: -2,147,483,648 to 2,147,483,647
+   - Can be negative to represent decrements
+   - Reference counter or occurrence count
+
+Total Record Size
+-----------------
+Each record is exactly 17 bytes (tightly packed, no padding).
+
+File Structure
+--------------
+A valid state vector file consists of zero or more consecutive records. The file size must be a multiple of 17 bytes. Any partial record at the end of the file indicates corruption.
+
+Byte Order
+----------
+All multi-byte values are in little-endian byte order for cross-platform compatibility.
+
+Structure Packing
+-----------------
+The validator expects this exact layout with no padding bytes between fields. All fields are tightly packed in the order specified above.
+
+IMPORTANT: Previous versions (v2.0 and earlier) included automatic padding for memory alignment (resulting in 24-byte records on most platforms). Version 2.1 requires packed structures for cross-platform compatibility and reduced storage overhead.
+
+Migration Notes
+---------------
+Systems using v2.0 format will need to convert existing data files. The v2.0 format typically included 3 bytes of padding after the status field and 4 bytes of padding at the end of the structure due to compiler alignment rules.
+
+Validation Rules
+----------------
+The validator will reject files that:
+- Have a size not divisible by 17
+- Contain status values other than 0 or 1
+- Contain invalid floating point values (NaN, except where semantically valid)
+
+Compatibility
+-------------
+This format is compatible with:
+- C struct with __attribute__((packed)) or #pragma pack(1)
+- Python struct format: "<IfBdl" (little-endian, no padding)
+- Cross-platform binary exchange

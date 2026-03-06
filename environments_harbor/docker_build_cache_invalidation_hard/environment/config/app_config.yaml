@@ -1,0 +1,74 @@
+database:
+  host: ${DB_HOST:-localhost}
+  port: 5432
+  name: ${DB_NAME:-app_production}
+  username: ${DB_USER:-postgres}
+  password: ${DB_PASSWORD}
+  pool_size: 20
+  max_overflow: 10
+  echo: false
+
+redis:
+  host: ${REDIS_HOST:-localhost}
+  port: 6379
+  db: 0
+  password: ${REDIS_PASSWORD}
+  socket_timeout: 5
+  socket_connect_timeout: 5
+  max_connections: 50
+
+logging:
+  version: 1
+  disable_existing_loggers: false
+  formatters:
+    standard:
+      format: '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
+    json:
+      format: '{"time": "%(asctime)s", "level": "%(levelname)s", "logger": "%(name)s", "message": "%(message)s"}'
+  handlers:
+    console:
+      class: logging.StreamHandler
+      level: INFO
+      formatter: standard
+    file:
+      class: logging.handlers.RotatingFileHandler
+      level: DEBUG
+      formatter: json
+      filename: /var/log/app/application.log
+      maxBytes: 10485760
+      backupCount: 5
+  root:
+    level: ${LOG_LEVEL:-INFO}
+    handlers: [console, file]
+
+api:
+  base_url: ${API_BASE_URL:-http://localhost:8000}
+  timeout: 30
+  retry_attempts: 3
+  endpoints:
+    health: /health
+    metrics: /metrics
+    users: /api/v1/users
+    orders: /api/v1/orders
+
+worker:
+  concurrency: ${WORKER_CONCURRENCY:-4}
+  prefetch_multiplier: 4
+  max_tasks_per_child: 1000
+  task_time_limit: 300
+  task_soft_time_limit: 240
+
+scheduler:
+  timezone: UTC
+  job_intervals:
+    cleanup_old_data: 3600
+    refresh_cache: 300
+    send_notifications: 60
+    backup_database: 86400
+
+feature_flags:
+  enable_new_ui: true
+  enable_analytics: true
+  enable_beta_features: false
+  enable_admin_panel: true
+  enable_notifications: true

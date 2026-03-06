@@ -1,0 +1,108 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: dev
+data:
+  database.host: "dev-postgres.dev.svc.cluster.local"
+  database.port: "5432"
+  log.level: "debug"
+  feature.newUI: "true"
+  feature.betaFeatures: "true"
+  api.endpoint: "https://api-dev.example.com"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: service-account-info
+  namespace: dev
+data:
+  documentation: |
+    Service Account Usage Guide:
+    - frontend-sa: Used by frontend pods for basic operations
+    - backend-deployer: Has deployment management capabilities
+    - log-collector: Reads pod logs across namespace
+    - debug-helper: Temporary account for debugging with elevated pod access
+  account.purposes: |
+    frontend-sa: minimal read permissions
+    backend-deployer: can manage deployments and services
+    log-collector: reads logs from all pods
+    debug-helper: creates and manages pods for troubleshooting
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: monitoring-config
+  namespace: monitoring
+data:
+  prometheus.scrapeInterval: "30s"
+  prometheus.evaluationInterval: "30s"
+  grafana.adminUser: "admin"
+  alertmanager.endpoint: "http://alertmanager:9093"
+  retention.days: "15"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: service-mesh-config
+  namespace: monitoring
+data:
+  mesh.enabled: "true"
+  tracing.enabled: "true"
+  jaeger.endpoint: "http://jaeger-collector:14268/api/traces"
+  metrics.export: "prometheus"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prod-app-config
+  namespace: prod
+data:
+  database.host: "prod-postgres.prod.svc.cluster.local"
+  database.port: "5432"
+  database.maxConnections: "100"
+  log.level: "info"
+  feature.newUI: "false"
+  feature.betaFeatures: "false"
+  api.endpoint: "https://api.example.com"
+  cache.redis: "redis.prod.svc.cluster.local:6379"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: deployment-notes
+  namespace: prod
+data:
+  notes: |
+    Production deployment guidelines:
+    - All deployments require approval
+    - Service accounts are tightly controlled
+    - prod-deployer account has limited scope
+    - No direct pod creation allowed in prod
+  maintenance.window: "Sunday 02:00-04:00 UTC"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logging-config
+  namespace: monitoring
+data:
+  fluentd.logLevel: "info"
+  fluentd.bufferSize: "256MB"
+  elasticsearch.host: "elasticsearch.monitoring.svc.cluster.local"
+  elasticsearch.port: "9200"
+  retention.policy: "30days"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rbac-audit-notes
+  namespace: dev
+data:
+  audit.notes: |
+    Recent RBAC changes:
+    - debug-helper service account created for incident response
+    - Granted pod exec and creation permissions for troubleshooting
+    - TODO: Review and restrict permissions after incident resolved
+  last.review: "2024-01-15"
+  next.review: "2024-02-15"

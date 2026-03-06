@@ -1,0 +1,143 @@
+MUJOCO CONTACT STABILITY EQUATIONS AND CRITERIA
+=====================================================
+
+This document provides the mathematical formulas for computing stable contact parameters
+in MuJoCo physics simulations. All parameters must satisfy these equations and constraints.
+
+VARIABLE DEFINITIONS
+====================
+dt           : simulation timestep (seconds)
+K            : contact stiffness (N/m)
+m_min        : lightest mass in the system (kg)
+m_total      : total system mass (kg)
+g            : gravitational acceleration = 9.81 m/s²
+zeta         : damping ratio (dimensionless)
+contact_count: number of simultaneous contacts (integer)
+coupling_factor: constraint interdependence factor (dimensionless, typically 1.0-3.0)
+v            : reference velocity for energy dissipation check = 1.0 m/s
+
+
+1. CRITICAL TIMESTEP EQUATION
+==============================
+The critical timestep for explicit integration stability is:
+
+    dt_critical = 2 / sqrt(K / m_min)
+
+Stable timestep requirement (safety factor of 0.5):
+
+    dt < 0.5 * dt_critical
+
+This ensures numerical stability of the contact constraint solver.
+
+
+2. SOLVER ITERATIONS FORMULA
+=============================
+Minimum required solver iterations:
+
+    iterations_min = 50 + (contact_count * coupling_factor * 10)
+
+Required constraint:
+
+    iterations >= iterations_min
+
+Must be rounded up to nearest integer. Insufficient iterations cause constraint drift.
+
+
+3. CONTACT STIFFNESS COMPUTATION
+=================================
+Optimal contact stiffness based on static equilibrium:
+
+    K_optimal = (m_total * g) / penetration_target
+
+where penetration_target = 0.001 m (1 mm allowable penetration)
+
+Stability range constraint:
+
+    1000 <= K_optimal <= 50000 N/m
+
+If computed K_optimal falls outside this range, clamp to nearest boundary.
+
+
+4. DAMPING COEFFICIENT
+=======================
+Critical damping coefficient:
+
+    damping = 2 * zeta * sqrt(K_optimal * m_min)
+
+Recommended damping ratio: zeta = 0.7 to 1.0 (critical to slightly underdamped)
+
+Damping ratio validity check:
+
+    0.5 <= zeta <= 1.2
+
+Underdamped (zeta < 1.0): allows small oscillations but good energy conservation
+Critically damped (zeta = 1.0): fastest settling without overshoot
+Overdamped (zeta > 1.0): slow settling but very stable
+
+
+5. TIMESTEP-STIFFNESS PRODUCT CHECK
+====================================
+Fundamental stability criterion:
+
+    dt * sqrt(K / m_min) < 1.0
+
+This dimensionless product must be strictly less than 1.0 for stable integration.
+Recommended target: dt * sqrt(K / m_min) <= 0.7 for robust stability margin.
+
+
+6. IMPEDANCE PARAMETERS
+========================
+Width parameter (controls constraint regularization):
+
+    w = dt * 2.0
+
+Must satisfy:
+
+    0.0001 <= w <= 0.01
+
+Penetration limits (standard MuJoCo values):
+    dmin = 0.9  (relative penetration where constraint activates)
+    dmax = 0.95 (relative penetration where full constraint applies)
+
+
+7. ENERGY DISSIPATION RATE
+===========================
+Energy loss per timestep at reference velocity v = 1.0 m/s:
+
+    E_loss_per_step = damping * v² * dt
+    E_loss_per_step = damping * (1.0)² * dt
+    E_loss_per_step = damping * dt
+
+Acceptable range:
+
+    0.001 <= E_loss_per_step <= 0.1
+
+Too low: insufficient energy dissipation, contacts bounce unrealistically
+Too high: excessive damping, system appears sluggish and over-damped
+
+
+COMPLETE VALIDATION CHECKLIST
+==============================
+A valid parameter set must satisfy ALL of the following:
+
+[ ] dt < 0.5 * (2 / sqrt(K / m_min))
+[ ] iterations >= 50 + (contact_count * coupling_factor * 10)
+[ ] 1000 <= K <= 50000
+[ ] 0.5 <= zeta <= 1.2
+[ ] dt * sqrt(K / m_min) < 1.0
+[ ] 0.0001 <= (dt * 2.0) <= 0.01
+[ ] 0.001 <= (damping * dt) <= 0.1
+
+
+COMPUTATIONAL PROCEDURE
+=======================
+1. Read system properties: m_min, m_total, contact_count, coupling_factor
+2. Compute K_optimal = (m_total * g) / 0.001
+3. Clamp K_optimal to range [1000, 50000] → K
+4. Choose zeta = 0.8 (slightly underdamped, good balance)
+5. Compute damping = 2 * zeta * sqrt(K * m_min)
+6. Compute dt_critical = 2 / sqrt(K / m_min)
+7. Set dt = 0.4 * dt_critical (safety margin)
+8. Verify dt * sqrt(K / m_min) < 1.0
+9. Compute iterations = ceil(50 + contact_count * coupling_factor * 10)
+10. Verify all constraints in validation checklist

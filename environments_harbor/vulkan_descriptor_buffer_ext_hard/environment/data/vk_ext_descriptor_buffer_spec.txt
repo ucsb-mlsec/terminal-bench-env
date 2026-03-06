@@ -1,0 +1,149 @@
+VK_EXT_descriptor_buffer Specification Requirements
+================================================
+
+SECTION 1: DESCRIPTOR ALIGNMENT REQUIREMENTS
+---------------------------------------------
+
+All descriptors in descriptor buffers must be aligned according to their type:
+
+VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+  Alignment: 64 bytes
+  Description: Uniform buffer descriptors must be placed at offsets that are multiples of 64 bytes
+
+VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+  Alignment: 64 bytes
+  Description: Storage buffer descriptors must be placed at offsets that are multiples of 64 bytes
+
+VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
+  Alignment: 16 bytes
+  Description: Uniform texel buffer descriptors must be placed at offsets that are multiples of 16 bytes
+
+VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+  Alignment: 16 bytes
+  Description: Storage texel buffer descriptors must be placed at offsets that are multiples of 16 bytes
+
+VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+  Alignment: 32 bytes
+  Description: Sampled image descriptors must be placed at offsets that are multiples of 32 bytes
+
+VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+  Alignment: 32 bytes
+  Description: Storage image descriptors must be placed at offsets that are multiples of 32 bytes
+
+VK_DESCRIPTOR_TYPE_SAMPLER:
+  Alignment: 16 bytes
+  Description: Sampler descriptors must be placed at offsets that are multiples of 16 bytes
+
+VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+  Alignment: 64 bytes
+  Description: Combined image sampler descriptors must be placed at offsets that are multiples of 64 bytes
+
+
+SECTION 2: DESCRIPTOR SIZES
+----------------------------
+
+Each descriptor type has a fixed size in bytes:
+
+VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER: 16 bytes
+VK_DESCRIPTOR_TYPE_STORAGE_BUFFER: 16 bytes
+VK_DESCRIPTOR_TYPE_SAMPLER: 8 bytes
+VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE: 16 bytes
+VK_DESCRIPTOR_TYPE_STORAGE_IMAGE: 16 bytes
+VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER: 32 bytes
+VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER: 8 bytes
+VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER: 8 bytes
+
+These sizes are used to calculate buffer space requirements and verify offset calculations.
+
+
+SECTION 3: BUFFER USAGE FLAGS
+------------------------------
+
+Descriptor buffers have strict requirements for buffer usage flags:
+
+MANDATORY FLAG FOR ALL DESCRIPTOR BUFFERS:
+  VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
+  Description: All descriptor buffers must include this flag to enable address-based access
+
+RESOURCE DESCRIPTOR BUFFERS:
+  VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT
+  Description: Buffers containing resource descriptors (buffers, images, texel buffers) must include this flag
+  Compatible descriptors: UNIFORM_BUFFER, STORAGE_BUFFER, SAMPLED_IMAGE, STORAGE_IMAGE, UNIFORM_TEXEL_BUFFER, STORAGE_TEXEL_BUFFER
+
+SAMPLER DESCRIPTOR BUFFERS:
+  VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT
+  Description: Buffers containing sampler descriptors must include this flag
+  Compatible descriptors: SAMPLER, COMBINED_IMAGE_SAMPLER
+
+MUTUAL EXCLUSIVITY:
+  VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT and VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT cannot be combined in the same buffer
+  Violation of this rule will result in validation errors
+
+
+SECTION 4: BINDING LIMITS
+--------------------------
+
+Device limits that must not be exceeded:
+
+Maximum Binding Number:
+  Value: 32
+  Description: Binding numbers in descriptor set layouts must be in range [0, 32]
+  Violation: Any binding number > 32 is invalid
+
+Maximum Descriptors Per Binding:
+  Value: 1024
+  Description: Each binding can contain at most 1024 descriptors (descriptor count)
+  Violation: Descriptor counts exceeding 1024 are invalid
+
+
+SECTION 5: OFFSET REQUIREMENTS
+-------------------------------
+
+Descriptor offsets within buffers must satisfy alignment rules:
+
+General Rule:
+  All descriptor offsets must be aligned to their descriptor type's alignment requirement
+  Example: A UNIFORM_BUFFER descriptor at offset 128 is valid (128 % 64 == 0)
+  Example: A UNIFORM_BUFFER descriptor at offset 100 is invalid (100 % 64 != 0)
+
+Size-Based Offsets:
+  When calculating offsets for multiple descriptors, offsets must be multiples of the descriptor size
+  Example: For SAMPLER descriptors (8 bytes each), valid offsets include 0, 8, 16, 24, 32...
+  
+Combined Requirements:
+  Offsets must satisfy both alignment and size requirements
+  For arrays of descriptors, each element must maintain proper alignment
+
+
+SECTION 6: REQUIRED FEATURES
+-----------------------------
+
+Device features that must be enabled:
+
+descriptorBuffer:
+  Required: YES (always)
+  Description: The core descriptorBuffer feature must be enabled on the device to use any descriptor buffer functionality
+  Validation: All configurations using descriptor buffers must verify this feature is enabled
+
+descriptorBufferPushDescriptors:
+  Required: Conditional
+  Description: Required only when using push descriptor buffers
+  Usage: Enables push descriptor buffer functionality
+  Validation: Configurations using push descriptors must verify this feature is enabled
+
+
+SECTION 7: VALIDATION RULES SUMMARY
+------------------------------------
+
+A valid descriptor buffer configuration must satisfy ALL of the following:
+
+1. All descriptors aligned according to Section 1 requirements
+2. Descriptor sizes match Section 2 specifications
+3. Buffer usage flags include required flags from Section 3
+4. No incompatible flag combinations (resource + sampler flags)
+5. Binding numbers do not exceed limits from Section 4
+6. Descriptor counts per binding do not exceed limits from Section 4
+7. All offsets satisfy alignment requirements from Section 5
+8. Required device features from Section 6 are enabled
+
+Failure to meet any requirement constitutes a specification violation.

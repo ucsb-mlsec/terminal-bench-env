@@ -1,0 +1,188 @@
+[
+  {
+    "I need to analyze this task carefully. Let me break it down:":"1. Read all JSON files from `\/data\/dicom_metadata\/`"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"2. Validate each file against the criteria"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"3. Count READY vs NEEDS_WORK files"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"4. Output the results to `\/solution\/quality_report.txt`"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"Let me write a Python script to accomplish this:"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"```python"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"import json"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"import os"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"from pathlib import Path"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"def validate_dicom_metadata(metadata):"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"    \"\"\""
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"    Validate DICOM metadata against PACS requirements."
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"    \"\"\""
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"    # Check Patient ID"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"    if 'PatientID' not in metadata or not metadata['PatientID']:"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"        return False"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"    # Check Study Date presence and format"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"    if 'StudyDate' not in metadata or not metadata['StudyDate']:"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"        return False"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"    study_date = str(metadata['StudyDate'])"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"    # Must be exactly 8 digits (YYYYMMDD)"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"    if len(study_date) != 8 or not study_date.isdigit():"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"        return False"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"    # Check if year is 2020 or later"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"    try:"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"        year = int(study_date[:4])"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"        if year < 2020:"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"            return False"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"    except ValueError:"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"        return False"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"    # Check Modality"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"    if 'Modality' not in metadata or metadata['Modality'] not in valid_modalities:"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"        return False"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"    return True"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"def main():"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"    # Define paths"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"    data_dir = Path('\/data\/dicom_metadata')"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"    output_file = Path('\/solution\/quality_report.txt')"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"    # Ensure output directory exists"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"    ready_count = 0"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"    needs_work_count = 0"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"    # Process all JSON files"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"    for json_file in data_dir.glob('*.json'):"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"        try:"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"                metadata = json.load(f)"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"            if validate_dicom_metadata(metadata):"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"                ready_count += 1"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"            else:"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"                needs_work_count += 1"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"        except Exception as e:"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"            needs_work_count += 1"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"    # Write results"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"        f.write(f\"READY: {ready_count}\\n\")"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"        f.write(f\"NEEDS_WORK: {needs_work_count}\\n\")"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"if __name__ == \"__main__\":"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"    main()"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"```"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"This script will:"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"1. Read all `.json` files from `\/data\/dicom_metadata\/`"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"2. Validate each against all requirements"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"3. Count READY vs NEEDS_WORK"
+  },
+  {
+    "I need to analyze this task carefully. Let me break it down:":"4. Output the results in the exact required format"
+  }
+]

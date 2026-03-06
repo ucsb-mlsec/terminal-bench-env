@@ -1,0 +1,40 @@
+---
+- name: Deploy application stack
+  hosts: all
+  gather_facts: yes
+  
+  vars:
+    app_name: myapp
+    app_version: 1.0.0
+  
+  tasks:
+    - name: Install nginx web server
+      apt:
+        name: nginx
+        state: present
+        update_cache: yes
+      
+    - name: Create application directory
+      file:
+        path: /opt/myapp
+        state: directory
+        mode: '0755'
+        owner: root
+        group: root
+    
+    - name: Copy application configuration
+      copy:
+        content: |
+          # Application Configuration
+          APP_NAME={{ app_name }}
+          APP_VERSION={{ app_version }}
+        dest: /etc/myapp.conf
+        mode: '0644'
+        owner: root
+        group: root
+    
+    - name: Restart nginx service
+      service:
+        name: nginx
+        state: restarted
+        enabled: yes

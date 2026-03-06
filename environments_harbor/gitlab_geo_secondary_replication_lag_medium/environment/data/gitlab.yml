@@ -1,0 +1,49 @@
+# GitLab Configuration - Production Environment
+# This configuration shows repository management and housekeeping settings
+
+production:
+  gitlab:
+    host: gitlab.company.local
+    port: 443
+    https: true
+  
+  repositories:
+    storages:
+      default:
+        path: /var/opt/gitlab/git-data/repositories
+        gitaly_address: unix:/var/opt/gitlab/gitaly.socket
+  
+  gitaly:
+    client_path: /opt/gitlab/embedded/bin
+    token: "secret-token-here"
+  
+  backup:
+    path: /var/opt/gitlab/backups
+    keep_time: 604800
+  
+  cron_jobs:
+    repository_cleanup_worker:
+      cron: "0 */4 * * *"
+    repository_archive_cache_worker:
+      cron: "0 * * * *"
+    stuck_ci_jobs_worker:
+      cron: "0 * * * *"
+  
+  # HOUSEKEEPING SETTINGS
+  # WARNING: These settings trigger very aggressive automatic repository maintenance
+  # Frequent housekeeping operations can cause significant I/O load and lock repositories
+  # during git gc, repack, and bitmap operations
+  housekeeping:
+    enabled: true
+    bitmaps_enabled: true
+    # full_repack_period: 50 - Full repack occurs every 50 pushes (VERY AGGRESSIVE)
+    # Default is typically 300+ to reduce I/O impact
+    full_repack_period: 50
+    # gc_period: 10 - Git garbage collection runs every 10 pushes (VERY AGGRESSIVE)
+    # Default is typically 200+ to avoid frequent locks
+    gc_period: 10
+    # incremental_repack_period: 5 - Incremental repack every 5 pushes (EXTREMELY AGGRESSIVE)
+    # Default is typically 50+ to balance pack file efficiency with performance
+    incremental_repack_period: 5
+    # These aggressive settings can cause repositories to be locked frequently for maintenance
+    # resulting in synchronization delays and performance degradation under active use

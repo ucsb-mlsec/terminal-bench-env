@@ -1,0 +1,46 @@
+S3A COMMITTER TYPES - REFERENCE GUIDE
+=====================================
+
+1. FILE COMMITTER (Default - NOT RECOMMENDED)
+   - Type: file
+   - Atomic: NO
+   - How it works: Uses standard FileOutputCommitter with rename operations
+   - Problems: Not atomic on S3, can leave partial data, slow performance
+   - Use case: None for S3 (legacy only)
+
+2. MAGIC COMMITTER
+   - Type: magic
+   - Atomic: YES
+   - How it works: Uses "magic" directories that S3A treats specially, uploads directly to final location
+   - Requirements: fs.s3a.committer.magic.enabled=true
+   - Staging: Uses __magic directories in output path
+   - Pros: Fast, no separate staging directory needed
+   - Cons: Requires S3Guard or S3 consistent listing (may not work with all S3-compatible stores)
+
+3. STAGING COMMITTER (RECOMMENDED)
+   - Type: staging
+   - Atomic: YES
+   - How it works: Stages files in local/HDFS filesystem, then commits to S3 via multipart upload API
+   - Requirements: 
+     * fs.s3a.committer.staging.tmp.path (staging directory)
+     * fs.s3a.committer.staging.conflict-mode=append or replace
+     * mapreduce.outputcommitter.factory.scheme.s3a
+   - Staging: Requires separate staging directory (local or HDFS)
+   - Pros: Works with all S3-compatible storage, truly atomic, reliable cleanup
+   - Cons: Requires staging directory configuration
+
+4. DIRECTORY COMMITTER
+   - Type: directory
+   - Similar to staging but uses different internal mechanism
+   - Less commonly used
+
+RECOMMENDATION: Use 'staging' committer for guaranteed atomic writes with S3-compatible storage.
+
+CRITICAL PROPERTIES FOR STAGING COMMITTER:
+==========================================
+1. spark.hadoop.fs.s3a.committer.name=staging
+2. spark.hadoop.fs.s3a.committer.staging.tmp.path=<local or hdfs path>
+3. spark.hadoop.fs.s3a.committer.staging.conflict-mode=append
+4. spark.hadoop.mapreduce.outputcommitter.factory.scheme.s3a=org.apache.hadoop.fs.s3a.commit.S3ACommitterFactory
+5. spark.sql.sources.commitProtocolClass=org.apache.spark.internal.io.cloud.PathOutputCommitProtocol
+6. spark.sql.parquet.output.committer.class=org.apache.spark.internal.io.cloud.BindingParquetOutputCommitter

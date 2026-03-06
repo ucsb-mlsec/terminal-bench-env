@@ -1,0 +1,48 @@
+---
+# Debian-specific tasks for webserver role
+
+- name: Install Apache and dependencies on Debian
+  apt:
+    package: "{{ debian_packages }}"
+    state: present
+    update_cache: yes
+  become: yes
+
+- name: Ensure Apache service is running
+  service:
+    name: apache2
+    state: running
+    enabled: yes
+  become: yes
+
+- name: Enable Apache rewrite module
+  apache2_module:
+    name: rewrite
+    state: present
+  become: yes
+  notify: restart apache
+
+- name: Enable Apache SSL module
+   apache2_module:
+    name: ssl
+    state: present
+  become: yes
+
+- name: Configure Apache ports
+  template:
+    src: ports.conf.j2
+    dest: /etc/apache2/ports.conf
+    owner: root
+    group: root
+    mode: 0644
+  become: yes
+  notify: reload apache
+
+- name: Create web document root
+  file:
+    path: /var/www/html
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: 0755
+  become: yes

@@ -1,0 +1,384 @@
+#!/usr/bin/env python3
+"""
+High-performance text editor implementation using a rope data structure.
+Optimized for large document manipulation with O(log n) complexity for most operations.
+"""
+
+import json
+import time
+from typing import Optional, Tuple, List
+import os
+
+
+class RopeNode:
+    """Node in the rope data structure."""
+    
+    def __init__(self, data: str = "", left: Optional['RopeNode'] = None, 
+                 right: Optional['RopeNode'] = None):
+        self.left = left
+        self.right = right
+        self.data = data
+        self.weight = 0  # Length of left subtree or string length if leaf
+        self.length = 0  # Total length of this subtree
+        
+        if left is None and right is None:
+            # Leaf node
+            self.weight = len(data)
+            self.length = len(data)
+        else:
+            # Internal node
+            if left:
+                self.weight = left.length
+                self.length = left.length
+            if right:
+                self.length += right.length
+
+
+class Rope:
+    """
+    Rope data structure for efficient string manipulation.
+    Provides O(log n) complexity for insert, delete, and substring operations.
+    """
+    
+    SPLIT_THRESHOLD = 1000  # Maximum leaf node size before splitting
+    REBALANCE_THRESHOLD = 50  # Tree depth threshold for rebalancing
+    
+    def __init__(self, text: str = ""):
+        if len(text) <= self.SPLIT_THRESHOLD:
+            self.root = RopeNode(data=text)
+        else:
+            # Split large initial text into chunks
+            self.root = self._build_balanced_tree(text)
+    
+    def _build_balanced_tree(self, text: str) -> RopeNode:
+        """Build a balanced rope tree from text."""
+        if len(text) <= self.SPLIT_THRESHOLD:
+            return RopeNode(data=text)
+        
+        mid = len(text) // 2
+        left = self._build_balanced_tree(text[:mid])
+        right = self._build_balanced_tree(text[mid:])
+        return RopeNode(left=left, right=right)
+    
+    def __len__(self) -> int:
+        """Return the total length of the rope."""
+        return self.root.length if self.root else 0
+    
+    def _index(self, node: RopeNode, pos: int) -> str:
+        """Get character at position pos."""
+        if node.left is None and node.right is None:
+            # Leaf node
+            return node.data[pos] if pos < len(node.data) else ''
+        
+        if pos < node.weight:
+            return self._index(node.left, pos)
+        else:
+            return self._index(node.right, pos - node.weight)
+    
+    def substring(self, start: int, end: int) -> str:
+        """Extract substring from start to end position."""
+        if start < 0 or end > len(self) or start >= end:
+            return ""
+        
+        return self._substring_helper(self.root, start, end)
+    
+    def _substring_helper(self, node: RopeNode, start: int, end: int) -> str:
+        """Helper method for substring extraction."""
+        if node is None:
+            return ""
+        
+        # Leaf node
+        if node.left is None and node.right is None:
+            return node.data[start:end]
+        
+        # Internal node
+        result = []
+        
+        # Check left subtree
+        if start < node.weight and node.left:
+            left_end = min(end, node.weight)
+            result.append(self._substring_helper(node.left, start, left_end))
+        
+        # Check right subtree
+        if end > node.weight and node.right:
+            right_start = max(0, start - node.weight)
+            right_end = end - node.weight
+            result.append(self._substring_helper(node.right, right_start, right_end))
+        
+        return ''.join(result)
+    
+    def split(self, pos: int) -> Tuple['Rope', 'Rope']:
+        """Split rope at position pos into two ropes."""
+        if pos <= 0:
+            return Rope(""), self
+        if pos >= len(self):
+            return self, Rope("")
+        
+        left_text = self.substring(0, pos)
+        right_text = self.substring(pos, len(self))
+        
+        return Rope(left_text), Rope(right_text)
+    
+    def concatenate(self, other: 'Rope') -> 'Rope':
+        """Concatenate this rope with another rope."""
+        if len(self) == 0:
+            return other
+        if len(other) == 0:
+            return self
+        
+        result = Rope("")
+        result.root = RopeNode(left=self.root, right=other.root)
+        return result
+    
+    def insert(self, pos: int, text: str) -> 'Rope':
+        """Insert text at position pos."""
+        if pos < 0 or pos > len(self):
+            return self
+        
+        if len(text) == 0:
+            return self
+        
+        # Split at position
+        left, right = self.split(pos)
+        
+        # Create rope for new text
+        middle = Rope(text)
+        
+        # Concatenate: left + middle + right
+        result = left.concatenate(middle).concatenate(right)
+        return result
+    
+    def delete(self, start: int, end: int) -> 'Rope':
+        """Delete text from start to end position."""
+        if start < 0 or end > len(self) or start >= end:
+            return self
+        
+        # Split into three parts: before, deleted, after
+        left, temp = self.split(start)
+        _, right = temp.split(end - start)
+        
+        # Concatenate left and right parts
+        return left.concatenate(right)
+    
+    def to_string(self) -> str:
+        """Convert rope to string."""
+        return self._to_string_helper(self.root)
+    
+    def _to_string_helper(self, node: RopeNode) -> str:
+        """Helper method to convert rope to string."""
+        if node is None:
+            return ""
+        
+        if node.left is None and node.right is None:
+            return node.data
+        
+        left_str = self._to_string_helper(node.left) if node.left else ""
+        right_str = self._to_string_helper(node.right) if node.right else ""
+        
+        return left_str + right_str
+
+
+class TextEditor:
+    """High-performance text editor using rope data structure."""
+    
+    def __init__(self, initial_text: str = ""):
+        self.rope = Rope(initial_text)
+        self.snapshots = {}  # Store snapshots for operations
+    
+    def insert(self, position: int, text: str) -> bool:
+        """Insert text at position."""
+        try:
+            self.rope = self.rope.insert(position, text)
+            return True
+        except Exception as e:
+            print(f"Insert error: {e}")
+            return False
+    
+    def delete(self, start: int, end: int) -> bool:
+        """Delete text from start to end."""
+        try:
+            self.rope = self.rope.delete(start, end)
+            return True
+        except Exception as e:
+            print(f"Delete error: {e}")
+            return False
+    
+    def substring(self, start: int, end: int) -> str:
+        """Extract substring."""
+        try:
+            return self.rope.substring(start, end)
+        except Exception as e:
+            print(f"Substring error: {e}")
+            return ""
+    
+    def split(self, position: int) -> Tuple[str, str]:
+        """Split text at position."""
+        try:
+            left, right = self.rope.split(position)
+            return left.to_string(), right.to_string()
+        except Exception as e:
+            print(f"Split error: {e}")
+            return "", ""
+    
+    def concatenate(self, text: str) -> bool:
+        """Concatenate text to the end."""
+        try:
+            other = Rope(text)
+            self.rope = self.rope.concatenate(other)
+            return True
+        except Exception as e:
+            print(f"Concatenate error: {e}")
+            return False
+    
+    def get_text(self) -> str:
+        """Get the full text."""
+        return self.rope.to_string()
+    
+    def length(self) -> int:
+        """Get text length."""
+        return len(self.rope)
+
+
+def process_operations(document_path: str, operations_path: str, output_path: str):
+    """Process all operations and generate performance report."""
+    
+    # Load document
+    print("Loading document...")
+    start_time = time.time()
+    with open(document_path, 'r', encoding='utf-8') as f:
+        initial_text = f.read()
+    load_time = time.time() - start_time
+    print(f"Document loaded in {load_time:.2f}s ({len(initial_text)} bytes)")
+    
+    # Initialize editor
+    print("Initializing editor...")
+    start_time = time.time()
+    editor = TextEditor(initial_text)
+    init_time = time.time() - start_time
+    print(f"Editor initialized in {init_time:.2f}s")
+    
+    # Load operations
+    print("Loading operations...")
+    with open(operations_path, 'r') as f:
+        operations = json.load(f)
+    print(f"Loaded {len(operations)} operations")
+    
+    # Process operations
+    results = {
+        'total_operations': len(operations),
+        'passed': 0,
+        'failed': 0,
+        'insert_times': [],
+        'delete_times': [],
+        'substring_times': [],
+        'concatenate_times': [],
+        'split_times': [],
+        'operation_details': []
+    }
+    
+    print("\nProcessing operations...")
+    for i, op in enumerate(operations):
+        op_type = op['type']
+        op_id = op.get('id', i)
+        
+        start_time = time.time()
+        success = True
+        
+        try:
+            if op_type == 'INSERT':
+                position = op['position']
+                text = op['text']
+                success = editor.insert(position, text)
+                elapsed_ms = (time.time() - start_time) * 1000
+                results['insert_times'].append(elapsed_ms)
+                
+                # Check performance requirement
+                if elapsed_ms > 100:
+                    results['failed'] += 1
+                    success = False
+                else:
+                    results['passed'] += 1
+                    
+            elif op_type == 'DELETE':
+                start_pos = op['position']
+                end_pos = op['end_position']
+                success = editor.delete(start_pos, end_pos)
+                elapsed_ms = (time.time() - start_time) * 1000
+                results['delete_times'].append(elapsed_ms)
+                
+                # Check performance requirement
+                if elapsed_ms > 100:
+                    results['failed'] += 1
+                    success = False
+                else:
+                    results['passed'] += 1
+                    
+            elif op_type == 'SUBSTRING':
+                start_pos = op['position']
+                end_pos = op['end_position']
+                result = editor.substring(start_pos, end_pos)
+                elapsed_ms = (time.time() - start_time) * 1000
+                results['substring_times'].append(elapsed_ms)
+                
+                # Check performance requirement
+                if elapsed_ms > 50:
+                    results['failed'] += 1
+                    success = False
+                else:
+                    results['passed'] += 1
+                    
+            elif op_type == 'CONCATENATE':
+                text = op['text']
+                success = editor.concatenate(text)
+                elapsed_ms = (time.time() - start_time) * 1000
+                results['concatenate_times'].append(elapsed_ms)
+                results['passed'] += 1
+                
+            elif op_type == 'SPLIT':
+                position = op['position']
+                left, right = editor.split(position)
+                elapsed_ms = (time.time() - start_time) * 1000
+                results['split_times'].append(elapsed_ms)
+                results['passed'] += 1
+                
+        except Exception as e:
+            print(f"Error processing operation {op_id}: {e}")
+            results['failed'] += 1
+            success = False
+        
+        # Progress update
+        if (i + 1) % 10 == 0:
+            print(f"Processed {i + 1}/{len(operations)} operations...")
+    
+    # Calculate averages
+    output_results = {
+        'total_operations': results['total_operations'],
+        'passed': results['passed'],
+        'failed': results['failed'],
+        'avg_insert_time_ms': round(sum(results['insert_times']) / len(results['insert_times']), 2) if results['insert_times'] else 0,
+        'avg_delete_time_ms': round(sum(results['delete_times']) / len(results['delete_times']), 2) if results['delete_times'] else 0,
+        'avg_substring_time_ms': round(sum(results['substring_times']) / len(results['substring_times']), 2) if results['substring_times'] else 0,
+        'avg_concatenate_time_ms': round(sum(results['concatenate_times']) / len(results['concatenate_times']), 2) if results['concatenate_times'] else 0,
+        'avg_split_time_ms': round(sum(results['split_times']) / len(results['split_times']), 2) if results['split_times'] else 0
+    }
+    
+    # Save results
+    with open(output_path, 'w') as f:
+        json.dump(output_results, f, indent=2)
+    
+    print(f"\nResults saved to {output_path}")
+    print(f"Total operations: {output_results['total_operations']}")
+    print(f"Passed: {output_results['passed']}")
+    print(f"Failed: {output_results['failed']}")
+    print(f"Success rate: {(output_results['passed'] / output_results['total_operations'] * 100):.1f}%")
+    print(f"Avg INSERT time: {output_results['avg_insert_time_ms']:.2f}ms")
+    print(f"Avg DELETE time: {output_results['avg_delete_time_ms']:.2f}ms")
+    print(f"Avg SUBSTRING time: {output_results['avg_substring_time_ms']:.2f}ms")
+
+
+if __name__ == '__main__':
+    document_path = '/workspace/test_data/large_document.txt'
+    operations_path = '/workspace/test_data/operations.json'
+    output_path = '/workspace/results.json'
+    
+    process_operations(document_path, operations_path, output_path)

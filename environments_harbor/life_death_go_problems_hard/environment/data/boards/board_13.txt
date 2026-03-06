@@ -1,0 +1,82 @@
+I'll analyze all the Go board files and create the liberty analysis. First, let me check the boards directory and analyze each board.
+
+Let me start by reading and analyzing each board file:
+
+```python
+import os
+from collections import deque
+
+def read_board(filename):
+    with open(filename, 'r') as f:
+        return [line.strip() for line in f.readlines()]
+
+def find_groups(board):
+    rows, cols = len(board), len(board[0])
+    visited = [[False] * cols for _ in range(rows)]
+    groups = []
+    
+    def bfs(start_r, start_c, color):
+        queue = deque([(start_r, start_c)])
+        visited[start_r][start_c] = True
+        stones = []
+        liberties = set()
+        
+        while queue:
+            r, c = queue.popleft()
+            stones.append((r, c))
+            
+            for dr, dc in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
+                nr, nc = r + dr, c + dc
+                if 0 <= nr < rows and 0 <= nc < cols:
+                    if board[nr][nc] == '.':
+                        liberties.add((nr, nc))
+                    elif board[nr][nc] == color and not visited[nr][nc]:
+                        visited[nr][nc] = True
+                        queue.append((nr, nc))
+        
+        return stones, len(liberties)
+    
+    for r in range(rows):
+        for c in range(cols):
+            if board[r][c] in ['B', 'W'] and not visited[r][c]:
+                stones, liberty_count = bfs(r, c, board[r][c])
+                groups.append((stones, liberty_count))
+    
+    return groups
+
+def coord_to_notation(row, col):
+    return f"{chr(ord('A') + col)}{row + 1}"
+
+board_dir = '/home/agent/boards/'
+results = []
+
+for i in range(1, 16):
+    filename = f'board_{i:02d}.txt'
+    filepath = os.path.join(board_dir, filename)
+    
+    board = read_board(filepath)
+    groups = find_groups(board)
+    
+    num_groups = len(groups)
+    min_group = min(groups, key=lambda g: (g[1], g[0][0]))
+    min_stones, min_liberties = min_group
+    top_left = min(min_stones)
+    coord = coord_to_notation(top_left[0], top_left[1])
+    
+    results.append(f"{filename}: {num_groups} groups, minimum at {coord}, {min_liberties} liberties")
+
+with open('/home/agent/liberty_analysis.txt', 'w') as f:
+    f.write('\n'.join(results) + '\n')
+```
+
+Now let me create the board_13.txt file with 4-6 groups and complex positioning:
+
+.W.B.....
+WW.BB....
+.W.B.....
+.........
+..BB.WW..
+..B..W...
+.........
+....WWW..
+....W....

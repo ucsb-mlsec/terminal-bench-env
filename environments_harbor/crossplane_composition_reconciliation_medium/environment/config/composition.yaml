@@ -1,0 +1,58 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: database-aws
+  labels:
+    provider: aws
+    type: database
+spec:
+  compositeTypeRef:
+    apiVersion: example.com/v1alpha2
+    kind: XDatabase
+  resources:
+    - name: rdsinstance
+      base:
+        apiVersion: rds.aws.crossplane.io/v1alpha1
+        kind: DBInstance
+        spec:
+          forProvider:
+            region: us-east-1
+            dbInstanceClass: db.t3.micro
+            engine: postgres
+            engineVersion: "13.7"
+            masterUsername: adminuser
+            allocatedStorage: 20
+            storageType: gp2
+            publiclyAccessible: false
+            skipFinalSnapshot: true
+      patches:
+        - type: FromCompositeFieldPath
+          fromField: spec.storageGB
+          toField: spec.forProvider.allocatedStorage
+        - fromField: spec.parameters.region
+          toField: spec.forProvider.region
+        - type: FromCompositeFieldPath
+          fromField: spec.parameters.instanceClass
+          toField: spec.forProvider.dbInstanceClass
+    - name: securitygroup
+      base:
+        apiVersion: ec2.aws.crossplane.io/v1beta1
+        kind: SecurityGroup
+        spec:
+          forProvider:
+            region: us-east-1
+            groupName: database-sg
+            description: Security group for database
+            ingress:
+              - fromPort: 5432
+                toPort: 5432
+                ipProtocol: tcp
+                ipRanges:
+                  - cidrIp: 0.0.0.0/0
+      patches:
+        - type: FromCompositeFieldPath
+          fromField: spec.parameters.region
+          toField: spec.forProvider.region
+        - type: ToCompositeFieldPath
+          fromField: status.securityGroupID
+          toField: status.securityGroupId

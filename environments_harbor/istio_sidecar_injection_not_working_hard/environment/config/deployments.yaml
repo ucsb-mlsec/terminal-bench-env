@@ -1,0 +1,245 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: production
+  labels:
+    app: frontend
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+        version: v1
+      annotations:
+        sidecar.istio.io/inject: "false"
+    spec:
+      containers:
+      - name: frontend
+        image: registry.example.com/frontend:1.2.3
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-api
+  namespace: production
+  labels:
+    app: backend-api
+    version: v2
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: backend-api
+  template:
+    metadata:
+      labels:
+        app: backend-api
+        version: v2
+      annotations:
+        sidecar.istio.io/inject: "true"
+    spec:
+      containers:
+      - name: backend-api
+        image: registry.example.com/backend-api:2.1.0
+        ports:
+        - containerPort: 9090
+          protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-service
+  namespace: backend-services
+  labels:
+    app: payment-service
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: payment-service
+  template:
+    metadata:
+      labels:
+        app: payment-service
+        version: v1
+    spec:
+      containers:
+      - name: payment-service
+        image: registry.example.com/payment-service:1.5.2
+        ports:
+        - containerPort: 8443
+          protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-service
+  namespace: backend-services
+  labels:
+    app: auth-service
+    version: v3
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: auth-service
+  template:
+    metadata:
+      labels:
+        app: auth-service
+        version: v3
+      annotations:
+        sidecar.istio.io/inject: "true"
+    spec:
+      containers:
+      - name: auth-service
+        image: registry.example.com/auth-service:3.0.1
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+  namespace: staging
+  labels:
+    app: user-service
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: user-service
+  template:
+    metadata:
+      labels:
+        app: user-service
+        version: v1
+      annotations:
+        sidecar.istio.io/inject: "false"
+    spec:
+      containers:
+      - name: user-service
+        image: registry.example.com/user-service:1.3.0
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inventory-service
+  namespace: development
+  labels:
+    app: inventory-service
+    version: v2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: inventory-service
+  template:
+    metadata:
+      labels:
+        app: inventory-service
+        version: v2
+    spec:
+      containers:
+      - name: inventory-service
+        image: registry.example.com/inventory-service:2.0.0
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: recommendation-engine
+  namespace: frontend-apps
+  labels:
+    app: recommendation-engine
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: recommendation-engine
+  template:
+    metadata:
+      labels:
+        app: recommendation-engine
+        version: v1
+      annotations:
+        sidecar.istio.io/inject: "true"
+    spec:
+      containers:
+      - name: recommendation-engine
+        image: registry.example.com/recommendation-engine:1.1.0
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: analytics-processor
+  namespace: frontend-apps
+  labels:
+    app: analytics-processor
+    version: v2
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: analytics-processor
+  template:
+    metadata:
+      labels:
+        app: analytics-processor
+        version: v2
+      annotations:
+        sidecar.istio.io/inject: "false"
+    spec:
+      containers:
+      - name: analytics-processor
+        image: registry.example.com/analytics-processor:2.3.1
+        ports:
+        - containerPort: 9000
+          protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service
+  namespace: production
+  labels:
+    app: notification-service
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: notification-service
+  template:
+    metadata:
+      labels:
+        app: notification-service
+        version: v1
+    spec:
+      containers:
+      - name: notification-service
+        image: registry.example.com/notification-service:1.0.5
+        ports:
+        - containerPort: 8080
+          protocol: TCP

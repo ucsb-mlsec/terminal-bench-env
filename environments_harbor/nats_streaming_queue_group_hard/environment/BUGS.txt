@@ -1,0 +1,17 @@
+BUGS.txt - List of Bugs in subscriber.go
+=============================================
+
+1. Missing Queue Group Name in Subscription
+   The subscription is created without specifying a queue group name parameter. Without a queue group, each subscriber instance receives ALL messages instead of distributing them, causing duplicate processing across instances.
+
+2. Incorrect Acknowledgment Mode Configuration
+   The subscription is not configured with manual acknowledgment mode (SetManualAckMode). Without this, NATS Streaming auto-acknowledges messages immediately upon delivery, which prevents proper queue group semantics and can lead to message loss or duplicate processing.
+
+3. Missing Message Acknowledgment Call
+   The message handler function does not call msg.Ack() after successfully processing a message. When using manual ack mode with queue groups, messages must be explicitly acknowledged or they will be redelivered, causing duplicates.
+
+4. Incorrect Start Position for Queue Group
+   The subscription uses StartWithLastReceived() or StartAtSequence() for a queue group subscription. Queue groups should use DeliverAllAvailable() or StartAtTime() to ensure proper message distribution, as last-received is only appropriate for non-queue individual subscribers.
+
+5. Missing or Incorrect Durable Name Configuration
+   The subscription either lacks a durable name or uses the same durable name across multiple queue group members incorrectly. For queue groups, either use no durable name (ephemeral) or ensure the durable name is combined properly with the queue group to avoid state conflicts between instances.

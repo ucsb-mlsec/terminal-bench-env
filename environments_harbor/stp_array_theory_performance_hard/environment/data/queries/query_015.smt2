@@ -1,0 +1,41 @@
+(set-logic QF_ALIA)
+
+; Declare 11 distinct array variables
+(declare-fun arr1 () (Array Int Int))
+(declare-fun arr2 () (Array Int Int))
+(declare-fun arr3 () (Array Int Int))
+(declare-fun arr4 () (Array Int Int))
+(declare-fun arr5 () (Array Int Int))
+(declare-fun arr6 () (Array Int Int))
+(declare-fun arr7 () (Array Int Int))
+(declare-fun arr8 () (Array Int Int))
+(declare-fun arr9 () (Array Int Int))
+(declare-fun arr10 () (Array Int Int))
+(declare-fun arr11 () (Array Int Int))
+
+; Declare index and value variables
+(declare-fun i () Int)
+(declare-fun j () Int)
+(declare-fun k () Int)
+(declare-fun v1 () Int)
+(declare-fun v2 () Int)
+
+; Assertions with array operations - nesting depth 3
+(assert (= (select arr1 i) 10))
+(assert (= (select arr2 j) 20))
+(assert (= (select (store arr3 i v1) i) v1))
+(assert (= (select (store arr4 j v2) j) v2))
+(assert (= (select (store (store arr5 i 15) j 25) i) 15))
+(assert (= (select (store (store arr6 k 30) i 40) k) 30))
+(assert (= (select arr7 i) (select arr8 j)))
+(assert (= (select (store arr9 i 50) k) 50))
+(assert (= (select (store (store arr10 i 60) j 70) i) 60))
+(assert (= (select arr11 k) 80))
+(assert (= (select arr1 k) (select arr2 k)))
+(assert (= (select (store arr3 i 100) i) 100))
+(assert (= (select arr4 i) (select arr5 i)))
+(assert (= (select (store arr6 j 110) j) 110))
+(assert (= (select arr7 k) 120))
+(assert (= (select arr8 i) (select arr9 i)))
+
+(check-sat)

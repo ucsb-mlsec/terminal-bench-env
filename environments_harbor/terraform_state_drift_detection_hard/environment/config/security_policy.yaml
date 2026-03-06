@@ -1,0 +1,67 @@
+required_encryption:
+  s3_buckets:
+    - SSE-AES256
+    - SSE-KMS
+  rds_instances: true
+  description: All data storage must be encrypted
+
+network_security:
+  ssh_access:
+    allowed_cidrs:
+      - 10.0.0.0/8
+      - 172.16.0.0/12
+      - 192.168.0.0/16
+    prohibited_cidrs:
+      - 0.0.0.0/0
+  public_access:
+    rds_instances: false
+  s3_public_access:
+    block_public_acls: true
+    block_public_policy: true
+    ignore_public_acls: true
+    restrict_public_buckets: true
+    exceptions: []
+  description: Network access must follow least privilege principle
+
+iam_policies:
+  prohibited_policies:
+    - arn:aws:iam::aws:policy/AdministratorAccess
+  max_permissions:
+    allow_wildcard_resources: false
+    allow_wildcard_actions: false
+  description: IAM roles must follow principle of least privilege
+
+resource_tagging:
+  required_tags:
+    - Environment
+    - Owner
+    - CostCenter
+  enforcement: strict
+  description: All resources must have required tags
+
+backup_retention:
+  rds_minimum_days: 7
+  log_retention_minimum_days: 30
+  description: Minimum backup and log retention periods
+
+resource_naming:
+  allowed_prefixes:
+    - company-
+    - prod-
+    - production-
+  prohibited_prefixes:
+    - temp-
+    - test-
+    - debug-
+  description: Resources must follow naming conventions
+
+allowed_instance_types:
+  ec2:
+    - t2.micro
+    - t2.small
+    - t3.micro
+    - t3.small
+  rds:
+    - db.t3.micro
+    - db.t3.small
+  description: Only approved instance types allowed

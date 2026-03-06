@@ -1,0 +1,34 @@
+Build Notes - Calculator Compilation Issues
+========================================
+
+Been trying to compile calculator.py into a standalone exe for the past few days. Major headaches.
+
+Problems Encountered:
+- First attempt with PyInstaller crashed immediately. The executable was created but died on launch with "ModuleNotFoundError: No module named 'numpy'"
+- Tried cx_Freeze next - same issue. Binary runs but crashes when it tries to import numpy
+- numpy is a NIGHTMARE dependency for frozen applications. It has tons of hidden imports and binary extensions
+
+What I've Tried:
+- Basic PyInstaller command: pyinstaller --onefile calculator.py
+  Result: exe created but crashes on numpy import
+  
+- Added --hidden-import=numpy flag
+  Result: Still crashes! numpy has SO MANY submodules
+  
+- Tried --hidden-import=numpy.core and --hidden-import=numpy.core._methods
+  Result: Got further but now crashes on missing numpy.random or numpy.linalg stuff
+  
+- The problem is numpy loads modules dynamically at runtime, PyInstaller can't auto-detect them all
+
+- Looked into using --collect-all=numpy but not sure if that's the right flag for my PyInstaller version
+
+- Also numpy depends on MKL or OpenBLAS libraries which are binary .so/.dll files that might not be getting bundled
+
+TODO:
+- Research the EXACT hidden imports needed for numpy
+- Maybe try Nuitka instead? Heard it handles scientific packages better
+- Check if there's a spec file template for numpy applications
+- Consider using --collect-submodules or --collect-data flags
+- Test with a minimal numpy example first before trying full calculator app
+
+This is taking way longer than expected. Management wants this deployed by end of week...

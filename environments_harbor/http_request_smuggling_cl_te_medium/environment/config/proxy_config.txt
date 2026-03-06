@@ -1,0 +1,31 @@
+# Front-end Reverse Proxy Configuration
+# Production Environment - User Data Processing
+
+[server]
+server_type = reverse_proxy
+server_name = frontend-proxy-01
+listen_port = 80
+protocol_version = HTTP/1.1
+
+[upstream]
+backend_server = 192.168.1.100:8080
+proxy_pass = http://backend-app-server
+connection_timeout = 60s
+proxy_buffer_size = 4k
+
+[header_processing]
+# CRITICAL: When both Content-Length and Transfer-Encoding headers are present,
+# this proxy will ALWAYS prioritize Content-Length for request boundary detection
+header_priority = content-length
+ignore_transfer_encoding_if_cl_present = true
+use_content_length_for_body_parsing = true
+strict_transfer_encoding = false
+
+[connection]
+keepalive_timeout = 75s
+max_header_size = 8k
+request_buffer_size = 16k
+
+[logging]
+access_log = /var/log/proxy/access.log
+error_log = /var/log/proxy/error.log

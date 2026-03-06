@@ -1,0 +1,216 @@
+openapi: 3.0.3
+info:
+  title: User Management API
+  description: A REST API for managing users in the system
+  version: 1.0.0
+servers:
+  - url: https://api.example.com/v1
+    description: Production server
+  - url: https://staging-api.example.com/v1
+    description: Staging server
+
+paths:
+  /users:
+    get:
+      summary: List all users
+      operationId: listUsers
+      tags:
+        - users
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of users to return
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          description: Number of users to skip
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Successfully retrieved list of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+      security:
+        - bearerAuth: []
+    
+    post:
+      summary: Create a new user
+      operationId: createUser
+      tags:
+        - users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreate'
+      security:
+        - bearerAuth: []
+
+  /users/{userId}:
+    get:
+      summary: Get a specific user by ID
+      operationId: getUser
+      tags:
+        - users
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: The ID of the user to retrieve
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: User not found
+        '401':
+          description: Unauthorized
+      security:
+        - bearerAuth: []
+    
+    put:
+      summary: Update an existing user
+      operationId: updateUser
+      tags:
+        - users
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: The ID of the user to update
+          schema:
+            type: string
+        - name: force
+          in: header
+          description: Force update flag
+      responses:
+        '200':
+          description: User successfully updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserTypo'
+        '404':
+          description: User not found
+        '401':
+          description: Unauthorized
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdate'
+      security:
+        - bearerAuth: []
+    
+    delete:
+      summary: Delete a user
+      operationId: deleteUser
+      tags:
+        - users
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          description: The ID of the user to delete
+          schema:
+            type: string
+      responses:
+        '204':
+          description: User successfully deleted
+        '404':
+          description: User not found
+        '401':
+
+components:
+  schemas:
+    User:
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        username:
+          type: string
+          example: johndoe
+        email:
+          type: email
+          example: john.doe@example.com
+        firstName:
+          type: string
+          example: John
+        lastName:
+          type: string
+          example: Doe
+        createdAt:
+          type: string
+          format: date-time
+          example: "2023-01-15T10:30:00Z"
+      required:
+        - username
+        - email
+    
+    UserCreate:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 50
+        email:
+          type: string
+          format: email
+        firstName:
+          type: string
+        lastName:
+          type: string
+        password:
+          type: string
+          format: password
+          minLength: 8
+      required:
+        - username
+        - email
+        - password
+    
+    UserUpdate:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        firstName:
+          type: string
+        lastName:
+          type: string
+        preferences:
+          $ref: '#/components/schemas/UserPreferences'
+    
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        code:
+          type: integer
+  
+  securitySchemes:
+    bearerAuth:
+      type: http
+      description: JWT Bearer token authentication

@@ -1,0 +1,83 @@
+import numpy as np
+from scipy.ndimage import rotate, gaussian_filter
+from sklearn.datasets import load_digits
+from sklearn.utils import shuffle
+
+# Set random seed for reproducibility
+np.random.seed(42)
+
+# Load sklearn digits dataset as base
+digits = load_digits()
+base_images = digits.images
+base_labels = digits.target
+
+# We need 1000 test images, so we'll sample and upsample from the sklearn dataset
+n_test = 1000
+
+# Create indices for balanced sampling across all 10 classes
+images_per_class = n_test // 10
+test_images = []
+test_labels = []
+
+for digit in range(10):
+    digit_indices = np.where(base_labels == digit)[0]
+    # Sample with replacement if needed
+    selected_indices = np.random.choice(digit_indices, size=images_per_class, replace=True)
+    
+    for idx in selected_indices:
+        # Get base image (8x8 from sklearn)
+        img_8x8 = base_images[idx]
+        
+        # Resize to 28x28 by repeating pixels and adding some interpolation
+        img_28x28 = np.zeros((28, 28))
+        for i in range(8):
+            for j in range(8):
+                # Each pixel in 8x8 maps to roughly 3.5x3.5 pixels in 28x28
+                row_start = int(i * 3.5)
+                row_end = int((i + 1) * 3.5)
+                col_start = int(j * 3.5)
+                col_end = int((j + 1) * 3.5)
+                img_28x28[row_start:row_end, col_start:col_end] = img_8x8[i, j]
+        
+        # Normalize to [0, 1]
+        img_28x28 = img_28x28 / 16.0
+        
+        # Apply degradations
+        # 1. Random rotation between -25 and +25 degrees
+        angle = np.random.uniform(-25, 25)
+        img_rotated = rotate(img_28x28, angle, reshape=False, mode='constant', cval=0)
+        
+        # 2. Gaussian blur with sigma = 1.5
+        img_blurred = gaussian_filter(img_rotated, sigma=1.5)
+        
+        # 3. Add Gaussian noise with std = 0.08
+        noise = np.random.normal(0, 0.08, img_blurred.shape)
+        img_noisy = img_blurred + noise
+        
+        # Clip to [0, 1] range
+        img_final = np.clip(img_noisy, 0, 1)
+        
+        test_images.append(img_final)
+        test_labels.append(digit)
+
+# Convert to arrays
+test_images = np.array(test_images, dtype=np.float32)
+test_labels = np.array(test_labels, dtype=np.int64)
+
+# Shuffle the data
+test_images, test_labels = shuffle(test_images, test_labels, random_state=42)
+
+# Verify shapes
+assert test_images.shape == (1000, 28, 28), f"Expected shape (1000, 28, 28), got {test_images.shape}"
+assert test_labels.shape == (1000,), f"Expected shape (1000,), got {test_labels.shape}"
+assert test_images.min() >= 0 and test_images.max() <= 1, "Images should be in [0, 1] range"
+assert set(test_labels) == set(range(10)), "Labels should contain all digits 0-9"
+
+# Save to npz file
+np.savez('/workspace/data/test_set.npz', images=test_images, labels=test_labels)
+
+print(f"Created test_set.npz with {len(test_images)} degraded images")
+print(f"Image shape: {test_images.shape}")
+print(f"Labels shape: {test_labels.shape}")
+print(f"Image range: [{test_images.min():.3f}, {test_images.max():.3f}]")
+print(f"Label distribution: {np.bincount(test_labels)}")

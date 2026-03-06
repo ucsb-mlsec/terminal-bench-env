@@ -1,0 +1,79 @@
+import sqlite3
+import random
+from datetime import datetime, timedelta
+import math
+
+# Create the database
+conn = sqlite3.connect('/data/weather.db')
+cursor = conn.cursor()
+
+# Create the sensor_data table
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS sensor_data (
+    timestamp TEXT NOT NULL,
+    station_id INTEGER NOT NULL,
+    temperature REAL NOT NULL,
+    humidity REAL NOT NULL
+)
+''')
+
+# Generate data
+start_date = datetime(2024, 1, 1, 0, 0, 0)
+num_days = 30
+hours_per_day = 24
+num_stations = 5
+
+# Station-specific base values for variation
+station_offsets = {
+    1: {'temp': 0, 'humidity': 0},
+    2: {'temp': 1.5, 'humidity': -3},
+    3: {'temp': -0.5, 'humidity': 2},
+    4: {'temp': 2, 'humidity': -5},
+    5: {'temp': -1, 'humidity': 4}
+}
+
+data_rows = []
+
+for day in range(num_days):
+    for hour in range(hours_per_day):
+        timestamp = start_date + timedelta(days=day, hours=hour)
+        timestamp_str = timestamp.strftime('%Y-%m-%d %H:%M:%S')
+        
+        # Calculate daily temperature pattern (sinusoidal, peak at 2pm, low at 4am)
+        hour_angle = (hour - 4) * (2 * math.pi / 24)
+        daily_temp_variation = 6 * math.sin(hour_angle)  # ±6 degrees variation
+        base_temp = 22  # Base temperature
+        
+        # Add seasonal variation (slight warming trend over the month)
+        seasonal_variation = day * 0.05
+        
+        for station_id in range(1, num_stations + 1):
+            # Calculate temperature with station offset and random noise
+            station_temp_offset = station_offsets[station_id]['temp']
+            random_temp_noise = random.uniform(-1.5, 1.5)
+            temperature = base_temp + daily_temp_variation + seasonal_variation + station_temp_offset + random_temp_noise
+            temperature = max(15.0, min(30.0, temperature))  # Clamp to range
+            
+            # Calculate humidity (inverse correlation with temperature)
+            base_humidity = 62.5  # Mid-range humidity
+            temp_humidity_effect = -(temperature - 22.5) * 1.5  # Inverse correlation
+            station_humidity_offset = station_offsets[station_id]['humidity']
+            random_humidity_noise = random.uniform(-4, 4)
+            humidity = base_humidity + temp_humidity_effect + station_humidity_offset + random_humidity_noise
+            humidity = max(40.0, min(85.0, humidity))  # Clamp to range
+            
+            data_rows.append((timestamp_str, station_id, round(temperature, 2), round(humidity, 2)))
+
+# Insert all data
+cursor.executemany(
+    'INSERT INTO sensor_data (timestamp, station_id, temperature, humidity) VALUES (?, ?, ?, ?)',
+    data_rows
+)
+
+# Create index for better query performance on original table
+cursor.execute('CREATE INDEX IF NOT EXISTS idx_station_timestamp ON sensor_data(station_id, timestamp)')
+
+conn.commit()
+conn.close()
+
+print(f"Database created with {len(data_rows)} rows")

@@ -1,0 +1,48 @@
+import torch
+import torch.nn as nn
+
+# Create a minimal U-Net-like model structure
+class SimpleUNet(nn.Module):
+    def __init__(self):
+        super(SimpleUNet, self).__init__()
+        # Minimal U-Net with 4 downsampling layers
+        self.down1 = nn.Conv2d(3, 64, 3, padding=1)
+        self.down2 = nn.Conv2d(64, 128, 3, padding=1)
+        self.down3 = nn.Conv2d(128, 256, 3, padding=1)
+        self.down4 = nn.Conv2d(256, 512, 3, padding=1)
+        self.bottleneck = nn.Conv2d(512, 512, 3, padding=1)
+        self.up4 = nn.Conv2d(512, 256, 3, padding=1)
+        self.up3 = nn.Conv2d(256, 128, 3, padding=1)
+        self.up2 = nn.Conv2d(128, 64, 3, padding=1)
+        self.up1 = nn.Conv2d(64, 3, 3, padding=1)
+        
+    def forward(self, x, t):
+        return x
+
+# Initialize model
+model = SimpleUNet()
+
+# Create optimizer state
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+
+# Create checkpoint with metadata
+checkpoint = {
+    'model_state_dict': model.state_dict(),
+    'optimizer_state_dict': optimizer.state_dict(),
+    'epoch': 50,
+    'fid_score': 45.2,
+    'architecture': 'U-Net',
+    'num_downsampling_layers': 4,
+    'image_size': 64,
+    'training_status': 'partially_trained',
+    'current_noise_schedule': {
+        'num_timesteps': 500,
+        'beta_start': 0.0005,
+        'beta_end': 0.05,
+        'schedule_type': 'linear'
+    },
+    'training_notes': 'FID plateaued at 45.2 - noise schedule causing instability and blurry outputs'
+}
+
+# Save checkpoint
+torch.save(checkpoint, 'model_checkpoint.pth')

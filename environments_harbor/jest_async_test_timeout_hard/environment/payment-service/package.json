@@ -1,0 +1,476 @@
+[
+  {
+    "{":"  \"scripts\": {"
+  },
+  {
+    "{":"    \"start\": \"node server.js\""
+  },
+  {
+    "{":"  \"dependencies\": {"
+  },
+  {
+    "{":"    \"sqlite3\": \"^5.1.0\""
+  },
+  {
+    "{":"  \"devDependencies\": {"
+  },
+  {
+    "{":"    \"supertest\": \"^6.3.0\""
+  },
+  {
+    "{":"  }"
+  },
+  {
+    "{":"}"
+  },
+  {
+    "{":"```"
+  },
+  {
+    "{":"File: payment-service\/jest.config.js"
+  },
+  {
+    "{":"```javascript"
+  },
+  {
+    "{":"module.exports = {"
+  },
+  {
+    "{":"  verbose: true"
+  },
+  {
+    "{":"};"
+  },
+  {
+    "{":"```"
+  },
+  {
+    "{":"File: payment-service\/server.js"
+  },
+  {
+    "{":"```javascript"
+  },
+  {
+    "{":"const express = require('express');"
+  },
+  {
+    "{":"const database = require('.\/database');"
+  },
+  {
+    "{":"const healthCheck = require('.\/healthCheck');"
+  },
+  {
+    "{":"const app = express();"
+  },
+  {
+    "{":"app.use(express.json());"
+  },
+  {
+    "{":"  if (!amount || !userId) {"
+  },
+  {
+    "{":"    return res.status(400).json({ error: 'Missing required fields' });"
+  },
+  {
+    "{":"  }"
+  },
+  {
+    "{":"  try {"
+  },
+  {
+    "{":"  } catch (error) {"
+  },
+  {
+    "{":"    res.status(500).json({ error: error.message });"
+  },
+  {
+    "{":"  }"
+  },
+  {
+    "{":"});"
+  },
+  {
+    "{":"  try {"
+  },
+  {
+    "{":"    const payment = await database.getPayment(req.params.id);"
+  },
+  {
+    "{":"    if (!payment) {"
+  },
+  {
+    "{":"      return res.status(404).json({ error: 'Payment not found' });"
+  },
+  {
+    "{":"    }"
+  },
+  {
+    "{":"    res.json(payment);"
+  },
+  {
+    "{":"  } catch (error) {"
+  },
+  {
+    "{":"    res.status(500).json({ error: error.message });"
+  },
+  {
+    "{":"  }"
+  },
+  {
+    "{":"});"
+  },
+  {
+    "{":"  res.json({ status: 'healthy' });"
+  },
+  {
+    "{":"});"
+  },
+  {
+    "{":"let server;"
+  },
+  {
+    "{":"function start(port = 3000) {"
+  },
+  {
+    "{":"  return new Promise((resolve) => {"
+  },
+  {
+    "{":"      console.log(`Payment service listening on port ${port}`);"
+  },
+  {
+    "{":"      healthCheck.start();"
+  },
+  {
+    "{":"      resolve(server);"
+  },
+  {
+    "{":"    });"
+  },
+  {
+    "{":"  });"
+  },
+  {
+    "{":"}"
+  },
+  {
+    "{":"function stop() {"
+  },
+  {
+    "{":"  return new Promise((resolve) => {"
+  },
+  {
+    "{":"    if (server) {"
+  },
+  {
+    "{":"      server.close(() => {"
+  },
+  {
+    "{":"        console.log('Server stopped');"
+  },
+  {
+    "{":"        resolve();"
+  },
+  {
+    "{":"      });"
+  },
+  {
+    "{":"    } else {"
+  },
+  {
+    "{":"      resolve();"
+  },
+  {
+    "{":"    }"
+  },
+  {
+    "{":"  });"
+  },
+  {
+    "{":"}"
+  },
+  {
+    "{":"```"
+  },
+  {
+    "{":"File: payment-service\/database.js"
+  },
+  {
+    "{":"```javascript"
+  },
+  {
+    "{":"const sqlite3 = require('sqlite3').verbose();"
+  },
+  {
+    "{":"let db;"
+  },
+  {
+    "{":"function initialize() {"
+  },
+  {
+    "{":"      if (err) {"
+  },
+  {
+    "{":"        reject(err);"
+  },
+  {
+    "{":"      } else {"
+  },
+  {
+    "{":"        db.run(`CREATE TABLE payments ("
+  },
+  {
+    "{":"          createdAt DATETIME DEFAULT CURRENT_TIMESTAMP"
+  },
+  {
+    "{":"          if (err) reject(err);"
+  },
+  {
+    "{":"          else resolve();"
+  },
+  {
+    "{":"        });"
+  },
+  {
+    "{":"      }"
+  },
+  {
+    "{":"    });"
+  },
+  {
+    "{":"  });"
+  },
+  {
+    "{":"}"
+  },
+  {
+    "{":"      function(err) {"
+  },
+  {
+    "{":"        if (err) reject(err);"
+  },
+  {
+    "{":"        else resolve(this.lastID);"
+  },
+  {
+    "{":"      }"
+  },
+  {
+    "{":"    );"
+  },
+  {
+    "{":"  });"
+  },
+  {
+    "{":"}"
+  },
+  {
+    "{":"function getPayment(id) {"
+  },
+  {
+    "{":"      if (err) reject(err);"
+  },
+  {
+    "{":"      else resolve(row);"
+  },
+  {
+    "{":"    });"
+  },
+  {
+    "{":"  });"
+  },
+  {
+    "{":"}"
+  },
+  {
+    "{":"function close() {"
+  },
+  {
+    "{":"  return new Promise((resolve) => {"
+  },
+  {
+    "{":"    if (db) {"
+  },
+  {
+    "{":"      db.close(() => {"
+  },
+  {
+    "{":"        resolve();"
+  },
+  {
+    "{":"      });"
+  },
+  {
+    "{":"    } else {"
+  },
+  {
+    "{":"      resolve();"
+  },
+  {
+    "{":"    }"
+  },
+  {
+    "{":"  });"
+  },
+  {
+    "{":"}"
+  },
+  {
+    "{":"```"
+  },
+  {
+    "{":"File: payment-service\/healthCheck.js"
+  },
+  {
+    "{":"```javascript"
+  },
+  {
+    "{":"let healthCheckInterval;"
+  },
+  {
+    "{":"function start() {"
+  },
+  {
+    "{":"  healthCheckInterval = setInterval(() => {"
+  },
+  {
+    "{":"    console.log('Health check running...');"
+  },
+  {
+    "{":"}"
+  },
+  {
+    "{":"function stop() {"
+  },
+  {
+    "{":"  if (healthCheckInterval) {"
+  },
+  {
+    "{":"    clearInterval(healthCheckInterval);"
+  },
+  {
+    "{":"    healthCheckInterval = null;"
+  },
+  {
+    "{":"  }"
+  },
+  {
+    "{":"}"
+  },
+  {
+    "{":"```"
+  },
+  {
+    "{":"File: payment-service\/api.test.js"
+  },
+  {
+    "{":"```javascript"
+  },
+  {
+    "{":"const request = require('supertest');"
+  },
+  {
+    "{":"const database = require('.\/database');"
+  },
+  {
+    "{":"beforeAll(async () => {"
+  },
+  {
+    "{":"  await database.initialize();"
+  },
+  {
+    "{":"  await start(3001);"
+  },
+  {
+    "{":"});"
+  },
+  {
+    "{":"    const response = await request(app)"
+  },
+  {
+    "{":"      .post('\/payment')"
+  },
+  {
+    "{":"    expect(response.status).toBe(200);"
+  },
+  {
+    "{":"    expect(response.body.success).toBe(true);"
+  },
+  {
+    "{":"    expect(response.body.paymentId).toBeDefined();"
+  },
+  {
+    "{":"  });"
+  },
+  {
+    "{":"    const createResponse = await request(app)"
+  },
+  {
+    "{":"      .post('\/payment')"
+  },
+  {
+    "{":"    const paymentId = createResponse.body.paymentId;"
+  },
+  {
+    "{":"    const response = await request(app)"
+  },
+  {
+    "{":"      .get(`\/payment\/${paymentId}`);"
+  },
+  {
+    "{":"    expect(response.status).toBe(200);"
+  },
+  {
+    "{":"    expect(response.body.amount).toBe(50.00);"
+  },
+  {
+    "{":"    expect(response.body.userId).toBe('user456');"
+  },
+  {
+    "{":"  });"
+  },
+  {
+    "{":"    const response = await request(app).get('\/health');"
+  },
+  {
+    "{":"    expect(response.status).toBe(200);"
+  },
+  {
+    "{":"    expect(response.body.status).toBe('healthy');"
+  },
+  {
+    "{":"  });"
+  },
+  {
+    "{":"});"
+  },
+  {
+    "{":"```"
+  },
+  {
+    "{":"Now I'll create the solution script:"
+  },
+  {
+    "{":"```bash"
+  },
+  {
+    "{":"#!\/bin\/bash"
+  },
+  {
+    "{":"cd \/workspace\/payment-service"
+  },
+  {
+    "{":"npm test"
+  },
+  {
+    "{":"echo \"api.test.js"
+  },
+  {
+    "{":"database.js"
+  },
+  {
+    "{":"healthCheck.js"
+  },
+  {
+    "{":"server.js\" > \/workspace\/fix_summary.txt"
+  }
+]

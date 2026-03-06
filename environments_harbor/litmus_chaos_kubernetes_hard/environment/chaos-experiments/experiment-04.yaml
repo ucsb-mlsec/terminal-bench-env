@@ -1,0 +1,27 @@
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: app-cpu-chaos
+  namespace: default
+spec:
+  appinfo:
+    appns: production
+    applabel: tier=backend
+    appkind: deployment
+  engineState: active
+  chaosServiceAccount: chaos-sa
+  experiments:
+    - name: pod-cpu-hog
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: '60'
+            - name: CPU_CORES
+              value: '1'
+            - name: PODS_AFFECTED_PERC
+              value: '50'
+          resources:
+            limits:
+              memory: 300Mi
+              cpu: 400m

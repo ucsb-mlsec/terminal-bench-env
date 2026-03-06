@@ -1,0 +1,51 @@
+#version 430
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+layout(binding = 0, rgba32f) uniform writeonly image2D outputImage;
+
+layout(std430, binding = 0) buffer SceneBuffer {
+    vec4 spheres[];
+};
+
+shared vec3 rayColors[8][8];
+
+vec3 raySphereIntersect(vec3 rayDir, vec4 sphere) {
+    vec3 oc = vec3(0.0, 0.0, 0.0) - sphere.xyz;
+    float a = dot(rayDir, rayDir);
+    float b = 2.0 * dot(oc, rayDir);
+    float c = dot(oc, oc) - sphere.w * sphere.w;
+    float discriminant = b * b - 4.0 * a * c;
+    
+    if (discriminant < 0.0) {
+        return vec3(0.0, 0.0, 0.0);
+    }
+    
+    return vec3(0.5, 0.7, 1.0);
+}
+
+void main() {
+    ivec2 pixelCoords = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 localCoords = ivec2(gl_LocalInvocationID.xy);
+    
+    vec2 uv = vec2(pixelCoords) / vec2(imageSize(outputImage));
+    vec3 rayDir = normalize(vec3(uv * 2.0 - 1.0, -1.0));
+    
+    vec3 color = raySphereIntersect(rayDir, spheres[0]);
+    rayColors[localCoords.x][localCoords.y] = color;
+    
+    vec3 averageColor = color;
+    int samples = 1;
+    
+    if (localCoords.x > 0) {
+        averageColor += rayColors[localCoords.x - 1][localCoords.y];
+        samples++;
+    }
+    if (localCoords.x < 7) {
+        averageColor += rayColors[localCoords.x + 1][localCoords.y];
+        samples++;
+    }
+    
+    averageColor /= float(samples);
+    imageStore(outputImage, pixelCoords, vec4(averageColor, 1.0));
+}

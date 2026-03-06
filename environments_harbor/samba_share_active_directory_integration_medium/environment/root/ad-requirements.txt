@@ -1,0 +1,80 @@
+ACTIVE DIRECTORY INTEGRATION REQUIREMENTS
+============================================
+
+This document specifies the exact configuration values required for Active Directory integration with the Samba file server.
+
+1. ACTIVE DIRECTORY DOMAIN SETTINGS
+-----------------------------------
+- Domain name: CORP
+- Realm: CORP.EXAMPLE.COM
+- Domain controllers: dc1.corp.example.com, dc2.corp.example.com
+
+2. SAMBA CONFIGURATION REQUIREMENTS (/etc/samba/smb.conf)
+---------------------------------------------------------
+The following parameters must be configured in the [global] section:
+
+- workgroup = CORP
+- realm = CORP.EXAMPLE.COM
+- security = ads
+- encrypt passwords = yes
+- idmap config * : backend = tdb
+- idmap config * : range = 10000-20000
+- idmap config CORP : backend = rid
+- idmap config CORP : range = 20001-50000
+- winbind use default domain = yes
+- winbind enum users = yes
+- winbind enum groups = yes
+- template shell = /bin/bash
+- template homedir = /home/%U
+
+3. REQUIRED SAMBA SHARES
+------------------------
+The following share definitions must be present in /etc/samba/smb.conf:
+
+[shared]
+- path = /srv/samba/shared
+- read only = no
+- browseable = yes
+- valid users = @CORP\Domain Users
+
+[public]
+- path = /srv/samba/public
+- read only = yes
+- browseable = yes
+- guest ok = yes
+
+4. KERBEROS CONFIGURATION REQUIREMENTS (/etc/krb5.conf)
+-------------------------------------------------------
+The following sections and parameters must be configured:
+
+[libdefaults] section:
+- default_realm = CORP.EXAMPLE.COM
+- dns_lookup_realm = false
+- dns_lookup_kdc = true
+- ticket_lifetime = 24h
+- renew_lifetime = 7d
+- forwardable = true
+
+[realms] section:
+CORP.EXAMPLE.COM realm must contain:
+- kdc = dc1.corp.example.com
+- kdc = dc2.corp.example.com
+- admin_server = dc1.corp.example.com
+- default_domain = corp.example.com
+
+[domain_realm] section:
+- .corp.example.com = CORP.EXAMPLE.COM
+- corp.example.com = CORP.EXAMPLE.COM
+
+5. NAME SERVICE SWITCH CONFIGURATION REQUIREMENTS (/etc/nsswitch.conf)
+----------------------------------------------------------------------
+The following database entries must be configured with the specified service lists:
+
+- passwd: files winbind
+- group: files winbind
+- shadow: files winbind
+- hosts: files dns
+
+COMPLIANCE NOTES
+----------------
+All configuration values must match exactly as specified above. Parameter names are case-sensitive and spacing must be consistent. Share names are case-sensitive and must appear in square brackets as shown.

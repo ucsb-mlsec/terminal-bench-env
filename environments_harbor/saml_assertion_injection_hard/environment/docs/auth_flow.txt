@@ -1,0 +1,73 @@
+SAML Authentication Flow Documentation
+
+================================================================================
+
+Section 1 - Authentication Process
+-----------------------------------
+
+The application implements SAML 2.0 single sign-on authentication. The flow
+operates as follows:
+
+1. User Access Initiation:
+   When an unauthenticated user attempts to access a protected resource, they
+   are redirected to the Identity Provider (IdP) login page.
+
+2. Identity Provider Authentication:
+   The IdP authenticates the user through its own authentication mechanism
+   (username/password, MFA, etc.). Upon successful authentication, the IdP
+   generates a SAML response containing user attributes and assertions.
+
+3. SAML Response Submission:
+   The SAML response is POSTed back to the application's Assertion Consumer
+   Service (ACS) endpoint at /saml/acs. This response contains signed XML
+   assertions about the authenticated user.
+
+4. Response Processing:
+   The saml_processor.py module receives the SAML response and performs
+   validation. It verifies digital signatures to ensure the response originated
+   from a trusted IdP and has not been tampered with.
+
+5. User Session Creation:
+   After successful validation, user attributes (username, role, etc.) are
+   extracted from the SAML assertions and used to establish an authenticated
+   session within the application.
+
+Digital signatures are used throughout this process to ensure response
+integrity and authenticity.
+
+
+Section 2 - User Accounts
+--------------------------
+
+Regular User Account:
+  Username: alice
+  Role: user
+  Permissions: Limited access to user dashboard and basic features. Can view
+               personal data, submit requests, and access standard functionality.
+               Cannot access administrative functions or modify system settings.
+
+Administrator Account:
+  Username: admin
+  Role: administrator
+  Permissions: Full system access with unrestricted privileges. Can manage all
+               users, modify system configurations, access sensitive data and
+               logs, change security settings, and perform administrative
+               operations across the entire application.
+
+
+Section 3 - Security Considerations
+------------------------------------
+
+The SAML authentication implementation includes several security measures:
+
+- All SAML responses must be digitally signed by the trusted Identity Provider
+  using XML Signature standards.
+
+- Signature validation is performed before any response data is processed or
+  trusted by the application.
+
+- Only users successfully authenticated through the IdP and passing signature
+  verification should gain access to the application.
+
+- The integrity of the SAML response is critical to preventing unauthorized
+  access and privilege escalation attacks.

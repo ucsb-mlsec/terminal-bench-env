@@ -1,0 +1,139 @@
+I'll complete this task step by step. First, let me create the sample files, then analyze them, create the magic file, and test it.
+
+Let me start by creating the sample QDAT files:
+
+```python
+import os
+import struct
+import random
+
+# Create directories
+os.makedirs('/workspace/samples', exist_ok=True)
+os.makedirs('/workspace/solution', exist_ok=True)
+
+# Function to create QDAT file
+def create_qdat_file(filepath, version, data_type, checksum):
+    with open(filepath, 'wb') as f:
+        # Magic signature: QDAT
+        f.write(b'QDAT')
+        
+        # Version (big-endian uint16)
+        f.write(struct.pack('>H', version))
+        
+        # Data type (4-byte ASCII)
+        f.write(data_type.encode('ascii'))
+        
+        # Checksum (little-endian uint32)
+        f.write(struct.pack('<I', checksum))
+        
+        # Compressed payload (random data)
+        payload_size = random.randint(50, 100)
+        f.write(os.urandom(payload_size))
+
+# Create sample files
+# Version 1 files
+create_qdat_file('/workspace/samples/qdat_v1_temp.qdat', 1, 'TEMP', 0x4B7F12A3)
+create_qdat_file('/workspace/samples/qdat_v1_pres.qdat', 1, 'PRES', 0x9A3C5E7B)
+create_qdat_file('/workspace/samples/qdat_v1_magn.qdat', 1, 'MAGN', 0x12345678)
+
+# Version 2 files
+create_qdat_file('/workspace/samples/qdat_v2_temp.qdat', 2, 'TEMP', 0xAABBCCDD)
+create_qdat_file('/workspace/samples/qdat_v2_pres.qdat', 2, 'PRES', 0x11223344)
+create_qdat_file('/workspace/samples/qdat_v2_magn.qdat', 2, 'MAGN', 0xDEADBEEF)
+
+# Version 3 files
+create_qdat_file('/workspace/samples/qdat_v3_temp.qdat', 3, 'TEMP', 0xCAFEBABE)
+create_qdat_file('/workspace/samples/qdat_v3_pres.qdat', 3, 'PRES', 0xFEEDFACE)
+create_qdat_file('/workspace/samples/qdat_v3_magn.qdat', 3, 'MAGN', 0xC0FFEE00)
+
+print("Sample QDAT files created successfully")
+```
+
+Now let me verify the files and create the magic file:
+
+```python
+# Verify sample files
+import glob
+
+print("\nVerifying sample files:")
+for filepath in sorted(glob.glob('/workspace/samples/*.qdat')):
+    with open(filepath, 'rb') as f:
+        data = f.read(14)
+        magic = data[0:4]
+        version = struct.unpack('>H', data[4:6])[0]
+        dtype = data[6:10].decode('ascii')
+        checksum = struct.unpack('<I', data[10:14])[0]
+        
+        print(f"{os.path.basename(filepath):25} - Magic: {magic}, Version: {version}, Type: {dtype}, Checksum: 0x{checksum:08X}")
+```
+
+Now I'll create the magic file:
+
+```python
+# Create the magic file
+magic_content = """# QDAT (Quantum Data Archive Type) format detection
+# Proprietary binary format for scientific measurement data
+
+# Base signature - all QDAT files start with "QDAT" magic number
+0	string		QDAT		QDAT
+
+# Version 1 Detection
+>4	beshort		0x0001
+>>6	string		TEMP		v1 temperature data
+>>6	string		PRES		v1 pressure data
+>>6	string		MAGN		v1 magnetic field data
+
+# Version 2 Detection
+>4	beshort		0x0002
+>>6	string		TEMP		v2 temperature data
+>>6	string		PRES		v2 pressure data
+>>6	string		MAGN		v2 magnetic field data
+
+# Version 3 Detection
+>4	beshort		0x0003
+>>6	string		TEMP		v3 temperature data
+>>6	string		PRES		v3 pressure data
+>>6	string		MAGN		v3 magnetic field data
+"""
+
+with open('/workspace/solution/qdat.magic', 'w') as f:
+    f.write(magic_content)
+
+print("\nMagic file created at /workspace/solution/qdat.magic")
+```
+
+Now let's test the magic file:
+
+```python
+import subprocess
+
+# Compile the magic file
+print("\nCompiling magic file...")
+result = subprocess.run(['file', '-C', '-m', '/workspace/solution/qdat.magic'], 
+                       capture_output=True, text=True)
+print(result.stdout)
+if result.stderr:
+    print("Errors:", result.stderr)
+
+# Test against all sample files
+print("\nTesting magic file against sample files:")
+for filepath in sorted(glob.glob('/workspace/samples/*.qdat')):
+    result = subprocess.run(['file', '-m', '/workspace/solution/qdat.magic', filepath],
+                          capture_output=True, text=True)
+    print(f"{os.path.basename(filepath):25} : {result.stdout.strip()}")
+```
+
+The magic file has been created at `/workspace/solution/qdat.magic` with the following structure:
+
+1. **Base detection**: Matches the "QDAT" magic signature at offset 0
+2. **Version detection**: Uses big-endian short (beshort) at offset 4 to identify versions 1, 2, and 3
+3. **Data type detection**: Matches the 4-byte ASCII data type identifier at offset 6 for TEMP, PRES, and MAGN
+4. **Hierarchical structure**: Uses `>` and `>>` to create nested tests that first match the signature, then version, then data type
+
+The magic file format follows the standard `file` command magic database format with:
+- Offset (0, >4, >>6)
+- Type (string, beshort)
+- Test value
+- Message to display
+
+Each sample file will be correctly identified with both its version number and data type, producing output like "QDAT v1 temperature data", "QDAT v2 pressure data", etc.

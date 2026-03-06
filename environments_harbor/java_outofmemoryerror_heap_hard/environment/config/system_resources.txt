@@ -1,0 +1,71 @@
+SYSTEM RESOURCE CONSTRAINTS DOCUMENTATION
+==============================================
+
+OVERVIEW
+--------
+This document outlines the system resource constraints and requirements for the
+bioinformatics pipeline Java services experiencing memory issues during nightly
+data processing runs.
+
+TOTAL SYSTEM RESOURCES
+----------------------
+* Total System RAM: 16GB (16384MB)
+* Available for JVM Heap Allocation: 12GB (12288MB)
+* Reserved for OS and non-heap operations: 4GB (4096MB)
+
+RESOURCE ALLOCATION CONSTRAINTS
+--------------------------------
+* Number of Java services: 3
+  - genomics-parser
+  - sequence-aligner
+  - variant-caller
+
+* Minimum heap per service: 512MB
+* Maximum total heap allocation: 12288MB (12GB)
+* Combined heap allocation must not exceed the 12GB threshold
+
+CURRENT ISSUES
+--------------
+* Problem: OutOfMemoryError exceptions during nightly processing runs
+* Impact: Service crashes and failed data processing jobs
+* Frequency: Occurring during peak loads with large genomic datasets
+* Root cause: Insufficient heap memory allocation for workload demands
+
+MEMORY ALLOCATION GUIDELINES
+-----------------------------
+* Heap sizes must be determined based on actual peak usage from logs
+* Add 20-30% overhead above peak usage to accommodate garbage collection
+* GC overhead prevents the heap from operating at maximum capacity continuously
+* Typical recommendation: Use 25% overhead for optimal performance
+
+GARBAGE COLLECTION CONSIDERATIONS
+----------------------------------
+* Java GC requires additional headroom beyond application peak usage
+* Insufficient overhead leads to frequent GC cycles and potential OOM errors
+* Recommended overhead range: 20-30% above observed peak heap usage
+* Example: If peak usage is 2000MB, allocate 2400-2600MB heap
+
+SERVICE-SPECIFIC REQUIREMENTS
+------------------------------
+* genomics-parser: Handles initial parsing of raw genomic sequence files
+* sequence-aligner: Performs alignment operations (typically most memory-intensive)
+* variant-caller: Identifies genetic variants from aligned sequences
+
+Each service processes data of varying sizes depending on input dataset
+characteristics. Memory requirements scale with input data volume.
+
+ALLOCATION STRATEGY
+-------------------
+1. Analyze memory usage logs to identify peak heap usage per service
+2. Calculate required heap with GC overhead (peak usage × 1.25)
+3. Verify total allocation does not exceed 12288MB
+4. Ensure each service has at least 512MB minimum
+5. Allocate proportionally based on workload requirements
+
+VALIDATION CHECKLIST
+--------------------
+□ Total heap allocation ≤ 12288MB
+□ Each service heap ≥ 512MB
+□ GC overhead (20-30%) included in calculations
+□ Peak usage patterns from logs analyzed
+□ Configuration tested during typical workload scenarios

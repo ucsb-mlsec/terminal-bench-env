@@ -1,0 +1,125 @@
+import numpy as np
+import os
+
+# Set random seed for reproducibility
+np.random.seed(42)
+
+# Create directory if it doesn't exist
+os.makedirs('/workspace/data', exist_ok=True)
+
+# Generate realistic training images (10000, 32, 32, 3)
+# We'll create synthetic but realistic-looking images with various patterns
+
+num_samples = 10000
+img_size = 32
+channels = 3
+
+train_images = np.zeros((num_samples, img_size, img_size, channels), dtype=np.float32)
+
+for i in range(num_samples):
+    # Create different types of patterns for variety
+    pattern_type = i % 10  # 10 different patterns corresponding to 10 classes
+    
+    if pattern_type == 0:
+        # Gradient pattern
+        x_grad = np.linspace(0, 1, img_size)
+        y_grad = np.linspace(0, 1, img_size)
+        xx, yy = np.meshgrid(x_grad, y_grad)
+        train_images[i, :, :, 0] = xx
+        train_images[i, :, :, 1] = yy
+        train_images[i, :, :, 2] = (xx + yy) / 2
+    
+    elif pattern_type == 1:
+        # Circular pattern
+        center = img_size // 2
+        y, x = np.ogrid[:img_size, :img_size]
+        dist = np.sqrt((x - center)**2 + (y - center)**2)
+        circle = 1 - (dist / (img_size / 2))
+        circle = np.clip(circle, 0, 1)
+        train_images[i, :, :, 0] = circle
+        train_images[i, :, :, 1] = circle * 0.7
+        train_images[i, :, :, 2] = circle * 0.5
+    
+    elif pattern_type == 2:
+        # Checkerboard pattern
+        checker = np.indices((img_size, img_size)).sum(axis=0) % 2
+        train_images[i, :, :, 0] = checker * 0.8
+        train_images[i, :, :, 1] = checker * 0.6
+        train_images[i, :, :, 2] = checker * 0.4
+    
+    elif pattern_type == 3:
+        # Vertical stripes
+        stripes = (np.arange(img_size) % 4) / 4.0
+        train_images[i, :, :, 0] = np.tile(stripes, (img_size, 1))
+        train_images[i, :, :, 1] = np.tile(stripes, (img_size, 1)) * 0.8
+        train_images[i, :, :, 2] = np.tile(stripes, (img_size, 1)) * 0.6
+    
+    elif pattern_type == 4:
+        # Horizontal stripes
+        stripes = (np.arange(img_size) % 4) / 4.0
+        train_images[i, :, :, 0] = np.tile(stripes.reshape(-1, 1), (1, img_size))
+        train_images[i, :, :, 1] = np.tile(stripes.reshape(-1, 1), (1, img_size)) * 0.7
+        train_images[i, :, :, 2] = np.tile(stripes.reshape(-1, 1), (1, img_size)) * 0.9
+    
+    elif pattern_type == 5:
+        # Diagonal pattern
+        diag = np.eye(img_size)
+        for offset in range(1, img_size):
+            diag += np.eye(img_size, k=offset) * (1 - offset / img_size)
+            diag += np.eye(img_size, k=-offset) * (1 - offset / img_size)
+        diag = diag / diag.max()
+        train_images[i, :, :, 0] = diag
+        train_images[i, :, :, 1] = diag * 0.5
+        train_images[i, :, :, 2] = diag * 0.8
+    
+    elif pattern_type == 6:
+        # Noise with structure
+        base = np.random.rand(img_size, img_size) * 0.3
+        structure = np.sin(np.linspace(0, 4*np.pi, img_size))
+        structure = np.tile(structure, (img_size, 1))
+        combined = (base + (structure + 1) / 2 * 0.7)
+        train_images[i, :, :, 0] = combined
+        train_images[i, :, :, 1] = combined * 0.8
+        train_images[i, :, :, 2] = combined * 0.6
+    
+    elif pattern_type == 7:
+        # Corner focus
+        y, x = np.ogrid[:img_size, :img_size]
+        corner1 = np.exp(-((x)**2 + (y)**2) / 200)
+        corner2 = np.exp(-((x - img_size + 1)**2 + (y - img_size + 1)**2) / 200)
+        combined = corner1 + corner2
+        combined = combined / combined.max()
+        train_images[i, :, :, 0] = combined * 0.9
+        train_images[i, :, :, 1] = combined * 0.7
+        train_images[i, :, :, 2] = combined * 0.5
+    
+    elif pattern_type == 8:
+        # Wave pattern
+        x = np.linspace(0, 4*np.pi, img_size)
+        wave_x = np.sin(x)
+        wave_y = np.cos(x)
+        wave_2d = np.outer(wave_x, wave_y)
+        wave_2d = (wave_2d + 1) / 2
+        train_images[i, :, :, 0] = wave_2d * 0.8
+        train_images[i, :, :, 1] = wave_2d * 0.9
+        train_images[i, :, :, 2] = wave_2d * 0.7
+    
+    else:  # pattern_type == 9
+        # Concentric squares
+        dist_x = np.minimum(np.arange(img_size), np.arange(img_size)[::-1])
+        dist_y = np.minimum(np.arange(img_size), np.arange(img_size)[::-1])
+        dist = np.minimum(dist_x[:, None], dist_y[None, :])
+        dist = dist / dist.max()
+        train_images[i, :, :, 0] = dist * 0.9
+        train_images[i, :, :, 1] = dist * 0.6
+        train_images[i, :, :, 2] = dist * 0.8
+    
+    # Add some random noise to make each image unique
+    noise = np.random.rand(img_size, img_size, channels) * 0.1
+    train_images[i] = np.clip(train_images[i] + noise, 0, 1)
+
+# Save the training images
+np.save('/workspace/data/train_images.npy', train_images)
+
+print(f"Generated train_images.npy with shape {train_images.shape} and dtype {train_images.dtype}")
+print(f"Value range: [{train_images.min():.3f}, {train_images.max():.3f}]")

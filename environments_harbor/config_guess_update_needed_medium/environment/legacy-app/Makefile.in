@@ -1,0 +1,90 @@
+# Makefile.in - Template Makefile for legacy C application
+# Generated from Makefile.in by configure
+
+# Package information
+PACKAGE = @PACKAGE_NAME@
+VERSION = @PACKAGE_VERSION@
+
+# Compiler and flags
+CC = @CC@
+CFLAGS = @CFLAGS@
+CPPFLAGS = @CPPFLAGS@
+LDFLAGS = @LDFLAGS@
+LIBS = @LIBS@
+
+# Installation directories
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+bindir = @bindir@
+datadir = @datadir@
+mandir = @mandir@
+
+# Install command
+INSTALL = @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_DATA = @INSTALL_DATA@
+
+# Source files
+SOURCES = main.c utils.c parser.c
+HEADERS = utils.h parser.h
+OBJECTS = $(SOURCES:.c=.o)
+
+# Target executable
+TARGET = legacy-app
+
+# Default target
+all: $(TARGET)
+
+# Build the main executable
+$(TARGET): $(OBJECTS)
+	$(CC) $(LDFLAGS) -o $@ $(OBJECTS) $(LIBS)
+
+# Compile source files
+main.o: main.c $(HEADERS)
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
+
+utils.o: utils.c utils.h
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
+
+parser.o: parser.c parser.h utils.h
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
+
+# Generic rule for object files
+.c.o:
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
+
+# Install target
+install: all
+	$(INSTALL) -d $(DESTDIR)$(bindir)
+	$(INSTALL_PROGRAM) $(TARGET) $(DESTDIR)$(bindir)/$(TARGET)
+
+# Uninstall target
+uninstall:
+	rm -f $(DESTDIR)$(bindir)/$(TARGET)
+
+# Clean build artifacts
+clean:
+	rm -f $(OBJECTS)
+	rm -f $(TARGET)
+	rm -f *~ *.bak
+
+# Clean everything including configure-generated files
+distclean: clean
+	rm -f Makefile
+	rm -f config.log config.status
+	rm -f config.h
+
+# Maintainer clean
+maintainer-clean: distclean
+	@echo "This command is intended for maintainers to use"
+	@echo "it deletes files that may require special tools to rebuild"
+
+# Check target (placeholder for tests)
+check: all
+	@echo "No tests configured"
+
+# Distribution target
+dist:
+	@echo "Creating distribution tarball not implemented"
+
+.PHONY: all install uninstall clean distclean maintainer-clean check dist

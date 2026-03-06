@@ -1,0 +1,96 @@
+// This file is part of Eigen, a lightweight C++ template library
+// for linear algebra.
+//
+// Copyright (C) 2008-2021 Gael Guennebaud <gael.guennebaud@inria.fr>
+// Copyright (C) 2006-2008 Benoit Jacob <jacob.benoit.1@gmail.com>
+//
+// This Source Code Form is subject to the terms of the Mozilla
+// Public License v. 2.0. If a copy of the MPL was not distributed
+// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+#ifndef EIGEN_CORE_H
+#define EIGEN_CORE_H
+
+// Eigen Core Module - Version 3.4.0
+// This is the main header file for Eigen's Core functionality
+
+#define EIGEN_WORLD_VERSION 3
+#define EIGEN_MAJOR_VERSION 4
+#define EIGEN_MINOR_VERSION 0
+
+namespace Eigen {
+
+// Forward declarations
+template<typename Derived> class DenseBase;
+template<typename Derived> class MatrixBase;
+template<typename Derived> class ArrayBase;
+
+// Main Matrix template class
+// Scalar: the scalar type (e.g., float, double)
+// RowsAtCompileTime: number of rows, or Dynamic
+// ColsAtCompileTime: number of columns, or Dynamic
+template<typename Scalar,
+         int RowsAtCompileTime,
+         int ColsAtCompileTime,
+         int Options = 0,
+         int MaxRowsAtCompileTime = RowsAtCompileTime,
+         int MaxColsAtCompileTime = ColsAtCompileTime>
+class Matrix {
+public:
+    typedef Scalar value_type;
+    
+    // Constructors
+    Matrix() {}
+    Matrix(int rows, int cols) {}
+    
+    // Size accessors
+    int rows() const { return RowsAtCompileTime; }
+    int cols() const { return ColsAtCompileTime; }
+    int size() const { return rows() * cols(); }
+    
+    // Element access
+    Scalar& operator()(int row, int col) { return m_data[0]; }
+    const Scalar& operator()(int row, int col) const { return m_data[0]; }
+    
+private:
+    Scalar m_data[RowsAtCompileTime * ColsAtCompileTime];
+};
+
+// Array template class for coefficient-wise operations
+template<typename Scalar,
+         int RowsAtCompileTime,
+         int ColsAtCompileTime>
+class Array {
+public:
+    typedef Scalar value_type;
+    int rows() const { return RowsAtCompileTime; }
+    int cols() const { return ColsAtCompileTime; }
+};
+
+// Map class for wrapping external data
+template<typename MatrixType>
+class Map {
+public:
+    typedef typename MatrixType::value_type Scalar;
+};
+
+// Dynamic size constant
+const int Dynamic = -1;
+
+// Common typedefs for convenience
+typedef Matrix<double, Dynamic, Dynamic> MatrixXd;
+typedef Matrix<float, Dynamic, Dynamic> MatrixXf;
+typedef Matrix<double, 3, 3> Matrix3d;
+typedef Matrix<float, 3, 3> Matrix3f;
+typedef Matrix<double, 4, 4> Matrix4d;
+typedef Matrix<float, 4, 4> Matrix4f;
+typedef Matrix<double, Dynamic, 1> VectorXd;
+typedef Matrix<float, Dynamic, 1> VectorXf;
+typedef Matrix<double, 3, 1> Vector3d;
+typedef Matrix<float, 3, 1> Vector3f;
+typedef Matrix<double, 4, 1> Vector4d;
+typedef Matrix<float, 4, 1> Vector4f;
+
+} // namespace Eigen
+
+#endif // EIGEN_CORE_H

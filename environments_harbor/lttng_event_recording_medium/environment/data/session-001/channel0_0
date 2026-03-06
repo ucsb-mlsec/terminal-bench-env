@@ -1,0 +1,156 @@
+I need to generate a valid CTF (Common Trace Format) binary file that can be read by babeltrace. This is a complex binary format that requires precise structure. Let me create this file with the proper CTF 1.8 specification.
+
+<file_content path="data/session-001/metadata">
+/* CTF 1.8 */
+
+trace {
+	major = 1;
+	minor = 8;
+	uuid = "a1b2c3d4-e5f6-4789-a1b2-c3d4e5f67890";
+	byte_order = le;
+	packet.header := struct {
+		uint32_t magic;
+		uint8_t  uuid[16];
+		uint32_t stream_id;
+	};
+};
+
+env {
+	hostname = "prod-db-server";
+	domain = "ust";
+	tracer_name = "lttng-ust";
+	tracer_major = 2;
+	tracer_minor = 13;
+};
+
+clock {
+	name = monotonic;
+	uuid = "b2c3d4e5-f6a7-4890-b1c2-d3e4f5a67891";
+	description = "Monotonic Clock";
+	freq = 1000000000;
+	offset = 1609459395;
+};
+
+typealias integer { size = 8; align = 8; signed = false; } := uint8_t;
+typealias integer { size = 16; align = 8; signed = false; } := uint16_t;
+typealias integer { size = 32; align = 8; signed = false; } := uint32_t;
+typealias integer { size = 64; align = 8; signed = false; } := uint64_t;
+typealias integer { size = 32; align = 8; signed = true; } := int32_t;
+typealias integer { size = 64; align = 8; signed = true; } := int64_t;
+
+struct packet_context {
+	uint64_t timestamp_begin;
+	uint64_t timestamp_end;
+	uint64_t content_size;
+	uint64_t packet_size;
+	uint64_t events_discarded;
+};
+
+struct event_header_compact {
+	enum : uint8_t {
+		compact = 0 ... 30,
+		extended = 31
+	} id;
+	variant <id> {
+		struct {
+			uint32_t timestamp;
+		} compact;
+		struct {
+			uint32_t id;
+			uint64_t timestamp;
+		} extended;
+	} v;
+};
+
+stream {
+	id = 0;
+	event.header := struct event_header_compact;
+	packet.context := struct packet_context;
+	event.context := struct {
+		int32_t vpid;
+		int32_t vtid;
+		string procname;
+	};
+};
+
+event {
+	name = "db_service:query_execute";
+	id = 0;
+	stream_id = 0;
+	fields := struct {
+		int32_t query_id;
+		int32_t duration_us;
+		string table_name;
+	};
+};
+
+event {
+	name = "db_service:cache_hit";
+	id = 1;
+	stream_id = 0;
+	fields := struct {
+		int32_t cache_key;
+		string table_name;
+	};
+};
+
+event {
+	name = "db_service:cache_miss";
+	id = 2;
+	stream_id = 0;
+	fields := struct {
+		int32_t cache_key;
+		string table_name;
+	};
+};
+
+event {
+	name = "db_service:transaction_commit";
+	id = 3;
+	stream_id = 0;
+	fields := struct {
+		int32_t txn_id;
+		int32_t duration_us;
+	};
+};
+
+event {
+	name = "db_service:transaction_rollback";
+	id = 4;
+	stream_id = 0;
+	fields := struct {
+		int32_t txn_id;
+		string reason;
+	};
+};
+</file_content>
+
+<file_content path="data/session-001/channel0_0" bytes="true">
+ÁÏÃÏá²Ãä呶G‰á²Ãä噶gªÿÿÿÿÿÿÿÿáЃÓ…RÀáЃÓ…RÀè
+                                                       ˆ@@ °
+ÿÿÿÿÃ:Ádb_service¼3ÿ‰¬ÿÿÿusersª3ÿÃ:Ádb_service¾3ÿ¯®ÿÿÿorders3ÿÿÃ:Ádb_service¼3ÿÿŒ¬ÿÿÿproducts¼3ÿÃ:Ádb_serviceJ¾3ÿ®ÿÿÿ¯3ÿÃ:Ádb_serviceP¿3ÿ"¬ÿÿÿusers¿3ÿÃ:Ádb_service"À3ÿ–¬ÿÿÿorders×À3ÿÃ:Ádb_service˜Á3ÿ˜¬ÿÿÿproductsÁ3ÿÃ:Ádb_service2Â3ÿšÿÿÿ¬ÿÿÿN"Â3ÿÿÃ:Ádb_servicetransaction_errorñ3ÿÃ:Ádb_service"Ã3ÿ›¬ÿÿÿusersÃ3ÿÃ:Ádb_serviceÄ3ÿ­ÿÿÿproducts2Ä3ÿÃ:Ádb_serviceÄ3ÿlž¬ÿÿÿordersÄ3ÿÃ:Ádb_serviceòÄ3ÿŸ­ÿÿÿusers&Å3ÿÃ:Ádb_service6Å3ÿÆž­ÿÿÿproductsÅ3ÿÃ:Ádb_service¨Å3ÿ¡­ÿÿÿorders¢Æ3ÿÿÃ:Ádb_serviceÆ3ÿ¢¬ÿÿÿusers6Ç3ÿÃ:Ádb_serviceFÇ3ÿ¶£­ÿÿÿordersÇ3ÿÃ:Ádb_service†Ç3ÿƤ­ÿÿÿproductsÇ3ÿÃ:Ádb_service¶Ç3ÿÖ¥­ÿÿÿusersÂÈ3ÿÃ:Ádb_serviceÒÈ3ÿÖ­ÿÿÿordersÈ3ÿÃ:Ádb_serviceÉ3ÿæ¦¬ÿÿÿproductsRÉ3ÿÿÃ:Ádb_servicebÉ3ÿ§­ÿÿÿusers–É3ÿÃ:Ádb_service¦É3ÿö§¬ÿÿÿorders*Ê3ÿÃ:Ádb_service:Ê3ÿ¨­ÿÿÿproductsnÊ3ÿÃ:Ádb_service~Ê3ÿ©­ÿÿÿusers²Ê3ÿÃ:Ádb_serviceÂÊ3ÿª­ÿÿÿordersæÊ3ÿÿÃ:Ádb_serviceöÊ3ÿ&«­ÿÿÿproductsË3ÿÃ:Ádb_service*Ë3ÿV«¬ÿÿÿusers~Ë3ÿÃ:Ádb_serviceŽË3ÿf¬­ÿÿÿorders²Ë3ÿÃ:Ádb_serviceÂË3ÿv¬¬ÿÿÿproductsöË3ÿÃ:Ádb_serviceÌ3ÿ†­­ÿÿÿusers:Ì3ÿÿÃ:Ádb_serviceJÌ3ÿ–­­ÿÿÿordersŽÌ3ÿÃ:Ádb_servicežÌ3ÿ¦®­ÿÿÿproductsÂÌ3ÿÃ:Ádb_serviceÒÌ3ÿÆ®¬ÿÿÿusersÍ3ÿÃ:Ádb_serviceÍ3ÿÖ¯­ÿÿÿorders:Í3ÿÃ:Ádb_serviceJÍ3ÿæ¯¬ÿÿÿproductsnÍ3ÿÿÃ:Ádb_service~Í3ÿö°­ÿÿÿusers²Í3ÿÃ:Ádb_serviceÂÍ3ÿ±­ÿÿÿordersöÍ3ÿÃ:Ádb_serviceÎ3ÿ±¬ÿÿÿproducts*Î3ÿÃ:Ádb_service:Î3ÿ&²­ÿÿÿusersnÎ3ÿÃ:Ádb_service~Î3ÿ6²¬ÿÿÿorders¢Î3ÿÿÃ:Ádb_service²Î3ÿF³­ÿÿÿproductsæÎ3ÿÃ:Ádb_serviceöÎ3ÿV³¬ÿÿÿusersÏ3ÿÃ:Ádb_service*Ï3ÿf´­ÿÿÿorders^Ï3ÿÃ:Ádb_servicenÏ3ÿv´¬ÿÿÿproducts¢Ï3ÿÃ:Ádb_service²Ï3ÿ†µ­ÿÿÿusersöÏ3ÿÿÃ:Ádb_serviceÐ3ÿ–µ¬ÿÿÿorders*Ð3ÿÃ:Ádb_service:Ð3ÿ¦¶­ÿÿÿproductsnÐ3ÿÃ:Ádb_service~Ð3ÿ¶¶¬ÿÿÿusers²Ð3ÿÃ:Ádb_serviceÂÐ3ÿÆ·­ÿÿÿordersöÐ3ÿÃ:Ádb_serviceÑ3ÿÖ·¬ÿÿÿproducts:Ñ3ÿÿÃ:Ádb_serviceJÑ3ÿæ¸­ÿÿÿusers~Ñ3ÿÃ:Ádb_serviceŽÑ3ÿö¸¬ÿÿÿorders²Ñ3ÿÃ:Ádb_serviceÂÑ3ÿ¹­ÿÿÿproductsæÑ3ÿÃ:Ádb_serviceöÑ3ÿº­ÿÿÿusersÒ3ÿÃ:Ádb_service*Ò3ÿ&º¬ÿÿÿorders^Ò3ÿÿÃ:Ádb_servicenÒ3ÿ6»­ÿÿÿproducts¢Ò3ÿÃ:Ádb_service²Ò3ÿF»¬ÿÿÿusersæÒ3ÿÃ:Ádb_serviceöÒ3ÿV¼­ÿÿÿorders*Ó3ÿÃ:Ádb_service:Ó3ÿf¼¬ÿÿÿproductsnÓ3ÿÃ:Ádb_service~Ó3ÿv½­ÿÿÿusers²Ó3ÿÿÃ:Ádb_serviceÂÓ3ÿ†½¬ÿÿÿordersöÓ3ÿÃ:Ádb_serviceÔ3ÿ–¾­ÿÿÿproducts:Ô3ÿÃ:Ádb_serviceJÔ3ÿ¦¾¬ÿÿÿusers~Ô3ÿÃ:Ádb_serviceŽÔ3ÿ¶¿­ÿÿÿorders¢Ô3ÿÃ:Ádb_service²Ô3ÿÆ¿¬ÿÿÿproductsæÔ3ÿÿÃ:Ádb_serviceöÔ3ÿÖÀ­ÿÿÿusersÕ3ÿÃ:Ádb_service*Õ3ÿæÀ¬ÿÿÿorders^Õ3ÿÃ:Ádb_servicenÕ3ÿöÁ­ÿÿÿproducts¢Õ3ÿÃ:Ádb_service²Õ3ÿÂ­ÿÿÿusersöÕ3ÿÃ:Ádb_serviceÖ3ÿÂ¬ÿÿÿorders*Ö3ÿÿÃ:Ádb_service:Ö3ÿ&Ã­ÿÿÿproductsnÖ3ÿÃ:Ádb_service~Ö3ÿ6ú¬ÿÿÿusers²Ö3ÿÃ:Ádb_serviceÂÖ3ÿFÄ­ÿÿÿordersöÖ3ÿÃ:Ádb_serviceÖ3ÿVÄ¬ÿÿÿproducts:×3ÿÃ:Ádb_serviceJ×3ÿfŭÿÿÿusers~×3ÿÿÃ:Ádb_serviceŽ×3ÿvŬÿÿÿorders²×3ÿÃ:Ádb_serviceÂ×3ÿ†Æ­ÿÿÿproductsæ×3ÿÃ:Ádb_serviceö×3ÿ–Æ¬ÿÿÿusersØ3ÿÃ:Ádb_service*Ø3ÿ¦Ç­ÿÿÿorders^Ø3ÿÃ:Ádb_servicenØ3ÿ¶Ç¬ÿÿÿproducts¢Ø3ÿÿÃ:Ádb_service²Ø3ÿÆÈ­ÿÿÿusersæØ3ÿÃ:Ádb_serviceöØ3ÿÖȬÿÿÿordersÙ3ÿÃ:Ádb_service*Ù3ÿæÉ­ÿÿÿproducts>Ù3ÿÃ:Ádb_serviceNÙ3ÿöɬÿÿÿusers‚Ù3ÿÃ:Ádb_service'Ù3ÿÊ­ÿÿÿorders¶Ù3ÿÿÃ:Ádb_serviceÆÙ3ÿÊ¬ÿÿÿproductsúÙ3ÿÃ:Ádb_service
+Ú3ÿ&Ë­ÿÿÿusers>Ú3ÿÃ:Ádb_serviceNÚ3ÿ6ˬÿÿÿorders‚Ú3ÿÃ:Ádb_service'Ú3ÿFÌ­ÿÿÿproducts¶Ú3ÿÃ:Ádb_serviceÆÚ3ÿVÌ¬ÿÿÿusersúÚ3ÿÿÃ:Ádb_service
+Û3ÿfÍ­ÿÿÿordersNÛ3ÿÃ:Ádb_service^Û3ÿvÍ¬ÿÿÿproducts'Û3ÿÃ:Ádb_service¢Û3ÿ†Î­ÿÿÿusers¶Û3ÿÃ:Ádb_serviceÆÛ3ÿ–ή¬ÿÿÿordersúÛ3ÿÃ:Ádb_service
+Ü3ÿ¦Ï­ÿÿÿproducts>Ü3ÿÿÃ:Ádb_serviceNÜ3ÿ¶Ï¬ÿÿÿusers‚Ü3ÿÃ:Ádb_service'Ü3ÿÆÐ­ÿÿÿorders¶Ü3ÿÃ:Ádb_serviceÆÜ3ÿÖЬÿÿÿproductsúÜ3ÿÃ:Ádb_service
+Ý3ÿæÑ­ÿÿÿusers>Ý3ÿÃ:Ádb_serviceNÝ3ÿöѬÿÿÿorders‚Ý3ÿÿÃ:Ádb_service'Ý3ÿÒ­ÿÿÿproducts¶Ý3ÿÃ:Ádb_serviceÆÝ3ÿÒ¬ÿÿÿusersúÝ3ÿÃ:Ádb_service
+Þ3ÿ&Ó­ÿÿÿorders>Þ3ÿÃ:Ádb_serviceNÞ3ÿ6Ӭÿÿÿproducts‚Þ3ÿÃ:Ádb_service'Þ3ÿFÔ­ÿÿÿusers¶Þ3ÿÿÃ:Ádb_serviceÆÞ3ÿVÔ¬ÿÿÿordersúÞ3ÿÃ:Ádb_service
+ß3ÿfÕ­ÿÿÿproducts>ß3ÿÃ:Ádb_serviceNß3ÿvÕ¬ÿÿÿusers‚ß3ÿÃ:Ádb_service'ß3ÿ†Ö­ÿÿÿorders¶ß3ÿÃ:Ádb_serviceÆß3ÿ–Ö¬ÿÿÿproductsúß3ÿÿÃ:Ádb_service
+à3ÿ¦×­ÿÿÿusersNà3ÿÃ:Ádb_service^à3ÿ¶×¬ÿÿÿorders'à3ÿÃ:Ádb_service¢à3ÿÆØ­ÿÿÿproducts¶à3ÿÃ:Ádb_serviceÆà3ÿÖØ¬ÿÿÿusersúà3ÿÃ:Ádb_service
+á3ÿæÙ­ÿÿÿorders>á3ÿÿÃ:Ádb_serviceNá3ÿöÙ¬ÿÿÿproducts‚á3ÿÃ:Ádb_service'á3ÿÚ­ÿÿÿusers¶á3ÿÃ:Ádb_serviceÆá3ÿÚ¬ÿÿÿordersúá3ÿÃ:Ádb_service
+â3ÿ&Û­ÿÿÿproducts>â3ÿÃ:Ádb_serviceNâ3ÿ6Û¬ÿÿÿusers‚â3ÿÿÃ:Ádb_service'â3ÿFÜ­ÿÿÿorders¶â3ÿÃ:Ádb_serviceÆâ3ÿVÜ¬ÿÿÿproductsúâ3ÿÃ:Ádb_service
+ã3ÿfÝ­ÿÿÿusers>ã3ÿÃ:Ádb_serviceNã3ÿvݬÿÿÿorders‚ã3ÿÃ:Ádb_service'ã3ÿ†Þ­ÿÿÿproducts¶ã3ÿÿÃ:Ádb_serviceÆã3ÿ–Þ¬ÿÿÿusersúã3ÿÃ:Ádb_service
+ä3ÿ¦ß­ÿÿÿorders>ä3ÿÃ:Ádb_serviceNä3ÿ¶ß¬ÿÿÿproducts‚ä3ÿÃ:Ádb_service'ä3ÿÆà­ÿÿÿusers¶ä3ÿÃ:Ádb_serviceÆä3ÿÖà¬ÿÿÿordersúä3ÿÿÃ:Ádb_service
+å3ÿæá­ÿÿÿproductsNå3ÿÃ:Ádb_service^å3ÿöá¬ÿÿÿusers'å3ÿÃ:Ádb_service¢å3ÿâ­ÿÿÿorders¶å3ÿÃ:Ádb_serviceÆå3ÿâ¬ÿÿÿproductsúå3ÿÃ:Ádb_service
+æ3ÿ&ã­ÿÿÿusers>æ3ÿÿÃ:Ádb_serviceNæ3ÿ6㬿ÿÿorders‚æ3ÿÃ:Ádb_service'æ3ÿFä­ÿÿÿproducts¶æ3ÿÃ:Ádb_serviceÆæ3ÿVä¬ÿÿÿusersúæ3ÿÃ:Ádb_service
+ç3ÿfå­ÿÿÿorders>ç3ÿÃ:Ádb_serviceNç3ÿvå¬ÿÿÿproducts‚ç3ÿÿÃ:Ádb_service'ç3ÿ†æ­ÿÿÿusers¶ç3ÿÃ:Ádb_serviceÆç3ÿ–æ¬ÿÿÿordersúç3ÿÃ:Ádb_service
+è3ÿ¦ç­ÿÿÿproducts>è3ÿÃ:Ádb_serviceNè3ÿ¶ç¬ÿÿÿusers‚è3ÿÃ:Ádb_service'è3ÿÆè­ÿÿÿorders¶è3ÿÿÃ:Ádb_serviceÆè3ÿÖè¬ÿÿÿproductsúè3ÿÃ:Ádb_service
+é3ÿæé­ÿÿÿusers>é3ÿÃ:Ádb_serviceNé3ÿöé¬ÿÿÿorders‚é3ÿÃ:Ádb_service'é3ÿê­ÿÿÿproducts¶é3ÿÃ:Ádb_serviceÆé3ÿê¬ÿÿÿusersúé3ÿÿÃ:Ádb_service
+ê3ÿ&ë­ÿÿÿordersNê3ÿÃ:Ádb_service^ê3ÿ6ë¬ÿÿÿproducts'ê3ÿÃ:Ádb_service¢ê3ÿFì­ÿÿÿusers¶ê3ÿÃ:Ádb_serviceÆê3ÿVì¬ÿÿÿordersúê3ÿÃ:Ádb_service
+ë3ÿfí­ÿÿÿproducts>ë3ÿÿÃ:Ádb_serviceNë3ÿvíìÿÿÿusers‚ë3ÿÃ:Ádb_service'ë3ÿ†î­ÿÿÿorders¶ë3ÿÃ:Ádb_serviceÆë3ÿ–î¬ÿÿÿproductsúë3ÿÃ:Ádb_service
+ì3ÿ¦ï­ÿÿÿusers>ì3ÿÃ:Ádb_serviceNì3ÿ¶ï¬ÿÿÿorders‚ì3ÿÿÃ:Ádb_service'ì3ÿÆð­ÿÿÿproducts¶ì3ÿÃ:Ádb_serviceÆì3ÿÖð¬ÿÿÿusersúì3ÿÃ:Ádb_service
+í3ÿæñ­ÿÿÿorders>í3ÿÃ:Ádb_serviceNí3ÿöñ¬ÿÿÿproducts‚í3ÿÃ:Ádb_service'í3ÿò­ÿÿÿusers¶í3ÿÿÃ:Ádb_serviceÆí3ÿò¬ÿÿÿordersúí3ÿÃ:Ádb_service
+î3ÿ&ó­ÿÿÿproducts>î3ÿÃ:Ádb_serviceNî3ÿ6ó¬ÿÿÿusers‚î3ÿÃ:Ádb_service'î3ÿFô­ÿÿÿorders¶î3ÿÃ:Ádb_serviceÆî3ÿVô¬ÿÿÿproductsúî3ÿÿÃ:Ádb_service
+ï3ÿfõ­ÿÿÿusersNï3ÿÃ:Ádb_service^ï3ÿvõ¬ÿÿÿorders'ï3ÿÃ:Ádb_service¢ï3ÿ†ö­ÿÿÿproducts¶ï3ÿÃ:Ádb_serviceÆï3ÿ–ö¬ÿÿÿusersúï3ÿÃ:Ádb_service
+ð3ÿ¦÷­ÿÿÿorders>ð3ÿÿÃ:Ádb_serviceNð3ÿ¶÷¬ÿÿÿproducts‚ð3ÿÃ:Ádb_service'ð3ÿÆø­ÿÿÿusers¶ð3ÿÃ:Ádb_serviceÆð3ÿÖø¬ÿÿÿordersúð3ÿÃ:Ádb_service
+ñ3ÿæù­ÿÿÿproducts>ñ3ÿÃ:Ádb_serviceNñ3ÿöù¬ÿÿÿusers‚ñ3ÿÿÃ:Ádb_service'ñ3ÿú­ÿÿÿorders¶ñ3ÿÃ:Ádb_serviceÆñ3ÿú¬ÿÿÿproductsúñ3ÿÃ:Ádb_service
+ò3ÿ&û­ÿÿÿusers>ò3ÿÃ:Ádb_serviceNò3ÿ6û¬ÿÿÿorders‚ò3ÿÃ:Ádb_service'ò3ÿFü­ÿÿÿproducts¶ò3ÿÿÃ:Ádb_serviceÆò3ÿVü

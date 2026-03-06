@@ -1,0 +1,114 @@
+HLSL Shader Model 6.6 Resource Binding Rules
+=======================================================
+
+This document specifies the validation rules for resource binding declarations in HLSL Shader Model 6.6.
+
+SECTION 1: UNBOUNDED ARRAYS
+----------------------------
+Unbounded resource arrays MUST use empty brackets with no size specification.
+
+Valid Examples:
+  Texture2D textures[] : register(t0);
+  StructuredBuffer<float4> buffers[] : register(t0);
+  SamplerState samplers[] : register(s0);
+
+Invalid Examples:
+  Texture2D textures : register(t0);  // Missing brackets for array
+  Texture2D textures[0] : register(t0);  // Zero is not valid for unbounded
+
+
+SECTION 2: BOUNDED ARRAYS
+--------------------------
+Bounded resource arrays MUST specify an explicit positive integer size in brackets.
+
+Valid Examples:
+  Texture2D textures[16] : register(t0);
+  SamplerState samplers[8] : register(s0);
+  StructuredBuffer<Data> buffers[32] : register(t0);
+
+Invalid Examples:
+  Texture2D textures[] : register(t0);  // Empty brackets mean unbounded, not bounded
+  Texture2D textures[-5] : register(t0);  // Negative size is invalid
+
+
+SECTION 3: REGISTER TYPES
+--------------------------
+Each resource type must use the correct register prefix:
+
+'t' registers - Read-only textures and buffers:
+  Texture2D tex : register(t0);
+  Texture3D tex3d : register(t1);
+  TextureCube texCube : register(t2);
+  StructuredBuffer<Data> buf : register(t3);
+  ByteAddressBuffer rawBuf : register(t4);
+
+'s' registers - Samplers:
+  SamplerState sampler : register(s0);
+  SamplerComparisonState compSampler : register(s1);
+
+'b' registers - Constant buffers:
+  cbuffer ConstantData : register(b0) { float4 data; }
+  ConstantBuffer<MyData> cb : register(b1);
+
+'u' registers - Read-Write (UAV) resources:
+  RWTexture2D<float4> rwTex : register(u0);
+  RWStructuredBuffer<Data> rwBuf : register(u1);
+  RWByteAddressBuffer rwRawBuf : register(u2);
+  AppendStructuredBuffer<Data> appendBuf : register(u3);
+  ConsumeStructuredBuffer<Data> consumeBuf : register(u4);
+
+Invalid Examples:
+  Texture2D tex : register(s0);  // Textures cannot use 's' registers
+  SamplerState samp : register(t0);  // Samplers cannot use 't' registers
+  RWTexture2D rwTex : register(t0);  // RW resources must use 'u' registers
+  StructuredBuffer<Data> buf : register(b0);  // Wrong register type
+
+
+SECTION 4: REGISTER SPACES
+---------------------------
+Register spaces are OPTIONAL. When specified, they must be non-negative integers.
+
+Valid Examples:
+  Texture2D tex : register(t0);  // No space specified (defaults to space0)
+  Texture2D tex : register(t0, space0);
+  Texture2D tex : register(t0, space1);
+  Texture2D tex : register(t0, space999);
+
+Invalid Examples:
+  Texture2D tex : register(t0, space-1);  // Negative space is INVALID
+  Texture2D tex : register(t0, space-5);  // Negative space is INVALID
+  Texture2D tex : register(t0, spaceX);  // Non-numeric space is INVALID
+
+
+SECTION 5: COMMON ERRORS TO DETECT
+-----------------------------------
+A shader file is considered INVALID if ANY resource declaration contains:
+
+1. Wrong register type for resource:
+   - Texture using 's' or 'b' register
+   - Sampler using 't', 'b', or 'u' register
+   - RWTexture/RWBuffer using 't' or 'b' register
+   - ConstantBuffer using 't', 's', or 'u' register
+
+2. Incorrect array syntax:
+   - Array size of 0 for bounded arrays
+   - Negative array size
+
+3. Invalid space specification:
+   - Negative space numbers (space-1, space-2, etc.)
+   - Non-integer space values
+
+4. Read-write resources with wrong register:
+   - Any RW*, Append*, or Consume* resource using 't' register
+
+
+VALIDATION PROCEDURE
+--------------------
+For each .hlsl file:
+1. Parse all resource declarations
+2. Check register type matches resource type
+3. Validate array syntax (bounded vs unbounded)
+4. Verify space numbers are non-negative if specified
+5. If ANY violation is found, mark the entire file as INVALID
+
+Count total invalid files and valid files separately.

@@ -1,0 +1,55 @@
+name: Integration Tests
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  integration-tests:
+    runs-on: ubuntu-latest
+    
+    env:
+      OAUTH_TOKEN: ${{ secrets.OAUTH_TOKEN }}
+      API_ENDPOINT: ${{ secrets.API_ENDPOINT }}
+      TEST_DB: ${{ secrets.TEST_DB }}
+      DB_HOST: ${{ secrets.DB_HOST }}
+      DB_PORT: ${{ secrets.DB_PORT }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Set up test database
+        run: |
+          docker run -d \
+            --name test-db \
+            -e POSTGRES_PASSWORD=${{ secrets.TEST_DB }} \
+            -e POSTGRES_USER=testuser \
+            -p 5432:5432 \
+            postgres:14
+      
+      - name: Wait for database
+        run: sleep 10
+      
+      - name: Run database migrations
+        run: npm run migrate:test
+      
+      - name: Run integration tests
+        run: npm run test:integration
+        env:
+          NODE_ENV: test
+      
+      - name: Cleanup resources
+        if: always()
+        run: |
+          docker stop test-db
+          docker rm test-db

@@ -1,0 +1,109 @@
+#!/bin/bash
+
+# Simulated Beeline client for Apache Hive
+# This script simulates a working Beeline connection to a test Hive environment
+
+QUERY="$*"
+
+# Convert query to uppercase for case-insensitive matching
+QUERY_UPPER=$(echo "$QUERY" | tr '[:lower:]' '[:upper:]')
+
+# Function to output table-style results
+output_table_header() {
+    echo "+------------------+"
+    echo "|    tab_name      |"
+    echo "+------------------+"
+}
+
+output_table_footer() {
+    echo "+------------------+"
+}
+
+output_count_header() {
+    echo "+------+"
+    echo "|  _c0 |"
+    echo "+------+"
+}
+
+output_count_footer() {
+    echo "+------+"
+}
+
+# Handle SHOW TABLES
+if echo "$QUERY_UPPER" | grep -q "SHOW TABLES"; then
+    output_table_header
+    echo "| customer_orders  |"
+    output_table_footer
+    exit 0
+fi
+
+# Handle SELECT COUNT(*) FROM customer_orders
+if echo "$QUERY_UPPER" | grep -q "SELECT COUNT(\*) FROM CUSTOMER_ORDERS" || \
+   echo "$QUERY_UPPER" | grep -q "SELECT COUNT(.*) FROM CUSTOMER_ORDERS"; then
+    output_count_header
+    echo "|  150 |"
+    output_count_footer
+    exit 0
+fi
+
+# Handle queries for top customer by order count
+if echo "$QUERY_UPPER" | grep -q "GROUP BY CUSTOMER_NAME" && \
+   echo "$QUERY_UPPER" | grep -q "ORDER BY.*DESC" && \
+   echo "$QUERY_UPPER" | grep -q "LIMIT"; then
+    
+    echo "+------------------+-------------+"
+    echo "| customer_name    | order_count |"
+    echo "+------------------+-------------+"
+    echo "| Alice Smith      |          45 |"
+    echo "+------------------+-------------+"
+    exit 0
+fi
+
+# Handle general SELECT queries for customer order counts
+if echo "$QUERY_UPPER" | grep -q "SELECT.*CUSTOMER_NAME.*COUNT" && \
+   echo "$QUERY_UPPER" | grep -q "GROUP BY CUSTOMER_NAME"; then
+    
+    echo "+------------------+-------------+"
+    echo "| customer_name    | order_count |"
+    echo "+------------------+-------------+"
+    echo "| Alice Smith      |          45 |"
+    echo "| Bob Johnson      |          38 |"
+    echo "| Charlie Brown    |          29 |"
+    echo "| Diana Prince     |          22 |"
+    echo "| Edward Norton    |          16 |"
+    echo "+------------------+-------------+"
+    exit 0
+fi
+
+# Handle DESCRIBE table
+if echo "$QUERY_UPPER" | grep -q "DESCRIBE CUSTOMER_ORDERS" || \
+   echo "$QUERY_UPPER" | grep -q "DESC CUSTOMER_ORDERS"; then
+    echo "+---------------+------------+----------+"
+    echo "|   col_name    | data_type  | comment  |"
+    echo "+---------------+------------+----------+"
+    echo "| order_id      | int        |          |"
+    echo "| customer_name | string     |          |"
+    echo "| order_date    | date       |          |"
+    echo "| amount        | decimal    |          |"
+    echo "+---------------+------------+----------+"
+    exit 0
+fi
+
+# Handle SELECT * with LIMIT
+if echo "$QUERY_UPPER" | grep -q "SELECT \* FROM CUSTOMER_ORDERS LIMIT"; then
+    echo "+----------+------------------+------------+---------+"
+    echo "| order_id | customer_name    | order_date | amount  |"
+    echo "+----------+------------------+------------+---------+"
+    echo "|        1 | Alice Smith      | 2024-01-15 | 125.50  |"
+    echo "|        2 | Bob Johnson      | 2024-01-16 | 89.99   |"
+    echo "|        3 | Alice Smith      | 2024-01-17 | 234.00  |"
+    echo "|        4 | Charlie Brown    | 2024-01-18 | 45.25   |"
+    echo "|        5 | Alice Smith      | 2024-01-19 | 178.80  |"
+    echo "+----------+------------------+------------+---------+"
+    exit 0
+fi
+
+# Default error for unsupported queries
+echo "Error: Query not recognized or not supported in this test environment"
+echo "Query received: $QUERY"
+exit 1

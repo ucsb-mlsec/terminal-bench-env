@@ -1,0 +1,64 @@
+import os
+import struct
+import random
+
+# Create binary.dat with repeating byte sequences
+output = bytearray()
+
+# Pattern 1: Highly repetitive sequences (100 consecutive 0x00 bytes)
+for _ in range(20):
+    output.extend(b'\x00' * 100)
+
+# Pattern 2: Repeating 8-byte blocks
+block_8byte = bytes([0x00, 0x01, 0x02, 0x03, 0xFF, 0xFE, 0xFD, 0xFC])
+for _ in range(150):
+    output.extend(block_8byte)
+
+# Pattern 3: Repeating 16-byte blocks
+block_16byte = bytes([0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80,
+                      0x90, 0xA0, 0xB0, 0xC0, 0xD0, 0xE0, 0xF0, 0xFF])
+for _ in range(100):
+    output.extend(block_16byte)
+
+# Pattern 4: Some random-looking bytes to simulate variation
+random.seed(42)
+for _ in range(50):
+    random_bytes = bytes([random.randint(0, 255) for _ in range(20)])
+    output.extend(random_bytes)
+
+# Pattern 5: Alternating pattern
+alternating = bytes([0xAA, 0x55] * 200)
+output.extend(alternating)
+
+# Pattern 6: Sequential pattern repeated
+sequential = bytes(range(256))
+for _ in range(10):
+    output.extend(sequential)
+
+# Pattern 7: More highly repetitive bytes (0xFF)
+for _ in range(15):
+    output.extend(b'\xFF' * 80)
+
+# Pattern 8: Structured data simulation (like headers)
+header_pattern = struct.pack('>I', 0x89504E47) + struct.pack('>I', 0x0D0A1A0A)
+for _ in range(50):
+    output.extend(header_pattern)
+
+# Pattern 9: Mixed repetitive and random
+for _ in range(30):
+    output.extend(b'\x00\x00\xFF\xFF')
+    output.extend(bytes([random.randint(0, 255) for _ in range(4)]))
+
+# Ensure we're around 15KB
+while len(output) < 15000:
+    output.extend(block_8byte)
+
+# Trim to approximately 15KB
+output = output[:15360]
+
+# Write the binary file
+os.makedirs('/workspace/test_data', exist_ok=True)
+with open('/workspace/test_data/binary.dat', 'wb') as f:
+    f.write(output)
+
+print(f"Generated binary.dat with {len(output)} bytes")

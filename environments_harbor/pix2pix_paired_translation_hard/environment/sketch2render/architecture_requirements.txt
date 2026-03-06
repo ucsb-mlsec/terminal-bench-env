@@ -1,0 +1,216 @@
+# Paired Image Translation Model: Architecture Requirements
+# Sketch-to-Render Translation System
+
+## 1. INPUT SPECIFICATIONS
+
+### Training Mode
+- Accepts paired RGB images (sketch + render) concatenated along channel dimension
+- Input tensor shape: **Bx6x256x256** (batch_size x 6_channels x height x width)
+- First 3 channels: sketch image (RGB)
+- Last 3 channels: corresponding render image (RGB)
+- Pixel value range: [-1, 1] (normalized)
+
+### Inference Mode
+- Accepts single sketch RGB image
+- Input tensor shape: **Bx3x256x256** (batch_size x 3_channels x height x width)
+- Pixel value range: [-1, 1] (normalized)
+- Image dimensions: 256x256 pixels fixed
+
+## 2. OUTPUT SPECIFICATIONS
+
+### Output Tensor
+- Shape: **Bx3x256x256** (RGB rendered image)
+- Channels: 3 (RGB color space)
+- Spatial dimensions: 256x256 (same as input)
+- Value range: [-1, 1] (Tanh activation)
+
+### Output Properties
+- Photorealistic rendered image prediction
+- Maintains spatial correspondence with input sketch
+- Suitable for paired L1/L2 loss computation
+
+## 3. ARCHITECTURE COMPONENTS
+
+### Overall Structure
+- **Encoder-Decoder architecture with skip connections (U-Net style)**
+- Symmetric structure enabling precise spatial information preservation
+- Skip connections at each resolution level
+
+### Encoder (Downsampling Path)
+- Number of blocks: **5 downsampling blocks**
+- Each block reduces spatial dimensions by factor of 2
+- Spatial dimension progression: 256 -> 128 -> 64 -> 32 -> 16 -> 8
+
+### Encoder Block Structure
+- Conv2d layer (downsampling)
+- BatchNorm2d (except first layer)
+- LeakyReLU(0.2) activation
+
+### Decoder (Upsampling Path)
+- Number of blocks: **5 upsampling blocks**
+- Each block increases spatial dimensions by factor of 2
+- Spatial dimension progression: 8 -> 16 -> 32 -> 64 -> 128 -> 256
+
+### Decoder Block Structure
+- ConvTranspose2d layer (upsampling) OR Upsample + Conv2d
+- BatchNorm2d (except last layer)
+- ReLU activation (or Dropout in some blocks)
+- Concatenation with corresponding encoder features (skip connections)
+
+### Skip Connections
+- Connect encoder features to decoder at matching spatial resolutions
+- Concatenation along channel dimension
+- Enables preservation of fine-grained spatial details
+- Connection points: 128x128, 64x64, 32x32, 16x16 resolution levels
+
+### Output Layer
+- Conv2d with kernel_size=4, stride=1, padding=1 (or kernel_size=1)
+- Output channels: 3 (RGB)
+- Tanh activation function
+- No normalization on final layer
+
+## 4. CHANNEL DIMENSIONS
+
+### Encoder Channel Progression
+- Input: 6 channels (paired images) or 3 channels (inference)
+- Layer 1: 64 channels
+- Layer 2: 128 channels
+- Layer 3: 256 channels
+- Layer 4: 512 channels
+- Layer 5 (Bottleneck): 512 channels
+
+### Decoder Channel Progression (with skip connections)
+- Layer 1: 512 channels (from bottleneck) -> 512 channels output
+- Layer 2: 512 + 512 (skip) = 1024 input -> 256 channels output
+- Layer 3: 256 + 256 (skip) = 512 input -> 128 channels output
+- Layer 4: 128 + 128 (skip) = 256 input -> 64 channels output
+- Layer 5: 64 + 64 (skip) = 128 input -> 64 channels output
+- Final: 64 channels -> 3 channels (RGB output)
+
+## 5. LAYER SPECIFICATIONS
+
+### Convolution Parameters
+- **Kernel size**: 4x4 for downsampling/upsampling operations
+- **Stride**: 2 for spatial dimension changes (down/up sampling)
+- **Padding**: 1 (maintains proper dimension calculations)
+- Alternative for final layers: kernel_size=3 or 1, stride=1
+
+### Activation Functions
+- **Encoder**: LeakyReLU(negative_slope=0.2)
+- **Decoder**: ReLU (standard, no negative slope)
+- **Output layer**: Tanh (maps to [-1, 1] range)
+
+### Normalization
+- **Type**: BatchNorm2d
+- **Applied after**: Convolution layers
+- **Exceptions**: 
+  - No normalization on first encoder layer
+  - No normalization on final output layer
+- **Parameters**: Default PyTorch settings (eps=1e-5, momentum=0.1)
+
+### Dropout (Optional)
+- Can be applied in decoder blocks for regularization
+- Typical rate: 0.5
+- Usually in first 2-3 decoder blocks
+
+## 6. FORWARD PASS BEHAVIOR
+
+### Input Processing
+- Check input channel dimension (3 or 6)
+- For inference (3 channels): process sketch only
+- For training (6 channels): concatenated sketch + render
+
+### Encoding Phase
+1. Pass input through first encoder block (6->64 or 3->64 channels)
+2. Sequentially apply remaining encoder blocks
+3. Store intermediate feature maps for skip connections
+4. Reach bottleneck with smallest spatial dimensions (8x8)
+
+### Decoding Phase
+1. Begin upsampling from bottleneck
+2. At each decoder block:
+   - Upsample spatial dimensions
+   - Concatenate with corresponding encoder features (skip connection)
+   - Apply convolution, normalization, and activation
+3. Progressively reconstruct spatial resolution to 256x256
+
+### Output Generation
+- Apply final convolution layer (64 -> 3 channels)
+- Apply Tanh activation
+- Return tensor of shape Bx3x256x256 in range [-1, 1]
+
+### Dimension Tracking Example
+```
+Input: Bx6x256x256 (or Bx3x256x256)
+Enc1: Bx64x128x128 (saved for skip)
+Enc2: Bx128x64x64 (saved for skip)
+Enc3: Bx256x32x32 (saved for skip)
+Enc4: Bx512x16x16 (saved for skip)
+Enc5: Bx512x8x8 (bottleneck)
+Dec1: Bx512x16x16 (after upsample, before skip: Bx512x16x16)
+Dec2: Bx256x32x32 (after concat with Enc4: Bx1024x16x16 input)
+Dec3: Bx128x64x64 (after concat with Enc3: Bx512x32x32 input)
+Dec4: Bx64x128x128 (after concat with Enc2: Bx256x64x64 input)
+Dec5: Bx64x256x256 (after concat with Enc1: Bx128x128x128 input)
+Output: Bx3x256x256 (final convolution + Tanh)
+```
+
+## 7. IMPLEMENTATION NOTES
+
+### Framework
+- **PyTorch** (torch.nn module)
+- Version compatibility: PyTorch 1.7+
+
+### Model Class Structure
+```
+class SketchToRenderModel(nn.Module):
+    def __init__(self):
+        # Define all layers
+    
+    def forward(self, x):
+        # Implement forward pass with skip connections
+        # Return output tensor
+```
+
+### Parameter Requirements
+- All parameters must have **requires_grad=True** (default)
+- Total parameters: approximately 30-50 million
+- Model should be trainable end-to-end
+
+### Initialization
+- Default PyTorch initialization acceptable
+- Alternative: Xavier/He initialization for better convergence
+- Bias initialization: zeros or small constants
+
+### Device Compatibility
+- Model should support both CPU and CUDA
+- Use .to(device) for device transfer
+- Implement with device-agnostic code
+
+### Input Flexibility
+- Must handle variable batch sizes
+- Must handle both 3-channel (inference) and 6-channel (training) inputs
+- Implement conditional logic or separate processing paths as needed
+
+### Memory Considerations
+- Skip connections require storing intermediate activations
+- Use efficient concatenation operations
+- Consider gradient checkpointing for very deep variants
+
+## 8. VALIDATION REQUIREMENTS
+
+### Dimension Validation
+- Verify output shape matches Bx3x256x256
+- Ensure no dimension mismatches during skip connections
+- Test with batch_size=1 and batch_size>1
+
+### Numerical Validation
+- Output values should be in range [-1, 1] (Tanh output)
+- No NaN or Inf values in forward pass
+- Gradients should flow through all parameters
+
+### Functional Tests
+- Test forward pass with 3-channel input (inference)
+- Test forward pass with 6-channel input (training)
+- Verify model can be saved and loaded
+- Confirm compatibility with standard loss functions (L1, L2, etc.)

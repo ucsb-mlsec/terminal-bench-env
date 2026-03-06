@@ -1,0 +1,39 @@
+Platform-Specific Alignment Constraints for Shader Binding Table Records
+================================================================================
+
+These alignment requirements are specific to NVIDIA RTX GPU architecture and must be
+strictly followed to ensure correct memory access patterns during ray tracing operations.
+
+Record Alignment: 16 bytes
+---------------------------
+Each SBT record structure must begin at a memory address that is a multiple of 16 bytes.
+This ensures proper memory access alignment for the GPU's shader execution units.
+
+Stride Alignment: 64 bytes
+---------------------------
+The stride value (spacing between consecutive records in the same SBT section) must be
+a multiple of 64 bytes. This stricter alignment requirement is necessary for optimal
+memory access patterns and coalescing on NVIDIA RTX hardware.
+
+Important Notes:
+----------------
+- The stride for each SBT section (raygen, miss, hitgroup) must be >= the size of the
+  largest record structure in that section.
+
+- The stride must be rounded up to the nearest multiple of 64 bytes (stride alignment).
+
+- If the largest record size is not already a multiple of 64 bytes, padding bytes must
+  be added to reach the next 64-byte boundary.
+
+- All records within a section use the same stride value, regardless of their individual
+  sizes. Smaller records will have unused padding bytes at the end.
+
+- Incorrect stride values will cause the GPU runtime to read from wrong memory offsets,
+  resulting in access violations, rendering artifacts, or application crashes.
+
+Example Calculation:
+-------------------
+If the largest record in a section is 100 bytes:
+- 100 bytes / 64 bytes = 1.5625
+- Round up to next multiple: 2 × 64 = 128 bytes
+- Therefore, stride = 128 bytes

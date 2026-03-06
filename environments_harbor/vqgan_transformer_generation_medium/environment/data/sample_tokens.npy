@@ -1,0 +1,37 @@
+import numpy as np
+
+# Create a 16x16 grid of token IDs with realistic distribution
+np.random.seed(42)
+
+# Generate token IDs with varied distribution
+token_grid = np.zeros((16, 16), dtype=np.int32)
+
+# Common tokens (appear frequently) - about 30% of the grid
+common_tokens = [12, 23, 45, 67, 89, 101, 134, 156, 178, 200]
+for i in range(77):
+    row = np.random.randint(0, 16)
+    col = np.random.randint(0, 16)
+    token_grid[row, col] = np.random.choice(common_tokens)
+
+# Rare tokens (appear once or twice) - about 40% of the grid
+rare_tokens = [5, 17, 31, 42, 58, 73, 88, 95, 112, 127, 143, 159, 171, 189, 203, 218, 231, 247]
+for i in range(102):
+    row = np.random.randint(0, 16)
+    col = np.random.randint(0, 16)
+    token_grid[row, col] = np.random.choice(rare_tokens)
+
+# Corrupted token IDs (these should be in corrupted codebook entries) - about 20% of the grid
+corrupted_tokens = [3, 9, 15, 28, 37, 51, 64, 79, 92, 108, 123, 138, 152, 167, 182]
+for i in range(51):
+    row = np.random.randint(0, 16)
+    col = np.random.randint(0, 16)
+    token_grid[row, col] = np.random.choice(corrupted_tokens)
+
+# Fill any remaining zeros with random tokens
+for i in range(16):
+    for j in range(16):
+        if token_grid[i, j] == 0 and np.random.random() > 0.3:
+            token_grid[i, j] = np.random.randint(0, 256)
+
+# Save the array
+np.save('/workspace/sample_tokens.npy', token_grid)

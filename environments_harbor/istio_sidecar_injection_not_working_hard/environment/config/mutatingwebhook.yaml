@@ -1,0 +1,40 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: istio-sidecar-injector
+  labels:
+    app: sidecar-injector
+    release: istio
+webhooks:
+- name: sidecar-injector.istio.io
+  clientConfig:
+    service:
+      name: istiod
+      namespace: istio-system
+      path: /inject
+      port: 443
+    caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURHekNDQWdPZ0F3SUJBZ0lRQUo2K2puNWJGWGQ4TjBKVnhRd0RBVEFOQ...
+  sideEffects: None
+  admissionReviewVersions:
+  - v1
+  - v1beta1
+  failurePolicy: Fail
+  reinvocationPolicy: Never
+  namespaceSelector:
+    matchLabels:
+      istio-injection: enabled
+  objectSelector:
+    matchExpressions:
+    - key: sidecar.istio.io/inject
+      operator: NotIn
+      values:
+      - "false"
+  rules:
+  - operations:
+    - CREATE
+    apiGroups:
+    - ""
+    apiVersions:
+    - v1
+    resources:
+    - pods

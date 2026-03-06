@@ -1,0 +1,233 @@
+[
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"(async function() {"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"    const baseUrl = pm.environment.get('API_BASE_URL');"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"    const username = pm.environment.get('USERNAME');"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"    const password = pm.environment.get('PASSWORD');"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"    const accessToken = pm.environment.get('ACCESS_TOKEN');"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"    const refreshToken = pm.environment.get('REFRESH_TOKEN');"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"    const tokenExpiry = pm.environment.get('TOKEN_EXPIRY');"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"    const refreshExpiry = pm.environment.get('REFRESH_EXPIRY');"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"    const now = Date.now();"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"    const bufferTime = 30000; \/\/ 30 second buffer before expiry"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"    async function performLogin() {"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"        try {"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"                pm.sendRequest({"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"                    header: {"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"                        'Content-Type': 'application\/json'"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"                    body: {"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"                    }"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"                    if (err) reject(err);"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"                    else resolve(res);"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"                });"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"            });"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"            if (loginResponse.code === 200 && loginResponse.json()) {"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"                const data = loginResponse.json();"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"                pm.request.headers.add({"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"                    value: `Bearer ${data.access_token}`"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"                });"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"                return true;"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"            } else {"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"                return false;"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"            }"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"        } catch (error) {"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"            return false;"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"        }"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"    }"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"    async function refreshAccessToken() {"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"        try {"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"                pm.sendRequest({"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"                    header: {"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"                        'Content-Type': 'application\/json'"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"                    body: {"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"                        raw: JSON.stringify({ refresh_token: refreshToken })"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"                    }"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"                    if (err) reject(err);"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"                    else resolve(res);"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"                });"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"            });"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"            if (refreshResponse.code === 200 && refreshResponse.json()) {"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"                const data = refreshResponse.json();"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"                pm.request.headers.add({"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"                    value: `Bearer ${data.access_token}`"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"                });"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"                return true;"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"            } else {"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"                return false;"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"            }"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"        } catch (error) {"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"            return false;"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"        }"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"    }"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"    \/\/ Check if refresh token is expired or missing"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"    if (!refreshToken || !refreshExpiry || now >= (parseInt(refreshExpiry) - bufferTime)) {"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"        await performLogin();"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"        return;"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"    }"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"    \/\/ Check if access token is expired or missing"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"    if (!accessToken || !tokenExpiry || now >= (parseInt(tokenExpiry) - bufferTime)) {"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"        const refreshSuccess = await refreshAccessToken();"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"        if (!refreshSuccess) {"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"            await performLogin();"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"        }"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"        return;"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"    }"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"    \/\/ Access token is still valid"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"    pm.request.headers.add({"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"        value: `Bearer ${accessToken}`"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"    });"
+  },
+  {
+    "\/\/ Pre-request script for JWT authentication with automatic token refresh":"})();"
+  }
+]

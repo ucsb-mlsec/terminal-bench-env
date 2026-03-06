@@ -1,0 +1,70 @@
+#include <omp.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <time.h>
+
+// Simulate work items with varying complexity
+void simulate_work(int item_id) {
+    // Create varying computational patterns
+    // Some items are fast (microseconds), others slow (milliseconds)
+    int complexity = (item_id * 7919) % 100;
+    
+    if (complexity < 70) {
+        // Fast items - microseconds
+        volatile double sum = 0.0;
+        for (int i = 0; i < 100; i++) {
+            sum += (double)i * 1.1;
+        }
+    } else if (complexity < 90) {
+        // Medium items - hundreds of microseconds
+        volatile double sum = 0.0;
+        for (int i = 0; i < 5000; i++) {
+            sum += (double)i * 1.1;
+        }
+    } else {
+        // Slow items - milliseconds
+        volatile double sum = 0.0;
+        for (int i = 0; i < 100000; i++) {
+            sum += (double)i * 1.1;
+        }
+    }
+}
+
+int main(int argc, char *argv[]) {
+    if (argc != 2) {
+        fprintf(stderr, "Usage: %s <chunk_size>\n", argv[0]);
+        return 1;
+    }
+    
+    int chunk_size = atoi(argv[1]);
+    if (chunk_size < 1 || chunk_size > 50) {
+        fprintf(stderr, "Chunk size must be between 1 and 50\n");
+        return 1;
+    }
+    
+    // Set number of threads
+    omp_set_num_threads(4);
+    
+    const int NUM_ITEMS = 1000;
+    
+    // Start timing
+    double start_time = omp_get_wtime();
+    
+    // Process work items with guided scheduling
+    #pragma omp parallel for schedule(guided, chunk_size)
+    for (int i = 0; i < NUM_ITEMS; i++) {
+        simulate_work(i);
+    }
+    
+    // End timing
+    double end_time = omp_get_wtime();
+    double elapsed = (end_time - start_time) * 1000.0; // Convert to milliseconds
+    
+    // Output timing information
+    printf("Execution time: %d ms\n", (int)elapsed);
+    printf("Chunk size: %d\n", chunk_size);
+    printf("Threads: 4\n");
+    
+    return 0;
+}

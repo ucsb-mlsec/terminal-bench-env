@@ -1,0 +1,121 @@
+import struct
+import random
+import os
+
+# Set random seed for reproducibility
+random.seed(42)
+
+# Configuration
+TRANSACTION_SIZE = 64
+NUM_TRANSACTIONS = 500
+TRANSACTION_START_ID = 10000
+
+# Choose a specific offset for transaction records (between 0x10000 and 0x50000)
+TRANSACTION_START_OFFSET = 0x2a400  # 173056 in decimal
+
+# Corruption configuration
+CORRUPTED_INDICES = [15, 34, 87, 156, 243, 298, 367, 445, 489, 498]  # 10 corrupted transactions
+DOMINANT_CORRUPTION_BYTE = 0xFF
+NUM_DOMINANT = 7  # 70% use dominant pattern
+
+# Initialize core dump with random data
+core_size = 400 * 1024  # 400 KB
+core_dump = bytearray(random.randbytes(core_size))
+
+def calculate_checksum(data):
+    """Calculate XOR checksum of data bytes"""
+    checksum = 0
+    for byte in data:
+        checksum ^= byte
+    return checksum
+
+def create_transaction_record(trans_id, amount, timestamp, account_from, account_to, corrupt=False, corruption_byte=0xFF):
+    """Create a 64-byte transaction record"""
+    record = bytearray(64)
+    
+    # Pack transaction_id (8 bytes, little-endian)
+    struct.pack_into('<Q', record, 0, trans_id)
+    
+    # Pack amount (8 bytes, little-endian)
+    struct.pack_into('<Q', record, 8, amount)
+    
+    # Pack timestamp (8 bytes, little-endian)
+    struct.pack_into('<Q', record, 16, timestamp)
+    
+    # Pack account_from (16 bytes)
+    record[24:40] = account_from
+    
+    # Pack account_to (16 bytes)
+    record[40:56] = account_to
+    
+    # Calculate checksum from bytes 0-55
+    checksum_data = record[0:56]
+    checksum = 0
+    for byte in checksum_data:
+        checksum ^= byte
+    
+    # Convert checksum to 8 bytes (repeat the single byte XOR result across all 8 bytes)
+    # Actually, let's do a proper 8-byte checksum by XORing in 8-byte chunks
+    checksum_value = 0
+    for i in range(0, 56, 8):
+        chunk = struct.unpack_from('<Q', record, i)[0]
+        checksum_value ^= chunk
+    
+    if corrupt:
+        # Corrupt the checksum by XORing with corruption byte pattern
+        checksum_value ^= (corruption_byte * 0x0101010101010101)  # Replicate byte across 8 bytes
+    
+    # Pack checksum (8 bytes, little-endian)
+    struct.pack_into('<Q', record, 56, checksum_value)
+    
+    return record
+
+# Generate transaction records
+print(f"Generating {NUM_TRANSACTIONS} transaction records starting at offset 0x{TRANSACTION_START_OFFSET:x}")
+
+corruption_pattern_usage = {}
+corrupted_ids = []
+
+for i in range(NUM_TRANSACTIONS):
+    trans_id = TRANSACTION_START_ID + i
+    amount = random.randint(100, 1000000)
+    timestamp = 1700000000 + i * 60  # Increment by 60 seconds each
+    
+    # Generate random account identifiers
+    account_from = bytes([random.randint(0, 255) for _ in range(16)])
+    account_to = bytes([random.randint(0, 255) for _ in range(16)])
+    
+    # Check if this transaction should be corrupted
+    is_corrupt = i in CORRUPTED_INDICES
+    corruption_byte = 0
+    
+    if is_corrupt:
+        corrupted_ids.append(trans_id)
+        # Determine corruption pattern
+        if len([x for x in CORRUPTED_INDICES[:CORRUPTED_INDICES.index(i)+1] if x in CORRUPTED_INDICES]) <= NUM_DOMINANT:
+            corruption_byte = DOMINANT_CORRUPTION_BYTE
+        else:
+            corruption_byte = random.choice([0xAA, 0x55, 0x42])
+        
+        corruption_pattern_usage[corruption_byte] = corruption_pattern_usage.get(corruption_byte, 0) + 1
+    
+    # Create the transaction record
+    record = create_transaction_record(trans_id, amount, timestamp, account_from, account_to, 
+                                       corrupt=is_corrupt, corruption_byte=corruption_byte)
+    
+    # Write record to core dump
+    offset = TRANSACTION_START_OFFSET + (i * TRANSACTION_SIZE)
+    core_dump[offset:offset + TRANSACTION_SIZE] = record
+
+print(f"Corrupted transaction IDs: {corrupted_ids}")
+print(f"Corruption pattern usage: {corruption_pattern_usage}")
+print(f"Dominant pattern: 0x{DOMINANT_CORRUPTION_BYTE:02x}")
+
+# Ensure output directory exists
+os.makedirs('/workspace/crash_data', exist_ok=True)
+
+# Write core dump to file
+with open('/workspace/crash_data/process.core', 'wb') as f:
+    f.write(core_dump)
+
+print(f"Core dump written to /workspace/crash_data/process.core ({len(core_dump)} bytes)")

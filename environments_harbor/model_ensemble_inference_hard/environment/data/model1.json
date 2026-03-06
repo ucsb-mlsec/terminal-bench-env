@@ -1,0 +1,575 @@
+[
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"```python"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"import os"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"import json"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"import pandas as pd"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"import numpy as np"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"from pathlib import Path"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"models_dir = Path('\/var\/ml\/models\/')"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"data_dir = Path('\/var\/ml\/data\/')"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"output_dir = Path('\/var\/ml\/output\/')"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"print(\"=== Checking directories ===\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"print(f\"Models dir exists: {models_dir.exists()}\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"print(f\"Data dir exists: {data_dir.exists()}\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"print(f\"Output dir exists: {output_dir.exists()}\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"# Create output directory if it doesn't exist"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"# List model files"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"if models_dir.exists():"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"    model_files = list(models_dir.glob('*.json'))"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"    print(f\"\\nFound {len(model_files)} model files:\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"    for f in model_files:"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        print(f\"  - {f.name}\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"# List data files"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"if data_dir.exists():"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"    data_files = list(data_dir.glob('*.csv'))"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"    print(f\"\\nFound {len(data_files)} data files:\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"    for f in data_files:"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        print(f\"  - {f.name}\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"```"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"```python"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"# Load and validate model files"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"def load_model(model_path):"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"    \"\"\"Load and validate a model file\"\"\""
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"    try:"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"            model = json.load(f)"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        # Check required fields"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        if 'weights' not in model or 'bias' not in model:"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        # Validate weights"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        if not model['weights']:"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        # Check if all weights are numeric"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        # Validate bias"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"    except json.JSONDecodeError as e:"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"    except Exception as e:"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"# Load all valid models"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"valid_models = []"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"print(\"=== Loading and validating models ===\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"for model_file in sorted(models_dir.glob('*.json')):"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"    if model is not None:"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        valid_models.append(model)"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        print(f\"\u2713 {model_file.name}: Valid (features: {list(model['weights'].keys())})\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"    else:"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        print(f\"\u2717 {model_file.name}: {error}\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"print(f\"\\nTotal valid models: {len(valid_models)}\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"```"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"```python"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"# Load the data files"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"print(\"=== Loading data files ===\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"features_df = pd.read_csv(data_dir \/ 'features.csv')"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"print(f\"\\nFeatures shape: {features_df.shape}\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"print(f\"Feature columns: {list(features_df.columns)}\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"print(f\"First few rows:\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"print(features_df.head())"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"validation_df = pd.read_csv(data_dir \/ 'validation.csv')"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"print(f\"\\nValidation shape: {validation_df.shape}\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"print(f\"Validation columns: {list(validation_df.columns)}\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"print(f\"First few rows:\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"print(validation_df.head())"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"# Check label distribution in validation"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"if 'label' in validation_df.columns:"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"    print(f\"\\nValidation label distribution:\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"    print(validation_df['label'].value_counts())"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"```"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"```python"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"    \"\"\"Generate predictions using a single model\"\"\""
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"    predictions = []"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        # Calculate linear combination"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        score = model['bias']"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"            if feature in data_df.columns:"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"                score += weight * row[feature]"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        # Apply threshold (0 is typical for binary classification)"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        prediction = 1 if score > 0 else 0"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        predictions.append(prediction)"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"    return np.array(predictions)"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"# Test each model on validation data"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"print(\"=== Testing individual models ===\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"model_accuracies = []"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"    accuracy = np.mean(val_predictions == validation_df['label'].values)"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"    model_accuracies.append(accuracy)"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"    print(f\"{model_name}: {accuracy:.4f}\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"```"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"```python"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"    \"\"\"Generate ensemble predictions from multiple models\"\"\""
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"    if method == 'voting':"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        # Majority voting"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        all_predictions = []"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        for model in models:"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"            all_predictions.append(preds)"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        all_predictions = np.array(all_predictions)"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        # Sum votes and threshold at 0.5 (majority)"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"    elif method == 'weighted_voting':"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        # Weighted voting based on validation accuracy"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        val_accuracies = []"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        for model in models:"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"            acc = np.mean(val_preds == validation_df['label'].values)"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"            val_accuracies.append(acc)"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        # Normalize weights"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        weights = np.array(val_accuracies)"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        weights = weights \/ np.sum(weights)"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        # Weighted combination"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        all_predictions = []"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        for model in models:"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"            all_predictions.append(preds)"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        all_predictions = np.array(all_predictions)"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        ensemble_preds = (weighted_sum >= 0.5).astype(int)"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"    elif method == 'average_scores':"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        # Average the raw scores before thresholding"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        all_scores = []"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        for model in models:"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"            scores = []"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"                score = model['bias']"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"                    if feature in data_df.columns:"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"                        score += weight * row[feature]"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"                scores.append(score)"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"            all_scores.append(scores)"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        all_scores = np.array(all_scores)"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        ensemble_preds = (avg_scores > 0).astype(int)"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"    return ensemble_preds"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"# Test different ensemble methods"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"print(\"\\n=== Testing ensemble methods ===\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"best_method = None"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"best_accuracy = 0.0"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"for method in ensemble_methods:"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"    accuracy = np.mean(val_preds == validation_df['label'].values)"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"    print(f\"{method}: {accuracy:.4f}\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"    if accuracy > best_accuracy:"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        best_accuracy = accuracy"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        best_method = method"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"print(f\"\\nBest method: {best_method} with accuracy: {best_accuracy:.4f}\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"```"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"```python"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"# Check if we meet the quality requirement"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"print(f\"\\n=== Quality Check ===\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"print(f\"Required accuracy: 0.80\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"print(f\"Achieved accuracy: {best_accuracy:.4f}\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"print(f\"Meets requirement: {best_accuracy >= 0.80}\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"if best_accuracy < 0.80:"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"    print(\"\\n\u26a0 Trying to improve ensemble...\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"    # Try using only the best performing models"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"    # Try top N models"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        top_models = [valid_models[i] for i in top_indices]"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        for method in ensemble_methods:"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"            accuracy = np.mean(val_preds == validation_df['label'].values)"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"            if accuracy > best_accuracy:"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"                best_accuracy = accuracy"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"                best_method = method"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"                valid_models = top_models"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"                print(f\"  Improved: top {n} models with {method} = {accuracy:.4f}\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"                if accuracy >= 0.80:"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"                    break"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"        if best_accuracy >= 0.80:"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"            break"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"print(f\"\\nFinal accuracy: {best_accuracy:.4f}\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"```"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"```python"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"# Generate final predictions on features.csv"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"print(\"\\n=== Generating final predictions ===\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"print(f\"Generated {len(final_predictions)} predictions\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"print(f\"Prediction distribution: {np.bincount(final_predictions)}\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"print(f\"First 10 predictions: {final_predictions[:10].tolist()}\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"# Prepare output"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"output = {"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"    \"accuracy\": float(best_accuracy)"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"}"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"# Save to output file"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"output_file = output_dir \/ 'ensemble_predictions.json'"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"print(f\"\\n\u2713 Predictions saved to: {output_file}\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"print(f\"\u2713 Accuracy: {best_accuracy:.4f}\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"print(f\"\u2713 Number of predictions: {len(final_predictions)}\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"```"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"```python"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"# Verification"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"print(\"\\n=== Final Verification ===\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"# Load and verify the output file"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"    saved_output = json.load(f)"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"print(f\"\u2713 Output file valid JSON\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"print(f\"\u2713 Has 'predictions' key: {'predictions' in saved_output}\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"print(f\"\u2713 Has 'accuracy' key: {'accuracy' in saved_output}\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"print(f\"\u2713 Predictions count: {len(saved_output['predictions'])} (expected: {len(features_df)})\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"print(f\"\u2713 Accuracy value: {saved_output['accuracy']:.4f} (required: >= 0.80)\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"if len(saved_output['predictions']) == len(features_df) and saved_output['accuracy'] >= 0.80:"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"    print(\"\\n\u2705 SUCCESS: All requirements met!\")"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"else:"
+  },
+  {
+    "I'll help you restore the legacy prediction service. Let me start by exploring the environment and understanding what we're working with.":"    print(\"\\n\u274c FAILED: Requirements not met\")"
+  }
+]

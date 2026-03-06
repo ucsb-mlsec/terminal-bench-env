@@ -1,0 +1,191 @@
+JVM HEAP DUMP SUMMARY REPORT
+=====================================
+Generated: 2024-01-15 14:30:00 UTC
+Application: Kafka Consumer Service
+Instance: kafka-consumer-prod-01
+
+=====================================
+HEAP USAGE SUMMARY
+=====================================
+
+Total Heap Size: 4096 MB (4.0 GB)
+Used Heap: 2150 MB (2.1 GB)
+Free Heap: 1946 MB (1.9 GB)
+Heap Utilization: 52%
+
+Memory Generation Breakdown:
+----------------------------
+Old Generation (Tenured):
+  - Capacity: 3072 MB
+  - Used: 1382 MB
+  - Utilization: 45%
+
+Young Generation (Eden + Survivor):
+  - Capacity: 1024 MB
+  - Used: 799 MB
+  - Utilization: 78%
+
+Metaspace:
+  - Capacity: 256 MB
+  - Used: 142 MB
+  - Utilization: 55%
+
+=====================================
+TOP MEMORY CONSUMERS
+=====================================
+
+1. ConsumerRecords Buffer: 450 MB
+   - Location: org.apache.kafka.clients.consumer.internals
+   - Description: Processing backlog of 500 records
+   - Status: CRITICAL - Abnormally high retention
+   - Object instances: 125,000
+
+2. Database Connection Pool: 320 MB
+   - Location: com.zaxxer.hikari.pool
+   - Description: JDBC connection objects and prepared statements
+   - Active connections: 50
+   - Idle connections: 150
+   - Status: WARNING - High idle connection count
+
+3. Thread Local Buffers: 280 MB
+   - Location: java.lang.ThreadLocal
+   - Description: Per-thread processing buffers
+   - Thread count: 200
+   - Average per thread: 1.4 MB
+   - Status: ELEVATED
+
+4. Kafka Metadata Cache: 180 MB
+   - Location: org.apache.kafka.clients.metadata
+   - Description: Topic and partition metadata
+   - Cached topics: 450
+   - Cached partitions: 3200
+   - Status: NORMAL
+
+5. Transaction Objects: 165 MB
+   - Location: com.company.transaction.model
+   - Description: In-flight transaction processing objects
+   - Count: 45,000
+   - Status: WARNING - High queue depth
+
+=====================================
+OBJECT COUNT ANALYSIS
+=====================================
+
+String Objects: 487,000
+  - Total memory: 95 MB
+  - Average size: 195 bytes
+  - Status: NORMAL
+
+ConsumerRecord Objects: 125,000
+  - Total memory: 450 MB
+  - Average size: 3.6 KB
+  - Status: CRITICAL - Unusually high count
+  - Note: Expected count under normal conditions: 5,000-10,000
+  - Current backlog indicates processing bottleneck
+
+Transaction Objects: 45,000
+  - Total memory: 165 MB
+  - Average size: 3.7 KB
+  - Status: WARNING - Processing queue depth elevated
+  - Note: Normal queue depth: 5,000-8,000
+
+HashMap/HashTable Objects: 38,500
+  - Total memory: 78 MB
+  - Status: NORMAL
+
+ArrayList Objects: 67,000
+  - Total memory: 112 MB
+  - Status: NORMAL
+
+Thread Objects: 200
+  - Total memory: 45 MB
+  - Status: NORMAL
+
+=====================================
+ANALYSIS NOTES
+=====================================
+
+CRITICAL FINDINGS:
+
+1. ConsumerRecord Backlog:
+   The heap contains 125,000 ConsumerRecord objects consuming 450 MB,
+   which is 12-25x higher than normal operating conditions. This indicates
+   records are being consumed from Kafka but not processed/committed fast
+   enough, causing them to accumulate in memory.
+
+2. Processing Queue Depth:
+   45,000 Transaction objects in the processing queue suggests downstream
+   processing is significantly slower than consumption rate. Normal queue
+   depth should be 5,000-8,000 objects.
+
+3. Database Connection Pool:
+   150 idle connections out of 200 total suggests database operations
+   may be timing out or blocking, preventing connection reuse. This could
+   be contributing to slow transaction processing.
+
+MEMORY PRESSURE INDICATORS:
+
+- Young generation at 78% indicates frequent object allocation
+- Minor GC pressure from high allocation rate
+- Old generation at 45% is acceptable but trending upward
+- No immediate risk of OutOfMemoryError
+
+PERFORMANCE IMPACT:
+
+The accumulation of unprocessed ConsumerRecords creates a cascading effect:
+- Memory pressure increases GC frequency
+- GC pauses delay message processing further
+- Consumer lag increases as processing falls behind consumption
+- Risk of consumer group rebalancing if processing delays cause heartbeat failures
+
+=====================================
+GC STATISTICS
+=====================================
+
+Minor GC (Young Generation):
+  - Frequency: Every 2-3 seconds
+  - Average duration: 45-60 ms
+  - Total collections: 7,234
+  - Total time: 5 minutes 42 seconds
+  - Status: ELEVATED - High frequency indicates memory churn
+
+Major GC (Full GC):
+  - Frequency: Once per 45 minutes
+  - Average duration: 340 ms
+  - Total collections: 32
+  - Total time: 10.88 seconds
+  - Status: NORMAL
+
+GC Time Percentage:
+  - Minor GC: 0.8% of total runtime
+  - Major GC: 0.03% of total runtime
+  - Combined: 0.83% of total runtime
+  - Status: ACCEPTABLE - Below 2% threshold
+
+Memory Leak Assessment:
+  - No continuous growth pattern detected in old generation
+  - Objects are being promoted normally
+  - No indication of memory leak
+  - Status: HEALTHY
+
+Allocation Rate:
+  - Young generation allocation: ~180 MB/second
+  - Status: HIGH - Contributing to frequent minor GCs
+
+=====================================
+RECOMMENDATIONS
+=====================================
+
+IMMEDIATE ACTIONS:
+1. Investigate downstream processing bottleneck causing transaction queue buildup
+2. Review database connection timeout and query performance
+3. Monitor for consumer group rebalancing events
+
+CONFIGURATION REVIEW:
+1. Consider reducing max.poll.records to prevent record accumulation
+2. Review database connection pool settings (idle timeout, max connections)
+3. Evaluate consumer thread pool sizing vs partition count
+
+=====================================
+END OF REPORT
+=====================================

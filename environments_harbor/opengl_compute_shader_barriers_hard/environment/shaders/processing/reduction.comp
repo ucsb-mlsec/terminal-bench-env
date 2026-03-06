@@ -1,0 +1,34 @@
+#version 430
+
+layout(local_size_x = 256) in;
+
+layout(std430, binding = 0) buffer DataBuffer {
+    float data[];
+};
+
+shared float sharedSum[256];
+
+void main() {
+    uint tid = gl_LocalInvocationID.x;
+    uint gid = gl_GlobalInvocationID.x;
+    
+    // Load data into shared memory
+    if (gid < data.length()) {
+        sharedSum[tid] = data[gid];
+    } else {
+        sharedSum[tid] = 0.0;
+    }
+    
+    // Perform reduction in shared memory
+    for (uint stride = 128; stride > 0; stride >>= 1) {
+        if (tid < stride) {
+            sharedSum[tid] += sharedSum[tid + stride];
+        }
+    }
+    
+    // Write result back to buffer
+    if (tid == 0) {
+        uint workGroupID = gl_WorkGroupID.x;
+        data[workGroupID] = sharedSum[0];
+    }
+}
