@@ -20,6 +20,7 @@ RUN pip3 install --no-cache-dir --break-system-packages avro-python3
 
 RUN mkdir -p /workspace/schemas
 
+COPY data/schemas/v1_schema.json /workspace/schemas/v1_schema.json
 COPY data/schemas/v2_schema.json /workspace/schemas/v2_schema.json
 COPY data/schemas/v3_proposed.json /workspace/schemas/v3_proposed.json
 
