@@ -36,19 +36,8 @@ COPY requirements.txt /workspace/training/requirements.txt
 
 RUN chmod +x /workspace/training/start_training.sh
 
-# Create config.yaml
-RUN cat > /workspace/training/config.yaml << 'EOF'
-distributed:
-  backend: gloo
-  init_method: tcp://localhost:29500
-  world_size: 4
-  rank: 0
-
-training:
-  batch_size: 32
-  epochs: 10
-  learning_rate: 0.001
-EOF
+# Copy config.yaml
+COPY config.yaml /workspace/training/config.yaml
 
 # Mapped from docker-compose.yaml
 ENV TEST_DIR=/tests

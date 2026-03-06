@@ -29,30 +29,8 @@ RUN mkdir -p /workspace/matrix_ops
 COPY matrix_extension.cpp /workspace/matrix_ops/matrix_extension.cpp
 COPY setup.py /workspace/matrix_ops/setup.py
 
-RUN cat > /workspace/matrix_ops/test_module.py << 'EOF'
-#!/usr/bin/env python3
-import sys
-
-try:
-    import matrix_ops
-    print("Module imported successfully")
-    print("ALL TESTS PASSED")
-except Exception as e:
-    print(f"Failed to import module: {e}")
-    sys.exit(1)
-EOF
-
-RUN cat > /workspace/matrix_ops/README.md << 'EOF'
-# Matrix Operations C++ Extension
-
-A Python extension module for matrix operations using Boost.Python.
-
-## Building
-Run: python3 setup.py build_ext --inplace
-
-## Testing
-Run: python3 test_module.py
-EOF
+COPY test_module.py /workspace/matrix_ops/test_module.py
+COPY README.md /workspace/matrix_ops/README.md
 
 WORKDIR /workspace/matrix_ops
 

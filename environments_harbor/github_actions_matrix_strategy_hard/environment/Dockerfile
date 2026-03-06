@@ -22,51 +22,8 @@ RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.
 
 RUN mkdir -p /.github/workflows /tmp
 
-# Create the corrected workflow file
-RUN cat > /.github/workflows/ci.yml << 'EOF'
-name: CI
-
-on:
-  push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
-
-jobs:
-  test:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ['3.8', '3.9', '3.10', '3.11']
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-    
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
-    
-    - name: Install dependencies (Unix)
-      if: runner.os != 'Windows'
-      run: |
-        python -m pip install --upgrade pip
-        pip install pytest
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-    
-    - name: Install dependencies (Windows)
-      if: runner.os == 'Windows'
-      run: |
-        python -m pip install --upgrade pip
-        pip install pytest
-        if (Test-Path requirements.txt) { pip install -r requirements.txt }
-      shell: pwsh
-    
-    - name: Run tests
-      run: pytest
-EOF
+# Copy the corrected workflow file
+COPY ci.yml /.github/workflows/ci.yml
 
 # Copy the fixed workflow to /tmp as required
 RUN cp /.github/workflows/ci.yml /tmp/fixed_ci.yml
