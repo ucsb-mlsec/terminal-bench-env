@@ -17,9 +17,9 @@ RUN apt-get update && \
 
 RUN pip3 install --no-cache-dir --break-system-packages pandas numpy scikit-learn
 
-RUN mkdir -p /data /solution
+RUN mkdir -p /workspace/data /workspace/solution
 
-COPY data/wine_quality.csv /data/wine_quality.csv
+COPY data/wine_quality.csv /workspace/data/wine_quality.csv
 
 WORKDIR /workspace
 

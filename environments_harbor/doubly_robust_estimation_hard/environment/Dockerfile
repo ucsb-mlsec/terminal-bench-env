@@ -11,11 +11,11 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /data /output
+RUN mkdir -p /workspace/data /workspace/output
 
 RUN pip3 install --no-cache-dir --break-system-packages pandas numpy scikit-learn scipy
 
-COPY data/hypertension_study.csv /data/hypertension_study.csv
+COPY data/hypertension_study.csv /workspace/data/hypertension_study.csv
 
 WORKDIR /workspace
 

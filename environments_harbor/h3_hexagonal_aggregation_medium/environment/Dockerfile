@@ -17,9 +17,9 @@ RUN apt-get update && \
 
 RUN pip3 install --no-cache-dir --break-system-packages h3 pandas
 
-RUN mkdir -p /data /output
+RUN mkdir -p /workspace/data /workspace/output
 
-COPY data/deliveries.csv /data/deliveries.csv
+COPY data/deliveries.csv /workspace/data/deliveries.csv
 
 WORKDIR /workspace
 

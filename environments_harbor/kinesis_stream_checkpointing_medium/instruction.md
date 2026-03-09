@@ -20,9 +20,9 @@ The checkpoint system stores the last processed sequence number for each shard. 
 - Sequence numbers must match the actual stream data format
 
 **Data Location:**
-- Stream data files: `/data/kinesis_stream/shard_*.jsonl` (one file per shard, JSONL format)
-- Processing logs: `/data/logs/processing.log`
-- Corrupted checkpoint: `/data/checkpoint/state.json` (may be partially readable)
+- Stream data files: `/workspace/data/kinesis_stream/shard_*.jsonl` (one file per shard, JSONL format)
+- Processing logs: `/workspace/data/logs/processing.log`
+- Corrupted checkpoint: `/workspace/data/checkpoint/state.json` (may be partially readable)
 
 **Stream Data Format (JSONL - one JSON object per line):**
 ```json
@@ -33,7 +33,7 @@ The checkpoint system stores the last processed sequence number for each shard. 
 Each line shows: `[TIMESTAMP] Processed shard-X sequence SEQUENCE_NUMBER`
 
 **Output Requirements:**
-Save your reconstructed checkpoint to: `/solution/checkpoint.json`
+Save your reconstructed checkpoint to: `/workspace/solution/checkpoint.json`
 
 The checkpoint file must be valid JSON with this exact structure:
 ```json
@@ -47,7 +47,7 @@ The checkpoint file must be valid JSON with this exact structure:
 Where each SEQUENCE_NUMBER is the last successfully processed sequence number for that shard (as a string).
 
 **Success Criteria:**
-- The checkpoint file exists at `/solution/checkpoint.json`
+- The checkpoint file exists at `/workspace/solution/checkpoint.json`
 - Valid JSON format matching the specified structure
 - All three shards (shard-0, shard-1, shard-2) have entries
 - Sequence numbers correspond to actual records in the stream data

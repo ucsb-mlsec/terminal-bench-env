@@ -4,9 +4,9 @@ Your task is to set up a comprehensive data validation system that checks all th
 
 **Context:**
 Three CSV files contain customer data from different systems:
-- `/data/customer_profiles.csv` - Customer demographic information
-- `/data/transaction_history.csv` - Transaction records
-- `/data/support_interactions.csv` - Customer support ticket data
+- `/workspace/data/customer_profiles.csv` - Customer demographic information
+- `/workspace/data/transaction_history.csv` - Transaction records
+- `/workspace/data/support_interactions.csv` - Customer support ticket data
 
 The data has known quality issues that must be detected:
 1. Missing critical values in required fields
@@ -32,7 +32,7 @@ Set up a validation framework that checks all three datasets and identifies any 
 Create a validation configuration and execute it to produce a comprehensive validation report.
 
 **Output Requirements:**
-Save your validation results to `/solution/validation_report.json`
+Save your validation results to `/workspace/solution/validation_report.json`
 
 The JSON file must contain:
 ```json

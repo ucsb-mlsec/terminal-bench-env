@@ -127,3 +127,39 @@ def test_evaluates_vulnerability_patterns():
     
     if has_vulnerable:
         assert vulnerable_found, "Should include endpoints matching known vulnerability patterns"
+
+def test_output_contains_known_high_risk_endpoints():
+    """Test that output includes the most critical no-auth admin endpoints"""
+    output_path = Path("/tmp/fuzzing_targets.txt")
+    content = output_path.read_text()
+    # These endpoints have no auth and are admin/debug/exec paths - highest risk
+    critical_paths = ['/api/admin', '/api/exec', '/api/sql', '/api/command']
+    found = [p for p in critical_paths if p in content]
+    assert len(found) >= 2, \
+        f"Expected at least 2 of the critical no-auth endpoints {critical_paths} in output, found: {found}"
+
+
+def test_no_auth_required_endpoints_included():
+    """Test against the webapp_routes.json to verify no-auth endpoints are prioritized"""
+    import json
+    routes_path = Path("/tmp/webapp_routes.json")
+    with open(routes_path) as f:
+        routes = json.load(f)
+
+    no_auth_paths = set()
+    for ep in routes:
+        if not ep.get('auth_required', True):
+            no_auth_paths.add(ep['path'])
+
+    output_path = Path("/tmp/fuzzing_targets.txt")
+    lines = [l.strip() for l in output_path.read_text().strip().split('\n') if l.strip()]
+    output_paths = set()
+    for line in lines:
+        parts = line.split('|')
+        if parts:
+            output_paths.add(parts[0].strip())
+
+    # Most output entries should be no-auth endpoints (higher risk)
+    no_auth_in_output = output_paths & no_auth_paths
+    assert len(no_auth_in_output) >= 5, \
+        f"Expected at least 5 no-auth endpoints in output, found {len(no_auth_in_output)}"

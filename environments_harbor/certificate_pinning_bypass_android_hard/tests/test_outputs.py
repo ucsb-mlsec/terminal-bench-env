@@ -110,15 +110,34 @@ def test_frida_script_syntax_valid():
     """Test that the JavaScript syntax is valid (basic check)"""
     script_path = Path("/workspace/solution/frida_bypass.js")
     content = script_path.read_text()
-    
+
     # Basic syntax checks
     assert content.count('{') == content.count('}'), "Mismatched curly braces in JavaScript"
     assert content.count('(') == content.count(')'), "Mismatched parentheses in JavaScript"
-    
+
     # Check for common JavaScript errors
     assert not re.search(r'function\s*{', content), "Invalid function syntax"
-    
+
     # Check that Java.perform has a function body
     if "Java.perform" in content:
         perform_match = re.search(r'Java\.perform\s*\(\s*function\s*\(\s*\)\s*{', content)
         assert perform_match, "Java.perform must have proper function syntax"
+
+
+def test_frida_script_hooks_checkservertrusted_or_checkcertificatepins():
+    """Test that the script hooks checkServerTrusted or checkCertificatePins.
+    The CertificateValidator class (com.bankingapp.security) implements X509TrustManager;
+    a bypass must neutralize checkServerTrusted (throws CertificateException on pin failure)
+    or checkCertificatePins (returns false when no pin matches)."""
+    script_path = Path("/workspace/solution/frida_bypass.js")
+    content = script_path.read_text()
+    assert "checkServerTrusted" in content or "checkCertificatePins" in content or "setPinningEnabled" in content, \
+        "Script must hook checkServerTrusted, checkCertificatePins, or setPinningEnabled to bypass certificate pinning"
+
+
+def test_frida_script_references_correct_package():
+    """Test that the script references the correct package com.bankingapp.security."""
+    script_path = Path("/workspace/solution/frida_bypass.js")
+    content = script_path.read_text()
+    assert "com.bankingapp.security" in content or "CertificateValidator" in content, \
+        "Script must reference the com.bankingapp.security.CertificateValidator class"

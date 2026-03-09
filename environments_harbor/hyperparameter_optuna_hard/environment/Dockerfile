@@ -27,10 +27,8 @@ RUN pip3 install --no-cache-dir --break-system-packages \
 
 RUN mkdir -p /workspace/data /workspace/solution
 
-COPY data/train_images.npy /workspace/data/train_images.npy
-COPY data/train_labels.npy /workspace/data/train_labels.npy
-COPY data/val_images.npy /workspace/data/val_images.npy
-COPY data/val_labels.npy /workspace/data/val_labels.npy
+COPY generate_data.py /tmp/generate_data.py
+RUN python3 /tmp/generate_data.py && rm /tmp/generate_data.py
 
 WORKDIR /workspace
 

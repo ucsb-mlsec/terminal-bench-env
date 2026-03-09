@@ -107,3 +107,53 @@ def test_backup_script_references_s3cfg():
     script_path = Path("/root/run_backup.sh")
     content = script_path.read_text()
     assert '.s3cfg' in content or 's3cfg' in content, "Script does not reference S3 configuration file .s3cfg"
+
+def test_backup_script_has_incremental_backup_command():
+    """Test that the script has an incremental backup command (not just full)"""
+    script_path = Path("/root/run_backup.sh")
+    content = script_path.read_text()
+    # Incremental backup in duplicity is the default (no 'full' keyword) or explicit 'incr'
+    has_incremental = re.search(r'duplicity\s+(?:incr|incremental|--)', content, re.IGNORECASE) or \
+                      (content.count('duplicity') >= 3 and 'full' in content.lower())
+    assert has_incremental, "Script missing incremental backup command"
+
+
+def test_backup_script_has_remove_older_than():
+    """Test that the cleanup uses remove-older-than with 30D"""
+    script_path = Path("/root/run_backup.sh")
+    content = script_path.read_text()
+    # Check for remove-older-than 30D pattern
+    has_removal = re.search(r'remove-older-than\s+30[dD]', content) or \
+                  re.search(r'remove-older-than\s+30\s', content) or \
+                  re.search(r'remove-all-but-n-full\s+\d+', content)
+    assert has_removal, "Script must use 'remove-older-than 30D' or equivalent retention command"
+
+
+def test_backup_script_reads_passphrase_correctly():
+    """Test that passphrase is sourced from file, not hardcoded"""
+    script_path = Path("/root/run_backup.sh")
+    content = script_path.read_text()
+    # Should read from file, not have hardcoded passphrase
+    reads_from_file = 'cat /root/.backup_passphrase' in content or \
+                      '$(</root/.backup_passphrase)' in content or \
+                      'PASSPHRASE=$(cat' in content or \
+                      'source' in content.lower() and '.backup_passphrase' in content
+    assert reads_from_file or 'PASSPHRASE' in content, \
+        "Script must read passphrase from /root/.backup_passphrase file"
+
+
+def test_backup_script_uses_encrypt_key_from_env():
+    """Test that the GPG key ID comes from BACKUP_GPG_KEY environment variable"""
+    script_path = Path("/root/run_backup.sh")
+    content = script_path.read_text()
+    assert 'BACKUP_GPG_KEY' in content, \
+        "Script must reference BACKUP_GPG_KEY environment variable for the GPG key ID"
+
+
+def test_backup_script_s3_url_format():
+    """Test that the S3 URL follows the correct format"""
+    script_path = Path("/root/run_backup.sh")
+    content = script_path.read_text()
+    # Should have proper S3 URL
+    has_s3_url = 's3://' in content and 'company-backups' in content
+    assert has_s3_url, "Script must use s3:// protocol URL with company-backups bucket"

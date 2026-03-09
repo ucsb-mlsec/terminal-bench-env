@@ -110,7 +110,31 @@ def test_recommendation_based_on_data():
     # disable_compression or exclude_file_types would be most appropriate
     
     valid_recommendations = ['disable_compression', 'exclude_file_types', 'adjust_chunker']
-    
+
     assert optimization_value in valid_recommendations, \
         f"Given the statistics (low compression: {compression_ratio:.2%}, low dedup: {dedup_ratio:.2%}, " \
         f"high incompressible data: {incompressible_ratio:.2%}), the recommendation should address these issues"
+
+
+def test_optimization_matches_dominant_issue():
+    """Verify the recommended optimization addresses the most critical issue in the data.
+    The data shows: ~88% of files are incompressible (jpg/png/mp4/zip/pdf), compression
+    saves only ~1% overall, dedup ratio is ~96.7% (very low), making disable_compression
+    or exclude_file_types the only data-driven choices."""
+    recommendation_path = Path("/backup/recommendation.txt")
+    lines = recommendation_path.read_text().strip().split('\n')
+    optimization_value = lines[0].split('=', 1)[1]
+
+    file_types_path = Path("/backup/stats/file_types.json")
+    with open(file_types_path) as f:
+        file_types_data = json.load(f)
+
+    total_file_size = sum(ft['total_size'] for ft in file_types_data)
+    incompressible_size = sum(ft['total_size'] for ft in file_types_data if not ft['compressible'])
+    incompressible_ratio = incompressible_size / total_file_size if total_file_size > 0 else 0
+
+    # With >80% incompressible data, disable_compression or exclude_file_types is correct
+    assert incompressible_ratio > 0.8, f"Unexpected incompressible ratio: {incompressible_ratio:.2%}"
+    assert optimization_value in ['disable_compression', 'exclude_file_types'], \
+        f"With {incompressible_ratio:.0%} incompressible data, expected 'disable_compression' or " \
+        f"'exclude_file_types', got '{optimization_value}'"

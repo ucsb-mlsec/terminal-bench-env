@@ -17,28 +17,28 @@ RUN apt-get update && \
 
 RUN pip3 install --no-cache-dir --break-system-packages networkx
 
-RUN mkdir -p /data/molecules /output
+RUN mkdir -p /workspace/data/molecules /workspace/output
 
-COPY data/molecules/molecule_001.edges /data/molecules/molecule_001.edges
-COPY data/molecules/molecule_001.atoms /data/molecules/molecule_001.atoms
-COPY data/molecules/molecule_002.edges /data/molecules/molecule_002.edges
-COPY data/molecules/molecule_002.atoms /data/molecules/molecule_002.atoms
-COPY data/molecules/molecule_003.edges /data/molecules/molecule_003.edges
-COPY data/molecules/molecule_003.atoms /data/molecules/molecule_003.atoms
-COPY data/molecules/molecule_004.edges /data/molecules/molecule_004.edges
-COPY data/molecules/molecule_004.atoms /data/molecules/molecule_004.atoms
-COPY data/molecules/molecule_005.edges /data/molecules/molecule_005.edges
-COPY data/molecules/molecule_005.atoms /data/molecules/molecule_005.atoms
-COPY data/molecules/molecule_006.edges /data/molecules/molecule_006.edges
-COPY data/molecules/molecule_006.atoms /data/molecules/molecule_006.atoms
-COPY data/molecules/molecule_007.edges /data/molecules/molecule_007.edges
-COPY data/molecules/molecule_007.atoms /data/molecules/molecule_007.atoms
-COPY data/molecules/molecule_008.edges /data/molecules/molecule_008.edges
-COPY data/molecules/molecule_008.atoms /data/molecules/molecule_008.atoms
-COPY data/molecules/molecule_009.edges /data/molecules/molecule_009.edges
-COPY data/molecules/molecule_009.atoms /data/molecules/molecule_009.atoms
-COPY data/molecules/molecule_010.edges /data/molecules/molecule_010.edges
-COPY data/molecules/molecule_010.atoms /data/molecules/molecule_010.atoms
+COPY data/molecules/molecule_001.edges /workspace/data/molecules/molecule_001.edges
+COPY data/molecules/molecule_001.atoms /workspace/data/molecules/molecule_001.atoms
+COPY data/molecules/molecule_002.edges /workspace/data/molecules/molecule_002.edges
+COPY data/molecules/molecule_002.atoms /workspace/data/molecules/molecule_002.atoms
+COPY data/molecules/molecule_003.edges /workspace/data/molecules/molecule_003.edges
+COPY data/molecules/molecule_003.atoms /workspace/data/molecules/molecule_003.atoms
+COPY data/molecules/molecule_004.edges /workspace/data/molecules/molecule_004.edges
+COPY data/molecules/molecule_004.atoms /workspace/data/molecules/molecule_004.atoms
+COPY data/molecules/molecule_005.edges /workspace/data/molecules/molecule_005.edges
+COPY data/molecules/molecule_005.atoms /workspace/data/molecules/molecule_005.atoms
+COPY data/molecules/molecule_006.edges /workspace/data/molecules/molecule_006.edges
+COPY data/molecules/molecule_006.atoms /workspace/data/molecules/molecule_006.atoms
+COPY data/molecules/molecule_007.edges /workspace/data/molecules/molecule_007.edges
+COPY data/molecules/molecule_007.atoms /workspace/data/molecules/molecule_007.atoms
+COPY data/molecules/molecule_008.edges /workspace/data/molecules/molecule_008.edges
+COPY data/molecules/molecule_008.atoms /workspace/data/molecules/molecule_008.atoms
+COPY data/molecules/molecule_009.edges /workspace/data/molecules/molecule_009.edges
+COPY data/molecules/molecule_009.atoms /workspace/data/molecules/molecule_009.atoms
+COPY data/molecules/molecule_010.edges /workspace/data/molecules/molecule_010.edges
+COPY data/molecules/molecule_010.atoms /workspace/data/molecules/molecule_010.atoms
 
 WORKDIR /workspace
 

@@ -48,13 +48,13 @@ def test_critical_finding_identifies_valid_sensitive_data():
     """Test that the critical finding identifies legitimate sensitive data"""
     output_path = Path("/tmp/critical_finding.txt")
     lines = output_path.read_text().strip().split('\n')
-    
+
     topic_value = lines[0].replace("TOPIC: ", "").strip()
     value_data = lines[1].replace("VALUE: ", "").strip()
-    
+
     # Topic should be a valid MQTT topic path (contains forward slashes)
     assert "/" in topic_value, f"TOPIC should be a valid MQTT topic path with slashes: {topic_value}"
-    
+
     # Value should be meaningful (not just sensor data like temperature readings)
     # Should contain typical characteristics of credentials/keys/tokens
     value_lower = value_data.lower()
@@ -63,3 +63,22 @@ def test_critical_finding_identifies_valid_sensitive_data():
         not value_data.replace('.', '').replace('-', '').isdigit()  # Not just a number
     )
     assert is_likely_sensitive, f"VALUE should represent sensitive data (credentials, keys, tokens), not sensor readings: {value_data}"
+
+
+def test_identifies_most_critical_finding():
+    """Test that the single most critical finding is the root admin API key exposure"""
+    output_path = Path("/tmp/critical_finding.txt")
+    lines = output_path.read_text().strip().split('\n')
+
+    topic_value = lines[0].replace("TOPIC: ", "").strip()
+    value_data = lines[1].replace("VALUE: ", "").strip()
+
+    # The highest-severity finding in the log is the MASTER_API_KEY on system/admin/root_access
+    # which has full_system_admin scope — more critical than wifi passwords, AWS keys etc.
+    assert topic_value == "system/admin/root_access", (
+        f"Most critical finding should be topic 'system/admin/root_access' "
+        f"(MASTER_API_KEY with full_system_admin scope), got: {topic_value}"
+    )
+    assert "MASTER_API_KEY" in value_data, (
+        f"VALUE should contain the MASTER_API_KEY, got: {value_data}"
+    )

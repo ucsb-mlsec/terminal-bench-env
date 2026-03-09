@@ -127,13 +127,13 @@ def test_te_file_syntax_basic_validation():
     """Test basic syntax validation of the .te file"""
     te_file = Path("/solution/webapp_custom.te")
     content = te_file.read_text()
-    
+
     # Check for balanced parentheses
     open_parens = content.count('(')
     close_parens = content.count(')')
     assert open_parens == close_parens, \
         f"Unbalanced parentheses in policy file (open: {open_parens}, close: {close_parens})"
-    
+
     # Check that policy_module appears before any allow rules
     policy_module_pos = content.find('policy_module')
     if policy_module_pos >= 0:
@@ -141,3 +141,27 @@ def test_te_file_syntax_basic_validation():
         if allow_pos >= 0:
             assert policy_module_pos < allow_pos, \
                 "policy_module declaration should appear before allow rules"
+
+def test_summary_module_name_is_webapp_custom():
+    """Test that MODULE_NAME=webapp_custom as specified in the task"""
+    summary_file = Path("/solution/summary.txt")
+    content = summary_file.read_text()
+
+    import re
+    match = re.search(r'MODULE_NAME=(\S+)', content)
+    assert match, "MODULE_NAME not found in summary file"
+    assert match.group(1) == 'webapp_custom', \
+        f"Expected MODULE_NAME=webapp_custom, got: {match.group(1)}"
+
+def test_rules_count_covers_all_denials():
+    """Test that RULES_COUNT >= 5 since there are 5 distinct denial categories in the audit log"""
+    summary_file = Path("/solution/summary.txt")
+    content = summary_file.read_text()
+
+    import re
+    match = re.search(r'RULES_COUNT=(\d+)', content)
+    assert match, "RULES_COUNT not found in summary file"
+    rules_count = int(match.group(1))
+    # The audit log has 12 denial entries covering 5+ distinct access types
+    assert rules_count >= 5, \
+        f"Expected RULES_COUNT >= 5 (audit log has 12 denials across 5+ access types), got: {rules_count}"

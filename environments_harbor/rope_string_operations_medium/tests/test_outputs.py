@@ -87,6 +87,16 @@ def test_rope_class_exists():
     """Test that the fixed_rope.py contains a rope implementation"""
     fixed_rope_path = Path("/workspace/fixed_rope.py")
     code = fixed_rope_path.read_text()
-    
+
     # Check for class definition (rope implementations typically have a Rope or RopeNode class)
     assert "class" in code.lower(), "fixed_rope.py should contain at least one class definition"
+
+def test_final_length_is_710():
+    """Test that FINAL_LENGTH=710: original 723 chars - delete 25 + insert 12 = 710"""
+    results_path = Path("/workspace/results.txt")
+    content = results_path.read_text()
+    lines = content.strip().split('\n')
+
+    length_value = int(lines[0].split('=', 1)[1])
+    assert length_value == 710, \
+        f"Expected FINAL_LENGTH=710 (723 original - 25 deleted + 12 inserted), got: {length_value}"

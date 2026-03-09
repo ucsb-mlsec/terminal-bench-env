@@ -83,12 +83,30 @@ def test_issue_is_zookeeper_related():
     """Test that the identified issue is related to ZooKeeper configuration"""
     diagnosis_path = Path("/tmp/zookeeper_diagnosis.txt")
     content = diagnosis_path.read_text().lower()
-    
+
     # Check for ZooKeeper-related keywords
     zk_keywords = [
         'port', 'server', 'quorum', 'leader', 'election', 'myid', 'clientport',
         'datadir', 'cluster', 'ensemble', 'sync', 'tick', 'config', 'zoo.cfg'
     ]
-    
+
     has_zk_keyword = any(keyword in content for keyword in zk_keywords)
     assert has_zk_keyword, "Diagnosis does not appear to identify a ZooKeeper-related issue"
+
+def test_config_file_is_zoo_cfg():
+    """Test that config_file points to zoo.cfg (which has duplicate server.1 entry causing election failure)"""
+    diagnosis_path = Path("/tmp/zookeeper_diagnosis.txt")
+    lines = diagnosis_path.read_text().strip().split('\n')
+    config_file = lines[1].split('config_file:', 1)[1].strip()
+    assert 'zoo.cfg' in config_file, \
+        f"Expected config_file to reference zoo.cfg (contains duplicate server.1 entry), got '{config_file}'"
+
+def test_primary_issue_mentions_duplicate_or_conflict():
+    """Test that primary_issue describes the duplicate server.1 entry or config conflict in zoo.cfg"""
+    diagnosis_path = Path("/tmp/zookeeper_diagnosis.txt")
+    lines = diagnosis_path.read_text().strip().split('\n')
+    primary_issue = lines[0].split('primary_issue:', 1)[1].strip().lower()
+    keywords = ['duplicate', 'conflict', 'server.1', 'double', 'repeated', 'twice']
+    has_keyword = any(kw in primary_issue for kw in keywords)
+    assert has_keyword, \
+        f"Expected primary_issue to mention duplicate/conflict (zoo.cfg has duplicate server.1 entry), got '{primary_issue}'"

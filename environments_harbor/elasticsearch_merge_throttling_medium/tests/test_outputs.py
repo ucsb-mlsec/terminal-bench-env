@@ -115,10 +115,10 @@ def test_recommended_value_reasonable_for_ssd():
     solution_path = Path("/home/user/solution.json")
     with open(solution_path, 'r') as f:
         data = json.load(f)
-    
+
     setting_name = data.get("setting_name", "")
     recommended = data.get("recommended_value", "")
-    
+
     # For throttle settings, recommended should be substantial for SSD
     if "throttle" in setting_name or "bytes_per_sec" in setting_name:
         def parse_size(val):
@@ -132,8 +132,53 @@ def test_recommended_value_reasonable_for_ssd():
                     return float(val_str)
                 except:
                     return 0
-        
+
         recommended_mb = parse_size(recommended)
         # For SSD with 500+ MB/s, recommended should be at least 100MB
         assert recommended_mb >= 100, \
             f"Recommended value ({recommended}) seems too low for SSD with 500+ MB/s capacity"
+
+
+def test_current_value_is_20mb():
+    """Test that current_value is 20 MB/sec (as shown in monitoring_output.txt)"""
+    solution_path = Path("/home/user/solution.json")
+    with open(solution_path, 'r') as f:
+        data = json.load(f)
+
+    setting_name = data.get("setting_name", "")
+    current = str(data.get("current_value", "")).lower().strip()
+
+    if "throttle" in setting_name or "bytes_per_sec" in setting_name:
+        # The monitoring output shows "Configured throttle limit: 20 MB/sec"
+        assert "20" in current, \
+            f"Current throttle value should contain '20' (MB/sec as shown in monitoring output), got: '{current}'"
+
+def test_setting_name_is_exact():
+    """Test that the setting name matches the exact Elasticsearch setting path"""
+    solution_path = Path("/home/user/solution.json")
+    with open(solution_path, 'r') as f:
+        data = json.load(f)
+    setting = data.get("setting_name", "")
+    # The diagnostic files show the throttle setting at index.store.throttle.max_bytes_per_sec
+    # or indices.store.throttle.max_bytes_per_sec
+    valid_exact = [
+        "indices.store.throttle.max_bytes_per_sec",
+        "index.store.throttle.max_bytes_per_sec",
+        "store.throttle.max_bytes_per_sec",
+    ]
+    assert setting in valid_exact, \
+        f"Setting name '{setting}' should be one of {valid_exact}"
+
+
+def test_current_value_matches_diagnostic_data():
+    """Test that current_value matches what the diagnostic files show (20mb)"""
+    solution_path = Path("/home/user/solution.json")
+    with open(solution_path, 'r') as f:
+        data = json.load(f)
+    current = str(data.get("current_value", "")).lower().strip()
+    # The index_settings.json shows max_bytes_per_sec: 20mb
+    # The monitoring output shows "Configured throttle limit: 20 MB/sec"
+    assert "20" in current, \
+        f"Current value should be '20mb' (as shown in diagnostic files), got: '{current}'"
+    assert "mb" in current or "m" in current, \
+        f"Current value should include 'mb' unit, got: '{current}'"

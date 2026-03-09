@@ -74,6 +74,24 @@ def test_java_has_proper_method_syntax():
     # Check for method declarations with proper syntax
     assert re.search(r'public\s+void\s+\w+\s*\(', content), "Missing proper public void method declarations"
 
+def test_generated_class_name_matches_spec():
+    """Test that the generated class name matches the class_name in listener_spec.json"""
+    java_path = Path("/workspace/output/GeneratedListener.java")
+    content = java_path.read_text()
+    # listener_spec.json specifies class_name: "ExampleListener"
+    assert 'ExampleListener' in content, \
+        "Generated Java class should be named 'ExampleListener' as specified in listener_spec.json"
+
+def test_generated_events_match_spec():
+    """Test that the generated Java handles both events from listener_spec.json"""
+    java_path = Path("/workspace/output/GeneratedListener.java")
+    content = java_path.read_text()
+    # listener_spec.json specifies events: "methodEntered,fieldAccessed"
+    assert 'methodEntered' in content, \
+        "Generated Java should handle 'methodEntered' event as specified in listener_spec.json"
+    assert 'fieldAccessed' in content, \
+        "Generated Java should handle 'fieldAccessed' event as specified in listener_spec.json"
+
 def test_java_syntactically_valid():
     """Test basic Java syntax validity checks"""
     java_path = Path("/workspace/output/GeneratedListener.java")

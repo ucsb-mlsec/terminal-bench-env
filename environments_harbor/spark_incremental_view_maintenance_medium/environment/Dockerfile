@@ -24,17 +24,17 @@ RUN pip3 install --no-cache-dir --break-system-packages \
     pyarrow \
     fastparquet
 
-RUN mkdir -p /data/transactions /data/materialized_view /app /solution
+RUN mkdir -p /workspace/data/transactions /workspace/data/materialized_view /workspace/app /workspace/solution
 
-COPY data/transactions/2024-01-01.parquet /data/transactions/2024-01-01.parquet
-COPY data/transactions/2024-01-02.parquet /data/transactions/2024-01-02.parquet
-COPY data/transactions/2024-01-03.parquet /data/transactions/2024-01-03.parquet
-COPY data/transactions/2024-01-04.parquet /data/transactions/2024-01-04.parquet
-COPY data/transactions/2024-01-05.parquet /data/transactions/2024-01-05.parquet
-COPY data/materialized_view/view.parquet /data/materialized_view/view.parquet
-COPY rebuild_view.py /app/rebuild_view.py
+COPY data/transactions/2024-01-01.parquet /workspace/data/transactions/2024-01-01.parquet
+COPY data/transactions/2024-01-02.parquet /workspace/data/transactions/2024-01-02.parquet
+COPY data/transactions/2024-01-03.parquet /workspace/data/transactions/2024-01-03.parquet
+COPY data/transactions/2024-01-04.parquet /workspace/data/transactions/2024-01-04.parquet
+COPY data/transactions/2024-01-05.parquet /workspace/data/transactions/2024-01-05.parquet
+COPY data/materialized_view/view.parquet /workspace/data/materialized_view/view.parquet
+COPY rebuild_view.py /workspace/app/rebuild_view.py
 
-WORKDIR /app
+WORKDIR /workspace
 
 # Mapped from docker-compose.yaml
 ENV TEST_DIR=/tests

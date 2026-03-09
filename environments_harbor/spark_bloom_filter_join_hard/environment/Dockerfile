@@ -18,10 +18,10 @@ RUN apt-get update && \
 
 RUN pip3 install --no-cache-dir --break-system-packages pyspark
 
-RUN mkdir -p /data /solution /output
+RUN mkdir -p /workspace/data /workspace/solution /workspace/output
 
-COPY data/transactions.csv /data/transactions.csv
-COPY data/catalog.csv /data/catalog.csv
+COPY data/transactions.csv /workspace/data/transactions.csv
+COPY data/catalog.csv /workspace/data/catalog.csv
 
 WORKDIR /workspace
 

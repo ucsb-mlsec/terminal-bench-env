@@ -110,3 +110,54 @@ def test_solution_is_valid_gjf_format():
     
     has_route_or_link = any(line.strip().startswith('#') or line.strip().startswith('%') for line in lines)
     assert has_route_or_link, "Solution file does not have route section or link commands"
+
+def test_solution_preserves_geometry():
+    """Test that the molecular geometry is preserved from the original file"""
+    original_path = Path("/workspace/calculation.gjf")
+    solution_path = Path("/workspace/solution.gjf")
+    
+    orig_content = original_path.read_text()
+    sol_content = solution_path.read_text()
+    
+    # Extract coordinate lines (lines with atom symbol followed by numbers)
+    import re
+    coord_pattern = re.compile(r'^\s*([A-Z][a-z]?)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$', re.MULTILINE)
+    
+    orig_coords = coord_pattern.findall(orig_content)
+    sol_coords = coord_pattern.findall(sol_content)
+    
+    assert len(orig_coords) > 0, "Could not find coordinates in original file"
+    assert len(sol_coords) > 0, "Could not find coordinates in solution file"
+    assert len(orig_coords) == len(sol_coords), \
+        f"Number of atoms changed: original has {len(orig_coords)}, solution has {len(sol_coords)}"
+    
+    for i, (orig, sol) in enumerate(zip(orig_coords, sol_coords)):
+        assert orig[0] == sol[0], f"Atom {i+1}: element changed from {orig[0]} to {sol[0]}"
+        for j in range(1, 4):
+            assert abs(float(orig[j]) - float(sol[j])) < 0.001, \
+                f"Atom {i+1}: coordinate {j} changed from {orig[j]} to {sol[j]}"
+
+
+def test_solution_has_convergence_helpers():
+    """Test that the solution includes SCF convergence aids beyond just SCF=Tight"""
+    solution_path = Path("/workspace/solution.gjf")
+    content = solution_path.read_text().upper()
+    
+    # The original has SCF=Tight which is failing. Solution should add helpers like:
+    # SCF=(QC), SCF=(XQC), SCF=(VShift=N), SCF=(MaxCycle=N), NoSymm, etc.
+    convergence_aids = ['QC', 'XQC', 'VSHIFT', 'MAXCYCLE', 'DAMP', 'NOSYMM',
+                        'FERMI', 'NOVARACC', 'CONVER', 'NDAMP', 'STABLE']
+    found = [aid for aid in convergence_aids if aid in content]
+    assert len(found) >= 1, \
+        f"Solution should include SCF convergence aids (e.g., QC, XQC, VShift, MaxCycle). None found."
+
+
+def test_solution_preserves_exact_charge_multiplicity():
+    """Test that charge and multiplicity (0 4) are preserved"""
+    solution_path = Path("/workspace/solution.gjf")
+    content = solution_path.read_text()
+    import re
+    # The original has charge=0, multiplicity=4
+    charge_mult = re.search(r'^\s*0\s+4\s*$', content, re.MULTILINE)
+    assert charge_mult is not None, \
+        "Charge and multiplicity (0 4) must be preserved from original file"

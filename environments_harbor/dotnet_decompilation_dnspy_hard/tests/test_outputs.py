@@ -55,7 +55,24 @@ def test_license_key_no_trailing_whitespace():
     """Test that the license key doesn't have trailing whitespace or newlines"""
     license_file = Path("/workspace/license_key.txt")
     content = license_file.read_text()
-    
+
     # The content should be the same after stripping (or at most one trailing newline)
     stripped = content.strip()
     assert content == stripped or content == stripped + '\n', "License key file should not contain extra whitespace"
+
+
+def test_license_key_exists_in_dll():
+    """Test that the extracted license key actually exists in the DLL binary"""
+    import re
+    license_file = Path("/workspace/license_key.txt")
+    dll_path = Path("/workspace/LicenseValidator.dll")
+
+    key = license_file.read_text().strip()
+
+    # Read DLL as binary and decode
+    dll_bytes = dll_path.read_bytes()
+    # Try UTF-8 with errors ignored to find embedded strings
+    dll_text = dll_bytes.decode('utf-8', errors='replace')
+
+    assert key in dll_text, \
+        f"The extracted license key '{key}' was not found in the DLL binary. It may be incorrect."

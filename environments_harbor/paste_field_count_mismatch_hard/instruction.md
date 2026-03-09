@@ -7,11 +7,11 @@ The system processes transaction logs from three different payment gateways. Eac
 You need to analyze the data corruption, identify the root cause of the field count mismatches, and produce a clean, properly aligned dataset.
 
 **Environment:**
-- Three source files exist in `/data/sources/` directory:
+- Three source files exist in `/workspace/data/sources/` directory:
   - `gateway_a.tsv` - Primary payment gateway
-  - `gateway_b.tsv` - Secondary payment gateway  
+  - `gateway_b.tsv` - Secondary payment gateway
   - `gateway_c.tsv` - Backup payment gateway
-- A corrupted merged file exists at `/data/merged/transactions_corrupted.tsv`
+- A corrupted merged file exists at `/workspace/data/merged/transactions_corrupted.tsv`
 - All files contain transaction records with varying field counts
 
 **Requirements:**
@@ -25,7 +25,7 @@ You need to analyze the data corruption, identify the root cause of the field co
 8. The final output must be tab-separated with consistent field counts across all rows
 
 **Output Requirements:**
-Save your solution as a single file at `/solution/aligned_transactions.tsv`
+Save your solution as a single file at `/workspace/solution/aligned_transactions.tsv`
 
 The output file must:
 - Be tab-separated format

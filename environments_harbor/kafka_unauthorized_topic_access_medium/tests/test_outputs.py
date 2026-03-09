@@ -91,11 +91,29 @@ def test_exposed_topic_is_valid_topic_name():
     vuln_path = Path("/tmp/vulnerability.txt")
     content = vuln_path.read_text().strip()
     lines = [line.strip() for line in content.split('\n') if line.strip()]
-    
+
     second_line = lines[1]
     parts = second_line.split('=', 1)
     topic_name = parts[1].strip()
-    
+
     # Check if it contains typical Kafka topic name characters (alphanumeric, hyphens, underscores)
     pattern = r'^[a-zA-Z0-9._-]+$'
     assert re.match(pattern, topic_name), f"exposed_topic '{topic_name}' does not look like a valid Kafka topic name"
+
+
+def test_config_parameter_correct_value():
+    """Test that config_parameter is allow.everyone.if.no.acl.found per server.properties"""
+    vuln_path = Path("/tmp/vulnerability.txt")
+    lines = [line.strip() for line in vuln_path.read_text().strip().split('\n') if line.strip()]
+    param_value = lines[0].split('=', 1)[1].strip()
+    assert param_value == "allow.everyone.if.no.acl.found", \
+        f"Expected config_parameter=allow.everyone.if.no.acl.found (the misconfigured Kafka ACL bypass parameter in server.properties), got: {param_value}"
+
+
+def test_exposed_topic_correct_value():
+    """Test that exposed_topic is customer-payments per topics.json"""
+    vuln_path = Path("/tmp/vulnerability.txt")
+    lines = [line.strip() for line in vuln_path.read_text().strip().split('\n') if line.strip()]
+    topic_value = lines[1].split('=', 1)[1].strip()
+    assert topic_value == "customer-payments", \
+        f"Expected exposed_topic=customer-payments (high-sensitivity topic accessed by unauthorized clients per topic_access.log), got: {topic_value}"

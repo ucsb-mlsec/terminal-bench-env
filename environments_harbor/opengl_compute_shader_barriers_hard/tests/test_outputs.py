@@ -118,14 +118,60 @@ def test_referenced_files_exist():
     """Test that all referenced shader files actually exist"""
     results_path = Path("/workspace/audit_results.txt")
     content = results_path.read_text()
-    
+
     if content.strip() == "":
         return
-    
+
     lines = content.strip().split('\n')
-    
+
     for line in lines:
         parts = line.split(':')
         if len(parts) >= 3:
             filepath = Path("/workspace") / parts[0]
             assert filepath.exists(), f"Referenced shader file does not exist: {parts[0]}"
+
+
+def test_blur_comp_has_missing_barriers():
+    """Test that blur.comp missing barriers are correctly identified"""
+    results_path = Path("/workspace/audit_results.txt")
+    content = results_path.read_text().strip()
+    lines = content.split('\n') if content else []
+
+    blur_entries = [l for l in lines if 'blur.comp' in l]
+
+    # blur.comp has two explicitly commented missing barriers:
+    # 1. "MISSING: barrier() should be here at line 23" -> type: shared
+    # 2. "MISSING: memoryBarrierImage() should be here at line 45" -> type: image
+    blur_types = set()
+    for entry in blur_entries:
+        parts = entry.split(':')
+        if len(parts) >= 3:
+            blur_types.add(parts[-1])
+
+    assert len(blur_entries) >= 2, (
+        f"blur.comp has 2 missing barriers (one shared at line ~23, one image at line ~45), "
+        f"but only {len(blur_entries)} were found"
+    )
+    assert 'shared' in blur_types, "blur.comp should have a missing 'shared' barrier (barrier() at line 23)"
+    assert 'image' in blur_types, "blur.comp should have a missing 'image' barrier (memoryBarrierImage() at line 45)"
+
+
+def test_reduction_comp_has_missing_barrier():
+    """Test that reduction.comp missing shared barrier is identified"""
+    results_path = Path("/workspace/audit_results.txt")
+    content = results_path.read_text().strip()
+    lines = content.split('\n') if content else []
+
+    reduction_entries = [l for l in lines if 'reduction.comp' in l]
+
+    # reduction.comp writes sharedSum[tid] then uses it in the reduction loop
+    # without a barrier() between — threads could read stale values
+    assert len(reduction_entries) >= 1, (
+        f"reduction.comp has a missing shared barrier (needed between shared memory write "
+        f"and the reduction loop), but none were found"
+    )
+
+    reduction_types = {entry.split(':')[-1] for entry in reduction_entries if ':' in entry}
+    assert 'shared' in reduction_types, (
+        "reduction.comp missing barrier should be type 'shared'"
+    )

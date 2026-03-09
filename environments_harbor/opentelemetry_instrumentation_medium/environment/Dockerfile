@@ -14,7 +14,7 @@ RUN pip3 install --no-cache-dir --break-system-packages fastapi==0.104.1 uvicorn
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /app /solution
+RUN mkdir -p /app /workspace/solution
 
 COPY app/requirements.txt /app/requirements.txt
 

@@ -89,9 +89,36 @@ def test_syntax_changes_mentions_cuda_concepts():
     guide_path = Path("/workspace/migration_guide.json")
     with open(guide_path, 'r') as f:
         data = json.load(f)
-    
+
     syntax_changes_lower = data["syntax_changes"].lower()
     # Should mention at least one CUDA-related concept
     cuda_keywords = ["__host__", "__device__", "cuda", "device", "host", "gpu", "kernel"]
     has_cuda_concept = any(keyword in syntax_changes_lower for keyword in cuda_keywords)
     assert has_cuda_concept, "syntax_changes should mention CUDA-related concepts like __host__, __device__, etc."
+
+
+def test_total_lambdas_exact_count():
+    """Test that exactly 7 lambdas are found (math_utils.cpp has 7 lambda expressions)"""
+    guide_path = Path("/workspace/migration_guide.json")
+    with open(guide_path, 'r') as f:
+        data = json.load(f)
+
+    total = data["total_lambdas_found"]
+    assert total == 7, (
+        f"math_utils.cpp contains exactly 7 lambda expressions "
+        f"(vectorAdd, dotProduct, scalarMultiply, magnitude, normalize, "
+        f"elementWiseMultiply, distance), but got total_lambdas_found={total}"
+    )
+
+
+def test_requires_host_device_all_lambdas():
+    """Test that all 7 lambdas require __host__ __device__ annotation"""
+    guide_path = Path("/workspace/migration_guide.json")
+    with open(guide_path, 'r') as f:
+        data = json.load(f)
+
+    requires_hd = data["requires_host_device"]
+    assert requires_hd == 7, (
+        f"All 7 lambdas in math_utils.cpp are marked as needing GPU/device support, "
+        f"so requires_host_device should be 7, but got {requires_hd}"
+    )

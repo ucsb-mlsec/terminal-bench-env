@@ -129,28 +129,45 @@ def test_db_proxy_liveness_probe_syntax():
     """Test that db-proxy-deployment.yaml has valid livenessProbe configuration"""
     manifest_path = Path("/workspace/k8s-manifests/db-proxy-deployment.yaml")
     data = yaml.safe_load(manifest_path.read_text())
-    
+
     containers = data.get('spec', {}).get('template', {}).get('spec', {}).get('containers', [])
     assert len(containers) > 0, "No containers found in db-proxy-deployment.yaml"
-    
+
     for container in containers:
         if 'livenessProbe' in container:
             probe = container['livenessProbe']
-            
+
             probe_types = ['httpGet', 'tcpSocket', 'exec']
             has_probe_type = any(pt in probe for pt in probe_types)
             assert has_probe_type, f"livenessProbe must have one of: {probe_types}"
-            
+
             if 'httpGet' in probe:
                 assert 'port' in probe['httpGet'], "httpGet probe must have 'port' field"
                 port = probe['httpGet']['port']
                 assert isinstance(port, (int, str)), f"Invalid port format: {port}"
-            
+
             if 'tcpSocket' in probe:
                 assert 'port' in probe['tcpSocket'], "tcpSocket probe must have 'port' field"
                 port = probe['tcpSocket']['port']
                 assert isinstance(port, (int, str)), f"Invalid port format: {port}"
-            
+
             if 'exec' in probe:
                 assert 'command' in probe['exec'], "exec probe must have 'command' field"
                 assert isinstance(probe['exec']['command'], list), "exec command must be a list"
+
+
+def test_fix_counts_correct():
+    """Test that fix counts match actual errors: frontend=1, backend=1, db-proxy=2"""
+    solution_path = Path("/workspace/solution.txt")
+    lines = solution_path.read_text().strip().split('\n')
+    counts = {}
+    for line in lines:
+        if '=' in line:
+            filename, count = line.strip().split('=', 1)
+            counts[filename.strip()] = int(count.strip())
+    assert counts.get("frontend-deployment.yaml") == 1, \
+        f"frontend-deployment.yaml has 1 error (timeoutSecond typo should be timeoutSeconds), got: {counts.get('frontend-deployment.yaml')}"
+    assert counts.get("backend-deployment.yaml") == 1, \
+        f"backend-deployment.yaml has 1 error (exec command as string instead of list), got: {counts.get('backend-deployment.yaml')}"
+    assert counts.get("db-proxy-deployment.yaml") == 2, \
+        f"db-proxy-deployment.yaml has 2 errors (portNumber->port and initialDelay->initialDelaySeconds), got: {counts.get('db-proxy-deployment.yaml')}"

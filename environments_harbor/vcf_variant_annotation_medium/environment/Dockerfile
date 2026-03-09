@@ -11,10 +11,10 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /data/input /data/reference /output
+RUN mkdir -p /workspace/data/input /workspace/data/reference /workspace/output
 
-COPY data/input/variants.vcf /data/input/variants.vcf
-COPY data/reference/gene_annotations.tsv /data/reference/gene_annotations.tsv
+COPY data/input/variants.vcf /workspace/data/input/variants.vcf
+COPY data/reference/gene_annotations.tsv /workspace/data/reference/gene_annotations.tsv
 
 WORKDIR /workspace
 

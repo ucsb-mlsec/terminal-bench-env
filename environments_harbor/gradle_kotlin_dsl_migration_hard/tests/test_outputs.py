@@ -113,3 +113,70 @@ def test_jar_artifact_generated():
     else:
         # Build might not have been run yet, but we check via migration_status.json
         pass
+
+
+def test_build_gradle_kts_has_java_library_plugin():
+    """Test that build.gradle.kts applies the java-library plugin using Kotlin DSL syntax"""
+    build_kts = Path("/workspace/build.gradle.kts")
+    if not build_kts.exists():
+        build_kts = Path("output/gradle_kotlin_dsl_migration_hard/files/build.gradle.kts")
+    content = build_kts.read_text()
+
+    # Kotlin DSL uses backtick or id() syntax for plugins
+    assert "java-library" in content, \
+        "build.gradle.kts must apply the 'java-library' plugin"
+    # Should use Kotlin DSL plugin syntax
+    import re
+    has_kotlin_plugin_syntax = (
+        re.search(r'`java-library`', content) is not None or
+        re.search(r'id\s*\(\s*["\']java-library["\']\s*\)', content) is not None
+    )
+    assert has_kotlin_plugin_syntax, \
+        "build.gradle.kts must use Kotlin DSL plugin syntax (backtick or id() notation)"
+
+
+def test_build_gradle_kts_has_junit_dependency():
+    """Test that build.gradle.kts includes JUnit 5 test dependency"""
+    build_kts = Path("/workspace/build.gradle.kts")
+    if not build_kts.exists():
+        build_kts = Path("output/gradle_kotlin_dsl_migration_hard/files/build.gradle.kts")
+    content = build_kts.read_text()
+
+    assert "junit-jupiter" in content, \
+        "build.gradle.kts must include JUnit Jupiter dependency"
+    assert "testImplementation" in content, \
+        "build.gradle.kts must use testImplementation configuration for JUnit"
+
+
+def test_build_gradle_kts_has_repositories():
+    """Test that build.gradle.kts configures mavenCentral repository"""
+    build_kts = Path("/workspace/build.gradle.kts")
+    if not build_kts.exists():
+        build_kts = Path("output/gradle_kotlin_dsl_migration_hard/files/build.gradle.kts")
+    content = build_kts.read_text()
+
+    assert "mavenCentral()" in content, \
+        "build.gradle.kts must include mavenCentral() repository"
+
+
+def test_settings_gradle_kts_has_project_name():
+    """Test that settings.gradle.kts sets the root project name to 'string-utils'"""
+    settings_kts = Path("/workspace/settings.gradle.kts")
+    if not settings_kts.exists():
+        settings_kts = Path("output/gradle_kotlin_dsl_migration_hard/files/settings.gradle.kts")
+    content = settings_kts.read_text()
+
+    assert "string-utils" in content, \
+        "settings.gradle.kts must set rootProject.name to 'string-utils'"
+
+
+def test_build_actually_succeeds():
+    """Test that the Gradle build actually succeeds with the Kotlin DSL files"""
+    import subprocess
+    result = subprocess.run(
+        ["./gradlew", "build", "--no-daemon"],
+        capture_output=True, text=True, timeout=300,
+        cwd="/workspace"
+    )
+    assert result.returncode == 0, \
+        f"Gradle build failed with exit code {result.returncode}. stderr: {result.stderr[:500]}"

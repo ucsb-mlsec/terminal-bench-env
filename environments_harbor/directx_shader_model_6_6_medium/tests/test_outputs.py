@@ -76,12 +76,53 @@ def test_analysis_identifies_issues():
     result_path = Path("/workspace/analysis_result.json")
     with open(result_path, 'r') as f:
         data = json.load(f)
-    
+
     # This is a sanity check - the shader likely has issues that need to be identified
     # At minimum, the agent should have examined the shader and made determinations
     issues_count = data.get("critical_issues_count")
     shader_model = data.get("shader_model_declared")
-    
+
     # Verify that the agent actually analyzed the shader (not just dummy values)
     assert shader_model != "", "shader_model_declared appears to be a placeholder value"
     assert issues_count is not None and isinstance(issues_count, int), "critical_issues_count must be a valid integer"
+
+
+def test_wave_size_assumption_is_fixed():
+    """Test that wave_size_assumption is 'fixed' (shader hardcodes WAVE_SIZE 32)"""
+    result_path = Path("/workspace/analysis_result.json")
+    with open(result_path, 'r') as f:
+        data = json.load(f)
+
+    wave_size = data.get("wave_size_assumption")
+    assert wave_size == "fixed", (
+        f"wave_reduction.hlsl hardcodes '#define WAVE_SIZE 32' and uses 'groupSize / 32' "
+        f"so wave_size_assumption should be 'fixed', got '{wave_size}'"
+    )
+
+
+def test_requires_sync_is_true():
+    """Test that requires_sync is true (shader uses shared memory cross-wave reduction)"""
+    result_path = Path("/workspace/analysis_result.json")
+    with open(result_path, 'r') as f:
+        data = json.load(f)
+
+    requires_sync = data.get("requires_sync")
+    assert requires_sync is True, (
+        f"wave_reduction.hlsl uses groupshared memory for cross-wave reduction "
+        f"so requires_sync should be true, got {requires_sync}"
+    )
+
+
+def test_critical_issues_at_least_two():
+    """Test that at least 2 critical issues are identified in the shader"""
+    result_path = Path("/workspace/analysis_result.json")
+    with open(result_path, 'r') as f:
+        data = json.load(f)
+
+    issues_count = data.get("critical_issues_count")
+    assert issues_count >= 2, (
+        f"wave_reduction.hlsl has at least 2 critical issues: "
+        f"(1) hardcoded WAVE_SIZE 32 assumption (breaks on AMD wave64), "
+        f"(2) GroupMemoryBarrier() without GroupSync (race condition), "
+        f"but critical_issues_count={issues_count}"
+    )

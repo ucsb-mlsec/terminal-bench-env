@@ -16,7 +16,7 @@ The dataset contains 50 metric events with timestamps that include several probl
 - Invalid times (25:00:00, 12:99:00)
 - Malformed timestamp strings
 
-**Input Data Location:** `/data/metrics.jsonl`
+**Input Data Location:** `/workspace/data/metrics.jsonl`
 
 Each line in the input file contains a JSON object with this structure:
 ```json
@@ -31,7 +31,7 @@ Process all events and normalize timestamps to UTC. For DST ambiguities during "
 
 **Output Requirements:**
 
-Save your solution to `/output/result.jsonl` as JSON Lines format (one JSON object per line).
+Save your solution to `/workspace/output/result.jsonl` as JSON Lines format (one JSON object per line).
 
 Each output line must have EXACTLY these 3 fields:
 ```json
@@ -56,4 +56,4 @@ For invalid events:
 
 Events must appear in the output file in the same order as the input file.
 
-Success criteria: The file `/output/result.jsonl` exists, contains valid JSON Lines format with exactly 3 fields per event, and correctly normalizes all valid timestamps to UTC while marking invalid ones as false.
+Success criteria: The file `/workspace/output/result.jsonl` exists, contains valid JSON Lines format with exactly 3 fields per event, and correctly normalizes all valid timestamps to UTC while marking invalid ones as false.

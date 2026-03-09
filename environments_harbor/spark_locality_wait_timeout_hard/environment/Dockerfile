@@ -18,9 +18,9 @@ RUN apt-get update && \
 
 RUN pip3 install --no-cache-dir --break-system-packages pandas
 
-RUN mkdir -p /data /solution
+RUN mkdir -p /workspace/data /workspace/solution
 
-COPY data/spark-task-execution.log /data/spark-task-execution.log
+COPY data/spark-task-execution.log /workspace/data/spark-task-execution.log
 
 WORKDIR /workspace
 

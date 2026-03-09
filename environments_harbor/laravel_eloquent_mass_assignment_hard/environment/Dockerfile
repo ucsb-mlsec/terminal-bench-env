@@ -19,16 +19,16 @@ RUN apt-get update && \
 RUN apt-get update && apt-get install -y php && \
     rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /app/models /app /solution
+RUN mkdir -p /workspace/app/models /workspace/app /workspace/solution
 
-COPY data/spec.json /app/spec.json
-COPY models/Customer.php /app/models/Customer.php
-COPY models/Invoice.php /app/models/Invoice.php
-COPY models/Payment.php /app/models/Payment.php
-COPY models/Subscription.php /app/models/Subscription.php
-COPY models/Transaction.php /app/models/Transaction.php
+COPY data/spec.json /workspace/app/spec.json
+COPY models/Customer.php /workspace/app/models/Customer.php
+COPY models/Invoice.php /workspace/app/models/Invoice.php
+COPY models/Payment.php /workspace/app/models/Payment.php
+COPY models/Subscription.php /workspace/app/models/Subscription.php
+COPY models/Transaction.php /workspace/app/models/Transaction.php
 
-WORKDIR /app
+WORKDIR /workspace/app
 
 # Mapped from docker-compose.yaml
 ENV TEST_DIR=/tests

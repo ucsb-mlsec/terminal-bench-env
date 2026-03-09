@@ -86,3 +86,39 @@ def test_analysis_results_correctness():
     assert 'program_c.c' in results, "Missing analysis for program_c.c"
     assert 'program_d.c' in results, "Missing analysis for program_d.c"
     assert 'program_e.c' in results, "Missing analysis for program_e.c"
+
+
+def test_program_a_is_correct():
+    """Test that program_a.c is identified as CORRECT (has target, teams, distribute, map clauses)"""
+    results_path = Path("/workspace/analysis_results.txt")
+    results = {}
+    for line in results_path.read_text().strip().split('\n'):
+        parts = line.strip().split('=')
+        if len(parts) == 2:
+            results[parts[0].strip()] = parts[1].strip()
+    assert results.get('program_a.c') == 'CORRECT', \
+        f"program_a.c has proper target teams distribute parallel for with map clauses, expected CORRECT got {results.get('program_a.c')}"
+
+
+def test_program_b_is_incorrect():
+    """Test that program_b.c is identified as INCORRECT (missing #pragma omp target directive)"""
+    results_path = Path("/workspace/analysis_results.txt")
+    results = {}
+    for line in results_path.read_text().strip().split('\n'):
+        parts = line.strip().split('=')
+        if len(parts) == 2:
+            results[parts[0].strip()] = parts[1].strip()
+    assert results.get('program_b.c') == 'INCORRECT', \
+        f"program_b.c is missing '#pragma omp target' directive, expected INCORRECT got {results.get('program_b.c')}"
+
+
+def test_program_c_is_incorrect():
+    """Test that program_c.c is identified as INCORRECT (race condition without reduction clause)"""
+    results_path = Path("/workspace/analysis_results.txt")
+    results = {}
+    for line in results_path.read_text().strip().split('\n'):
+        parts = line.strip().split('=')
+        if len(parts) == 2:
+            results[parts[0].strip()] = parts[1].strip()
+    assert results.get('program_c.c') == 'INCORRECT', \
+        f"program_c.c has race condition (shared accumulation without reduction clause), expected INCORRECT got {results.get('program_c.c')}"

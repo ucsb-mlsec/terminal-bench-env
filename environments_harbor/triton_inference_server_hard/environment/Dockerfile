@@ -23,7 +23,17 @@ RUN mkdir -p /workspace/model_repository/image_classifier/1 \
     /workspace/model_repository/preprocessing_pipeline/1 \
     /workspace/model_repository/translation_ensemble/1 \
     /workspace/model_repository/recommender/2 \
-    /workspace/model_repository/anomaly_detector/1
+    /workspace/model_repository/anomaly_detector/1 \
+    /workspace/output/triton_inference_server_hard/files/model_repository/image_classifier/1 \
+    /workspace/output/triton_inference_server_hard/files/model_repository/text_processor/1 \
+    /workspace/output/triton_inference_server_hard/files/model_repository/object_detector/1 \
+    /workspace/output/triton_inference_server_hard/files/model_repository/sentiment_analyzer \
+    /workspace/output/triton_inference_server_hard/files/model_repository/face_recognition \
+    /workspace/output/triton_inference_server_hard/files/model_repository/speech_recognizer/1 \
+    /workspace/output/triton_inference_server_hard/files/model_repository/preprocessing_pipeline/1 \
+    /workspace/output/triton_inference_server_hard/files/model_repository/translation_ensemble/1 \
+    /workspace/output/triton_inference_server_hard/files/model_repository/recommender/2 \
+    /workspace/output/triton_inference_server_hard/files/model_repository/anomaly_detector/1
 
 COPY model_repository/image_classifier/config.pbtxt /workspace/model_repository/image_classifier/config.pbtxt
 COPY model_repository/image_classifier/1/.gitkeep /workspace/model_repository/image_classifier/1/.gitkeep
@@ -43,6 +53,25 @@ COPY model_repository/recommender/config.pbtxt /workspace/model_repository/recom
 COPY model_repository/recommender/2/.gitkeep /workspace/model_repository/recommender/2/.gitkeep
 COPY model_repository/anomaly_detector/config.pbtxt /workspace/model_repository/anomaly_detector/config.pbtxt
 COPY model_repository/anomaly_detector/1/.gitkeep /workspace/model_repository/anomaly_detector/1/.gitkeep
+
+COPY model_repository/image_classifier/config.pbtxt /workspace/output/triton_inference_server_hard/files/model_repository/image_classifier/config.pbtxt
+COPY model_repository/image_classifier/1/.gitkeep /workspace/output/triton_inference_server_hard/files/model_repository/image_classifier/1/.gitkeep
+COPY model_repository/text_processor/config.pbtxt /workspace/output/triton_inference_server_hard/files/model_repository/text_processor/config.pbtxt
+COPY model_repository/text_processor/1/.gitkeep /workspace/output/triton_inference_server_hard/files/model_repository/text_processor/1/.gitkeep
+COPY model_repository/object_detector/config.pbtxt /workspace/output/triton_inference_server_hard/files/model_repository/object_detector/config.pbtxt
+COPY model_repository/object_detector/1/.gitkeep /workspace/output/triton_inference_server_hard/files/model_repository/object_detector/1/.gitkeep
+COPY model_repository/sentiment_analyzer/config.pbtxt /workspace/output/triton_inference_server_hard/files/model_repository/sentiment_analyzer/config.pbtxt
+COPY model_repository/face_recognition/config.pbtxt /workspace/output/triton_inference_server_hard/files/model_repository/face_recognition/config.pbtxt
+COPY model_repository/speech_recognizer/config.pbtxt /workspace/output/triton_inference_server_hard/files/model_repository/speech_recognizer/config.pbtxt
+COPY model_repository/speech_recognizer/1/.gitkeep /workspace/output/triton_inference_server_hard/files/model_repository/speech_recognizer/1/.gitkeep
+COPY model_repository/preprocessing_pipeline/config.pbtxt /workspace/output/triton_inference_server_hard/files/model_repository/preprocessing_pipeline/config.pbtxt
+COPY model_repository/preprocessing_pipeline/1/.gitkeep /workspace/output/triton_inference_server_hard/files/model_repository/preprocessing_pipeline/1/.gitkeep
+COPY model_repository/translation_ensemble/config.pbtxt /workspace/output/triton_inference_server_hard/files/model_repository/translation_ensemble/config.pbtxt
+COPY model_repository/translation_ensemble/1/.gitkeep /workspace/output/triton_inference_server_hard/files/model_repository/translation_ensemble/1/.gitkeep
+COPY model_repository/recommender/config.pbtxt /workspace/output/triton_inference_server_hard/files/model_repository/recommender/config.pbtxt
+COPY model_repository/recommender/2/.gitkeep /workspace/output/triton_inference_server_hard/files/model_repository/recommender/2/.gitkeep
+COPY model_repository/anomaly_detector/config.pbtxt /workspace/output/triton_inference_server_hard/files/model_repository/anomaly_detector/config.pbtxt
+COPY model_repository/anomaly_detector/1/.gitkeep /workspace/output/triton_inference_server_hard/files/model_repository/anomaly_detector/1/.gitkeep
 
 WORKDIR /workspace
 

@@ -108,19 +108,47 @@ def test_extracts_root_exceptions_only():
     """Test that only root exceptions are counted, not 'Caused by' exceptions"""
     output_path = Path("/tmp/exception_summary.txt")
     lines = output_path.read_text().strip().split('\n')
-    
+
     # Read the log file to verify we're extracting root exceptions
     log_path = Path("/var/log/app/application.log")
     assert log_path.exists(), "Input log file not found"
-    
+
     log_content = log_path.read_text()
-    
+
     # Count exceptions in output
     total_count = 0
     for line in lines:
         parts = line.rsplit(': ', 1)
         total_count += int(parts[1])
-    
+
     # Total should match number of stack traces (not including Caused by)
     # At minimum, we should have found some exceptions
     assert total_count > 0, "No exceptions were counted"
+
+
+def test_exception_counts_match_log_file():
+    """Test that exception counts match the actual counts in application.log"""
+    output_path = Path("/tmp/exception_summary.txt")
+    lines = output_path.read_text().strip().split('\n')
+    counts = {}
+    for line in lines:
+        parts = line.rsplit(': ', 1)
+        counts[parts[0]] = int(parts[1])
+
+    # Exact counts from application.log (root exceptions only, not 'Caused by' entries)
+    assert counts.get("java.lang.NullPointerException") == 13, \
+        f"Expected java.lang.NullPointerException: 13, got {counts.get('java.lang.NullPointerException')}"
+    assert counts.get("java.sql.SQLException") == 8, \
+        f"Expected java.sql.SQLException: 8, got {counts.get('java.sql.SQLException')}"
+    assert counts.get("java.io.IOException") == 7, \
+        f"Expected java.io.IOException: 7, got {counts.get('java.io.IOException')}"
+    assert counts.get("com.example.ServiceException") == 4, \
+        f"Expected com.example.ServiceException: 4, got {counts.get('com.example.ServiceException')}"
+
+
+def test_total_distinct_exception_types():
+    """Test that exactly 7 distinct exception types are reported"""
+    output_path = Path("/tmp/exception_summary.txt")
+    lines = output_path.read_text().strip().split('\n')
+    assert len(lines) == 7, \
+        f"Expected 7 distinct exception types in output, got {len(lines)}"

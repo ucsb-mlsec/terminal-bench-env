@@ -74,21 +74,37 @@ def test_values_extracted_from_binary():
     """Test that the extracted values actually exist in the binary file"""
     solution_path = Path("/workspace/solution/extracted_data.txt")
     binary_path = Path("/workspace/challenge/data_exfil")
-    
+
     assert binary_path.exists(), "Binary file does not exist"
-    
+
     # Read the binary content
     binary_content = binary_path.read_bytes()
-    
+
     # Read extracted values
     content = solution_path.read_text().strip()
     lines = content.split('\n')
-    
+
     api_key = lines[0].split('=', 1)[1]
     username = lines[1].split('=', 1)[1]
     hostname = lines[2].split('=', 1)[1]
-    
+
     # Check if values exist in binary
     assert api_key.encode() in binary_content, f"API key '{api_key}' not found in binary"
     assert username.encode() in binary_content, f"Username '{username}' not found in binary"
     assert hostname.encode() in binary_content, f"Hostname '{hostname}' not found in binary"
+
+def test_correct_extracted_values():
+    """Test that the extracted values match those embedded in the binary"""
+    solution_path = Path("/workspace/solution/extracted_data.txt")
+    content = solution_path.read_text().strip()
+    lines = content.split('\n')
+    api_key = lines[0].split('=', 1)[1]
+    username = lines[1].split('=', 1)[1]
+    hostname = lines[2].split('=', 1)[1]
+    # From data_exfil binary: strings found at readable section
+    assert api_key == "7f3a9c2e1d8b4f6a0e5c3d9a1b7f2e4c", \
+        f"Expected api_key='7f3a9c2e1d8b4f6a0e5c3d9a1b7f2e4c' (from binary strings), got '{api_key}'"
+    assert username == "exfiltrator@darknet.org", \
+        f"Expected username='exfiltrator@darknet.org' (from binary strings), got '{username}'"
+    assert hostname == "command.malicious-c2.net", \
+        f"Expected hostname='command.malicious-c2.net' (from binary strings), got '{hostname}'"

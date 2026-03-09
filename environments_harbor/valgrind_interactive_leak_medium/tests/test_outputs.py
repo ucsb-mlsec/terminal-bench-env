@@ -78,10 +78,39 @@ def test_leak_bytes_reasonable():
     leak_info_path = Path("/workspace/leak_info.txt")
     content = leak_info_path.read_text().strip()
     lines = content.split('\n')
-    
+
     bytes_match = re.match(r'^bytes=(\d+)$', lines[1])
     bytes_count = int(bytes_match.group(1))
-    
+
     # For 50 rolls, leaked bytes should be reasonable (not 0, not millions)
     assert bytes_count >= 50, f"Bytes leaked ({bytes_count}) seems too small for 50 rolls"
     assert bytes_count <= 100000, f"Bytes leaked ({bytes_count}) seems unreasonably large"
+
+
+def test_correct_leak_line():
+    """Test that the identified leak line matches malloc in the simulation loop"""
+    leak_info_path = Path("/workspace/leak_info.txt")
+    content = leak_info_path.read_text().strip()
+    lines = content.split('\n')
+
+    line_match = re.match(r'^line=(\d+)$', lines[0])
+    line_number = int(line_match.group(1))
+
+    # dice_roller.c line 29: DiceRoll *current_roll = (DiceRoll *)malloc(sizeof(DiceRoll));
+    # This malloc in the loop is never freed - it's the only memory leak
+    assert line_number == 29, \
+        f"Expected line=29 (malloc call in simulate_rolls loop that is never freed), got {line_number}"
+
+
+def test_correct_leak_bytes():
+    """Test that bytes equals 50 * sizeof(DiceRoll) for 50 simulation rolls"""
+    leak_info_path = Path("/workspace/leak_info.txt")
+    content = leak_info_path.read_text().strip()
+    lines = content.split('\n')
+
+    bytes_match = re.match(r'^bytes=(\d+)$', lines[1])
+    bytes_count = int(bytes_match.group(1))
+
+    # DiceRoll struct has 2 ints (roll_number, value) = 8 bytes; 50 rolls = 400 bytes leaked
+    assert bytes_count == 400, \
+        f"Expected bytes=400 (50 rolls * 8 bytes per DiceRoll struct), got {bytes_count}"

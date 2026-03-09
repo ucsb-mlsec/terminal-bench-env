@@ -1,6 +1,6 @@
 You're working with genomic variant data that needs quality filtering before downstream analysis. The raw data has been pre-processed into a simplified format to make filtering straightforward.
 
-A tab-separated file containing variant information is located at: `/data/variants.tsv`
+A tab-separated file containing variant information is located at: `/workspace/data/variants.tsv`
 
 The file has the following columns:
 - CHROM: chromosome identifier
@@ -28,13 +28,13 @@ Your task is to filter variants that meet these criteria:
 
 Create a shell script that processes the input file and generates the filtered output.
 
-Save your solution as: `/solution/filter.sh`
+Save your solution as: `/workspace/solution/filter.sh`
 
 The script must:
-1. Read `/data/variants.tsv`
+1. Read `/workspace/data/variants.tsv`
 2. Apply all filtering criteria
-3. Write passing variants to `/solution/filtered.tsv` in the same TSV format (including header)
-4. Write a summary to `/solution/summary.txt`
+3. Write passing variants to `/workspace/solution/filtered.tsv` in the same TSV format (including header)
+4. Write a summary to `/workspace/solution/summary.txt`
 
 The summary file must contain exactly these three lines in this format:
 ```

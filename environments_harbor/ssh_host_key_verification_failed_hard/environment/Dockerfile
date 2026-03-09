@@ -15,14 +15,21 @@ RUN apt-get update && \
     apt-get install -y openssh-client && \
     rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /var/backup/ssh_configs /etc/ssh /home/admin
+RUN mkdir -p /var/backup/ssh_configs /etc/ssh /home/admin /tmp/data /workspace/output/ssh_host_key_verification_failed_hard/files/data
 
 COPY data/verified_keys.txt /etc/ssh/verified_keys.txt
+COPY data/verified_keys.txt /tmp/data/verified_keys.txt
+COPY data/verified_keys.txt /workspace/output/ssh_host_key_verification_failed_hard/files/data/verified_keys.txt
 COPY data/known_hosts_1 /var/backup/ssh_configs/known_hosts_1
 COPY data/known_hosts_2 /var/backup/ssh_configs/known_hosts_2
 COPY data/known_hosts_3 /var/backup/ssh_configs/known_hosts_3
 COPY data/known_hosts_4 /var/backup/ssh_configs/known_hosts_4
 COPY data/known_hosts_5 /var/backup/ssh_configs/known_hosts_5
+COPY data/known_hosts_1 /workspace/output/ssh_host_key_verification_failed_hard/files/data/known_hosts_1
+COPY data/known_hosts_2 /workspace/output/ssh_host_key_verification_failed_hard/files/data/known_hosts_2
+COPY data/known_hosts_3 /workspace/output/ssh_host_key_verification_failed_hard/files/data/known_hosts_3
+COPY data/known_hosts_4 /workspace/output/ssh_host_key_verification_failed_hard/files/data/known_hosts_4
+COPY data/known_hosts_5 /workspace/output/ssh_host_key_verification_failed_hard/files/data/known_hosts_5
 
 WORKDIR /home/admin
 

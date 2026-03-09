@@ -119,7 +119,28 @@ def test_all_fields_non_negative():
     audit_path = Path("/tmp/symlink_chmod_audit.json")
     with open(audit_path, 'r') as f:
         data = json.load(f)
-    
+
     for field in ["total_symlinks", "symlinks_follow_target", "broken_symlinks", "deepest_chain_length"]:
         value = data[field]
         assert value >= 0, f"Field '{field}' has negative value: {value}"
+
+
+def test_total_symlinks_is_12():
+    """Test that total_symlinks == 12, matching the Dockerfile which creates exactly 12 symlinks:
+    link1, link2, chain_link1, chain_link2, nested_link, deep_link, upward_link, broken_link,
+    absolute_broken, chain_start, circular_a, circular_b."""
+    audit_path = Path("/tmp/symlink_chmod_audit.json")
+    with open(audit_path, 'r') as f:
+        data = json.load(f)
+    assert data["total_symlinks"] == 12, \
+        f"Expected total_symlinks=12 (12 symlinks created in Dockerfile), got {data['total_symlinks']}"
+
+
+def test_deepest_chain_length_is_3():
+    """Test that deepest_chain_length == 3.
+    The deepest chain is: chain_start → chain_link2 → chain_link1 → target.conf (depth 3)."""
+    audit_path = Path("/tmp/symlink_chmod_audit.json")
+    with open(audit_path, 'r') as f:
+        data = json.load(f)
+    assert data["deepest_chain_length"] == 3, \
+        f"Expected deepest_chain_length=3 (chain_start → chain_link2 → chain_link1 → target.conf), got {data['deepest_chain_length']}"

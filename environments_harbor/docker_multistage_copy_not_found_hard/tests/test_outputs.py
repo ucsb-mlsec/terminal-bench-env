@@ -90,16 +90,52 @@ def test_errors_reference_dockerfile():
     """Test that errors appear to reference valid Dockerfile constructs"""
     errors_path = Path("/tmp/errors.txt")
     dockerfile_path = Path("/workspace/app/Dockerfile")
-    
+
     # Read the Dockerfile to get total line count
     dockerfile_lines = dockerfile_path.read_text().split('\n')
     max_line = len(dockerfile_lines)
-    
+
     errors_content = errors_path.read_text().strip()
     error_lines = errors_content.split('\n')
-    
+
     for line in error_lines:
         if line.strip():
             parts = line.split(':', 1)
             line_num = int(parts[0].strip())
             assert line_num <= max_line, f"Error references line {line_num} but Dockerfile only has {max_line} lines"
+
+
+def test_undefined_builder_stage_is_reported():
+    """Test that the undefined 'builder' stage at line 28 is reported"""
+    errors_path = Path("/tmp/errors.txt")
+    content = errors_path.read_text()
+
+    # Line 28 has COPY --from=builder where 'builder' is not a defined stage
+    lines = [l.strip() for l in content.strip().split('\n') if l.strip()]
+    reported_line_numbers = [int(l.split(':')[0]) for l in lines if l.split(':')[0].isdigit()]
+
+    assert 28 in reported_line_numbers, \
+        "Line 28 (COPY --from=builder where 'builder' is undefined) must be reported as an error"
+
+
+def test_undefined_compiler_stage_is_reported():
+    """Test that the undefined 'compiler' stage at line 49 is reported"""
+    errors_path = Path("/tmp/errors.txt")
+    content = errors_path.read_text()
+
+    # Line 49 has COPY --from=compiler where 'compiler' is not a defined stage
+    lines = [l.strip() for l in content.strip().split('\n') if l.strip()]
+    reported_line_numbers = [int(l.split(':')[0]) for l in lines if l.split(':')[0].isdigit()]
+
+    assert 49 in reported_line_numbers, \
+        "Line 49 (COPY --from=compiler where 'compiler' is undefined) must be reported as an error"
+
+
+def test_minimum_four_errors_reported():
+    """Test that at least 4 errors are reported for the known issues in the Dockerfile"""
+    errors_path = Path("/tmp/errors.txt")
+    lines = [l.strip() for l in errors_path.read_text().strip().split('\n') if l.strip()]
+
+    # The Dockerfile has 4 known errors: lines 28, 35, 41, 49
+    assert len(lines) >= 4, \
+        f"Expected at least 4 errors in the Dockerfile (lines 28, 35, 41, 49), but only {len(lines)} reported"

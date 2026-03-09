@@ -1,6 +1,6 @@
 You are a security analyst investigating suspicious network activity in your company's AWS infrastructure. VPC flow logs from the past hour have been collected and need immediate analysis.
 
-The VPC flow log data is located in `/data/vpc_flow_logs/flow_logs.txt`, containing exactly 1000 log entries in standard AWS VPC Flow Log format (version 2). Each log entry is space-separated with these fields in order:
+The VPC flow log data is located in `/workspace/data/vpc_flow_logs/flow_logs.txt`, containing exactly 1000 log entries in standard AWS VPC Flow Log format (version 2). Each log entry is space-separated with these fields in order:
 
 ```
 version account-id interface-id srcaddr dstaddr srcport dstport protocol packets bytes start end action log-status
@@ -27,7 +27,7 @@ Identify source IP addresses that had 50 or more REJECT actions in their connect
 
 **Output Requirements:**
 
-Save your findings to `/output/threats.json` with this exact structure:
+Save your findings to `/workspace/output/threats.json` with this exact structure:
 
 ```json
 {
@@ -44,6 +44,6 @@ Requirements:
 - File must be valid JSON
 
 The solution will be verified by:
-- Checking that `/output/threats.json` exists and contains valid JSON
+- Checking that `/workspace/output/threats.json` exists and contains valid JSON
 - Validating the structure matches the specified format exactly
 - Confirming identified IPs actually meet the detection criteria based on the log data

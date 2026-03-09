@@ -11,9 +11,10 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /workspace /solution
+RUN mkdir -p /workspace/solution /workspace/output/spark_arrow_vectorized_reader_medium/files/config
 
 COPY config/spark-defaults.conf /workspace/spark-defaults.conf
+COPY config/spark-defaults.conf /workspace/output/spark_arrow_vectorized_reader_medium/files/config/spark-defaults.conf
 
 WORKDIR /workspace
 

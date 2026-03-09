@@ -14,7 +14,7 @@ RUN pip3 install --no-cache-dir --break-system-packages numpy scikit-learn
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /data /solution
+RUN mkdir -p /workspace/data /workspace/solution
 
 RUN pip3 install --no-cache-dir --break-system-packages \
     pandas \
@@ -23,7 +23,7 @@ RUN pip3 install --no-cache-dir --break-system-packages \
     scikit-learn \
     statsmodels
 
-COPY data/patient_records.csv /data/patient_records.csv
+COPY data/patient_records.csv /workspace/data/patient_records.csv
 
 WORKDIR /workspace
 

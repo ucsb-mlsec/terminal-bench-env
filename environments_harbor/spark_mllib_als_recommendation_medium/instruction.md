@@ -2,9 +2,9 @@ A movie streaming service has collected user rating data and needs you to build 
 
 **Available Data:**
 
-You have a ratings dataset at `/data/ratings.csv` with the following columns:
+You have a ratings dataset at `/workspace/data/ratings.csv` with the following columns:
 - userId: Integer user identifier
-- movieId: Integer movie identifier  
+- movieId: Integer movie identifier
 - rating: Float rating value (scale 1.0 to 5.0)
 - timestamp: Unix timestamp
 
@@ -28,9 +28,9 @@ After training, generate predictions for these specific scenarios:
 
 **Output Requirements:**
 
-Save your solution as a Python script at `/solution/train_model.py`
+Save your solution as a Python script at `/workspace/solution/train_model.py`
 
-When executed, your script must create a single output file at `/solution/metrics.json` with this exact structure:
+When executed, your script must create a single output file at `/workspace/solution/metrics.json` with this exact structure:
 
 ```json
 {
@@ -49,7 +49,7 @@ Where:
 
 Your solution is complete when:
 - The script runs successfully and creates the output file
-- The JSON file exists at `/solution/metrics.json`
+- The JSON file exists at `/workspace/solution/metrics.json`
 - All three numeric values are present and properly formatted
 - Predictions are within the valid rating range (1.0 to 5.0)
 - Results are reproducible (running the script multiple times produces identical output)

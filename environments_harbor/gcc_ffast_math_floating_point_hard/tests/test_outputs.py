@@ -81,3 +81,50 @@ def test_flags_exist_in_makefile():
     
     for flag in flags:
         assert flag in makefile_content, f"Flag '{flag}' does not exist in the Makefile"
+
+def test_solution_identifies_ffast_math():
+    """Test that -ffast-math is identified as an IEEE 754 violator"""
+    solution_path = Path("/workspace/solution.txt")
+    content = solution_path.read_text().strip()
+    flags = [line.strip() for line in content.split('\n') if line.strip()]
+    assert '-ffast-math' in flags, \
+        "-ffast-math must be listed (it enables multiple unsafe optimizations)"
+
+
+def test_solution_identifies_correct_flags():
+    """Test that the solution identifies flags that violate IEEE 754"""
+    solution_path = Path("/workspace/solution.txt")
+    content = solution_path.read_text().strip()
+    flags = set(line.strip() for line in content.split('\n') if line.strip())
+    
+    # These are the flags in the Makefile that violate IEEE 754:
+    ieee754_violators = {
+        '-ffast-math',
+        '-ffinite-math-only',
+        '-fno-signed-zeros',
+        '-fassociative-math',
+        '-freciprocal-math',
+        '-funsafe-math-optimizations',
+    }
+    
+    # All identified flags should be actual IEEE 754 violators
+    for flag in flags:
+        assert flag in ieee754_violators, \
+            f"Flag '{flag}' is not a known IEEE 754 violator from the Makefile"
+    
+    # Must identify at least the key ones
+    assert len(flags & ieee754_violators) >= 3, \
+        f"Expected at least 3 IEEE 754 violating flags, found {len(flags & ieee754_violators)}"
+
+
+def test_solution_does_not_include_safe_flags():
+    """Test that safe optimization flags are not included"""
+    solution_path = Path("/workspace/solution.txt")
+    content = solution_path.read_text().strip()
+    flags = set(line.strip() for line in content.split('\n') if line.strip())
+    
+    # These flags are safe and should NOT be in the solution
+    safe_flags = {'-O3', '-march=native', '-mtune=native', '-funroll-loops', '-Wall'}
+    for flag in safe_flags:
+        assert flag not in flags, \
+            f"Flag '{flag}' is a safe optimization flag and should NOT be removed"

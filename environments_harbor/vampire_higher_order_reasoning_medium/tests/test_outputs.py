@@ -115,12 +115,36 @@ def test_total_formulas_in_valid_range():
     """Test that the total number of formulas is within the expected range (20-30)"""
     result_path = Path("/workspace/validation_result.txt")
     content = result_path.read_text().strip()
-    
+
     valid_match = re.search(r'valid_count=(\d+)', content)
     invalid_match = re.search(r'invalid_count=(\d+)', content)
-    
+
     valid_count = int(valid_match.group(1))
     invalid_count = int(invalid_match.group(1))
     total_count = valid_count + invalid_count
-    
+
     assert 20 <= total_count <= 30, f"Total formula count {total_count} is outside expected range of 20-30"
+
+def test_correct_valid_count():
+    """Test that valid_count equals the expected 22 (formulas.txt has 30 formulas, 8 are invalid)"""
+    result_path = Path("/workspace/validation_result.txt")
+    content = result_path.read_text().strip()
+    match = re.search(r'valid_count=(\d+)', content)
+    valid_count = int(match.group(1))
+    assert valid_count == 22, f"Expected valid_count=22 based on formulas.txt analysis, got {valid_count}"
+
+def test_correct_invalid_count():
+    """Test that invalid_count equals the expected 8 (formulas with syntax errors)"""
+    result_path = Path("/workspace/validation_result.txt")
+    content = result_path.read_text().strip()
+    match = re.search(r'invalid_count=(\d+)', content)
+    invalid_count = int(match.group(1))
+    assert invalid_count == 8, f"Expected invalid_count=8 based on formulas.txt analysis, got {invalid_count}"
+
+def test_correct_error_rate():
+    """Test that error_rate equals 0.27 (8 invalid / 30 total = 0.2666... rounded to 0.27)"""
+    result_path = Path("/workspace/validation_result.txt")
+    content = result_path.read_text().strip()
+    match = re.search(r'error_rate=([\d.]+)', content)
+    error_rate = float(match.group(1))
+    assert abs(error_rate - 0.27) < 0.01, f"Expected error_rate=0.27, got {error_rate}"

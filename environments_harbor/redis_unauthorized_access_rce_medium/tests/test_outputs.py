@@ -82,11 +82,35 @@ def test_report_format_structure():
     report_path = Path("/tmp/redis_security_assessment.txt")
     content = report_path.read_text().strip()
     lines = [l for l in content.split('\n') if l.strip()]
-    
+
     assert len(lines) == 3, f"Report should have exactly 3 lines, found {len(lines)}"
-    
+
     for line in lines:
         assert '=' in line, f"Each line must contain '=' separator, invalid line: {line}"
         parts = line.split('=', 1)
         assert len(parts) == 2, f"Each line must have key=value format, invalid line: {line}"
         assert len(parts[0].strip()) > 0, f"Key cannot be empty in line: {line}"
+
+def test_auth_enabled_is_no():
+    """Test that AUTH_ENABLED=NO because requirepass is commented out in redis.conf"""
+    report_path = Path("/tmp/redis_security_assessment.txt")
+    fields = {}
+    for line in report_path.read_text().strip().split('\n'):
+        if '=' in line:
+            key, value = line.split('=', 1)
+            fields[key.strip()] = value.strip()
+
+    assert fields.get('AUTH_ENABLED') == 'NO', \
+        f"Expected AUTH_ENABLED=NO (requirepass is commented out), got: {fields.get('AUTH_ENABLED')}"
+
+def test_bind_address_is_all_interfaces():
+    """Test that BIND_ADDRESS=0.0.0.0 as set in redis.conf"""
+    report_path = Path("/tmp/redis_security_assessment.txt")
+    fields = {}
+    for line in report_path.read_text().strip().split('\n'):
+        if '=' in line:
+            key, value = line.split('=', 1)
+            fields[key.strip()] = value.strip()
+
+    assert fields.get('BIND_ADDRESS') == '0.0.0.0', \
+        f"Expected BIND_ADDRESS=0.0.0.0, got: {fields.get('BIND_ADDRESS')}"

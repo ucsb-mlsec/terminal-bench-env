@@ -54,7 +54,7 @@ This test script will:
 6. Measure reload timing
 
 **Deliverable:**
-Your solution must modify `/app/server.py` to support hot-reload functionality. After running the verification script, save the test results to `/solution/result.json` with this exact format:
+Your solution must modify `/app/server.py` to support hot-reload functionality. After running the verification script, save the test results to `/workspace/solution/result.json` with this exact format:
 
 ```json
 {
@@ -69,7 +69,7 @@ Where:
 
 **Success Criteria:**
 - `reload_working` must be `true` (service successfully reloaded configuration on all test updates)
-- `avg_reload_seconds` must be ≤ 5.0 (configuration changes take effect within 5 seconds)
+- `avg_reload_seconds` must be <= 5.0 (configuration changes take effect within 5 seconds)
 - The server must continue running throughout all configuration updates (no restarts)
 - Invalid configuration must be rejected without affecting the running service
 

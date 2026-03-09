@@ -17,13 +17,13 @@ RUN apt-get update && \
 
 RUN pip3 install --no-cache-dir --break-system-packages pandas pyarrow
 
-RUN mkdir -p /data/transactions /data/output /solution
+RUN mkdir -p /workspace/data/transactions /workspace/data/output /workspace/solution
 
-COPY data/transactions/transactions_q1.parquet /data/transactions/transactions_q1.parquet
-COPY data/transactions/transactions_q2.parquet /data/transactions/transactions_q2.parquet
-COPY data/transactions/transactions_q3.parquet /data/transactions/transactions_q3.parquet
+COPY data/transactions/transactions_q1.parquet /workspace/data/transactions/transactions_q1.parquet
+COPY data/transactions/transactions_q2.parquet /workspace/data/transactions/transactions_q2.parquet
+COPY data/transactions/transactions_q3.parquet /workspace/data/transactions/transactions_q3.parquet
 
-WORKDIR /solution
+WORKDIR /workspace
 
 # Mapped from docker-compose.yaml
 ENV TEST_DIR=/tests

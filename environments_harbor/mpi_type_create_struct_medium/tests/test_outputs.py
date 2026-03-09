@@ -94,9 +94,29 @@ def test_result_json_sensor_id_valid():
 def test_result_json_voltage_valid():
     """Test that voltage is a valid float"""
     result_file = Path("/workspace/result.json")
-    
+
     with open(result_file, 'r') as f:
         data = json.load(f)
-    
+
     assert isinstance(data["voltage"], (int, float)), f"voltage should be a number, got {type(data['voltage'])}"
     assert data["voltage"] > 0, f"voltage should be positive, got {data['voltage']}"
+
+def test_correct_sensor_values():
+    """Test that result.json contains the correct sensor_id and voltage values.
+
+    The sensor_network.c sends sensor_id=101 and voltage=3.7. After fixing the
+    MPI_Type_create_struct bug (replacing MPI_BYTE with a proper MPI derived
+    type), the receiver should decode these values without corruption.
+    """
+    result_file = Path("/workspace/result.json")
+
+    with open(result_file, 'r') as f:
+        data = json.load(f)
+
+    assert data["sensor_id"] == 101, (
+        f"Expected sensor_id=101, got sensor_id={data['sensor_id']}"
+    )
+    voltage = float(data["voltage"])
+    assert abs(voltage - 3.7) < 0.05, (
+        f"Expected voltage≈3.7, got voltage={voltage}"
+    )

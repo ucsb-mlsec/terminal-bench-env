@@ -2,7 +2,7 @@ A Spark cluster running in standalone mode is experiencing resource contention. 
 
 The cluster configuration is located at `/opt/spark/conf/spark-defaults.conf`. The current settings show that dynamic allocation is disabled, and there's no idle timeout configured.
 
-A workload analysis has been completed and summarized in `/data/workload_summary.json` with the following structure:
+A workload analysis has been completed and summarized in `/workspace/data/workload_summary.json` with the following structure:
 
 ```json
 {
@@ -30,7 +30,7 @@ The cluster management team has established the following requirements based on 
 
 Your task is to modify the Spark configuration file to implement an appropriate idle executor timeout strategy. The solution must balance quick resource reclamation with avoiding excessive executor churn.
 
-Save your final configuration changes to `/solution/spark-defaults.conf`. This file should contain ONLY the configuration properties that need to be set or modified (not the entire config file). Use standard Spark configuration format:
+Save your final configuration changes to `/workspace/solution/spark-defaults.conf`. This file should contain ONLY the configuration properties that need to be set or modified (not the entire config file). Use standard Spark configuration format:
 
 ```
 spark.property.name value

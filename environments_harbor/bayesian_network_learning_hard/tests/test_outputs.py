@@ -86,3 +86,34 @@ def test_analysis_appears_reasonable():
     # For a 5-node network, maximum possible edges is 5*4=20 (directed)
     # Edge differences should be reasonable (not exceed total possible edges)
     assert edge_diff <= 20, f"EDGE_DIFFERENCES ({edge_diff}) seems unreasonably high for a 5-node network (max 20 possible directed edges)"
+
+
+def test_edge_differences_is_four():
+    """Test that EDGE_DIFFERENCES is 4 based on comparing reference and hypothesis structures"""
+    # reference_structure.txt: A->B, A->C, B->D, C->E, D->E, B->C (6 edges)
+    # hypothesis.txt: A->B, A->C, B->D, C->D, D->E, A->E (6 edges)
+    # Edges in reference but not hypothesis: C->E, B->C = 2
+    # Edges in hypothesis but not reference: C->D, A->E = 2
+    # Total differences = 4 → DECISION should be REJECT (4 >= 2)
+    verdict_path = Path("/solution/verdict.txt")
+    lines = verdict_path.read_text().strip().split('\n')
+    first_line = lines[0].strip()
+    import re
+    match = re.match(r'^EDGE_DIFFERENCES:\s*(\d+)$', first_line)
+    assert match is not None, "Could not parse EDGE_DIFFERENCES"
+    edge_diff = int(match.group(1))
+    assert edge_diff == 4, \
+        f"EDGE_DIFFERENCES should be 4 (ref has C->E,B->C not in hypothesis; hypothesis has C->D,A->E not in ref), got {edge_diff}"
+
+
+def test_decision_is_reject():
+    """Test that DECISION is REJECT since EDGE_DIFFERENCES=4 (>= 2)"""
+    verdict_path = Path("/solution/verdict.txt")
+    lines = verdict_path.read_text().strip().split('\n')
+    second_line = lines[1].strip()
+    import re
+    match = re.match(r'^DECISION:\s*(ACCEPT|REJECT)$', second_line)
+    assert match is not None
+    decision = match.group(1)
+    assert decision == "REJECT", \
+        f"DECISION should be 'REJECT' (4 edge differences exceed the accept threshold), got '{decision}'"

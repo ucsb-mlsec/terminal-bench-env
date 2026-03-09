@@ -97,13 +97,44 @@ def test_fix_value_is_numeric():
     """Test that the fix parameter value is numeric"""
     solution_path = Path("/workspace/solution.txt")
     lines = solution_path.read_text().strip().split('\n')
-    
+
     fix_line = lines[1].strip()
     match = re.match(r'^fix=([^=]+)=(.+)$', fix_line)
     param_value = match.group(2)
-    
+
     assert param_value.isdigit(), \
         f"Parameter value must be numeric, got: {param_value}"
-    
+
     value = int(param_value)
     assert value > 0, f"Parameter value must be positive, got: {value}"
+
+
+def test_correct_subscriber_and_fix():
+    """Test that subscriber-B is identified and max_pending_bytes is increased"""
+    solution_path = Path("/workspace/solution.txt")
+    lines = solution_path.read_text().strip().split('\n')
+
+    subscriber_line = lines[0].strip()
+    subscriber = re.match(r'^subscriber=(.+)$', subscriber_line).group(1)
+
+    fix_line = lines[1].strip()
+    fix_match = re.match(r'^fix=([^=]+)=(.+)$', fix_line)
+    param_name = fix_match.group(1)
+    param_value = int(fix_match.group(2))
+
+    # nats-server.log shows subscriber-B (cid=102) hitting slow consumer warnings
+    # and being disconnected at pending_bytes=67108864 (max_pending_bytes in subscriber-b.conf)
+    # subscriber-A and subscriber-C have max_pending_bytes=134217728 and handle the load fine
+    assert subscriber == "subscriber-B", (
+        f"The slow consumer is 'subscriber-B' (shown by repeated slow consumer warnings "
+        f"for cid=102 in nats-server.log), got: {subscriber}"
+    )
+
+    # The fix is to increase max_pending_bytes beyond 67108864 (subscriber-B's current limit)
+    # subscriber-A and C use 134217728 which works fine
+    assert "pending" in param_name.lower() or "bytes" in param_name.lower(), (
+        f"Fix parameter should relate to pending bytes limit, got: {param_name}"
+    )
+    assert param_value > 67108864, (
+        f"Fix value should be greater than current limit of 67108864, got: {param_value}"
+    )

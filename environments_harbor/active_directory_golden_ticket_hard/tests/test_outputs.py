@@ -92,8 +92,38 @@ def test_at_least_one_value_found():
     solution_path = Path("/solution/attack_summary.txt")
     content = solution_path.read_text().strip()
     lines = content.split('\n')
-    
+
     values = [line.split(": ", 1)[1] for line in lines]
     non_none_count = sum(1 for v in values if v != "NONE")
-    
+
     assert non_none_count > 0, "At least one security parameter should be extracted from the logs (all values are NONE)"
+
+
+def test_correct_krbtgt_hash():
+    """Test that the KRBTGT hash matches the value from the attacker session log"""
+    # From attacker_session.log: lsadump::lsa /inject /name:krbtgt shows NTLM: 8a7f2b6c3d4e5a1f9b8c7d6e5f4a3b2c
+    solution_path = Path("/solution/attack_summary.txt")
+    lines = solution_path.read_text().strip().split('\n')
+    hash_value = lines[0].split("KRBTGT_HASH: ", 1)[1]
+    assert hash_value.lower() == "8a7f2b6c3d4e5a1f9b8c7d6e5f4a3b2c", \
+        f"KRBTGT_HASH should be '8a7f2b6c3d4e5a1f9b8c7d6e5f4a3b2c' from the session log, got '{hash_value}'"
+
+
+def test_correct_domain_sid():
+    """Test that the DOMAIN_SID matches the value from the attacker session log"""
+    # From attacker_session.log: Domain SID S-1-5-21-2894731341-3578412290-4198663980
+    solution_path = Path("/solution/attack_summary.txt")
+    lines = solution_path.read_text().strip().split('\n')
+    sid_value = lines[1].split("DOMAIN_SID: ", 1)[1]
+    assert sid_value == "S-1-5-21-2894731341-3578412290-4198663980", \
+        f"DOMAIN_SID should be 'S-1-5-21-2894731341-3578412290-4198663980', got '{sid_value}'"
+
+
+def test_correct_impersonated_user():
+    """Test that the IMPERSONATED_USER is Administrator"""
+    # From attacker_session.log: kerberos::golden /user:Administrator
+    solution_path = Path("/solution/attack_summary.txt")
+    lines = solution_path.read_text().strip().split('\n')
+    user_value = lines[2].split("IMPERSONATED_USER: ", 1)[1]
+    assert user_value == "Administrator", \
+        f"IMPERSONATED_USER should be 'Administrator' (used in golden ticket), got '{user_value}'"

@@ -90,3 +90,13 @@ def test_guesses_reasonable_for_binary_search():
     # Binary search on 1-100 should take at most log2(100) ≈ 7 guesses
     # Allow up to 10 for reasonable implementations
     assert guesses <= 10, f"Number of guesses ({guesses}) suggests inefficient search strategy (should be ≤10 for binary search)"
+
+def test_correct_winning_number():
+    """Test that the winning number matches the deterministic output of random.seed(42)"""
+    results_path = Path("/home/user/test_results.txt")
+    content = results_path.read_text()
+    match = re.search(r'winning_number=(\d+)', content)
+    winning_number = int(match.group(1))
+    # From guess_number.py: uses random.seed(42), then random.randint(1, 100) = 63
+    assert winning_number == 63, \
+        f"Expected winning_number=63 (random.seed(42) + randint(1,100) = 63), got {winning_number}"

@@ -94,12 +94,24 @@ def test_all_values_are_integers():
     """Test that all values are valid integers"""
     solution_path = Path("/solution/buffer_recommendation.txt")
     lines = solution_path.read_text().strip().split('\n')
-    
+
     for line in lines:
         key, value = line.split('=')
         try:
             int_value = int(value)
         except ValueError:
             assert False, f"Value for {key} must be an integer, got: {value}"
-        
+
         assert int_value >= 0, f"Value for {key} must be non-negative, got: {int_value}"
+
+
+def test_correct_max_drops_observed():
+    """Test that MAX_DROPS_OBSERVED matches the highest drop count in the session logs"""
+    solution_path = Path("/solution/buffer_recommendation.txt")
+    lines = solution_path.read_text().strip().split('\n')
+
+    drops_value = int(lines[1].split('=')[1])
+
+    # session_007.log has the highest drop count: 12847
+    assert drops_value == 12847, \
+        f"Expected MAX_DROPS_OBSERVED=12847 (from session_007.log), got {drops_value}"

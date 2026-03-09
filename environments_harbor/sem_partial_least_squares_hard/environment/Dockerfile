@@ -26,9 +26,9 @@ RUN pip3 install --no-cache-dir --break-system-packages \
     scikit-learn \
     semopy
 
-RUN mkdir -p /data /solution
+RUN mkdir -p /workspace/data /workspace/solution
 
-COPY data/customer_survey.csv /data/customer_survey.csv
+COPY data/customer_survey.csv /workspace/data/customer_survey.csv
 
 WORKDIR /workspace
 

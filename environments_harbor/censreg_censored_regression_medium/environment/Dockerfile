@@ -21,9 +21,9 @@ RUN apt-get update && apt-get install -y r-cran-survival && \
 
 RUN R -e "install.packages('AER', repos='http://cran.rstudio.com/')"
 
-RUN mkdir -p /data /solution
+RUN mkdir -p /workspace/data /workspace/solution
 
-COPY data/wage_data.csv /data/wage_data.csv
+COPY data/wage_data.csv /workspace/data/wage_data.csv
 
 WORKDIR /workspace
 

@@ -11,13 +11,16 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /data/kinesis_stream /data/logs /data/checkpoint /solution
+RUN mkdir -p /workspace/data/kinesis_stream /workspace/data/logs /workspace/data/checkpoint /workspace/solution
 
-COPY data/kinesis_stream/shard_0.jsonl /data/kinesis_stream/shard_0.jsonl
-COPY data/kinesis_stream/shard_1.jsonl /data/kinesis_stream/shard_1.jsonl
-COPY data/kinesis_stream/shard_2.jsonl /data/kinesis_stream/shard_2.jsonl
-COPY data/logs/processing.log /data/logs/processing.log
-COPY data/checkpoint/state.json /data/checkpoint/state.json
+COPY data/kinesis_stream/shard_0.jsonl /workspace/data/kinesis_stream/shard_0.jsonl
+COPY data/kinesis_stream/shard_1.jsonl /workspace/data/kinesis_stream/shard_1.jsonl
+COPY data/kinesis_stream/shard_2.jsonl /workspace/data/kinesis_stream/shard_2.jsonl
+COPY data/kinesis_stream/shard_0.jsonl /workspace/data/kinesis_stream/shard-0.jsonl
+COPY data/kinesis_stream/shard_1.jsonl /workspace/data/kinesis_stream/shard-1.jsonl
+COPY data/kinesis_stream/shard_2.jsonl /workspace/data/kinesis_stream/shard-2.jsonl
+COPY data/logs/processing.log /workspace/data/logs/processing.log
+COPY data/checkpoint/state.json /workspace/data/checkpoint/state.json
 
 WORKDIR /workspace
 

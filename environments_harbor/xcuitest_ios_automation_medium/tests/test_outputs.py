@@ -105,11 +105,45 @@ def test_broken_tests_reference_test_files():
     report_path = Path("/workspace/test_issues.json")
     with open(report_path, 'r') as f:
         report = json.load(f)
-    
+
     valid_classes = ["LoginTests", "HomeTests", "ProfileTests", "SettingsTests"]
     broken_tests = report["broken_tests"]
-    
+
     for test_name in broken_tests:
         class_name = test_name.split(".")[0]
         assert class_name in valid_classes, \
             f"Class name '{class_name}' in '{test_name}' should be one of {valid_classes}"
+
+
+def test_correct_total_issues_count():
+    """Test that total_issues equals 8, the number of tests with ISSUE comments in the Swift files.
+    LoginTests.swift has 4 broken tests: testValidLogin (wrong button 'submitButton'),
+    testInvalidPassword (wrong label 'errorMessage'), testEmptyCredentials (wrong expected text),
+    testLoginSuccess (missing waitForExistence). ProfileTests.swift has 4 broken tests.
+    HomeTests.swift and SettingsTests.swift have no ISSUE comments and no broken tests."""
+    report_path = Path("/workspace/test_issues.json")
+    with open(report_path, 'r') as f:
+        report = json.load(f)
+
+    assert report["total_issues"] == 8, \
+        f"Expected total_issues=8 (4 from LoginTests + 4 from ProfileTests), got {report['total_issues']}"
+
+    broken_tests = set(report["broken_tests"])
+
+    # All 4 LoginTests should be broken
+    expected_login_tests = {
+        "LoginTests.testValidLogin",
+        "LoginTests.testInvalidPassword",
+        "LoginTests.testEmptyCredentials",
+        "LoginTests.testLoginSuccess",
+    }
+    for test in expected_login_tests:
+        assert test in broken_tests, \
+            f"Expected {test} to be in broken_tests (has an ISSUE comment), but it was not reported"
+
+    # HomeTests and SettingsTests should NOT be broken
+    unexpected_classes = {"HomeTests", "SettingsTests"}
+    for test_name in broken_tests:
+        cls = test_name.split(".")[0]
+        assert cls not in unexpected_classes, \
+            f"Test '{test_name}' should not be broken — {cls} has no ISSUE comments in its Swift file"

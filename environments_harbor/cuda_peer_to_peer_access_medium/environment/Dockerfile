@@ -12,9 +12,13 @@ RUN apt-get update && \
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
 RUN mkdir -p /etc/gpu /var/log/cuda /tmp
+RUN mkdir -p /workspace/output/cuda_peer_to_peer_access_medium/files/config
+RUN mkdir -p /workspace/output/cuda_peer_to_peer_access_medium/files/data
 
 COPY config/p2p_config.json /etc/gpu/p2p_config.json
 COPY data/p2p_status.log /var/log/cuda/p2p_status.log
+COPY config/p2p_config.json /workspace/output/cuda_peer_to_peer_access_medium/files/config/p2p_config.json
+COPY data/p2p_status.log /workspace/output/cuda_peer_to_peer_access_medium/files/data/p2p_status.log
 
 WORKDIR /workspace
 

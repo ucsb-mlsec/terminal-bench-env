@@ -89,6 +89,20 @@ def test_numerical_precision():
         decimal_places = len(value_str.split('.')[1]) if '.' in value_str else 0
         assert decimal_places <= 3, f"Line {i+1}: value {value_str} has too many decimal places ({decimal_places} > 3)"
 
+def test_optimal_grid_spacing_is_018():
+    """Test that optimal_grid_spacing=0.18, which is the coarsest grid spacing
+    within the 0.01 eV energy tolerance vs the reference 0.10 grid.
+    Energies from gpaw_outputs/: 0.10→-17.084523 eV (ref), 0.12→-17.081939 (diff=0.0026),
+    0.15→-17.079907 (diff=0.0046), 0.18→-17.076429 (diff=0.0081, within tol),
+    0.20→-17.070165 (diff=0.0144, exceeds tol), 0.25→-17.062145 (diff=0.0224, exceeds tol)."""
+    output_path = Path("/workspace/optimal_parameters.txt")
+    lines = output_path.read_text().strip().split('\n')
+
+    optimal_value = float(lines[1].split('=')[1])
+    assert optimal_value == 0.18, \
+        f"Expected optimal_grid_spacing=0.18 (coarsest within 0.01 eV tolerance), got {optimal_value}"
+
+
 def test_optimal_is_coarsest_within_tolerance():
     """Test that the optimal grid spacing is the coarsest that meets the energy tolerance"""
     output_path = Path("/workspace/optimal_parameters.txt")

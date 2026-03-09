@@ -20,15 +20,15 @@ RUN pip3 install --no-cache-dir --break-system-packages numpy
 
 RUN pip3 install --no-cache-dir --break-system-packages pandas
 
-RUN mkdir -p /data/transactions /solution
+RUN mkdir -p /workspace/data/transactions /workspace/solution
 
-COPY data/transactions/transactions_part_001.csv /data/transactions/transactions_part_001.csv
-COPY data/transactions/transactions_part_002.csv /data/transactions/transactions_part_002.csv
-COPY data/transactions/transactions_part_003.csv /data/transactions/transactions_part_003.csv
-COPY data/transactions/transactions_part_004.csv /data/transactions/transactions_part_004.csv
-COPY data/transactions/transactions_part_005.csv /data/transactions/transactions_part_005.csv
+COPY data/transactions/transactions_part_001.csv /workspace/data/transactions/transactions_part_001.csv
+COPY data/transactions/transactions_part_002.csv /workspace/data/transactions/transactions_part_002.csv
+COPY data/transactions/transactions_part_003.csv /workspace/data/transactions/transactions_part_003.csv
+COPY data/transactions/transactions_part_004.csv /workspace/data/transactions/transactions_part_004.csv
+COPY data/transactions/transactions_part_005.csv /workspace/data/transactions/transactions_part_005.csv
 
-WORKDIR /solution
+WORKDIR /workspace/solution
 
 # Mapped from docker-compose.yaml
 ENV TEST_DIR=/tests

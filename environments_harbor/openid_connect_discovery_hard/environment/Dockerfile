@@ -20,6 +20,7 @@ RUN pip3 install --no-cache-dir --break-system-packages flask
 RUN mkdir -p /app /solution
 
 COPY app/oidc_provider.py /app/oidc_provider.py
+COPY app/config.json /app/config.json
 
 WORKDIR /app
 

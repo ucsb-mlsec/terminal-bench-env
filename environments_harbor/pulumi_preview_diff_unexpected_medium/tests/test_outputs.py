@@ -103,3 +103,27 @@ def test_fix_provides_actionable_solution():
     has_action_indicator = any(indicator in fix_value for indicator in action_indicators)
     assert has_action_indicator, "FIX does not provide an actionable solution"
     assert len(fix_value) > 10, "FIX description is too short to be meaningful"
+
+def test_correct_resource_identified():
+    """Test that the identified resource is data-processor (the Lambda being replaced)"""
+    solution_path = Path("/workspace/solution.txt")
+    content = solution_path.read_text()
+    resource_match = re.search(r'RESOURCE:\s*(.+)', content)
+    assert resource_match, "RESOURCE field not found"
+    resource_value = resource_match.group(1).strip()
+    # From preview-output.txt: data-processor Lambda is being replaced due to BUCKET_NAME issue
+    assert "data-processor" in resource_value.lower() or "dataprocessor" in resource_value.lower(), \
+        f"Expected RESOURCE to identify 'data-processor' Lambda, got '{resource_value}'"
+
+def test_cause_mentions_interpolation_issue():
+    """Test that CAUSE mentions the environment variable interpolation as the root cause"""
+    solution_path = Path("/workspace/solution.txt")
+    content = solution_path.read_text()
+    cause_match = re.search(r'CAUSE:\s*(.+)', content)
+    assert cause_match, "CAUSE field not found"
+    cause_value = cause_match.group(1).strip().lower()
+    # Root cause: BUCKET_NAME env var uses dataBucket.bucket (Pulumi Output) instead of static string
+    interpolation_terms = ['bucket', 'environment', 'env', 'output', 'interpolat', 'variable']
+    has_term = any(term in cause_value for term in interpolation_terms)
+    assert has_term, \
+        f"CAUSE should mention environment variable or bucket interpolation issue, got '{cause_value}'"

@@ -121,9 +121,31 @@ def test_required_pods_present():
     """Test that required pods are declared based on source file imports"""
     podfile_path = Path("/workspace/solution/Podfile")
     content = podfile_path.read_text()
-    
+
     # Based on typical imports in iOS projects (Alamofire for networking, etc.)
     # The test should verify that pods are declared
     # At minimum, there should be multiple pod declarations
     pod_count = len(re.findall(r"pod\s+['\"]", content))
     assert pod_count >= 3, f"Expected at least 3 pod declarations, found {pod_count}"
+
+
+def test_weatherapp_pods_from_source_imports():
+    """WeatherApp/ViewController.swift and NetworkManager.swift import:
+    Alamofire, SwiftyJSON, Kingfisher, SDWebImage, SnapKit.
+    All five must appear in the Podfile."""
+    podfile_path = Path("/workspace/solution/Podfile")
+    content = podfile_path.read_text()
+    required_pods = ["Alamofire", "SwiftyJSON", "Kingfisher", "SDWebImage", "SnapKit"]
+    for pod in required_pods:
+        assert pod in content, \
+            f"Pod '{pod}' is imported in source files but missing from the Podfile"
+
+
+def test_weatherapptest_pods_from_source_imports():
+    """WeatherAppTests/WeatherAppTests.swift imports Quick and Nimble.
+    Both must appear in the Podfile (inside the WeatherAppTests target block)."""
+    podfile_path = Path("/workspace/solution/Podfile")
+    content = podfile_path.read_text()
+    for pod in ["Quick", "Nimble"]:
+        assert pod in content, \
+            f"Test pod '{pod}' is imported in WeatherAppTests but missing from the Podfile"

@@ -110,10 +110,31 @@ def test_solution_format_valid():
     solution_path = Path("/tmp/timeout_fix.txt")
     content = solution_path.read_text()
     lines = [line.strip() for line in content.strip().split('\n') if line.strip()]
-    
+
     for line in lines:
         assert '=' in line, f"Line does not follow key=value format: {line}"
         parts = line.split('=', 1)
         assert len(parts) == 2, f"Line does not follow key=value format: {line}"
         assert len(parts[0]) > 0, f"Key is empty in line: {line}"
         assert len(parts[1]) > 0, f"Value is empty in line: {line}"
+
+
+def test_timeout_meets_query_patterns_recommendation():
+    """Test that timeout_seconds >= 240, the minimum recommended in query_patterns.txt.
+    The file states: longest legitimate query is 178s, recommended timeout is
+    '180 seconds + safety margin = 240 seconds minimum' to accommodate 99.9% of queries."""
+    solution_path = Path("/tmp/timeout_fix.txt")
+    content = solution_path.read_text()
+    lines = content.strip().split('\n')
+
+    timeout_line = None
+    for line in lines:
+        if line.strip().startswith('timeout_seconds='):
+            timeout_line = line.strip()
+            break
+
+    assert timeout_line is not None, "Missing 'timeout_seconds=' line in solution"
+    timeout_value = int(timeout_line.split('=', 1)[1])
+
+    assert timeout_value >= 240, \
+        f"timeout_seconds must be at least 240 (the recommendation from query_patterns.txt for 178s max queries), got {timeout_value}"

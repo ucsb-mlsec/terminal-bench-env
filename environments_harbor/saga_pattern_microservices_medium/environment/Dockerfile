@@ -15,7 +15,7 @@ RUN mkdir -p /workspace/data
 
 COPY services.py /workspace/services.py
 COPY saga_coordinator.py /workspace/saga_coordinator.py
-COPY data/test_orders.json /workspace/test_orders.json
+COPY data/test_orders.json /workspace/data/test_orders.json
 
 WORKDIR /workspace
 

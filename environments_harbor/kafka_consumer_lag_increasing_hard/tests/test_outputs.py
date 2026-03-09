@@ -77,7 +77,25 @@ def test_no_placeholder_text():
     """Test that findings don't contain placeholder text"""
     findings_path = Path("/home/kafka/findings.txt")
     content = findings_path.read_text().lower()
-    
+
     placeholders = ["todo", "tbd", "xxx", "placeholder", "<", ">", "fixme"]
     for placeholder in placeholders:
         assert placeholder not in content, f"Findings contain placeholder text: {placeholder}"
+
+
+def test_primary_cause_identifies_max_poll_records():
+    """Test that PRIMARY_CAUSE identifies max.poll.records as root cause per consumer config"""
+    findings_path = Path("/home/kafka/findings.txt")
+    lines = [line.strip() for line in findings_path.read_text().strip().split('\n') if line.strip()]
+    primary_cause = lines[0].replace("PRIMARY_CAUSE:", "").strip().lower()
+    assert "max.poll.records" in primary_cause or "poll.records" in primary_cause or "max_poll_records" in primary_cause, \
+        f"PRIMARY_CAUSE should identify max.poll.records=500 (recently increased in consumer_config_transaction_processor.properties causing DB pool exhaustion), got: {primary_cause}"
+
+
+def test_secondary_cause_identifies_database_connection():
+    """Test that SECONDARY_CAUSE identifies database connection pool exhaustion per app.log"""
+    findings_path = Path("/home/kafka/findings.txt")
+    lines = [line.strip() for line in findings_path.read_text().strip().split('\n') if line.strip()]
+    secondary_cause = lines[1].replace("SECONDARY_CAUSE:", "").strip().lower()
+    assert any(word in secondary_cause for word in ["database", "connection", "pool", "rebalance"]), \
+        f"SECONDARY_CAUSE should identify database connection pool exhaustion (from consumer_app.log), got: {secondary_cause}"

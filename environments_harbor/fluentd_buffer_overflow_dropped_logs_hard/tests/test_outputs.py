@@ -136,3 +136,48 @@ def test_valid_fluentd_syntax():
     
     assert open_tags > 0, "Configuration must have at least one source/match/buffer section"
     assert open_tags == close_tags, f"Unbalanced XML-style tags: {open_tags} opening tags but {close_tags} closing tags"
+
+def test_buffer_type_is_file():
+    """Test that buffer type was changed from memory to file for durability"""
+    solution_path = Path("/home/admin/solution/fluent.conf")
+    content = solution_path.read_text()
+    assert "@type file" in content or '@type "file"' in content, \
+        "Buffer type must be changed to 'file' (original used memory which causes data loss)"
+
+
+def test_total_limit_size_increased():
+    """Test that total_limit_size is increased from the original 50MB"""
+    solution_path = Path("/home/admin/solution/fluent.conf")
+    content = solution_path.read_text()
+    import re
+    match = re.search(r'total_limit_size\s+(\d+)(\w+)', content)
+    if match:
+        value = int(match.group(1))
+        unit = match.group(2).upper()
+        if unit == 'GB':
+            value_mb = value * 1024
+        elif unit == 'MB':
+            value_mb = value
+        else:
+            value_mb = 0
+        assert value_mb > 50, \
+            f"total_limit_size ({value}{unit}) must be greater than original 50MB"
+
+
+def test_chunk_limit_size_increased():
+    """Test that chunk_limit_size is increased from the original 256KB"""
+    solution_path = Path("/home/admin/solution/fluent.conf")
+    content = solution_path.read_text()
+    import re
+    match = re.search(r'chunk_limit_size\s+(\d+)(\w+)', content)
+    if match:
+        value = int(match.group(1))
+        unit = match.group(2).upper()
+        if unit == 'MB':
+            value_kb = value * 1024
+        elif unit == 'KB':
+            value_kb = value
+        else:
+            value_kb = 0
+        assert value_kb > 256, \
+            f"chunk_limit_size must be greater than original 256KB for better throughput"

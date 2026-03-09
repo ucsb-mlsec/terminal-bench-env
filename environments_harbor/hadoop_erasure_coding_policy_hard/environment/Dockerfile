@@ -11,9 +11,9 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /input /solution
+RUN mkdir -p /workspace/input /workspace/solution
 
-COPY data/cluster_state.json /input/cluster_state.json
+COPY data/cluster_state.json /workspace/input/cluster_state.json
 
 WORKDIR /workspace
 

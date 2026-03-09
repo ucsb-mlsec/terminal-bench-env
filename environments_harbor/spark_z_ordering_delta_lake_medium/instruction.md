@@ -1,7 +1,7 @@
 You're analyzing query performance optimization strategies for a large-scale data warehouse. The analytics team has been experiencing slow query times when filtering data by multiple columns simultaneously, and they want to understand how Z-ordering could improve performance.
 
 **Current Situation:**
-You have a dataset representing customer transactions stored in Parquet format at `/data/transactions.parquet`. The dataset contains these columns:
+You have a dataset representing customer transactions stored in Parquet format at `/workspace/data/transactions.parquet`. The dataset contains these columns:
 - transaction_id (string)
 - customer_id (integer)
 - region (string): One of 5 regions (North, South, East, West, Central)
@@ -28,7 +28,7 @@ You need to:
 Filter for transactions where `region = 'North'` AND `category = 'Electronics'`
 
 **Solution Requirements:**
-Create a single JSON file at `/solution/optimization_report.json` with this exact structure:
+Create a single JSON file at `/workspace/solution/optimization_report.json` with this exact structure:
 
 ```json
 {
@@ -54,7 +54,7 @@ Where:
 - Python 3.8+ is installed
 - Standard data processing libraries (pandas, numpy, pyarrow) are available
 - The input Parquet file is readable with standard tools
-- You have write permissions to `/solution/`
+- You have write permissions to `/workspace/solution/`
 
 **Notes:**
 - You don't need actual Spark or Delta Lake for this simulation

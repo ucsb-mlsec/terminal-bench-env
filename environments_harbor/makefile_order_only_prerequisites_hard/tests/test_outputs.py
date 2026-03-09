@@ -56,14 +56,29 @@ def test_solution_identifies_directory_prerequisites():
     """Test that the solution identifies the correct number of fixes needed"""
     solution_path = Path("/tmp/solution.txt")
     content = solution_path.read_text().strip()
-    
+
     fixes_count = int(content.split("=")[1].strip())
-    
+
     # Verify the Makefile exists to ensure analysis was possible
     makefile_path = Path("/home/project/Makefile")
     assert makefile_path.exists(), "Makefile does not exist at /home/project/Makefile"
-    
+
     # The solution should identify at least some fixes (directories should be order-only)
     # Given the problem description mentions build/ and lib/ directories causing issues,
     # there should be at least 1 fix needed
     assert fixes_count > 0, f"Solution identifies {fixes_count} fixes, but problems indicate at least 1 fix is needed"
+
+def test_solution_correct_fixes_count():
+    """Test that FIXES=4: the Makefile has exactly 4 prerequisites that should be order-only.
+
+    $(BUILD_DIR) appears as a normal prerequisite in 3 object file rules and
+    $(LIB_DIR) appears as a normal prerequisite in the TARGET rule, totaling 4 fixes.
+    """
+    solution_path = Path("/tmp/solution.txt")
+    content = solution_path.read_text().strip()
+
+    fixes_count = int(content.split("=")[1].strip())
+    assert fixes_count == 4, (
+        f"Expected FIXES=4 (3 rules use $(BUILD_DIR) as normal prereq and 1 uses $(LIB_DIR)), "
+        f"but got FIXES={fixes_count}"
+    )

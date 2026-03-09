@@ -75,6 +75,30 @@ def test_binary_can_execute():
         # If it times out, it means it's running - that's actually ok
         assert True, "Binary is executable (timed out while running)"
 
+def test_issue_mentions_cgo():
+    """Test that ISSUE mentions CGO or CGO_ENABLED, which is the root cause:
+    go-sqlite3 requires CGO (C bindings), so building with CGO_ENABLED=0 fails."""
+    fix_path = Path("/workspace/fix.txt")
+    content = fix_path.read_text().strip()
+    lines = content.split('\n')
+
+    issue_text = lines[0].replace("ISSUE:", "").strip().lower()
+    assert any(term in issue_text for term in ["cgo", "cgo_enabled", "c compiler", "gcc"]), \
+        f"ISSUE should mention CGO or C compiler (the root cause), got: {issue_text}"
+
+
+def test_solution_mentions_cgo_enabled():
+    """Test that SOLUTION mentions CGO_ENABLED=1 or enabling CGO,
+    which is required to compile go-sqlite3 (it uses C bindings via CGO)."""
+    fix_path = Path("/workspace/fix.txt")
+    content = fix_path.read_text().strip()
+    lines = content.split('\n')
+
+    solution_text = lines[1].replace("SOLUTION:", "").strip().lower()
+    assert any(term in solution_text for term in ["cgo_enabled=1", "cgo_enabled = 1", "enable cgo", "cgo enabled"]), \
+        f"SOLUTION should mention enabling CGO (CGO_ENABLED=1), got: {solution_text}"
+
+
 def test_go_source_files_unchanged():
     """Test that Go source files were not modified"""
     main_path = Path("/workspace/sensor-data/main.go")

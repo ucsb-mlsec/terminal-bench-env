@@ -4,7 +4,7 @@ The employment status itself isn't random - it depends on factors like having yo
 
 **The Data:**
 
-You'll find the dataset at `/data/pilot_study.csv` with 200 rows and these columns:
+You'll find the dataset at `/workspace/data/pilot_study.csv` with 200 rows and these columns:
 - `id`: Person identifier (1-200)
 - `wage`: Hourly wage in dollars (missing for unemployed individuals)
 - `education`: Years of schooling (10-18 years)
@@ -16,7 +16,7 @@ You'll find the dataset at `/data/pilot_study.csv` with 200 rows and these colum
 The data was generated using these exact parameters:
 - Employment selection equation: employed = 1 if (0.3*education - 0.8*children_under6 + 0.5*married + error1) > 0
 - Wage equation (for employed only): wage = 5 + 0.08*education + 0.15*experience + error2
-- Correlation between error1 and error2: ρ = 0.6
+- Correlation between error1 and error2: rho = 0.6
 - Random seed: 42 (for reproducibility)
 
 This correlation between the errors means that factors affecting employment also affect wages, creating the selection bias problem.
@@ -27,7 +27,7 @@ Determine whether there is significant selection bias in this dataset, and if so
 
 **What You Need to Deliver:**
 
-Save your results to `/solution/analysis.txt` as a plain text file with exactly these two lines:
+Save your results to `/workspace/solution/analysis.txt` as a plain text file with exactly these two lines:
 
 ```
 corrected_education_effect=0.0823

@@ -26,14 +26,14 @@ RUN apt-get update && \
 RUN apt-get update && apt-get install -y autoconf automake libtool m4 make gcc g++ && \
     rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /workspace/project/m4
+RUN mkdir -p /workspace/output/m4_macro_expansion_error_medium/files/project/m4
 
-COPY project/configure.ac /workspace/project/configure.ac
-COPY project/m4/custom.m4 /workspace/project/m4/custom.m4
-COPY project/Makefile.am /workspace/project/Makefile.am
-COPY project/main.c /workspace/project/main.c
+COPY project/configure.ac /workspace/output/m4_macro_expansion_error_medium/files/project/configure.ac
+COPY project/m4/custom.m4 /workspace/output/m4_macro_expansion_error_medium/files/project/m4/custom.m4
+COPY project/Makefile.am /workspace/output/m4_macro_expansion_error_medium/files/project/Makefile.am
+COPY project/main.c /workspace/output/m4_macro_expansion_error_medium/files/project/main.c
 
-WORKDIR /workspace/project
+WORKDIR /workspace/output/m4_macro_expansion_error_medium/files/project
 
 # Mapped from docker-compose.yaml
 ENV TEST_DIR=/tests

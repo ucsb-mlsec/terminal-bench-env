@@ -3,7 +3,7 @@ You're analyzing ChIP-seq data from a genomics lab that performed duplicate expe
 The lab has identified potential binding sites (peaks) in each experiment and saved them in standard genomic format files. Your job is to determine how many binding sites were detected consistently in both experiments.
 
 **The Situation:**
-Two files are present in the `/data` directory:
+Two files are present in the `/workspace/data` directory:
 - `experiment1_peaks.bed` - Binding sites from the first experiment
 - `experiment2_peaks.bed` - Binding sites from the second experiment
 
@@ -35,7 +35,7 @@ Analyze the two peak files to determine:
 4. Whether the experiments show good agreement (at least 60% of peaks from each experiment overlap with the other)
 
 **Output Requirements:**
-Save your analysis to: `/output/overlap_analysis.json`
+Save your analysis to: `/workspace/output/overlap_analysis.json`
 
 The JSON file must contain exactly these four fields:
 ```json
@@ -48,7 +48,7 @@ The JSON file must contain exactly these four fields:
 ```
 
 **Success Criteria:**
-- The output file exists at `/output/overlap_analysis.json`
+- The output file exists at `/workspace/output/overlap_analysis.json`
 - The JSON is valid and contains all four required integer fields
 - The overlap counts are calculated correctly based on genomic coordinate intersection
 - A peak is counted as overlapping if it shares at least one base pair with any peak from the other experiment

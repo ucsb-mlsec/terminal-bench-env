@@ -166,9 +166,32 @@ def test_no_missing_user_ids():
     """Test that no rows with missing user_id are in the output"""
     output_path = Path("/workspace/data/output/transactions.tsv")
     lines = output_path.read_text().strip().split('\n')
-    
+
     for i, line in enumerate(lines):
         columns = line.split('\t')
         user_id = columns[1].strip()
         assert len(user_id) > 0 and user_id != '0', \
             f"Line {i+1}: user_id is missing or zero"
+
+
+def test_input_rows_is_200():
+    """Test that INPUT_ROWS == 200, matching the 200 data rows in transactions.csv
+    (excluding the header row)."""
+    summary_path = Path("/workspace/solution/summary.txt")
+    lines = summary_path.read_text().strip().split('\n')
+    input_rows = int(lines[0].split('=')[1])
+    assert input_rows == 200, \
+        f"Expected INPUT_ROWS=200 (transactions.csv has 200 data rows after header), got {input_rows}"
+
+
+def test_timestamps_are_unix_epoch_range():
+    """Test that all timestamps in the TSV are in a plausible Unix epoch range for 2023-2024 data."""
+    output_path = Path("/workspace/data/output/transactions.tsv")
+    lines = output_path.read_text().strip().split('\n')
+    # Unix timestamp for 2023-01-01 00:00:00 UTC = 1672531200
+    # Unix timestamp for 2025-01-01 00:00:00 UTC = 1735689600
+    for i, line in enumerate(lines[:20]):
+        columns = line.split('\t')
+        ts = int(columns[4].strip())
+        assert 1672531200 <= ts <= 1735689600, \
+            f"Line {i+1}: timestamp {ts} is outside the expected 2023-2024 range"

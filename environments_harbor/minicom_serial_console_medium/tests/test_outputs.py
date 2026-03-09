@@ -83,15 +83,46 @@ def test_analysis_extracted_from_log():
     """Test that the analysis appears to be based on the actual log file"""
     output_path = Path("/tmp/console_analysis.json")
     log_path = Path("/var/log/device_console.log")
-    
+
     # Verify log file exists for reference
     assert log_path.exists(), "Source log file /var/log/device_console.log does not exist"
-    
+
     with open(output_path, 'r') as f:
         data = json.load(f)
-    
+
     # Check that hostname looks reasonable (not placeholder text)
     hostname = data["hostname"]
     placeholder_values = ["device-name", "unknown", "placeholder", "TODO", "FIXME", "example"]
     assert hostname.lower() not in placeholder_values, \
         f"hostname appears to be a placeholder value: {hostname}"
+
+def test_correct_hostname():
+    """Test that hostname is 'embedded-device-01' as seen in the console log.
+
+    The log contains the line:
+      [    2.345678] embedded-device-01 kernel: Starting system initialization
+    """
+    output_path = Path("/tmp/console_analysis.json")
+    with open(output_path, 'r') as f:
+        data = json.load(f)
+    hostname = data.get("hostname", "")
+    assert hostname == "embedded-device-01", (
+        f"Expected hostname='embedded-device-01', got hostname='{hostname}'"
+    )
+
+def test_correct_boot_status_and_error():
+    """Test that boot_status is 'failed' and error_message mentions the VFS mount failure.
+
+    The log ends with:
+      Kernel panic - not syncing: VFS: Unable to mount root fs on unknown-block(0,0)
+    """
+    output_path = Path("/tmp/console_analysis.json")
+    with open(output_path, 'r') as f:
+        data = json.load(f)
+    assert data.get("boot_status") == "failed", (
+        f"Expected boot_status='failed', got boot_status='{data.get('boot_status')}'"
+    )
+    error_message = data.get("error_message", "")
+    assert "VFS" in error_message or "Unable to mount" in error_message or "root fs" in error_message, (
+        f"error_message should describe the VFS mount failure, got: '{error_message}'"
+    )

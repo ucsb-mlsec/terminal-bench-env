@@ -18,10 +18,10 @@ RUN apt-get update && \
 
 RUN pip3 install --no-cache-dir --break-system-packages pandas numpy scipy statsmodels
 
-RUN mkdir -p /data /solution
+RUN mkdir -p /workspace/data /workspace/solution
 
-COPY data/healthcare_survey.csv /data/healthcare_survey.csv
-COPY data/sampling_design.csv /data/sampling_design.csv
+COPY data/healthcare_survey.csv /workspace/data/healthcare_survey.csv
+COPY data/sampling_design.csv /workspace/data/sampling_design.csv
 
 WORKDIR /workspace
 

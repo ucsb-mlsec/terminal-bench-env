@@ -101,7 +101,30 @@ def test_original_config_preserved():
     """Test that the original configuration file remains unchanged"""
     original_conf_path = Path("/hpc/slurm/slurm.conf")
     assert original_conf_path.exists(), "Original configuration file was removed or moved"
-    
+
     # Verify it still has content
     content = original_conf_path.read_text().strip()
     assert len(content) > 0, "Original configuration file was emptied"
+
+
+def test_changed_parameter_is_message_timeout():
+    """Test that the identified changed parameter is MessageTimeout"""
+    solution_path = Path("/hpc/solution.txt")
+    content = solution_path.read_text().strip()
+    lines = content.split('\n')
+    changed_param_line = [l for l in lines if l.startswith("CHANGED_PARAMETER=")][0]
+    changed_param = changed_param_line.split("=", 1)[1].strip()
+    assert changed_param == "MessageTimeout", \
+        f"CHANGED_PARAMETER should be 'MessageTimeout' (the parameter causing allocation failures), got '{changed_param}'"
+
+
+def test_fixed_message_timeout_increased_from_five():
+    """Test that MessageTimeout in the fixed config is greater than the original value of 5"""
+    fixed_conf_path = Path("/hpc/slurm/slurm.conf.fixed")
+    import re
+    content = fixed_conf_path.read_text()
+    match = re.search(r'MessageTimeout\s*=\s*(\d+)', content)
+    assert match, "MessageTimeout not found in fixed config"
+    new_value = int(match.group(1))
+    assert new_value > 5, \
+        f"MessageTimeout should be greater than the original value of 5 to fix allocation failures, got {new_value}"

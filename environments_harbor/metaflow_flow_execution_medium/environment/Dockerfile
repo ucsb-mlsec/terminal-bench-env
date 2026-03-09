@@ -18,9 +18,9 @@ RUN apt-get update && \
 
 RUN pip3 install --no-cache-dir --break-system-packages metaflow
 
-RUN mkdir -p /workspace
+RUN mkdir -p /workspace/data
 
-COPY data/sales_data.csv /workspace/sales_data.csv
+COPY data/sales_data.csv /workspace/data/sales_data.csv
 
 WORKDIR /workspace
 

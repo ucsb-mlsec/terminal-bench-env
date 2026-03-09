@@ -22,9 +22,9 @@ RUN apt-get update && apt-get install -y libnetcdf-dev libhdf5-dev && \
 
 RUN pip3 install --no-cache-dir --break-system-packages netCDF4 numpy
 
-RUN mkdir -p /data/climate /output
+RUN mkdir -p /workspace/data/climate /workspace/output
 
-COPY data/climate/temperature_data.nc /data/climate/temperature_data.nc
+COPY data/climate/temperature_data.nc /workspace/data/climate/temperature_data.nc
 
 WORKDIR /workspace
 

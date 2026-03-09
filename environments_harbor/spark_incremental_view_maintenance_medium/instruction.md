@@ -3,10 +3,10 @@ A data analytics pipeline maintains a materialized view of daily sales summaries
 Your task is to optimize this pipeline by implementing incremental view maintenance. The system should update the materialized view by processing only the new transactions rather than recomputing everything.
 
 **Current Setup:**
-- Transaction data arrives in daily batches as Parquet files in `/data/transactions/`
+- Transaction data arrives in daily batches as Parquet files in `/workspace/data/transactions/`
 - The materialized view tracks total sales and transaction counts per product per day
-- A metadata file `/data/view_metadata.json` tracks which dates have been processed
-- The current implementation in `/app/rebuild_view.py` performs full recomputation
+- A metadata file `/workspace/data/view_metadata.json` tracks which dates have been processed
+- The current implementation in `/workspace/app/rebuild_view.py` performs full recomputation
 
 **Problem:**
 The pipeline takes increasingly longer as historical data accumulates. You need to modify the system to:
@@ -23,15 +23,15 @@ The pipeline takes increasingly longer as historical data accumulates. You need 
 - Must preserve the existing view schema and location
 
 **Solution Output:**
-Save your implementation as a Python script at `/solution/incremental_update.py`
+Save your implementation as a Python script at `/workspace/solution/incremental_update.py`
 
 The script should:
-- Read the existing materialized view from `/data/materialized_view/`
+- Read the existing materialized view from `/workspace/data/materialized_view/`
 - Process only new transaction files not yet reflected in the view
-- Write the updated view back to `/data/materialized_view/`
-- Update `/data/view_metadata.json` with processing timestamps
+- Write the updated view back to `/workspace/data/materialized_view/`
+- Update `/workspace/data/view_metadata.json` with processing timestamps
 
-Additionally, create a simple verification report at `/solution/results.json` with this exact structure:
+Additionally, create a simple verification report at `/workspace/solution/results.json` with this exact structure:
 
 ```json
 {

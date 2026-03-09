@@ -61,6 +61,25 @@ def test_minimum_race_conditions_found():
     content = output_path.read_text().strip()
     lines = content.split('\n')
     line_numbers = [int(line.strip()) for line in lines if line.strip()]
-    
+
     # A multi-threaded pipeline with race conditions should have at least a few issues
     assert len(line_numbers) >= 3, f"Only {len(line_numbers)} race conditions found, expected at least 3 for a complex pipeline"
+
+
+def test_known_race_condition_lines_included():
+    """Test that known race condition lines from processor.py are identified"""
+    output_path = Path("/workspace/race_conditions.txt")
+    content = output_path.read_text().strip()
+    lines = content.split('\n')
+    reported_lines = {int(line.strip()) for line in lines if line.strip()}
+
+    # Known race conditions in processor.py:
+    # Line 54: current_frame_id += 1 (global read-modify-write without lock)
+    # Line 93: processed_count += 1 (global counter without lock)
+    # Line 121: output_results.append(result) (global list without lock)
+    known_race_lines = {54, 93, 121}
+    found_known = reported_lines & known_race_lines
+    assert len(found_known) >= 2, (
+        f"At least 2 of the known race condition lines {known_race_lines} "
+        f"should be reported, but only found: {found_known} in reported lines {reported_lines}"
+    )

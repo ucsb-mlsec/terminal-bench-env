@@ -88,3 +88,27 @@ def test_verified_value_is_valid():
     verified_value = match.group(1)
     
     assert verified_value in ['yes', 'no'], f"VERIFIED should be 'yes' or 'no', got: {verified_value}"
+
+
+def test_bound_is_at_least_six():
+    """Test that BOUND >= 6, the minimum complete unwind value for filter.c.
+    The filter uses FILTER_WINDOW=5, and the loop runs up to FILTER_WINDOW iterations;
+    the off-by-one bug (idx <= FILTER_WINDOW instead of idx < FILTER_WINDOW) is only
+    reachable with BOUND >= FILTER_WINDOW+1 = 6."""
+    result_path = Path("/workspace/result.txt")
+    lines = result_path.read_text().strip().split('\n')
+    bound_line = lines[0].strip()
+    bound_value = int(re.match(r'^BOUND=(\d+)$', bound_line).group(1))
+    assert bound_value >= 6, \
+        f"BOUND must be >= 6 to fully unwind the FILTER_WINDOW=5 loop and expose the off-by-one bug, got: {bound_value}"
+
+
+def test_verified_is_no():
+    """Test that VERIFIED=no: the off-by-one bug in filter.c (idx <= FILTER_WINDOW should be idx < FILTER_WINDOW)
+    causes CBMC to find a counterexample, so the assertion is NOT verified."""
+    result_path = Path("/workspace/result.txt")
+    lines = result_path.read_text().strip().split('\n')
+    verified_line = lines[1].strip()
+    verified_value = re.match(r'^VERIFIED=(yes|no)$', verified_line).group(1)
+    assert verified_value == "no", \
+        f"Expected VERIFIED=no (the off-by-one bug violates the assertion), got VERIFIED={verified_value}"

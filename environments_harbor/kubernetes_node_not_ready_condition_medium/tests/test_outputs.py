@@ -53,13 +53,35 @@ def test_diagnosis_is_specific():
     diagnosis_path = Path("/root/diagnosis.txt")
     content = diagnosis_path.read_text().strip()
     lines = [line for line in content.split('\n') if line.strip()]
-    
+
     cause_content = lines[0].replace("CAUSE:", "").strip().lower()
     fix_content = lines[1].replace("FIX:", "").strip().lower()
-    
+
     # Check that the diagnosis is not too generic
     generic_terms = ["something", "issue", "problem", "error", "not working"]
     too_generic = all(term not in cause_content for term in ["runtime", "containerd", "docker", "cri", "network", "disk", "memory", "certificate", "config"])
-    
+
     assert not too_generic or len(cause_content) > 20, "CAUSE description appears too generic or vague"
     assert len(fix_content) > 10, "FIX description appears too generic or vague"
+
+
+def test_cause_identifies_containerd():
+    """Test that CAUSE identifies containerd as the root cause per kubelet.log"""
+    diagnosis_path = Path("/root/diagnosis.txt")
+    content = diagnosis_path.read_text().strip()
+    lines = [line for line in content.split('\n') if line.strip()]
+    cause_content = lines[0].replace("CAUSE:", "").strip().lower()
+    assert "containerd" in cause_content, \
+        f"CAUSE should identify containerd as the root cause (kubelet.log shows: 'dial unix /var/run/containerd/containerd.sock: connect: no such file or directory'), got: {cause_content}"
+
+
+def test_fix_mentions_containerd_restart():
+    """Test that FIX addresses restarting/starting containerd service"""
+    diagnosis_path = Path("/root/diagnosis.txt")
+    content = diagnosis_path.read_text().strip()
+    lines = [line for line in content.split('\n') if line.strip()]
+    fix_content = lines[1].replace("FIX:", "").strip().lower()
+    assert "containerd" in fix_content, \
+        f"FIX should mention containerd service restart, got: {fix_content}"
+    assert any(word in fix_content for word in ["start", "restart", "enable"]), \
+        f"FIX should mention starting/restarting containerd, got: {fix_content}"

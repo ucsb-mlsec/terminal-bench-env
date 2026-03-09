@@ -11,9 +11,9 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /backup /solution
+RUN mkdir -p /workspace/backup /workspace/solution
 
-COPY data/incomplete.db /backup/incomplete.db
+COPY data/incomplete.db /workspace/backup/incomplete.db
 
 WORKDIR /workspace
 

@@ -100,9 +100,33 @@ def test_no_extra_content():
     findings_path = Path("/solution/findings.txt")
     content = findings_path.read_text()
     lines = content.split('\n')
-    
+
     # Remove empty trailing lines
     while lines and lines[-1].strip() == '':
         lines.pop()
-    
+
     assert len(lines) == 3, f"findings.txt should have exactly 3 lines with no extra content, found {len(lines)} non-empty lines"
+
+def test_correct_process_name():
+    """Test that PROCESS_NAME is svchost.exe (suspicious process connected to external C2 IP)"""
+    findings_path = Path("/solution/findings.txt")
+    lines = findings_path.read_text().strip().split('\n')
+    process_name = lines[0].split('=', 1)[1].strip()
+    assert process_name == 'svchost.exe', \
+        f"Expected PROCESS_NAME=svchost.exe (PID 3428 connected to external IP in netscan.txt), got '{process_name}'"
+
+def test_correct_process_id():
+    """Test that PROCESS_ID is 3428 (svchost.exe with suspicious parent process explorer.exe)"""
+    findings_path = Path("/solution/findings.txt")
+    lines = findings_path.read_text().strip().split('\n')
+    process_id = lines[1].split('=', 1)[1].strip()
+    assert process_id == '3428', \
+        f"Expected PROCESS_ID=3428 (svchost.exe connected to external IP per netscan.txt), got '{process_id}'"
+
+def test_correct_external_ip():
+    """Test that EXTERNAL_IP is 185.220.101.47 (C2 server from netscan.txt)"""
+    findings_path = Path("/solution/findings.txt")
+    lines = findings_path.read_text().strip().split('\n')
+    external_ip = lines[2].split('=', 1)[1].strip()
+    assert external_ip == '185.220.101.47', \
+        f"Expected EXTERNAL_IP=185.220.101.47 (C2 connection in netscan.txt for PID 3428), got '{external_ip}'"

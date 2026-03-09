@@ -92,10 +92,32 @@ def test_no_spaces_around_equals():
     output_path = Path("/home/agent/server_info.txt")
     content = output_path.read_text().strip()
     lines = content.split('\n')
-    
+
     for line in lines:
         assert ' = ' not in line, f"Line contains spaces around equals sign: {line}"
         key_part = line.split('=')[0]
         assert not key_part.endswith(' '), f"Line has space before equals sign: {line}"
         value_part = line.split('=')[1]
         assert not value_part.startswith(' '), f"Line has space after equals sign: {line}"
+
+
+def test_correct_port_value():
+    """Test that the port is exactly 10000 (as shown in the Thrift server logs)"""
+    output_path = Path("/home/agent/server_info.txt")
+    content = output_path.read_text().strip()
+    lines = content.split('\n')
+    port_line = [line for line in lines if line.startswith('port=')][0]
+    port_value = int(port_line.split('=')[1])
+    assert port_value == 10000, \
+        f"Port should be 10000 (ThriftBinaryCLIService listening on 0.0.0.0:10000 per logs), got {port_value}"
+
+
+def test_correct_database_value():
+    """Test that the database is 'customer_db' (primary database per the Thrift server logs)"""
+    output_path = Path("/home/agent/server_info.txt")
+    content = output_path.read_text().strip()
+    lines = content.split('\n')
+    database_line = [line for line in lines if line.startswith('database=')][0]
+    database_value = database_line.split('=')[1]
+    assert database_value == "customer_db", \
+        f"Database should be 'customer_db' (current database set to customer_db per logs), got '{database_value}'"

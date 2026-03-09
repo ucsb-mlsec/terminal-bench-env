@@ -97,9 +97,9 @@ def test_config_status_references_valid_files():
     output_path = Path("/root/config-status.txt")
     content = output_path.read_text().strip()
     lines = [line.strip() for line in content.split('\n') if line.strip()]
-    
+
     valid_files = ['/etc/samba/smb.conf', '/etc/krb5.conf', '/etc/nsswitch.conf']
-    
+
     for line in lines:
         # Extract file path from each line
         if ' in /' in line:
@@ -108,5 +108,21 @@ def test_config_status_references_valid_files():
                 filepath = '/' + file_part.split(' (current:')[0]
             else:
                 filepath = '/' + file_part
-            
+
             assert filepath in valid_files, f"Invalid file path referenced: {filepath}"
+
+def test_workgroup_is_incorrect():
+    """Test that workgroup=WORKGROUP is flagged as INCORRECT (should be CORP per requirements)"""
+    output_path = Path("/root/config-status.txt")
+    content = output_path.read_text()
+    # smb.conf has workgroup = WORKGROUP but requirements say workgroup = CORP
+    assert 'INCORRECT' in content and 'workgroup' in content.lower(), \
+        "Expected workgroup to be flagged as INCORRECT (current: WORKGROUP, required: CORP)"
+
+def test_security_is_incorrect():
+    """Test that security=user is flagged as INCORRECT (should be ads per requirements)"""
+    output_path = Path("/root/config-status.txt")
+    content = output_path.read_text()
+    # smb.conf has security = user but requirements say security = ads
+    assert 'INCORRECT' in content and 'security' in content.lower(), \
+        "Expected security to be flagged as INCORRECT (current: user, required: ads)"

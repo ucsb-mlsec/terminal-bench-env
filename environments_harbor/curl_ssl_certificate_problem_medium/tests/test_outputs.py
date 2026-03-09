@@ -47,9 +47,41 @@ def test_response_is_from_server():
     response_path = Path("/home/agent/response.json")
     content = response_path.read_text()
     data = json.loads(content)
-    
+
     # Check that it's a dictionary (not a list or primitive)
     assert isinstance(data, dict), "JSON response should be a dictionary/object"
-    
+
     # Check that it has at least the status field as required
     assert "status" in data, "JSON response must contain 'status' field"
+
+
+def test_response_status_value():
+    """Test that the status field contains the expected value from the server."""
+    response_path = Path("/home/agent/response.json")
+    content = response_path.read_text()
+    data = json.loads(content)
+
+    # The server.py returns {"status": "operational", "timestamp": ...}
+    assert data["status"] == "operational", (
+        f"Expected status to be 'operational' (the value the HTTPS server returns), "
+        f"but got '{data['status']}'"
+    )
+
+
+def test_response_has_timestamp():
+    """Test that the response contains a timestamp field from the server."""
+    response_path = Path("/home/agent/response.json")
+    content = response_path.read_text()
+    data = json.loads(content)
+
+    assert "timestamp" in data, (
+        "Response should contain a 'timestamp' field from the server. "
+        "The server returns {\"status\": \"operational\", \"timestamp\": <unix_timestamp>}"
+    )
+    assert isinstance(data["timestamp"], (int, float)), (
+        f"timestamp should be a number (Unix timestamp), got {type(data['timestamp']).__name__}"
+    )
+    # Timestamp should be a reasonable Unix timestamp (after 2020)
+    assert data["timestamp"] > 1577836800, (
+        f"timestamp value {data['timestamp']} seems invalid (should be a Unix timestamp)"
+    )

@@ -11,7 +11,7 @@ The filtering criteria are:
 After filtering, the laboratory needs summary statistics to assess data quality: the total number of loops that passed filtering, the median interaction distance of filtered loops, and the median enrichment score of filtered loops.
 
 **Input:**
-The input file is located at: `/data/hic_loops_raw.txt`
+The input file is located at: `/workspace/data/hic_loops_raw.txt`
 
 The file is tab-delimited with the following columns:
 - chr1: chromosome of first anchor
@@ -26,11 +26,11 @@ The file is tab-delimited with the following columns:
 
 **Output Requirements:**
 
-Save your filtered results to: `/output/filtered_loops.txt`
+Save your filtered results to: `/workspace/output/filtered_loops.txt`
 
 The output file must be tab-delimited with the same column structure as the input file, containing only the loops that pass all filtering criteria. Preserve the original column order and format.
 
-Additionally, save summary statistics to: `/output/summary.txt`
+Additionally, save summary statistics to: `/workspace/output/summary.txt`
 
 The summary file must be a simple text file with exactly three lines in this format:
 ```
@@ -42,7 +42,7 @@ MEDIAN_ENRICHMENT=<median enrichment score>
 Round the median values to 2 decimal places.
 
 **Success Criteria:**
-- `/output/filtered_loops.txt` exists and contains only loops meeting all four filtering criteria
-- `/output/summary.txt` exists with the three required statistics in the exact format specified
+- `/workspace/output/filtered_loops.txt` exists and contains only loops meeting all four filtering criteria
+- `/workspace/output/summary.txt` exists with the three required statistics in the exact format specified
 - All numeric values are correctly calculated
 - The filtered loops file maintains the original tab-delimited format

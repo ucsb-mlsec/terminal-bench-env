@@ -25,7 +25,8 @@ RUN apt-get update && apt-get install -y gcc bc && \
 RUN mkdir -p /workspace/data
 
 COPY transpose_baseline.c /workspace/transpose_baseline.c
-COPY data/test_matrix.bin /workspace/test_matrix.bin
+COPY generate_data.py /tmp/generate_data.py
+RUN pip3 install --no-cache-dir --break-system-packages numpy && python3 /tmp/generate_data.py && rm /tmp/generate_data.py
 COPY verify_transpose.sh /workspace/verify_transpose.sh
 
 RUN chmod +x /workspace/verify_transpose.sh

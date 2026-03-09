@@ -79,9 +79,30 @@ def test_username_is_lowercase():
     """Test that the forged username is lowercase if detected"""
     verdict_path = Path("/home/analyst/golden_ticket_verdict.txt")
     lines = verdict_path.read_text().strip().split('\n')
-    
+
     detected_value = lines[0].split("DETECTED: ")[1].strip()
     user_value = lines[2].split("FORGED_USER: ")[1].strip()
-    
+
     if detected_value == "yes" and user_value != "none":
         assert user_value == user_value.lower(), f"FORGED_USER must be lowercase, got: {user_value}"
+
+
+def test_detected_is_yes():
+    """Test that the golden ticket attack is correctly detected as 'yes'"""
+    # auth_events.csv shows 'administrator' from IP 0.0.0.0 with rc4-hmac encryption
+    # and no workstation — classic golden ticket indicators
+    verdict_path = Path("/home/analyst/golden_ticket_verdict.txt")
+    lines = verdict_path.read_text().strip().split('\n')
+    detected_value = lines[0].split("DETECTED: ")[1].strip()
+    assert detected_value == "yes", \
+        "Golden ticket attack should be DETECTED: yes based on admin requests from 0.0.0.0 with rc4-hmac and no workstation"
+
+
+def test_forged_user_is_administrator():
+    """Test that the forged user is identified as 'administrator'"""
+    # auth_events.csv clearly shows 'administrator' account used with golden ticket indicators
+    verdict_path = Path("/home/analyst/golden_ticket_verdict.txt")
+    lines = verdict_path.read_text().strip().split('\n')
+    user_value = lines[2].split("FORGED_USER: ")[1].strip()
+    assert user_value == "administrator", \
+        f"FORGED_USER should be 'administrator' based on auth_events.csv evidence, got '{user_value}'"

@@ -17,15 +17,15 @@ RUN apt-get update && \
 
 RUN pip3 install --no-cache-dir --break-system-packages pandas pyarrow
 
-RUN mkdir -p /data/sales_versions /solution
+RUN mkdir -p /workspace/data/sales_versions /workspace/solution
 
-COPY data/sales_versions/sales_v001_20240101.parquet /data/sales_versions/sales_v001_20240101.parquet
-COPY data/sales_versions/sales_v002_20240102.parquet /data/sales_versions/sales_v002_20240102.parquet
-COPY data/sales_versions/sales_v003_20240103.parquet /data/sales_versions/sales_v003_20240103.parquet
-COPY data/sales_versions/sales_v004_20240104.parquet /data/sales_versions/sales_v004_20240104.parquet
-COPY data/sales_versions/sales_v005_20240105.parquet /data/sales_versions/sales_v005_20240105.parquet
-COPY data/sales_versions/sales_v006_20240106.parquet /data/sales_versions/sales_v006_20240106.parquet
-COPY data/sales_versions/sales_v007_20240107.parquet /data/sales_versions/sales_v007_20240107.parquet
+COPY data/sales_versions/sales_v001_20240101.parquet /workspace/data/sales_versions/sales_v001_20240101.parquet
+COPY data/sales_versions/sales_v002_20240102.parquet /workspace/data/sales_versions/sales_v002_20240102.parquet
+COPY data/sales_versions/sales_v003_20240103.parquet /workspace/data/sales_versions/sales_v003_20240103.parquet
+COPY data/sales_versions/sales_v004_20240104.parquet /workspace/data/sales_versions/sales_v004_20240104.parquet
+COPY data/sales_versions/sales_v005_20240105.parquet /workspace/data/sales_versions/sales_v005_20240105.parquet
+COPY data/sales_versions/sales_v006_20240106.parquet /workspace/data/sales_versions/sales_v006_20240106.parquet
+COPY data/sales_versions/sales_v007_20240107.parquet /workspace/data/sales_versions/sales_v007_20240107.parquet
 
 WORKDIR /workspace
 

@@ -60,14 +60,34 @@ def test_component_specifies_config_element():
     diagnosis_path = Path("/home/agent/diagnosis.txt")
     content = diagnosis_path.read_text()
     lines = content.split('\n')
-    
+
     component = lines[1].replace("COMPONENT: ", "").strip()
-    
+
     # Component should reference a specific configuration element
     component_keywords = [
         'yaml', 'deployment', 'pod', 'configmap', 'secret', 'environment',
         'variable', 'env', 'DATABASE', 'REDIS', 'probe', 'command', 'args'
     ]
-    
+
     has_component_reference = any(keyword in component for keyword in component_keywords)
     assert has_component_reference, "COMPONENT should specify a specific configuration element (e.g., environment variable in deployment.yaml, secret value, etc.)"
+
+
+def test_cause_identifies_password_authentication_failure():
+    """Test that CAUSE identifies password authentication failure per container-logs.txt"""
+    diagnosis_path = Path("/home/agent/diagnosis.txt")
+    content = diagnosis_path.read_text().strip()
+    lines = content.split('\n')
+    cause = lines[0].replace("CAUSE: ", "").strip().lower()
+    assert "password" in cause or "authentication" in cause or "credential" in cause, \
+        f"CAUSE should identify password/authentication failure (container-logs.txt shows: 'FATAL: password authentication failed for user appuser'), got: {cause}"
+
+
+def test_fix_addresses_password_or_secret():
+    """Test that FIX addresses correcting the password/secret configuration"""
+    diagnosis_path = Path("/home/agent/diagnosis.txt")
+    content = diagnosis_path.read_text().strip()
+    lines = content.split('\n')
+    fix = lines[2].replace("FIX: ", "").strip().lower()
+    assert any(word in fix for word in ["password", "secret", "credential", "db_password", "database"]), \
+        f"FIX should address the incorrect password/secret configuration, got: {fix}"

@@ -15,8 +15,9 @@ RUN apt-get update && \
     apt-get install -y libvirt-daemon-system libvirt-clients && \
     rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /etc/libvirt/storage
+RUN mkdir -p /workspace/output/libvirt_storage_pool_permission_medium/files/etc/libvirt/storage /etc/libvirt/storage
 
+COPY etc/libvirt/storage/vm-images.xml /workspace/output/libvirt_storage_pool_permission_medium/files/etc/libvirt/storage/vm-images.xml
 COPY etc/libvirt/storage/vm-images.xml /etc/libvirt/storage/vm-images.xml
 
 WORKDIR /root

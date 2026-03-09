@@ -2,16 +2,16 @@ A media company has collected user rating data for their content catalog and nee
 
 **Dataset Location:**
 
-The rating data is available at `/data/ratings.csv` with the following structure:
+The rating data is available at `/workspace/data/ratings.csv` with the following structure:
 - userId: Integer user identifier
-- itemId: Integer content item identifier  
+- itemId: Integer content item identifier
 - rating: Float rating value (1.0 to 5.0)
 
 This file contains exactly 1000 ratings from 50 users across 100 items. The data has already been split - some user-item pairs are held out for testing.
 
 **Test Set:**
 
-A file at `/data/test_pairs.csv` contains user-item pairs that need rating predictions:
+A file at `/workspace/data/test_pairs.csv` contains user-item pairs that need rating predictions:
 - userId: Integer user identifier
 - itemId: Integer content item identifier
 
@@ -27,7 +27,7 @@ The prediction system must:
 
 **Solution Output:**
 
-Save your rating predictions to `/output/predictions.txt`
+Save your rating predictions to `/workspace/output/predictions.txt`
 
 The output must be a plain text file with exactly 200 lines (one per test pair), where each line contains a single floating-point number representing the predicted rating for the corresponding test pair (in the same order as test_pairs.csv).
 

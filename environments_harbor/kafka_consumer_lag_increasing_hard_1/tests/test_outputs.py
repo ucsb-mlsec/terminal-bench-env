@@ -84,13 +84,33 @@ def test_value_is_reasonable():
     solution_path = Path("/home/user/solution.txt")
     content = solution_path.read_text().strip()
     lines = content.split('\n')
-    
+
     value_line = lines[1]
     value_content = value_line.replace("VALUE: ", "").strip()
-    
+
     # Check if value is numeric, boolean, or a reasonable string
     is_numeric = value_content.isdigit() or re.match(r'^\d+$', value_content)
     is_boolean = value_content.lower() in ['true', 'false']
-    
+
     assert is_numeric or is_boolean or len(value_content) > 0, \
            f"VALUE '{value_content}' should be a numeric value, boolean, or valid configuration string"
+
+
+def test_parameter_is_max_poll_records():
+    """Test that PARAMETER is max.poll.records per consumer.properties"""
+    solution_path = Path("/home/user/solution.txt")
+    lines = solution_path.read_text().strip().split('\n')
+    parameter = lines[0].replace("PARAMETER: ", "").strip()
+    assert parameter == "max.poll.records", \
+        f"Expected PARAMETER: max.poll.records (set to 5000 in consumer.properties - too high causing poll timeout), got: {parameter}"
+
+
+def test_value_is_less_than_current():
+    """Test that VALUE is less than current 5000 (reducing max.poll.records to fix lag)"""
+    solution_path = Path("/home/user/solution.txt")
+    lines = solution_path.read_text().strip().split('\n')
+    parameter = lines[0].replace("PARAMETER: ", "").strip()
+    value = lines[1].replace("VALUE: ", "").strip()
+    if parameter == "max.poll.records" and value.isdigit():
+        assert int(value) < 5000, \
+            f"VALUE should be less than current 5000 to reduce processing time per poll cycle, got: {value}"

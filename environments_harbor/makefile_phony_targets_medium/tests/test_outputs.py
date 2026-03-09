@@ -64,6 +64,20 @@ def test_multiple_targets_identified():
     solution_path = Path("/tmp/solution.txt")
     content = solution_path.read_text().strip()
     targets = [line.strip() for line in content.split('\n') if line.strip()]
-    
+
     # Should have multiple targets (based on typical Makefiles with all, clean, test, docs, etc.)
     assert len(targets) >= 3, f"Expected at least 3 phony targets, but found {len(targets)}: {targets}"
+
+def test_exact_phony_targets():
+    """Test that the solution identifies all 8 phony targets declared in the Makefile.
+
+    The Makefile declares: all, build, docs, test, clean, distclean, install, help
+    """
+    solution_path = Path("/tmp/solution.txt")
+    content = solution_path.read_text().strip()
+    targets = {line.strip() for line in content.split('\n') if line.strip()}
+
+    expected_targets = {'all', 'build', 'docs', 'test', 'clean', 'distclean', 'install', 'help'}
+    assert targets == expected_targets, (
+        f"Expected exactly {sorted(expected_targets)}, but got {sorted(targets)}"
+    )

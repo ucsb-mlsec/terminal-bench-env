@@ -17,10 +17,12 @@ RUN apt-get update && \
 
 RUN pip3 install --no-cache-dir --break-system-packages pyjwt
 
-RUN mkdir -p /data /output
+RUN mkdir -p /workspace/data /workspace/output /workspace/output/jwt_token_validation_medium/files/data
 
-COPY data/api_responses.json /data/api_responses.json
-COPY data/jwt_secret.txt /data/jwt_secret.txt
+COPY data/api_responses.json /workspace/data/api_responses.json
+COPY data/jwt_secret.txt /workspace/data/jwt_secret.txt
+COPY data/api_responses.json /workspace/output/jwt_token_validation_medium/files/data/api_responses.json
+COPY data/jwt_secret.txt /workspace/output/jwt_token_validation_medium/files/data/jwt_secret.txt
 
 WORKDIR /workspace
 

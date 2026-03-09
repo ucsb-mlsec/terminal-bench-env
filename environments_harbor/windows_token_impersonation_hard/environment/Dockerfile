@@ -11,10 +11,10 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /forensics /solution
+RUN mkdir -p /workspace/forensics /workspace/solution
 
-COPY data/forensics/process_activity.json /forensics/process_activity.json
-COPY data/forensics/baseline_processes.json /forensics/baseline_processes.json
+COPY data/forensics/process_activity.json /workspace/forensics/process_activity.json
+COPY data/forensics/baseline_processes.json /workspace/forensics/baseline_processes.json
 
 WORKDIR /workspace
 

@@ -17,13 +17,13 @@ RUN apt-get update && \
 
 RUN pip3 install --no-cache-dir --break-system-packages pandas
 
-RUN mkdir -p /data/transactions /solution
+RUN mkdir -p /workspace/data/transactions /workspace/solution
 
-COPY data/transactions/2021_transactions.csv /data/transactions/2021_transactions.csv
-COPY data/transactions/2022_transactions.csv /data/transactions/2022_transactions.csv
-COPY data/transactions/2023_transactions.csv /data/transactions/2023_transactions.csv
+COPY data/transactions/2021_transactions.csv /workspace/data/transactions/2021_transactions.csv
+COPY data/transactions/2022_transactions.csv /workspace/data/transactions/2022_transactions.csv
+COPY data/transactions/2023_transactions.csv /workspace/data/transactions/2023_transactions.csv
 
-WORKDIR /solution
+WORKDIR /workspace/solution
 
 # Mapped from docker-compose.yaml
 ENV TEST_DIR=/tests

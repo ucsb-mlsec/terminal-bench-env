@@ -68,3 +68,26 @@ def test_format_matches_specification():
     # Check format: CONTENT: <something>
     content_pattern = r'^CONTENT: .+'
     assert re.match(content_pattern, lines[1]), f"CONTENT line format is incorrect: {lines[1]}"
+
+def test_correct_file_path():
+    """Test that the PATH matches the actual file path written by the script"""
+    result_path = Path("/workspace/analysis_result.txt")
+    content = result_path.read_text().strip()
+    lines = content.split('\n')
+    path_value = lines[0].replace("PATH: ", "", 1).strip()
+    # The script generates path /tmp/.shadow_config.dat via obfuscated path assembly
+    assert path_value == "/tmp/.shadow_config.dat", \
+        f"Expected PATH '/tmp/.shadow_config.dat', got '{path_value}'"
+
+def test_correct_file_content():
+    """Test that the CONTENT matches what the script actually writes"""
+    import base64
+    result_path = Path("/workspace/analysis_result.txt")
+    content = result_path.read_text().strip()
+    lines = content.split('\n')
+    content_value = lines[1].replace("CONTENT: ", "", 1).strip()
+    # The script uses: part1='YEKIPA_'[::-1] = '_APIKEY', then base64 of b'7f9e2b8c4d1a3f5e'
+    expected_b64 = base64.b64encode(b'7f9e2b8c4d1a3f5e').decode()
+    expected_content = "_APIKEY=" + expected_b64
+    assert content_value == expected_content, \
+        f"Expected CONTENT '{expected_content}', got '{content_value}'"

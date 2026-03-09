@@ -138,5 +138,38 @@ def test_solution_identified_issues():
     solution_path = Path("/workspace/solution.json")
     with open(solution_path, 'r') as f:
         solution = json.load(f)
-    
+
     assert solution["total_issues_found"] > 0, "Solution should identify routing issues in the infrastructure"
+
+
+def test_invalid_routes_use_nonexistent_pcx_ids():
+    """Test that invalid routes reference the fake pcx IDs from the data"""
+    # The route_tables.json uses pcx-11111111111111111, pcx-22222222222222222, pcx-33333333333333333
+    # which do not exist in peering_connections.json - these are the invalid routes
+    solution_path = Path("/workspace/solution.json")
+    with open(solution_path, 'r') as f:
+        solution = json.load(f)
+
+    invalid_routes = solution.get("invalid_routes", [])
+    # At least some invalid routes should exist
+    assert len(invalid_routes) > 0, "No invalid routes found - route tables use non-existent pcx IDs"
+
+    # The invalid PCX IDs referenced in route_tables.json
+    fake_pcx_ids = {
+        'pcx-11111111111111111',
+        'pcx-22222222222222222',
+        'pcx-33333333333333333',
+    }
+
+    # At least one invalid route should reference one of the fake PCX IDs
+    found_fake_pcx = False
+    for route in invalid_routes:
+        issue_text = str(route.get('issue', ''))
+        route_text = str(route)
+        if any(pcx in issue_text or pcx in route_text for pcx in fake_pcx_ids):
+            found_fake_pcx = True
+            break
+
+    assert found_fake_pcx, \
+        "Invalid routes should reference the non-existent peering connection IDs " \
+        "(pcx-11111111111111111, pcx-22222222222222222, pcx-33333333333333333) found in route_tables.json"

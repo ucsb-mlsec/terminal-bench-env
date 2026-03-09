@@ -103,3 +103,32 @@ def test_instruction_misses_non_negative():
     instruction_misses_line = lines[2]
     instruction_misses_value = int(instruction_misses_line.split('=', 1)[1].strip())
     assert instruction_misses_value >= 0, f"INSTRUCTION_MISSES should be non-negative, got: {instruction_misses_value}"
+
+
+def test_top_offender_is_calculate_energy_matrix():
+    """Test that TOP_OFFENDER is calculate_energy_matrix.
+    The callgrind.out.12345 data shows calculate_energy_matrix with D1mr=18500000,
+    far exceeding all other functions."""
+    report_path = Path("/workspace/cache_report.txt")
+    lines = report_path.read_text().strip().split('\n')
+    function_name = lines[0].split('=', 1)[1].strip()
+    assert function_name == "calculate_energy_matrix", \
+        f"Expected TOP_OFFENDER=calculate_energy_matrix (D1mr=18500000 in callgrind data), got: {function_name}"
+
+
+def test_data_misses_matches_callgrind():
+    """Test that DATA_MISSES == 18500000 as read from callgrind.out.12345 for calculate_energy_matrix."""
+    report_path = Path("/workspace/cache_report.txt")
+    lines = report_path.read_text().strip().split('\n')
+    data_misses = int(lines[1].split('=', 1)[1].strip())
+    assert data_misses == 18500000, \
+        f"Expected DATA_MISSES=18500000 (D1mr for calculate_energy_matrix in callgrind data), got: {data_misses}"
+
+
+def test_instruction_misses_matches_callgrind():
+    """Test that INSTRUCTION_MISSES == 105190 (total I1mr across all functions in callgrind data)."""
+    report_path = Path("/workspace/cache_report.txt")
+    lines = report_path.read_text().strip().split('\n')
+    instruction_misses = int(lines[2].split('=', 1)[1].strip())
+    assert instruction_misses == 105190, \
+        f"Expected INSTRUCTION_MISSES=105190 (total I1mr from callgrind.out.12345), got: {instruction_misses}"

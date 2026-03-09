@@ -87,15 +87,48 @@ def test_analysis_processed_snapshot():
     """Test that the analysis appears to have processed the snapshot file"""
     analysis_path = Path("/tmp/incident_analysis.json")
     snapshot_path = Path("/var/log/incident/process_snapshot.txt")
-    
+
     # Verify snapshot exists (should be provided)
     assert snapshot_path.exists(), "Process snapshot file does not exist"
-    
+
     with open(analysis_path, 'r') as f:
         data = json.load(f)
-    
+
     # At minimum, the analysis should have attempted to parse the file
     # All lists should be initialized (even if empty)
     assert "zombie_pids" in data, "Analysis did not identify zombie_pids"
     assert "dstate_pids" in data, "Analysis did not identify dstate_pids"
     assert "bad_parents" in data, "Analysis did not identify bad_parents"
+
+
+def test_zombie_pids_correct():
+    """Test that zombie_pids matches Z-state PIDs from process_snapshot.txt"""
+    analysis_path = Path("/tmp/incident_analysis.json")
+    with open(analysis_path, 'r') as f:
+        data = json.load(f)
+    expected = {305, 306, 307, 406, 407, 606, 607, 1502, 1503}
+    actual = set(data["zombie_pids"])
+    assert actual == expected, \
+        f"Expected zombie_pids={sorted(expected)} (Z-state processes from process_snapshot.txt), got {sorted(actual)}"
+
+
+def test_dstate_pids_correct():
+    """Test that dstate_pids matches D-state PIDs from process_snapshot.txt"""
+    analysis_path = Path("/tmp/incident_analysis.json")
+    with open(analysis_path, 'r') as f:
+        data = json.load(f)
+    expected = {303, 403, 404, 504, 604, 721, 722, 1304, 1501, 2703}
+    actual = set(data["dstate_pids"])
+    assert actual == expected, \
+        f"Expected dstate_pids={sorted(expected)} (D-state processes from process_snapshot.txt), got {sorted(actual)}"
+
+
+def test_bad_parents_correct():
+    """Test that bad_parents matches PIDs with zombie children from process_snapshot.txt"""
+    analysis_path = Path("/tmp/incident_analysis.json")
+    with open(analysis_path, 'r') as f:
+        data = json.load(f)
+    expected = {300, 400, 600, 1500}
+    actual = set(data["bad_parents"])
+    assert actual == expected, \
+        f"Expected bad_parents={sorted(expected)} (PIDs 300=apache2, 400=postgres, 600=java, 1500=rsync with zombie children), got {sorted(actual)}"

@@ -96,10 +96,49 @@ def test_exfiltrated_data_not_empty():
 def test_field_types():
     """Test that all fields have the correct data types"""
     report_path = Path("/workspace/analysis_report.json")
-    
+
     with open(report_path, 'r') as f:
         data = json.load(f)
-    
+
     assert isinstance(data["target_url"], str), "target_url must be a string"
     assert isinstance(data["http_method"], str), "http_method must be a string"
     assert isinstance(data["exfiltrated_data"], str), "exfiltrated_data must be a string"
+
+
+def test_correct_target_url():
+    """Test that the correct C2 server URL is identified from the deobfuscated code"""
+    report_path = Path("/workspace/analysis_report.json")
+
+    with open(report_path, 'r') as f:
+        data = json.load(f)
+
+    target_url = data.get("target_url", "")
+
+    # The hex strings in the array decode to: http://, 192.168.45.133, :8080, /api/data/collect
+    # The complete URL is http://192.168.45.133:8080/api/data/collect
+    assert "192.168.45.133" in target_url, (
+        f"target_url should contain '192.168.45.133' (decoded from hex strings in the array), "
+        f"got: {target_url}"
+    )
+    assert "8080" in target_url, (
+        f"target_url should contain port '8080' (decoded from hex \\x38\\x30\\x38\\x30), "
+        f"got: {target_url}"
+    )
+    assert "/api/data/collect" in target_url or "api" in target_url, (
+        f"target_url should contain '/api/data/collect' path, got: {target_url}"
+    )
+
+
+def test_correct_http_method():
+    """Test that POST is identified as the HTTP method"""
+    report_path = Path("/workspace/analysis_report.json")
+
+    with open(report_path, 'r') as f:
+        data = json.load(f)
+
+    http_method = data.get("http_method", "").upper()
+
+    # 'UE9TVA==' decodes via atob() to 'POST' — this is the HTTP method used
+    assert http_method == "POST", (
+        f"http_method should be 'POST' (decoded from base64 'UE9TVA=='), got: {http_method}"
+    )

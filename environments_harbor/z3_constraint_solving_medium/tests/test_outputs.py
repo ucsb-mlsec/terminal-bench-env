@@ -113,6 +113,32 @@ def test_has_positive_number_of_solutions():
     solution_path = Path("/home/puzzles/solution.json")
     with open(solution_path, 'r') as f:
         data = json.load(f)
-    
+
     assert data["total_solutions"] > 0, "No solutions found, but the puzzle should have valid solutions"
     assert len(data["solutions"]) > 0, "Solutions list is empty"
+
+
+def test_exact_three_solutions_correct_values():
+    """Test that there are exactly 3 solutions and they match the manually derived values.
+    Puzzle constraints yield: x=9-y, z=11-y, w=y-1 with y in {6,7,8}.
+    Solutions: (x=3,y=6,z=5,w=5), (x=2,y=7,z=4,w=6), (x=1,y=8,z=3,w=7)."""
+    solution_path = Path("/home/puzzles/solution.json")
+    with open(solution_path, 'r') as f:
+        data = json.load(f)
+
+    assert data["total_solutions"] == 3, \
+        f"Expected exactly 3 solutions for the Sum Chain Challenge, got {data['total_solutions']}"
+
+    expected_solutions = [
+        {"x": 3, "y": 6, "z": 5, "w": 5},
+        {"x": 2, "y": 7, "z": 4, "w": 6},
+        {"x": 1, "y": 8, "z": 3, "w": 7},
+    ]
+
+    # Verify each expected solution appears in the results (order-independent)
+    found_solutions = data["solutions"]
+    found_set = {tuple(sorted(s.items())) for s in found_solutions}
+    for sol in expected_solutions:
+        sol_tuple = tuple(sorted(sol.items()))
+        assert sol_tuple in found_set, \
+            f"Expected solution {sol} not found in results. Found: {found_solutions}"

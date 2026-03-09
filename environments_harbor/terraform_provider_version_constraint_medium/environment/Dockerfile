@@ -27,7 +27,10 @@ RUN apt-get update && \
 RUN apt-get update && apt-get install -y wget curl && \
     rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /workspace/modules/compute /workspace/modules/networking /workspace/modules/storage
+RUN mkdir -p /workspace/modules/compute /workspace/modules/networking /workspace/modules/storage \
+    /workspace/output/terraform_provider_version_constraint_medium/files/modules/compute \
+    /workspace/output/terraform_provider_version_constraint_medium/files/modules/networking \
+    /workspace/output/terraform_provider_version_constraint_medium/files/modules/storage
 
 COPY main.tf /workspace/main.tf
 COPY versions.tf /workspace/versions.tf
@@ -38,6 +41,16 @@ COPY modules/networking/main.tf /workspace/modules/networking/main.tf
 COPY modules/networking/versions.tf /workspace/modules/networking/versions.tf
 COPY modules/storage/main.tf /workspace/modules/storage/main.tf
 COPY modules/storage/versions.tf /workspace/modules/storage/versions.tf
+
+COPY main.tf /workspace/output/terraform_provider_version_constraint_medium/files/main.tf
+COPY versions.tf /workspace/output/terraform_provider_version_constraint_medium/files/versions.tf
+COPY variables.tf /workspace/output/terraform_provider_version_constraint_medium/files/variables.tf
+COPY modules/compute/main.tf /workspace/output/terraform_provider_version_constraint_medium/files/modules/compute/main.tf
+COPY modules/compute/versions.tf /workspace/output/terraform_provider_version_constraint_medium/files/modules/compute/versions.tf
+COPY modules/networking/main.tf /workspace/output/terraform_provider_version_constraint_medium/files/modules/networking/main.tf
+COPY modules/networking/versions.tf /workspace/output/terraform_provider_version_constraint_medium/files/modules/networking/versions.tf
+COPY modules/storage/main.tf /workspace/output/terraform_provider_version_constraint_medium/files/modules/storage/main.tf
+COPY modules/storage/versions.tf /workspace/output/terraform_provider_version_constraint_medium/files/modules/storage/versions.tf
 
 WORKDIR /workspace
 

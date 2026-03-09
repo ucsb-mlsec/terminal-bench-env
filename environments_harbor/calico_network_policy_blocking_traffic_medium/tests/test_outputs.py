@@ -78,22 +78,45 @@ def test_solution_addresses_connectivity_issue():
     """Test that the solution addresses the app-tier to data-tier connectivity issue"""
     solution_path = Path("/solution/fix.json")
     data = json.loads(solution_path.read_text())
-    
+
     blocking_policy = data["blocking_policy"]
     issue = data["issue"].lower()
     required_change = data["required_change"].lower()
-    
+
     # The solution should relate to either database ingress or app-tier egress policies
     # as those are the policies that would affect app-tier -> data-tier communication
     relevant_policies = ["database-ingress-policy.yaml", "app-tier-egress.yaml"]
-    
+
     assert blocking_policy in relevant_policies, \
         f"The blocking policy should be one that affects app-tier to database connectivity: {relevant_policies}, got '{blocking_policy}'"
-    
+
     # The issue and required_change should mention relevant concepts
     relevant_keywords = ["namespace", "selector", "ingress", "egress", "port", "5432", "app-tier", "data-tier"]
-    
+
     has_relevant_keyword = any(keyword in issue or keyword in required_change for keyword in relevant_keywords)
-    
+
     assert has_relevant_keyword, \
         f"The issue/required_change should mention relevant networking concepts like: {relevant_keywords}"
+
+
+def test_blocking_policy_is_database_ingress():
+    """The database-ingress-policy.yaml only has a podSelector (matching app=frontend,
+    tier=application) with no namespaceSelector, so app-tier pods in a different namespace
+    cannot match the ingress rule even though they have the right labels."""
+    solution_path = Path("/solution/fix.json")
+    data = json.loads(solution_path.read_text())
+    assert data["blocking_policy"] == "database-ingress-policy.yaml", \
+        ("Expected blocking_policy='database-ingress-policy.yaml' because its ingress rule "
+         "uses only podSelector without a namespaceSelector, blocking cross-namespace traffic "
+         f"from app-tier; got '{data['blocking_policy']}'")
+
+
+def test_required_change_mentions_namespace_selector():
+    """The fix must add a namespaceSelector for the app-tier namespace to the
+    database-ingress-policy.yaml ingress rule."""
+    solution_path = Path("/solution/fix.json")
+    data = json.loads(solution_path.read_text())
+    combined = (data["issue"] + " " + data["required_change"]).lower()
+    assert "namespace" in combined, \
+        ("Expected the issue/required_change to mention adding a 'namespaceSelector' "
+         f"(the root cause is the missing namespaceSelector), got: {combined}")

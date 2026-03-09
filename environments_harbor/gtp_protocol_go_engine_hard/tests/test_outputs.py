@@ -86,8 +86,23 @@ def test_validation_results_total_matches_input():
 def test_validation_results_has_some_moves():
     """Test that the validation processed at least some moves"""
     results_path = Path("/workspace/validation_results.json")
-    
+
     with open(results_path, 'r') as f:
         data = json.load(f)
-    
+
     assert data["total_moves"] > 0, "No moves were processed (total_moves is 0)"
+
+
+def test_exact_legal_and_illegal_counts():
+    """Test that legal_moves=42 and illegal_moves=8 as shown in the task description.
+    The 50-move sequence in test_moves.txt contains 8 illegal moves (moves onto occupied
+    intersections and other violations per Go rules) and 42 legal moves."""
+    results_path = Path("/workspace/validation_results.json")
+
+    with open(results_path, 'r') as f:
+        data = json.load(f)
+
+    assert data["legal_moves"] == 42, \
+        f"Expected legal_moves=42 per the task specification, got {data['legal_moves']}"
+    assert data["illegal_moves"] == 8, \
+        f"Expected illegal_moves=8 per the task specification, got {data['illegal_moves']}"

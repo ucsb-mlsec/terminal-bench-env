@@ -22,15 +22,15 @@ RUN apt-get update && \
 RUN apt-get update && apt-get install -y meson ninja-build g++ && \
     rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /workspace/src
+RUN mkdir -p /workspace/output/meson_build_backend_error_medium/files/src
 
-COPY meson.build /workspace/meson.build
-COPY src/meson.build /workspace/src/meson.build
-COPY src/lib.cpp /workspace/src/lib.cpp
-COPY src/lib.h /workspace/src/lib.h
-COPY src/main.cpp /workspace/src/main.cpp
+COPY meson.build /workspace/output/meson_build_backend_error_medium/files/meson.build
+COPY src/meson.build /workspace/output/meson_build_backend_error_medium/files/src/meson.build
+COPY src/lib.cpp /workspace/output/meson_build_backend_error_medium/files/src/lib.cpp
+COPY src/lib.h /workspace/output/meson_build_backend_error_medium/files/src/lib.h
+COPY src/main.cpp /workspace/output/meson_build_backend_error_medium/files/src/main.cpp
 
-WORKDIR /workspace
+WORKDIR /workspace/output/meson_build_backend_error_medium/files
 
 # Mapped from docker-compose.yaml
 ENV TEST_DIR=/tests

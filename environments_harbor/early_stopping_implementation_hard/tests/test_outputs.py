@@ -90,10 +90,32 @@ def test_best_val_accuracy_format():
     """Test that best_val_accuracy has reasonable precision (4 decimal places as specified)"""
     output_path = Path("/workspace/early_stop_decision.json")
     data = json.loads(output_path.read_text())
-    
+
     best_val_accuracy = data["best_val_accuracy"]
     # Check that it's formatted reasonably (not too many decimal places like floating point errors)
     str_val = str(best_val_accuracy)
     if '.' in str_val:
         decimal_places = len(str_val.split('.')[1])
         assert decimal_places <= 10, f"best_val_accuracy has too many decimal places: {best_val_accuracy}"
+
+
+def test_best_val_accuracy_matches_training_log_peak():
+    """Test that best_val_accuracy equals 0.8523 (the peak in training_log.txt at epoch 50)"""
+    output_path = Path("/workspace/early_stop_decision.json")
+    data = json.loads(output_path.read_text())
+
+    best_val_accuracy = data["best_val_accuracy"]
+    # The training log shows best val_accuracy=0.8523 at epoch 50
+    assert abs(best_val_accuracy - 0.8523) < 0.0001, \
+        f"Expected best_val_accuracy=0.8523 (from training_log.txt epoch 50), got {best_val_accuracy}"
+
+
+def test_stop_epoch_is_after_peak_with_patience():
+    """Test that stop_epoch is epoch 50 + patience (peak at epoch 50, then declines)"""
+    output_path = Path("/workspace/early_stop_decision.json")
+    data = json.loads(output_path.read_text())
+
+    stop_epoch = data["stop_epoch"]
+    # The best accuracy occurs at epoch 50; with patience > 0, stopping should be after epoch 50
+    assert stop_epoch > 50, \
+        f"Stop epoch {stop_epoch} should be after the peak at epoch 50 (requires patience epochs of no improvement)"

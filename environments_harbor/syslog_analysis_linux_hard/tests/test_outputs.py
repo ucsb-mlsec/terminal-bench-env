@@ -97,7 +97,41 @@ def test_all_fields_are_strings():
     report_path = Path("/home/agent/breach_report.json")
     with open(report_path, 'r') as f:
         data = json.load(f)
-    
+
     for field in ["attacker_ip", "compromised_account", "breach_timestamp"]:
         value = data.get(field)
         assert isinstance(value, str), f"Field '{field}' should be a string, got {type(value).__name__}"
+
+
+def test_correct_attacker_ip():
+    """Test that the identified attacker IP matches the brute-force source in auth.log"""
+    report_path = Path("/home/agent/breach_report.json")
+    with open(report_path, 'r') as f:
+        data = json.load(f)
+
+    # auth.log shows multiple failed attempts then a successful login from 185.220.101.47
+    assert data.get("attacker_ip") == "185.220.101.47", \
+        f"Expected attacker_ip=185.220.101.47, got {data.get('attacker_ip')}"
+
+
+def test_correct_compromised_account():
+    """Test that the compromised account is 'developer' as shown in auth.log"""
+    report_path = Path("/home/agent/breach_report.json")
+    with open(report_path, 'r') as f:
+        data = json.load(f)
+
+    # After failed attempts, 'Accepted password for developer' appears in auth.log
+    assert data.get("compromised_account") == "developer", \
+        f"Expected compromised_account=developer, got {data.get('compromised_account')}"
+
+
+def test_correct_breach_timestamp():
+    """Test that the breach timestamp matches the first successful login in auth.log"""
+    report_path = Path("/home/agent/breach_report.json")
+    with open(report_path, 'r') as f:
+        data = json.load(f)
+
+    timestamp = data.get("breach_timestamp", "")
+    # auth.log line 64: Jan 15 14:23:17 - successful login for developer from 185.220.101.47
+    assert "14:23:17" in timestamp, \
+        f"Expected breach_timestamp containing 14:23:17 (Jan 15 14:23:17), got {timestamp}"

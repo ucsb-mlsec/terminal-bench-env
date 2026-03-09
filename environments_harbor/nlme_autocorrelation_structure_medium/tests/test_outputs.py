@@ -90,17 +90,34 @@ def test_structure_is_valid_correlation_type():
     """Test that the STRUCTURE is a recognized correlation structure name"""
     result_path = Path("/workspace/solution/result.txt")
     lines = result_path.read_text().strip().split('\n')
-    
+
     structure_line = lines[0]
     structure_value = structure_line.split("STRUCTURE: ")[1].strip()
-    
+
     # Common correlation structures in nlme/lme4
-    valid_structures = ["AR1", "ARMA", "CAR1", "corAR1", "corARMA", "corCAR1", 
-                       "Exponential", "Gaussian", "Linear", "Rational", "Spherical",
-                       "autoregressive", "compound symmetry", "unstructured"]
-    
+    valid_structures = ["AR1", "ARMA", "CAR1", "corAR1", "corARMA", "corCAR1",
+                        "Exponential", "Gaussian", "Linear", "Rational", "Spherical",
+                        "autoregressive", "compound symmetry", "unstructured"]
+
     # Check if structure contains any valid pattern (case insensitive)
     structure_lower = structure_value.lower()
     is_valid = any(valid.lower() in structure_lower for valid in valid_structures)
-    
+
     assert is_valid or len(structure_value) > 0, f"STRUCTURE '{structure_value}' should be a recognized correlation structure type"
+
+
+def test_structure_is_ar1():
+    """Test that the correct autocorrelation structure AR1 is identified"""
+    result_path = Path("/workspace/solution/result.txt")
+    lines = result_path.read_text().strip().split('\n')
+
+    structure_line = lines[0]
+    structure_value = structure_line.split("STRUCTURE: ")[1].strip()
+
+    # The clinical trial data has repeated measurements over time per subject,
+    # which exhibits first-order autoregressive (AR1) correlation structure.
+    # AR1 is the standard choice for evenly-spaced longitudinal data.
+    assert "AR1" in structure_value.upper() or "ar1" in structure_value.lower(), (
+        f"STRUCTURE should be AR1 (first-order autoregressive, standard for "
+        f"evenly-spaced longitudinal clinical trial data), got: {structure_value}"
+    )

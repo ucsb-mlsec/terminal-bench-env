@@ -15,7 +15,16 @@ RUN apt-get update && \
     apt-get install -y nginx openssl && \
     rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /etc/nginx/ssl /etc/nginx/certs /etc/nginx/wrong_location
+RUN mkdir -p /workspace/output/nginx_ssl_certificate_renewal_hard/files/config/nginx/ssl \
+             /workspace/output/nginx_ssl_certificate_renewal_hard/files/config/nginx/certs \
+             /workspace/output/nginx_ssl_certificate_renewal_hard/files/config/nginx/wrong_location \
+             /etc/nginx/ssl /etc/nginx/certs /etc/nginx/wrong_location
+
+COPY config/nginx/nginx.conf /workspace/output/nginx_ssl_certificate_renewal_hard/files/config/nginx/nginx.conf
+COPY config/nginx/ssl/example.com.crt /workspace/output/nginx_ssl_certificate_renewal_hard/files/config/nginx/ssl/example.com.crt
+COPY config/nginx/ssl/example.com.key /workspace/output/nginx_ssl_certificate_renewal_hard/files/config/nginx/ssl/example.com.key
+COPY config/nginx/certs/testsite.com.crt /workspace/output/nginx_ssl_certificate_renewal_hard/files/config/nginx/certs/testsite.com.crt
+COPY config/nginx/wrong_location/testsite.key /workspace/output/nginx_ssl_certificate_renewal_hard/files/config/nginx/wrong_location/testsite.key
 
 COPY config/nginx/nginx.conf /etc/nginx/nginx.conf
 COPY config/nginx/ssl/example.com.crt /etc/nginx/ssl/example.com.crt

@@ -81,19 +81,35 @@ def test_binary_info_values_reasonable():
     """Test that the extracted values are reasonable for an ELF binary"""
     output_path = Path("/workspace/binary_info.txt")
     content = output_path.read_text().strip()
-    
+
     fields = {}
     for line in content.split('\n'):
         key, value = line.split('=', 1)
         fields[key] = value
-    
+
     # Entry address should be a reasonable memory address (not 0x0)
     entry_int = int(fields['entry'], 16)
     assert entry_int > 0, "entry address should not be 0x0"
-    
+
     # For 64-bit binaries, entry should fit in 64 bits
     # For 32-bit binaries, entry should fit in 32 bits
     if fields['bits'] == '64':
         assert entry_int < 2**64, "entry address too large for 64-bit"
     else:
         assert entry_int < 2**32, "entry address too large for 32-bit"
+
+def test_correct_architecture_and_bitness():
+    """Test that the binary is correctly identified as x86-64 64-bit"""
+    output_path = Path("/workspace/binary_info.txt")
+    content = output_path.read_text().strip()
+    fields = {}
+    for line in content.split('\n'):
+        key, value = line.split('=', 1)
+        fields[key] = value
+    # ELF header byte 18-19 = 0x3E confirms x86-64; /lib64/ld-linux-x86-64.so.2 confirms 64-bit
+    arch = fields.get('arch', '')
+    bits = fields.get('bits', '')
+    assert 'x86' in arch.lower() or '64' in arch.lower(), \
+        f"Expected x86-64 architecture (from ELF header e_machine=0x3E), got '{arch}'"
+    assert bits == '64', \
+        f"Expected 64-bit binary (from ELF header EI_CLASS=2), got '{bits}'"

@@ -11,12 +11,12 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /data/sales_exports /solution
+RUN mkdir -p /workspace/data/sales_exports /workspace/solution
 
-COPY data/sales_exports/region_north.csv /data/sales_exports/region_north.csv
-COPY data/sales_exports/region_south.csv /data/sales_exports/region_south.csv
-COPY data/sales_exports/region_east.csv /data/sales_exports/region_east.csv
-COPY data/sales_exports/region_central.csv /data/sales_exports/region_central.csv
+COPY data/sales_exports/region_north.csv /workspace/data/sales_exports/region_north.csv
+COPY data/sales_exports/region_south.csv /workspace/data/sales_exports/region_south.csv
+COPY data/sales_exports/region_east.csv /workspace/data/sales_exports/region_east.csv
+COPY data/sales_exports/region_central.csv /workspace/data/sales_exports/region_central.csv
 
 WORKDIR /workspace
 

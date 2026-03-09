@@ -11,10 +11,10 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /input /output
+RUN mkdir -p /workspace/input /workspace/output
 
-COPY data/rep1_peaks.narrowPeak /input/rep1_peaks.narrowPeak
-COPY data/rep2_peaks.narrowPeak /input/rep2_peaks.narrowPeak
+COPY data/rep1_peaks.narrowPeak /workspace/input/rep1_peaks.narrowPeak
+COPY data/rep2_peaks.narrowPeak /workspace/input/rep2_peaks.narrowPeak
 
 WORKDIR /workspace
 

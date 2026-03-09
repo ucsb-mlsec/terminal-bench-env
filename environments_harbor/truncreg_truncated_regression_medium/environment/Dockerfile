@@ -17,9 +17,9 @@ RUN apt-get update && \
 
 RUN pip3 install --no-cache-dir --break-system-packages pandas numpy scipy statsmodels
 
-RUN mkdir -p /data /output
+RUN mkdir -p /workspace/data /workspace/output
 
-COPY data/faculty_salaries.csv /data/faculty_salaries.csv
+COPY data/faculty_salaries.csv /workspace/data/faculty_salaries.csv
 
 WORKDIR /workspace
 

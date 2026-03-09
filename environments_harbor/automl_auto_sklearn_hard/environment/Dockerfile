@@ -31,7 +31,7 @@ RUN pip3 install --no-cache-dir --break-system-packages \
     joblib \
     scipy
 
-COPY data/sensor_data.csv /workspace/sensor_data.csv
+COPY data/sensor_data.csv /workspace/data/sensor_data.csv
 
 WORKDIR /workspace
 

@@ -1,6 +1,6 @@
 Your data engineering team needs to prepare analytics data for high-speed bulk loading into ClickHouse. The current CSV export from your legacy system needs transformation before it can be efficiently imported.
 
-You have a CSV file at `/data/events.csv` containing approximately 50,000 rows of web event data. Each row has these columns in order: `timestamp`, `user_id`, `event_type`, `value`.
+You have a CSV file at `/workspace/data/events.csv` containing approximately 50,000 rows of web event data. Each row has these columns in order: `timestamp`, `user_id`, `event_type`, `value`.
 
 **Data Quality Problems:**
 
@@ -25,15 +25,15 @@ Transform the CSV data into a clean, tab-separated format that ClickHouse can im
 
 **Output Requirements:**
 
-Save your solution as a Python script at `/solution/transform.py`
+Save your solution as a Python script at `/workspace/solution/transform.py`
 
 The script must:
-- Read from `/data/events.csv`
+- Read from `/workspace/data/events.csv`
 - Apply all transformations and filtering
-- Write the clean data to `/output/events.tsv` (tab-separated, no headers)
-- Execute successfully when run as: `python /solution/transform.py`
+- Write the clean data to `/workspace/output/events.tsv` (tab-separated, no headers)
+- Execute successfully when run as: `python /workspace/solution/transform.py`
 
-Create a summary file at `/output/summary.json` with this exact structure:
+Create a summary file at `/workspace/output/summary.json` with this exact structure:
 
 ```json
 {

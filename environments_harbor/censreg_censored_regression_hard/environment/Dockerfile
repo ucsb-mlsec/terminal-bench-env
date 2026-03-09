@@ -25,9 +25,9 @@ RUN pip3 install --no-cache-dir --break-system-packages \
     scipy \
     statsmodels
 
-RUN mkdir -p /data /output
+RUN mkdir -p /workspace/data /workspace/output
 
-COPY data/biomarker_study.csv /data/biomarker_study.csv
+COPY data/biomarker_study.csv /workspace/data/biomarker_study.csv
 
 WORKDIR /workspace
 

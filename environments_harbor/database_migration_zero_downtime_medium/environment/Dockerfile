@@ -15,11 +15,11 @@ RUN apt-get update && \
     apt-get install -y sqlite3 && \
     rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /data /solution
+RUN mkdir -p /workspace/data /workspace/solution
 
-COPY data/inventory.db /data/inventory.db
+COPY data/inventory.db /workspace/data/inventory.db
 
-WORKDIR /solution
+WORKDIR /workspace/solution
 
 # Mapped from docker-compose.yaml
 ENV TEST_DIR=/tests

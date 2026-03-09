@@ -94,8 +94,20 @@ def test_fix_summary_line_order():
     fix_summary_path = Path("/root/fix_summary.txt")
     content = fix_summary_path.read_text().strip()
     lines = [line.strip() for line in content.split('\n') if line.strip()]
-    
+
     assert len(lines) >= 3, "File must have at least 3 lines"
     assert lines[0].startswith("PRIMARY_ISSUE:"), "First line must be PRIMARY_ISSUE"
     assert lines[1].startswith("CONFIGS_MODIFIED:"), "Second line must be CONFIGS_MODIFIED"
     assert lines[2].startswith("CRITICAL_PARAMETER:"), "Third line must be CRITICAL_PARAMETER"
+
+def test_critical_parameter_is_message_timeout():
+    """Test that CRITICAL_PARAMETER=MessageTimeout — the 5-second timeout in slurm.conf causes allocation failures"""
+    fix_summary_path = Path("/root/fix_summary.txt")
+    content = fix_summary_path.read_text().strip()
+
+    match = re.search(r'^CRITICAL_PARAMETER:\s*(\S+)$', content, re.MULTILINE)
+    assert match, "CRITICAL_PARAMETER line not found"
+    param_name = match.group(1).strip()
+
+    assert param_name == 'MessageTimeout', \
+        f"Expected CRITICAL_PARAMETER=MessageTimeout (set to 5 in slurm.conf, far too low), got: {param_name}"

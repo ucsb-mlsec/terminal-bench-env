@@ -74,8 +74,26 @@ def test_fix_details_provides_concrete_solution():
     solution_path = Path("/home/agent/solution.txt")
     content = solution_path.read_text().strip()
     lines = [line.strip() for line in content.split('\n') if line.strip()]
-    
+
     fix_details_content = lines[2].replace("FIX_DETAILS:", "").strip().lower()
-    
+
     # Check that fix details has reasonable length (not just a word or two)
     assert len(fix_details_content) > 20, "FIX_DETAILS should provide a detailed solution description"
+
+
+def test_fix_type_is_transaction():
+    """Test that the fix type is TRANSACTION (reorder lock acquisition) not SCHEMA"""
+    solution_path = Path("/home/agent/solution.txt")
+    content = solution_path.read_text().strip()
+    lines = [line.strip() for line in content.split('\n') if line.strip()]
+
+    fix_type_value = lines[1].replace("FIX_TYPE:", "").strip()
+
+    # The deadlock is caused by Transaction 1 locking orders→order_items→inventory
+    # while Transaction 2 locks inventory→order_items→orders (opposite order).
+    # The correct fix is to reorder lock acquisition (TRANSACTION fix),
+    # not to modify the schema (SCHEMA fix).
+    assert fix_type_value == "TRANSACTION", (
+        f"FIX_TYPE should be 'TRANSACTION' (reorder lock acquisition to match "
+        f"orders→order_items→inventory in both transactions), got: {fix_type_value}"
+    )

@@ -17,10 +17,10 @@ RUN apt-get update && \
 
 RUN pip3 install --no-cache-dir --break-system-packages pandas
 
-RUN mkdir -p /warehouse /data
+RUN mkdir -p /workspace/warehouse /workspace/data
 
-COPY data/dim_customer.csv /warehouse/dim_customer.csv
-COPY data/customer_updates_2024_03_15.csv /data/customer_updates_2024_03_15.csv
+COPY data/dim_customer.csv /workspace/warehouse/dim_customer.csv
+COPY data/customer_updates_2024_03_15.csv /workspace/data/customer_updates_2024_03_15.csv
 
 WORKDIR /workspace
 

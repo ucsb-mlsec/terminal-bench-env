@@ -73,3 +73,25 @@ def test_r_script_exists():
     workspace = Path("/workspace")
     r_files = list(workspace.glob("*.R")) or list(workspace.glob("*.r"))
     assert len(r_files) > 0, "No R script file (.R or .r) found in /workspace"
+
+
+def test_result_matches_expected_log_rate():
+    """Test that the result equals log(mean(counts)) from the data file,
+    rounded to 3 decimal places. For Poisson MLE, the log-rate estimate is log(mean(x))."""
+    import csv
+    result_path = Path("/workspace/result.txt")
+    data_path = Path("/workspace/data/observations.csv")
+
+    counts = []
+    with open(data_path, 'r') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            counts.append(int(row['count']))
+
+    expected_log_rate = round(math.log(sum(counts) / len(counts)), 3)
+
+    content = result_path.read_text().strip()
+    actual_value = round(float(content), 3)
+
+    assert actual_value == expected_log_rate, \
+        f"Expected log-rate={expected_log_rate} (log of sample mean {sum(counts)/len(counts):.6f}), got {actual_value}"

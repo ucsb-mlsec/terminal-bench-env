@@ -115,16 +115,25 @@ def test_deterministic_output():
 def test_fixed_implementation_runs_without_errors():
     """Test that the fixed implementation can be executed without errors"""
     fixed_path = Path("/workspace/game_search_fixed.py")
-    
+
     # This test verifies that the module can be loaded and doesn't have
     # obvious runtime errors in its structure
     try:
         spec = importlib.util.spec_from_file_location("game_search_fixed", fixed_path)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
-        
+
         # Check for basic expected components (at least some functions/classes should exist)
         assert len(dir(module)) > 0, "Module should contain some definitions"
-        
+
     except Exception as e:
         assert False, f"Fixed implementation has runtime errors: {e}"
+
+def test_best_move_is_2():
+    """Test that best_move equals 2 for Nim game with 10 stones (optimal: remove 2 to leave 8 = 4*2)"""
+    rec_path = Path("/workspace/recommendation.txt")
+    content = rec_path.read_text().strip()
+    best_move_str = content.split('\n')[0].split('=')[1]
+    best_move = int(best_move_str)
+    assert best_move == 2, \
+        f"Expected best_move=2 for Nim(N=10): removing 2 leaves 8 (multiple of 4, losing position for opponent), got {best_move}"

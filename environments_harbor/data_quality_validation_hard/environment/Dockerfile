@@ -20,11 +20,11 @@ RUN pip3 install --no-cache-dir --break-system-packages great-expectations
 
 RUN pip3 install --no-cache-dir --break-system-packages pandas numpy scipy
 
-RUN mkdir -p /data /solution
+RUN mkdir -p /workspace/data /workspace/solution
 
-COPY data/customer_profiles.csv /data/customer_profiles.csv
-COPY data/transaction_history.csv /data/transaction_history.csv
-COPY data/support_interactions.csv /data/support_interactions.csv
+COPY data/customer_profiles.csv /workspace/data/customer_profiles.csv
+COPY data/transaction_history.csv /workspace/data/transaction_history.csv
+COPY data/support_interactions.csv /workspace/data/support_interactions.csv
 
 WORKDIR /workspace
 

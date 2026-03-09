@@ -103,3 +103,19 @@ def test_solution_describes_fix():
     
     has_action_term = any(term in content for term in action_terms)
     assert has_action_term, "FIX description should mention what action was taken (e.g., changed, corrected, fixed, etc.)"
+
+
+def test_bug_mentions_routing_key():
+    """Test that the BUG line specifically mentions 'routing_key' (the actual wrong field name used)"""
+    solution_path = Path("/home/admin/solution.txt")
+    content = solution_path.read_text()
+
+    bug_description = ""
+    for line in content.split('\n'):
+        if line.strip().startswith('BUG:'):
+            bug_description = line.split('BUG:', 1)[1].strip().lower()
+            break
+
+    # The actual bug in receiver.py line 55 is 'route_key' instead of 'routing_key'
+    assert 'routing_key' in bug_description or 'route_key' in bug_description, \
+        f"BUG description should mention 'routing_key' or 'route_key' (the PagerDuty field name bug), got: '{bug_description[:200]}'"

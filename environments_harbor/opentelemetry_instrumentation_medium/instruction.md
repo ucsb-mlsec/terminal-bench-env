@@ -62,17 +62,17 @@ You need to:
 
 **Solution Format:**
 
-Create a single Python script at `/solution/run_instrumented.py` that:
+Create a single Python script at `/workspace/solution/run_instrumented.py` that:
 - Imports and configures OpenTelemetry
 - Instruments the FastAPI application from `/app/main.py`
 - Configures console export for traces
 - Starts the application on port 8000
 
-When this script is executed with `python /solution/run_instrumented.py`, the application should start and produce trace output to stdout whenever requests are received.
+When this script is executed with `python /workspace/solution/run_instrumented.py`, the application should start and produce trace output to stdout whenever requests are received.
 
 **Output Format (Simple Text File):**
 
-After creating your instrumentation script, save a status file at `/solution/status.txt` with exactly this format:
+After creating your instrumentation script, save a status file at `/workspace/solution/status.txt` with exactly this format:
 
 ```
 INSTRUMENTED=yes
@@ -84,8 +84,8 @@ Where:
 - PORT: Must be "8000" (the port where the app runs)
 
 **Success Criteria:**
-- The `/solution/run_instrumented.py` script exists and runs without errors
+- The `/workspace/solution/run_instrumented.py` script exists and runs without errors
 - The FastAPI application starts on port 8000
 - All three endpoints (/health, /tasks GET, /tasks POST) continue to work
 - Trace information appears in stdout when requests are made
-- The `/solution/status.txt` file exists with correct values
+- The `/workspace/solution/status.txt` file exists with correct values

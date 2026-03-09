@@ -20,13 +20,15 @@ RUN pip3 install --no-cache-dir --break-system-packages \
     pyyaml \
     jsonschema
 
-RUN mkdir -p /workspace /data /config
+RUN mkdir -p /workspace/data /workspace/config /workspace/output/sentry_event_rate_limiting_hard/files/data
 
-COPY data/event_volume_logs.json /data/event_volume_logs.json
-COPY data/project_metadata.json /data/project_metadata.json
-COPY data/system_metrics.log /data/system_metrics.log
-COPY config/sentry_projects.yaml /config/sentry_projects.yaml
-COPY config/sentry.conf.py /config/sentry.conf.py
+COPY data/event_volume_logs.json /workspace/data/event_volume_logs.json
+COPY data/project_metadata.json /workspace/data/project_metadata.json
+COPY data/system_metrics.log /workspace/data/system_metrics.log
+COPY config/sentry_projects.yaml /workspace/config/sentry_projects.yaml
+COPY config/sentry.conf.py /workspace/config/sentry.conf.py
+COPY data/event_volume_logs.json /workspace/output/sentry_event_rate_limiting_hard/files/data/event_volume_logs.json
+COPY data/project_metadata.json /workspace/output/sentry_event_rate_limiting_hard/files/data/project_metadata.json
 
 WORKDIR /workspace
 

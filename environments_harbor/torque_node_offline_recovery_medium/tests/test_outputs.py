@@ -83,7 +83,18 @@ def test_recovery_script_has_recovery_actions():
     """Test that the recovery script contains actual recovery actions for offline nodes"""
     script_path = Path("/tmp/node_recovery.sh")
     content = script_path.read_text()
-    
+
     # Check for clear (-c) or reset (-r) operations which are typical for bringing offline nodes back
     has_recovery_actions = re.search(r'pbsnodes\s+-[cr]', content) is not None
     assert has_recovery_actions, "Recovery script should contain clear (-c) or reset (-r) commands to bring nodes back online"
+
+
+def test_node02_uses_reset_flag():
+    """Test that node02 uses the -r (reset) flag because its state is 'down' not 'offline'"""
+    script_path = Path("/tmp/node_recovery.sh")
+    content = script_path.read_text()
+
+    # node02 has state=down (hardware/communication failure), not state=offline (admin-marked)
+    # 'down' nodes require 'pbsnodes -r node02' to reset, unlike offline nodes which use -c
+    assert re.search(r'pbsnodes\s+-r\s+node02', content) or re.search(r'pbsnodes\s+node02\s+-r', content), \
+        "node02 (state=down) requires the -r flag: pbsnodes -r node02"

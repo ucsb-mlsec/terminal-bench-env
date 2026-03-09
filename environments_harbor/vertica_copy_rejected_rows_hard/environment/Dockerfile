@@ -11,11 +11,11 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /data/rejected /solution
+RUN mkdir -p /workspace/data/rejected /workspace/solution
 
-COPY data/rejected/customer_transactions.rej /data/rejected/customer_transactions.rej
-COPY data/rejected/customer_profiles.rej /data/rejected/customer_profiles.rej
-COPY data/rejected/payment_methods.rej /data/rejected/payment_methods.rej
+COPY data/rejected/customer_transactions.rej /workspace/data/rejected/customer_transactions.rej
+COPY data/rejected/customer_profiles.rej /workspace/data/rejected/customer_profiles.rej
+COPY data/rejected/payment_methods.rej /workspace/data/rejected/payment_methods.rej
 
 WORKDIR /workspace
 

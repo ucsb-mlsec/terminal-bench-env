@@ -101,9 +101,32 @@ def test_cache_hit_delivery():
     """Test that cache hit delivery is properly configured"""
     solution_path = Path("/tmp/solution.vcl")
     content = solution_path.read_text()
-    
+
     # Check for deliver or hash return actions
     has_delivery = 'return(hash)' in content.lower().replace(' ', '') or \
                    'return (hash)' in content.lower() or \
                    'return(deliver)' in content.lower().replace(' ', '')
     assert has_delivery, "VCL file missing cache delivery logic (return(hash) or return(deliver))"
+
+def test_static_assets_ttl_seven_days():
+    """Test that static assets are cached for 7 days (604800s) per caching-policy.txt"""
+    solution_path = Path("/tmp/solution.vcl")
+    content = solution_path.read_text()
+    # Policy requires 7d = 604800 seconds for static assets
+    assert '604800' in content or '7d' in content or '168h' in content, \
+        "VCL file missing 7-day TTL (604800s) for static assets as required by caching-policy.txt"
+
+def test_products_ttl_one_hour():
+    """Test that product pages are cached for 1 hour (3600s) per caching-policy.txt"""
+    solution_path = Path("/tmp/solution.vcl")
+    content = solution_path.read_text()
+    # Policy requires 1h = 3600 seconds for product pages
+    assert '3600' in content or '1h' in content or '60m' in content, \
+        "VCL file missing 1-hour TTL (3600s) for product pages as required by caching-policy.txt"
+
+def test_no_cache_for_checkout_and_cart():
+    """Test that checkout and cart paths are not cached per caching-policy.txt"""
+    solution_path = Path("/tmp/solution.vcl")
+    content = solution_path.read_text()
+    assert '/checkout' in content or '/cart' in content, \
+        "VCL file should bypass cache for /checkout and /cart paths per caching-policy.txt"

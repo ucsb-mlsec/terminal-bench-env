@@ -23,9 +23,9 @@ RUN pip3 install --no-cache-dir --break-system-packages \
     tableauhyperapi \
     pandas
 
-RUN mkdir -p /data /output
+RUN mkdir -p /workspace/data /workspace/output
 
-COPY data/products.csv /data/products.csv
+COPY data/products.csv /workspace/data/products.csv
 
 WORKDIR /workspace
 

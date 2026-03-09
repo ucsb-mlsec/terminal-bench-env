@@ -76,3 +76,11 @@ def test_confirmation_code_is_alphanumeric():
     # But should not contain spaces or special characters like punctuation
     pattern = re.compile(r'^[A-Za-z0-9\-_]+$')
     assert pattern.match(content), f"Confirmation code '{content}' contains invalid characters"
+
+def test_correct_confirmation_code():
+    """Test that the extracted confirmation code matches the hardcoded value in form.html"""
+    result_path = Path("/workspace/result.txt")
+    content = result_path.read_text().strip()
+    # From form.html: <div class="confirmation-code" id="confirmation-code">CONF-12345</div>
+    assert content == "CONF-12345", \
+        f"Expected confirmation code 'CONF-12345' (from form.html), got '{content}'"

@@ -113,20 +113,121 @@ def test_values_are_from_actual_trace():
     report_path = Path("/tmp/trace_report.txt")
     content = report_path.read_text().strip()
     lines = content.split('\n')
-    
+
     # Parse values
     values = {}
     for line in lines:
         key, value = line.split('=', 1)
         values[key] = value
-    
+
     # Event count should be reasonable (not placeholder values like 0, 999999)
     event_count = int(values['event_count'])
     assert event_count > 10, f"event_count seems too low, might be placeholder: {event_count}"
     assert event_count < 1000000000, f"event_count seems unreasonably high: {event_count}"
-    
+
     # Top event should not be placeholder text
     top_event = values['top_event']
     placeholder_terms = ['placeholder', 'example', 'test', 'dummy', 'unknown', 'none', 'null']
     assert not any(term in top_event.lower() for term in placeholder_terms), \
         f"top_event appears to be a placeholder: {top_event}"
+
+
+def test_event_count_matches_babeltrace():
+    """Test that the reported event count matches what babeltrace reports"""
+    import subprocess
+
+    report_path = Path("/tmp/trace_report.txt")
+    content = report_path.read_text().strip()
+    values = {}
+    for line in content.split('\n'):
+        key, value = line.split('=', 1)
+        values[key] = value
+
+    reported_count = int(values['event_count'])
+
+    # Use babeltrace to count events from the actual trace data
+    result = subprocess.run(
+        ["babeltrace", "/var/trace_data/session-001/"],
+        capture_output=True, text=True, timeout=30
+    )
+
+    if result.returncode == 0 and result.stdout.strip():
+        actual_lines = [l for l in result.stdout.strip().split('\n') if l.strip()]
+        actual_count = len(actual_lines)
+
+        assert reported_count == actual_count, \
+            f"Reported event_count={reported_count} does not match babeltrace count={actual_count}"
+
+
+def test_top_event_is_most_frequent():
+    """Test that the reported top_event is actually the most frequent event type"""
+    import subprocess
+
+    report_path = Path("/tmp/trace_report.txt")
+    content = report_path.read_text().strip()
+    values = {}
+    for line in content.split('\n'):
+        key, value = line.split('=', 1)
+        values[key] = value
+
+    reported_top = values['top_event']
+
+    # Use babeltrace to get event names and count them
+    result = subprocess.run(
+        ["babeltrace", "/var/trace_data/session-001/"],
+        capture_output=True, text=True, timeout=30
+    )
+
+    if result.returncode == 0 and result.stdout.strip():
+        event_counts = {}
+        for line in result.stdout.strip().split('\n'):
+            if not line.strip():
+                continue
+            # babeltrace output format: [timestamp] (clock) event_name: { fields }
+            # Extract event name - it's typically the text before the ':'
+            parts = line.split()
+            event_name = None
+            for i, part in enumerate(parts):
+                if ':' in part and not part.startswith('[') and not part.startswith('('):
+                    event_name = part.rstrip(':')
+                    break
+            if event_name:
+                event_counts[event_name] = event_counts.get(event_name, 0) + 1
+
+        if event_counts:
+            actual_top = max(event_counts, key=event_counts.get)
+            assert reported_top == actual_top, \
+                f"Reported top_event='{reported_top}' but actual most frequent is '{actual_top}' " \
+                f"(counts: {dict(sorted(event_counts.items(), key=lambda x: -x[1])[:5])})"
+
+
+def test_first_timestamp_matches_trace():
+    """Test that the reported first_timestamp matches the first event in the trace"""
+    import subprocess
+
+    report_path = Path("/tmp/trace_report.txt")
+    content = report_path.read_text().strip()
+    values = {}
+    for line in content.split('\n'):
+        key, value = line.split('=', 1)
+        values[key] = value
+
+    reported_ts = values['first_timestamp']
+
+    # Use babeltrace to get the first event's timestamp
+    result = subprocess.run(
+        ["babeltrace", "/var/trace_data/session-001/"],
+        capture_output=True, text=True, timeout=30
+    )
+
+    if result.returncode == 0 and result.stdout.strip():
+        first_line = result.stdout.strip().split('\n')[0]
+        # Extract timestamp from babeltrace output - typically in [HH:MM:SS.nnnnnnnnn] format
+        ts_match = re.search(r'\[(\d{2}:\d{2}:\d{2}\.\d+)\]', first_line)
+        if ts_match:
+            actual_ts = ts_match.group(1)
+            # The reported timestamp should contain the same time
+            assert actual_ts in reported_ts or reported_ts in actual_ts or \
+                   actual_ts.split('.')[0] == reported_ts.split('.')[0], \
+                f"Reported first_timestamp='{reported_ts}' does not match " \
+                f"actual first event timestamp='{actual_ts}'"

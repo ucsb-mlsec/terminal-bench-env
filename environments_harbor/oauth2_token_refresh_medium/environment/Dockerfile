@@ -17,11 +17,7 @@ RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.
 
 RUN mkdir -p /data/customer_export /data/auth /workspace
 
-COPY data/customer_export/page_001.json /data/customer_export/page_001.json
-COPY data/customer_export/page_002.json /data/customer_export/page_002.json
-COPY data/customer_export/page_003.json /data/customer_export/page_003.json
-COPY data/customer_export/page_004.json /data/customer_export/page_004.json
-COPY data/customer_export/page_005.json /data/customer_export/page_005.json
+COPY data/customer_export/page_*.json /data/customer_export/
 COPY data/customer_export/metadata.json /data/customer_export/metadata.json
 COPY data/auth/refresh_token.sh /data/auth/refresh_token.sh
 COPY extract_customers.py /workspace/extract_customers.py

@@ -71,12 +71,21 @@ def test_no_extra_blank_lines():
     """Test that there are no extra blank lines in the file"""
     diagnosis_path = Path("/tmp/ldap_diagnosis.txt")
     content = diagnosis_path.read_text()
-    
+
     # Should not have multiple consecutive newlines
     assert '\n\n' not in content, "File should not contain blank lines"
-    
+
     # Should not start or end with extra whitespace lines
     lines = content.split('\n')
     assert lines[0].strip() != '', "First line should not be blank"
     if len(lines) >= 3:
         assert lines[2].strip() != '', "Third line should not be blank"
+
+
+def test_identifies_server_key_file():
+    """Test that line 1 identifies /etc/ldap/certs/server.key as the missing file"""
+    diagnosis_path = Path("/tmp/ldap_diagnosis.txt")
+    lines = diagnosis_path.read_text().strip().split('\n')
+    line1 = lines[0].strip()
+    assert "server.key" in line1, \
+        f"Line 1 should identify /etc/ldap/certs/server.key as the missing file (referenced in slapd.conf as TLSCertificateKeyFile but not present in certs directory), got: {line1}"

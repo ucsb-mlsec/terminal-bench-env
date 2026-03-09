@@ -84,15 +84,54 @@ def test_solution_identifies_race_conditions():
     """Test that identified bugs are in code files (not test/build files)"""
     solution_path = Path("/workspace/solution.json")
     data = json.loads(solution_path.read_text())
-    
+
     bugs = data["bugs"]
     valid_extensions = ['.c', '.h', '.cpp', '.cc']
-    
+
     for i, bug in enumerate(bugs):
         file_ext = Path(bug["file"]).suffix
         assert file_ext in valid_extensions, f"Bug entry {i} file '{bug['file']}' should be a C/C++ source file"
-        
+
         # Check the bug is not in test/build infrastructure
         filename_lower = bug["file"].lower()
         assert "makefile" not in filename_lower, f"Bug entry {i} should not point to Makefile"
         assert "test" not in filename_lower or "test" in filename_lower and file_ext in valid_extensions, f"Bug entry {i} should point to actual source code"
+
+
+def test_bugs_are_in_image_processor():
+    """Test that all identified bugs are in image_processor.c (the only file with race conditions)"""
+    solution_path = Path("/workspace/solution.json")
+    data = json.loads(solution_path.read_text())
+
+    bugs = data["bugs"]
+    for i, bug in enumerate(bugs):
+        assert "image_processor.c" in bug["file"], (
+            f"Bug entry {i} points to '{bug['file']}' but all race conditions are in image_processor.c "
+            "(shared temp_buffer at line ~218, shared counters at lines ~395/398, "
+            "global_image_list at line ~512)"
+        )
+
+
+def test_known_race_condition_lines_covered():
+    """Test that known race condition lines from image_processor.c are identified"""
+    solution_path = Path("/workspace/solution.json")
+    data = json.loads(solution_path.read_text())
+
+    reported_lines = {bug["line"] for bug in data["bugs"]}
+
+    # Known race conditions (BUG comments in image_processor.c):
+    # - Lines ~218-224: shared temp_buffer used without synchronization
+    # - Lines ~395/398: images_processed/images_failed counters updated without lock
+    # - Lines ~512-514: global_image_list accessed without synchronization
+    known_ranges = [(215, 230), (390, 405), (508, 520)]
+
+    found_count = 0
+    for start, end in known_ranges:
+        if any(start <= line <= end for line in reported_lines):
+            found_count += 1
+
+    assert found_count >= 2, (
+        f"Expected at least 2 of 3 known race condition regions to be identified "
+        f"(temp_buffer ~218, counters ~395-398, global_image_list ~512), "
+        f"but only found {found_count} covered by reported lines: {sorted(reported_lines)}"
+    )

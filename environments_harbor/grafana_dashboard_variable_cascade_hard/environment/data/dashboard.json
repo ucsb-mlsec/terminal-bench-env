@@ -1,65 +1,122 @@
-[
-  {
-    "I need to analyze the dashboard configuration file and identify variables with broken dependencies. Let me start by reading the file.":"<read_file>"
+{
+  "id": 1,
+  "uid": "abc123def",
+  "title": "Kubernetes Cluster Monitoring",
+  "tags": ["kubernetes", "monitoring"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 12,
+  "refresh": "30s",
+  "templating": {
+    "list": [
+      {
+        "name": "region",
+        "type": "query",
+        "datasource": "Prometheus",
+        "query": "label_values(kube_node_info, region)",
+        "refresh": 1,
+        "sort": 1,
+        "multi": false,
+        "includeAll": true
+      },
+      {
+        "name": "cluster",
+        "type": "query",
+        "datasource": "Prometheus",
+        "query": "label_values(kube_node_info{region=\"$region\"}, cluster)",
+        "refresh": 1,
+        "sort": 1,
+        "multi": false,
+        "includeAll": true
+      },
+      {
+        "name": "namespace",
+        "type": "query",
+        "datasource": "Prometheus",
+        "query": "label_values(kube_pod_info{region=\"$region\"}, namespace)",
+        "refresh": 1,
+        "sort": 1,
+        "multi": true,
+        "includeAll": true
+      },
+      {
+        "name": "service",
+        "type": "query",
+        "datasource": "Prometheus",
+        "query": "label_values(kube_service_info{namespace=\"$namespace\"}, service)",
+        "refresh": 1,
+        "sort": 1,
+        "multi": true,
+        "includeAll": true
+      },
+      {
+        "name": "pod",
+        "type": "query",
+        "datasource": "Prometheus",
+        "query": "label_values(kube_pod_info{cluster=\"$cluster\"}, pod)",
+        "refresh": 1,
+        "sort": 1,
+        "multi": true,
+        "includeAll": true
+      }
+    ]
   },
-  {
-    "I need to analyze the dashboard configuration file and identify variables with broken dependencies. Let me start by reading the file.":"<path>\/workspace\/dashboard.json<\/path>"
-  },
-  {
-    "I need to analyze the dashboard configuration file and identify variables with broken dependencies. Let me start by reading the file.":"<\/read_file>"
-  },
-  {
-    "I need to analyze the dashboard configuration file and identify variables with broken dependencies. Let me start by reading the file.":"Now I'll analyze the template variables to identify broken dependencies in the cascade: Region \u2192 Cluster \u2192 Namespace \u2192 Service \u2192 Pod."
-  },
-  {
-    "I need to analyze the dashboard configuration file and identify variables with broken dependencies. Let me start by reading the file.":"Let me examine each variable's query to check if it correctly references its parent:"
-  },
-  {
-    "I need to analyze the dashboard configuration file and identify variables with broken dependencies. Let me start by reading the file.":"1. **region**: Root variable - should have NO dependencies"
-  },
-  {
-    "I need to analyze the dashboard configuration file and identify variables with broken dependencies. Let me start by reading the file.":"2. **cluster**: Should depend on `$region`"
-  },
-  {
-    "I need to analyze the dashboard configuration file and identify variables with broken dependencies. Let me start by reading the file.":"3. **namespace**: Should depend on `$cluster`"
-  },
-  {
-    "I need to analyze the dashboard configuration file and identify variables with broken dependencies. Let me start by reading the file.":"4. **service**: Should depend on `$namespace`"
-  },
-  {
-    "I need to analyze the dashboard configuration file and identify variables with broken dependencies. Let me start by reading the file.":"5. **pod**: Should depend on `$service`"
-  },
-  {
-    "I need to analyze the dashboard configuration file and identify variables with broken dependencies. Let me start by reading the file.":"Based on my analysis of the dashboard.json file:"
-  },
-  {
-    "I need to analyze the dashboard configuration file and identify variables with broken dependencies. Let me start by reading the file.":"- **region**: Query has no dependencies \u2713 (correct - it's the root)"
-  },
-  {
-    "I need to analyze the dashboard configuration file and identify variables with broken dependencies. Let me start by reading the file.":"- **cluster**: Query references `$region` \u2713 (correct)"
-  },
-  {
-    "I need to analyze the dashboard configuration file and identify variables with broken dependencies. Let me start by reading the file.":"- **namespace**: Query references `$region` \u2717 (BROKEN - should reference `$cluster`)"
-  },
-  {
-    "I need to analyze the dashboard configuration file and identify variables with broken dependencies. Let me start by reading the file.":"<write_file>"
-  },
-  {
-    "I need to analyze the dashboard configuration file and identify variables with broken dependencies. Let me start by reading the file.":"<path>\/output\/broken_variables.txt<\/path>"
-  },
-  {
-    "I need to analyze the dashboard configuration file and identify variables with broken dependencies. Let me start by reading the file.":"<content>namespace"
-  },
-  {
-    "I need to analyze the dashboard configuration file and identify variables with broken dependencies. Let me start by reading the file.":"service"
-  },
-  {
-    "I need to analyze the dashboard configuration file and identify variables with broken dependencies. Let me start by reading the file.":"pod"
-  },
-  {
-    "I need to analyze the dashboard configuration file and identify variables with broken dependencies. Let me start by reading the file.":"<\/content>"
-  },
-  {
-    "I need to analyze the dashboard configuration file and identify variables with broken dependencies. Let me start by reading the file.":"<\/write_file>"
+  "panels": [
+    {
+      "id": 1,
+      "title": "CPU Usage",
+      "type": "graph",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "rate(container_cpu_usage_seconds_total{namespace=\"$namespace\", pod=\"$pod\"}[5m])",
+          "legendFormat": "{{pod}}"
+        }
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+    },
+    {
+      "id": 2,
+      "title": "Memory Usage",
+      "type": "graph",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "container_memory_usage_bytes{namespace=\"$namespace\", pod=\"$pod\"}",
+          "legendFormat": "{{pod}}"
+        }
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+    },
+    {
+      "id": 3,
+      "title": "Network I/O",
+      "type": "graph",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "rate(container_network_receive_bytes_total{namespace=\"$namespace\", pod=\"$pod\"}[5m])",
+          "legendFormat": "{{pod}} - rx"
+        }
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+    },
+    {
+      "id": 4,
+      "title": "Pod Restarts",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "kube_pod_container_status_restarts_total{namespace=\"$namespace\", pod=\"$pod\"}",
+          "legendFormat": "{{pod}}"
+        }
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+    }
+  ],
+  "time": {
+    "from": "now-6h",
+    "to": "now"
   }
-]
+}

@@ -105,9 +105,36 @@ def test_required_value_differs_from_current():
     solution_path = Path("/workspace/solution.txt")
     content = solution_path.read_text().strip()
     lines = content.split('\n')
-    
+
     current_value = lines[1].split("CURRENT:", 1)[1].strip()
     required_value = lines[2].split("REQUIRED:", 1)[1].strip()
-    
+
     assert current_value != required_value, \
         "CURRENT and REQUIRED values are the same - no misconfiguration identified"
+
+
+def test_parameter_is_commit_interval_ms():
+    """Test that the identified parameter is commit.interval.ms per state-store-requirements.txt"""
+    solution_path = Path("/workspace/solution.txt")
+    lines = solution_path.read_text().strip().split('\n')
+    parameter_value = lines[0].split("PARAMETER:", 1)[1].strip()
+    assert parameter_value == "commit.interval.ms", \
+        f"Expected PARAMETER: commit.interval.ms (as specified in state-store-requirements.txt), got: {parameter_value}"
+
+
+def test_current_value_is_30000():
+    """Test that CURRENT value is 30000 matching streams.properties"""
+    solution_path = Path("/workspace/solution.txt")
+    lines = solution_path.read_text().strip().split('\n')
+    current_value = lines[1].split("CURRENT:", 1)[1].strip()
+    assert current_value == "30000", \
+        f"Expected CURRENT: 30000 (value from streams.properties), got: {current_value}"
+
+
+def test_required_value_is_1000():
+    """Test that REQUIRED value is 1000 per state-store-requirements.txt"""
+    solution_path = Path("/workspace/solution.txt")
+    lines = solution_path.read_text().strip().split('\n')
+    required_value = lines[2].split("REQUIRED:", 1)[1].strip()
+    assert required_value == "1000", \
+        f"Expected REQUIRED: 1000 (as specified in state-store-requirements.txt), got: {required_value}"

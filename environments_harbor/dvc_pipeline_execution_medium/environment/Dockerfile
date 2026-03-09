@@ -18,6 +18,8 @@ RUN apt-get update && \
 RUN pip3 install --no-cache-dir --break-system-packages dvc pandas
 
 RUN mkdir -p /workspace/data /workspace/scripts /workspace/.dvc
+RUN mkdir -p /workspace/output/dvc_pipeline_execution_medium/files
+RUN ln -s /workspace/data /workspace/output/dvc_pipeline_execution_medium/files/data
 
 COPY data/raw_transactions.csv /workspace/data/raw_transactions.csv
 COPY dvc.yaml /workspace/dvc.yaml

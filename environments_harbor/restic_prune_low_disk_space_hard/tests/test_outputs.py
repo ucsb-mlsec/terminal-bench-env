@@ -107,10 +107,34 @@ def test_script_is_executable_python():
     """Test that the cleanup script is valid Python code"""
     script_path = Path("/root/cleanup_backups.py")
     content = script_path.read_text()
-    
+
     # Basic check: should contain Python-like syntax
     assert "import" in content or "def" in content or "if" in content, "Script does not appear to contain valid Python code"
-    
+
     # Should not be empty or just comments
     non_comment_lines = [line for line in content.split('\n') if line.strip() and not line.strip().startswith('#')]
     assert len(non_comment_lines) > 0, "Script contains no executable code"
+
+def test_retention_days_is_7():
+    """Test that retention_days=7 as specified in retention.conf"""
+    summary_path = Path("/root/cleanup_summary.txt")
+    content = summary_path.read_text().strip()
+
+    retention_match = re.search(r'retention_days=(\d+)', content)
+    assert retention_match, "Could not parse retention_days from summary"
+
+    retention_days = int(retention_match.group(1))
+    assert retention_days == 7, \
+        f"Expected retention_days=7 (from retention.conf: RETENTION_DAYS=7), got: {retention_days}"
+
+def test_backups_removed_is_13():
+    """Test that backups_removed=13 — 20 backups exist, keep 7, remove 13"""
+    summary_path = Path("/root/cleanup_summary.txt")
+    content = summary_path.read_text().strip()
+
+    removed_match = re.search(r'backups_removed=(\d+)', content)
+    assert removed_match, "Could not parse backups_removed from summary"
+
+    backups_removed = int(removed_match.group(1))
+    assert backups_removed == 13, \
+        f"Expected backups_removed=13 (20 backups total minus 7 retained = 13 removed), got: {backups_removed}"

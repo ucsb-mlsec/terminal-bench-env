@@ -49,12 +49,29 @@ def test_diagnosis_identifies_neon_issue():
     diagnosis_path = Path("/workspace/diagnosis.txt")
     content = diagnosis_path.read_text().strip()
     lines = content.split('\n')
-    
+
     description = lines[1].lower()
     # The description should mention something related to NEON, flags, or ARM optimization
-    neon_related = any(keyword in description for keyword in 
-                      ['neon', 'flag', 'simd', 'optimization', 'arm', 'compiler', 
-                       'march', 'mfpu', 'mcpu', 'aarch64'])
-    
+    neon_related = any(keyword in description for keyword in
+                       ['neon', 'flag', 'simd', 'optimization', 'arm', 'compiler',
+                        'march', 'mfpu', 'mcpu', 'aarch64'])
+
     assert neon_related, \
         "Description does not appear to relate to NEON/ARM optimization issues"
+
+
+def test_correct_category():
+    """Test that the diagnosis category is compiler_flags"""
+    diagnosis_path = Path("/workspace/diagnosis.txt")
+    content = diagnosis_path.read_text().strip()
+    lines = content.split('\n')
+
+    category = lines[0].strip()
+
+    # The Makefile uses CFLAGS = -O2 without -mfpu=neon or -march=armv7-a+neon flags,
+    # so NEON intrinsics in the C code won't compile/run correctly.
+    # This is a compiler_flags issue, not missing_library or source_code_issue.
+    assert category == "compiler_flags", (
+        f"Category should be 'compiler_flags' (Makefile lacks -mfpu=neon or ARM NEON flags), "
+        f"got: {category}"
+    )

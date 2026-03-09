@@ -86,16 +86,41 @@ def test_findings_based_on_evidence():
     findings_path = Path("/home/investigator/findings.json")
     with open(findings_path, 'r') as f:
         data = json.load(f)
-    
+
     # Check that the stolen auth code appears to be a valid format (alphanumeric or with special chars)
     auth_code = data.get("stolen_auth_code", "")
     assert len(auth_code) > 10, "stolen_auth_code seems too short to be a valid authorization code"
-    
+
     # Check that URIs contain domain names
     legitimate_uri = data.get("legitimate_redirect_uri", "")
     malicious_uri = data.get("malicious_redirect_uri", "")
-    
+
     assert "." in legitimate_uri or "localhost" in legitimate_uri, \
         "legitimate_redirect_uri should contain a domain name"
     assert "." in malicious_uri or "localhost" in malicious_uri, \
         "malicious_redirect_uri should contain a domain name"
+
+
+def test_correct_stolen_auth_code():
+    """Test that the correct stolen authorization code is identified"""
+    findings_path = Path("/home/investigator/findings.json")
+    with open(findings_path, 'r') as f:
+        data = json.load(f)
+
+    auth_code = data.get("stolen_auth_code", "")
+    legitimate_uri = data.get("legitimate_redirect_uri", "")
+
+    # From token_exchanges.log line 18: AUTH_xyz789abc456def was exchanged with
+    # REDIRECT_URI=https://app.example.com/oauth/callback?redirect=https://attacker.com/steal
+    # This is the only token successfully issued to a manipulated redirect URI
+    assert auth_code == "AUTH_xyz789abc456def", (
+        f"stolen_auth_code should be 'AUTH_xyz789abc456def' "
+        f"(the only auth code successfully exchanged via an open redirect attack), "
+        f"got: {auth_code}"
+    )
+
+    # The legitimate redirect URI is https://app.example.com/oauth/callback
+    assert legitimate_uri == "https://app.example.com/oauth/callback", (
+        f"legitimate_redirect_uri should be 'https://app.example.com/oauth/callback', "
+        f"got: {legitimate_uri}"
+    )

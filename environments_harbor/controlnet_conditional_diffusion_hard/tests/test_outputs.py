@@ -137,7 +137,33 @@ def test_validation_report_fixes_count():
     validation_path = Path("/workspace/validation.json")
     with open(validation_path, 'r') as f:
         report = json.load(f)
-    
+
     fixes_applied = report['fixes_applied']
     assert fixes_applied >= 0, "fixes_applied must be non-negative"
     assert fixes_applied <= 20, "fixes_applied count seems unrealistic (>20)"
+
+
+def test_fixes_applied_exact_count():
+    """Test that exactly 7 parameters were corrected (per instruction requirements)"""
+    validation_path = Path("/workspace/validation.json")
+    with open(validation_path, 'r') as f:
+        report = json.load(f)
+
+    fixes_applied = report['fixes_applied']
+    assert fixes_applied == 7, (
+        f"Expected fixes_applied=7 (conditioning strength, width, height, "
+        f"edge_threshold order, generation steps, guidance scale, seed type), "
+        f"but got {fixes_applied}"
+    )
+
+
+def test_fixed_config_conditioning_type_preserved():
+    """Test that non-broken fields like conditioning type are preserved"""
+    fixed_config_path = Path("/workspace/fixed_config.yaml")
+    with open(fixed_config_path, 'r') as f:
+        config = yaml.safe_load(f)
+
+    cond_type = config['conditioning'].get('type', '')
+    assert cond_type == 'canny', (
+        f"conditioning.type should remain 'canny' (was not broken), got: {cond_type}"
+    )

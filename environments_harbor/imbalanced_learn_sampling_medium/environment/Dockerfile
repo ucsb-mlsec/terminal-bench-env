@@ -17,9 +17,9 @@ RUN apt-get update && \
 
 RUN pip3 install --no-cache-dir --break-system-packages pandas numpy scikit-learn imbalanced-learn
 
-RUN mkdir -p /data /output
+RUN mkdir -p /workspace/data /workspace/output
 
-COPY data/customer_churn.csv /data/customer_churn.csv
+COPY data/customer_churn.csv /workspace/data/customer_churn.csv
 
 WORKDIR /workspace
 

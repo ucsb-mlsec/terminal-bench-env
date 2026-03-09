@@ -98,15 +98,33 @@ def test_solution_consistency():
     solution_path = Path("/root/solution.txt")
     content = solution_path.read_text().strip()
     lines = content.split('\n')
-    
+
     issues_match = re.match(r'issues_fixed=(\d+)', lines[0])
     static_match = re.match(r'static_caching=(enabled|disabled)', lines[1])
     cookie_match = re.match(r'cookie_handling=(fixed|broken)', lines[2])
-    
+
     issues_count = int(issues_match.group(1))
-    
+
     # If issues were fixed, static_caching should likely be enabled
     # and cookie_handling should likely be fixed
     if issues_count > 0:
         assert static_match.group(1) == 'enabled' or cookie_match.group(1) == 'fixed', \
             "If issues were fixed, at least static_caching or cookie_handling should show improvement"
+
+def test_static_caching_is_enabled():
+    """Test that static_caching reports enabled after fixing the VCL"""
+    solution_path = Path("/root/solution.txt")
+    content = solution_path.read_text().strip()
+    lines = content.split('\n')
+    static_line = next((l for l in lines if l.startswith('static_caching=')), '')
+    assert static_line == 'static_caching=enabled', \
+        f"Expected static_caching=enabled (VCL had broken static caching), got '{static_line}'"
+
+def test_cookie_handling_is_fixed():
+    """Test that cookie_handling reports fixed after correcting the VCL"""
+    solution_path = Path("/root/solution.txt")
+    content = solution_path.read_text().strip()
+    lines = content.split('\n')
+    cookie_line = next((l for l in lines if l.startswith('cookie_handling=')), '')
+    assert cookie_line == 'cookie_handling=fixed', \
+        f"Expected cookie_handling=fixed (VCL had broken cookie handling), got '{cookie_line}'"

@@ -17,11 +17,11 @@ RUN apt-get update && \
 
 RUN pip3 install --no-cache-dir --break-system-packages pandas
 
-RUN mkdir -p /data/sources /output /solution
+RUN mkdir -p /workspace/data/sources /workspace/output /workspace/solution
 
-COPY data/sources/crm_events.json /data/sources/crm_events.json
-COPY data/sources/web_analytics.csv /data/sources/web_analytics.csv
-COPY data/sources/mobile_app.jsonl /data/sources/mobile_app.jsonl
+COPY data/sources/crm_events.json /workspace/data/sources/crm_events.json
+COPY data/sources/web_analytics.csv /workspace/data/sources/web_analytics.csv
+COPY data/sources/mobile_app.jsonl /workspace/data/sources/mobile_app.jsonl
 
 WORKDIR /workspace
 

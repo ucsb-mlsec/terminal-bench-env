@@ -85,8 +85,28 @@ def test_no_extra_whitespace_or_content():
     """Test that the output has clean formatting without extra whitespace"""
     output_path = Path("/home/agent/bloat_analysis.txt")
     lines = output_path.read_text().strip().split('\n')
-    
+
     for i, line in enumerate(lines):
         assert '=' in line, f"Line {i+1} should contain '=' separator"
         parts = line.split('=')
         assert len(parts) == 2, f"Line {i+1} should have exactly one '=' separator"
+
+
+def test_correct_table_identified():
+    """Test that 'sessions' is identified as the table with autovacuum not running (autovacuum_count=0, no last_autovacuum)"""
+    output_path = Path("/home/agent/bloat_analysis.txt")
+    lines = output_path.read_text().strip().split('\n')
+    table_name = lines[0].split('=', 1)[1]
+
+    assert table_name == 'sessions', \
+        f"table_name should be 'sessions' (the only table with autovacuum_count=0 and no last_autovacuum timestamp), got '{table_name}'"
+
+
+def test_blocking_setting_is_scale_factor():
+    """Test that blocking_setting is 'autovacuum_vacuum_scale_factor' (set to 0.85, preventing autovacuum on sessions table)"""
+    output_path = Path("/home/agent/bloat_analysis.txt")
+    lines = output_path.read_text().strip().split('\n')
+    setting = lines[2].split('=', 1)[1]
+
+    assert setting == 'autovacuum_vacuum_scale_factor', \
+        f"blocking_setting should be 'autovacuum_vacuum_scale_factor' (set to 0.85 in postgresql.conf, far above default 0.2), got '{setting}'"

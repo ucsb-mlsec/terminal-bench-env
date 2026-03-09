@@ -25,9 +25,9 @@ RUN pip3 install --no-cache-dir --break-system-packages \
     scikit-learn \
     hdbscan
 
-RUN mkdir -p /data /output
+RUN mkdir -p /workspace/data /workspace/output
 
-COPY data/customer_transactions.csv /data/customer_transactions.csv
+COPY data/customer_transactions.csv /workspace/data/customer_transactions.csv
 
 WORKDIR /workspace
 

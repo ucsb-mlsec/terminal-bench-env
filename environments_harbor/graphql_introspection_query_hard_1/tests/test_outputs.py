@@ -98,8 +98,27 @@ def test_risk_assessment_logic():
     output_path = Path("/tmp/schema_audit.json")
     with open(output_path, 'r') as f:
         data = json.load(f)
-    
+
     # If admin operations are found, risk should be at least HIGH
     if data["admin_operations_found"]:
         assert data["risk"] in ["HIGH", "CRITICAL"], \
             f"When admin operations are found, risk should be HIGH or CRITICAL, got '{data['risk']}'"
+
+
+def test_exact_schema_audit_values():
+    """Test that the schema audit returns exact correct values for api_schema.graphql.
+    The schema has 16 object types (User, Admin, Address, Post, Product, Order, Payment,
+    SystemHealth, AdminDashboard, Account, SearchResults, DatabaseStats, TableSize,
+    SystemConfig, AuditLog, AuthPayload). It contains adminUsers, adminDashboard,
+    deleteUser, adminDeletePost, systemReset, managePermissions, createAdminUser
+    operations — so admin_operations_found=True and risk must be HIGH or CRITICAL."""
+    output_path = Path("/tmp/schema_audit.json")
+    with open(output_path, 'r') as f:
+        data = json.load(f)
+
+    assert data["admin_operations_found"] == True, \
+        "admin_operations_found should be True (schema has deleteUser, adminDashboard, createAdminUser, etc.)"
+    assert data["total_types"] == 16, \
+        f"Expected total_types=16 (the 16 object types in api_schema.graphql), got {data['total_types']}"
+    assert data["risk"] in ["HIGH", "CRITICAL"], \
+        f"Risk should be HIGH or CRITICAL given the admin operations in the schema, got '{data['risk']}'"

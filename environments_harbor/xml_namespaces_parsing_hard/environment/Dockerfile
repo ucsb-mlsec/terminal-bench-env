@@ -17,11 +17,11 @@ RUN apt-get update && \
 
 RUN pip3 install --no-cache-dir --break-system-packages lxml
 
-RUN mkdir -p /data/research /output
+RUN mkdir -p /workspace/data/research /workspace/output
 
-COPY data/research/lab_alpha.xml /data/research/lab_alpha.xml
-COPY data/research/lab_beta.xml /data/research/lab_beta.xml
-COPY data/research/lab_gamma.xml /data/research/lab_gamma.xml
+COPY data/research/lab_alpha.xml /workspace/data/research/lab_alpha.xml
+COPY data/research/lab_beta.xml /workspace/data/research/lab_beta.xml
+COPY data/research/lab_gamma.xml /workspace/data/research/lab_gamma.xml
 
 WORKDIR /workspace
 

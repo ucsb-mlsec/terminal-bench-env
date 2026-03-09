@@ -20,6 +20,7 @@ RUN mkdir -p /workspace/app
 COPY requirements.txt /workspace/requirements.txt
 COPY app/processor.py /workspace/app/processor.py
 COPY app/worker.sh /workspace/app/worker.sh
+COPY data/Dockerfile.broken /workspace/Dockerfile
 
 RUN pip3 install --no-cache-dir --break-system-packages -r /workspace/requirements.txt
 

@@ -100,19 +100,53 @@ def test_suspicious_names_are_from_packages_file():
 def test_suspicious_packages_resemble_targets():
     """Test that suspicious packages actually resemble their targets (basic similarity check)"""
     output_path = Path("/workspace/suspicious_packages.json")
-    
+
     with open(output_path, 'r') as f:
         data = json.load(f)
-    
+
     suspicious_packages = data["suspicious_packages"]
-    
+
     for package in suspicious_packages:
         name = package["name"]
         target = package["target"]
-        
+
         # Check that they're similar but not identical
         assert name != target, f"Suspicious package '{name}' is identical to target '{target}'"
-        
+
         # Basic check: length difference should be reasonable (within 3 chars for typosquatting)
         length_diff = abs(len(name) - len(target))
         assert length_diff <= 3, f"Package '{name}' and target '{target}' differ too much in length ({length_diff} chars)"
+
+
+def test_obvious_typosquats_are_detected():
+    """Test that obvious typosquatting packages like 'reqeusts' and 'panads' are detected"""
+    output_path = Path("/workspace/suspicious_packages.json")
+
+    with open(output_path, 'r') as f:
+        data = json.load(f)
+
+    suspicious_names = {p["name"] for p in data["suspicious_packages"]}
+
+    # These are obvious typosquatting examples that should be caught
+    obvious_typosquats = ["reqeusts", "panads", "nurnpy", "requsts"]
+    for pkg in obvious_typosquats:
+        assert pkg in suspicious_names, \
+            f"Obvious typosquatting package '{pkg}' was not detected as suspicious"
+
+
+def test_legitimate_packages_not_flagged():
+    """Test that scikit-learn (which appears in packages.txt as-is) is not flagged as suspicious"""
+    output_path = Path("/workspace/suspicious_packages.json")
+
+    with open(output_path, 'r') as f:
+        data = json.load(f)
+
+    suspicious_names = {p["name"] for p in data["suspicious_packages"]}
+
+    # scikit-learn appears in both packages.txt and popular_packages.txt - should NOT be flagged
+    assert "scikit-learn" not in suspicious_names, \
+        "scikit-learn is a legitimate popular package and should not be flagged"
+
+    # requests appears in both packages.txt and popular_packages.txt - should NOT be flagged
+    assert "requests" not in suspicious_names, \
+        "requests is a legitimate popular package and should not be flagged"

@@ -102,3 +102,51 @@ def test_no_extra_whitespace_in_values():
         # Value should not have leading whitespace before the actual value
         if value:
             assert value[0] != ' ' or value.strip() == '', f"Value in line '{line}' has unexpected leading whitespace"
+
+
+def test_primary_server_is_correct():
+    """Test that PRIMARY is pbs-main.cluster.edu (from pbs.conf PBS_SERVER field)"""
+    output_path = Path("/home/agent/ha_config.txt")
+    content = output_path.read_text().strip()
+
+    primary_line = [line for line in content.split('\n') if line.startswith('PRIMARY=')][0]
+    primary_value = primary_line.split('=', 1)[1].strip()
+
+    assert primary_value == 'pbs-main.cluster.edu', \
+        f"PRIMARY should be 'pbs-main.cluster.edu' (from PBS_SERVER in pbs.conf), got '{primary_value}'"
+
+
+def test_secondary_server_is_correct():
+    """Test that SECONDARY is pbs-backup.cluster.edu (from pbs_backup.conf PBS_SERVER field)"""
+    output_path = Path("/home/agent/ha_config.txt")
+    content = output_path.read_text().strip()
+
+    secondary_line = [line for line in content.split('\n') if line.startswith('SECONDARY=')][0]
+    secondary_value = secondary_line.split('=', 1)[1].strip()
+
+    assert secondary_value == 'pbs-backup.cluster.edu', \
+        f"SECONDARY should be 'pbs-backup.cluster.edu' (from PBS_SERVER in pbs_backup.conf), got '{secondary_value}'"
+
+
+def test_shared_dir_is_correct():
+    """Test that SHARED_DIR is /shared/pbs/data (PBS_HOME value in both config files)"""
+    output_path = Path("/home/agent/ha_config.txt")
+    content = output_path.read_text().strip()
+
+    shared_dir_line = [line for line in content.split('\n') if line.startswith('SHARED_DIR=')][0]
+    shared_dir_value = shared_dir_line.split('=', 1)[1].strip()
+
+    assert shared_dir_value == '/shared/pbs/data', \
+        f"SHARED_DIR should be '/shared/pbs/data' (PBS_HOME from both pbs.conf and pbs_backup.conf), got '{shared_dir_value}'"
+
+
+def test_ha_valid_is_yes():
+    """Test that HA_VALID is 'yes' because both configs use the same shared directory /shared/pbs/data"""
+    output_path = Path("/home/agent/ha_config.txt")
+    content = output_path.read_text().strip()
+
+    ha_valid_line = [line for line in content.split('\n') if line.startswith('HA_VALID=')][0]
+    ha_valid_value = ha_valid_line.split('=', 1)[1].strip().lower()
+
+    assert ha_valid_value == 'yes', \
+        "HA_VALID should be 'yes' - both pbs.conf and pbs_backup.conf use PBS_HOME=/shared/pbs/data"

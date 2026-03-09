@@ -14,13 +14,13 @@ RUN pip3 install --no-cache-dir --break-system-packages numpy
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /data/predictions /data/truth /data/config /output
+RUN mkdir -p /workspace/data/predictions /workspace/data/truth /workspace/data/config /workspace/output
 
-COPY data/predictions/pred_001.csv /data/predictions/pred_001.csv
-COPY data/predictions/pred_002.csv /data/predictions/pred_002.csv
-COPY data/predictions/pred_003.csv /data/predictions/pred_003.csv
-COPY data/truth/labels.csv /data/truth/labels.csv
-COPY data/config/classes.txt /data/config/classes.txt
+COPY data/predictions/pred_001.csv /workspace/data/predictions/pred_001.csv
+COPY data/predictions/pred_002.csv /workspace/data/predictions/pred_002.csv
+COPY data/predictions/pred_003.csv /workspace/data/predictions/pred_003.csv
+COPY data/truth/labels.csv /workspace/data/truth/labels.csv
+COPY data/config/classes.txt /workspace/data/config/classes.txt
 
 RUN pip3 install --no-cache-dir --break-system-packages pandas
 

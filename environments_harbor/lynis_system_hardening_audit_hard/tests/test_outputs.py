@@ -84,7 +84,7 @@ def test_sshd_config_basic_syntax():
     """Test that SSH config has basic valid syntax (no obviously broken lines)"""
     config_path = Path("/etc/ssh/sshd_config")
     content = config_path.read_text()
-    
+
     # Basic syntax checks
     for line_num, line in enumerate(content.split('\n'), 1):
         line = line.strip()
@@ -93,3 +93,20 @@ def test_sshd_config_basic_syntax():
             if line:
                 parts = line.split()
                 assert len(parts) >= 1, f"Line {line_num} appears to have invalid syntax: {line}"
+
+def test_parameters_fixed_equals_five():
+    """Test that exactly 5 parameters were fixed, matching the audit report's VIOLATIONS DETECTED: 5.
+
+    The ssh_security_audit.txt shows 5 violations:
+    PermitRootLogin, PasswordAuthentication, PermitEmptyPasswords, X11Forwarding, MaxAuthTries.
+    """
+    summary_path = Path("/root/ssh_fixes.txt")
+    content = summary_path.read_text().strip()
+    lines = content.split('\n')
+
+    match = re.match(r'parameters_fixed=(\d+)', lines[0])
+    assert match, f"parameters_fixed line not found: {lines[0]}"
+    fixed_count = int(match.group(1))
+    assert fixed_count == 5, (
+        f"Expected parameters_fixed=5 (5 violations in audit report), got parameters_fixed={fixed_count}"
+    )

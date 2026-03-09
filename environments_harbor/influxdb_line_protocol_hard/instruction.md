@@ -35,7 +35,7 @@ The JSON file has inconsistent timestamp formats (some ISO8601, some Unix timest
 
 **Output Format:**
 
-Save the result to `/output/metrics.txt` as a plain text file. Each line must follow InfluxDB line protocol format:
+Save the result to `/workspace/output/metrics.txt` as a plain text file. Each line must follow InfluxDB line protocol format:
 
 ```
 measurement,tag1=value1,tag2=value2 field1=value1,field2=value2 timestamp
@@ -51,9 +51,9 @@ system,location=us-west,hostname=db-01 disk_used_gb=250,network_mbps=1000 170531
 
 - Tags and fields are separated by a space
 - Tag key-value pairs are comma-separated with NO spaces
-- Field key-value pairs are comma-separated with NO spaces  
+- Field key-value pairs are comma-separated with NO spaces
 - Numeric field values are NOT quoted
 - Timestamp is the last element on each line
 - Lines should be sorted by timestamp (oldest first)
 
-The solution is successful when `/output/metrics.txt` exists and contains valid InfluxDB line protocol entries for all processable records from both input files, properly formatted and sorted by timestamp.
+The solution is successful when `/workspace/output/metrics.txt` exists and contains valid InfluxDB line protocol entries for all processable records from both input files, properly formatted and sorted by timestamp.

@@ -19,14 +19,14 @@ RUN apt-get update && \
 RUN apt-get update && apt-get install -y g++ && \
     rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /workspace
+RUN mkdir -p /workspace/output/makefile_missing_separator_medium/files
 
-COPY math_lib.cpp /workspace/math_lib.cpp
-COPY math_lib.h /workspace/math_lib.h
-COPY test_main.cpp /workspace/test_main.cpp
-COPY Makefile /workspace/Makefile
+COPY math_lib.cpp /workspace/output/makefile_missing_separator_medium/files/math_lib.cpp
+COPY math_lib.h /workspace/output/makefile_missing_separator_medium/files/math_lib.h
+COPY test_main.cpp /workspace/output/makefile_missing_separator_medium/files/test_main.cpp
+COPY Makefile /workspace/output/makefile_missing_separator_medium/files/Makefile
 
-WORKDIR /workspace
+WORKDIR /workspace/output/makefile_missing_separator_medium/files
 
 # Mapped from docker-compose.yaml
 ENV TEST_DIR=/tests

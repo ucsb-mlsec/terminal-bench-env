@@ -2,7 +2,7 @@ A retail analytics platform has collected customer transaction data, but the exi
 
 You have been provided with a customer dataset containing purchase behavior metrics. Your task is to perform hierarchical density-based clustering to identify distinct customer segments.
 
-**Dataset Location:** `/data/customer_transactions.csv`
+**Dataset Location:** `/workspace/data/customer_transactions.csv`
 
 The dataset contains the following features:
 - customer_id: Unique identifier
@@ -20,7 +20,7 @@ The dataset contains the following features:
 
 **Deliverable:**
 
-Save your results to `/output/segmentation_results.json` with the following structure:
+Save your results to `/workspace/output/segmentation_results.json` with the following structure:
 
 ```json
 {

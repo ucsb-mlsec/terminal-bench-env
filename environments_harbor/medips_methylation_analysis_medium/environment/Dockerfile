@@ -11,7 +11,7 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /data/coverage /data/reference /output
+RUN mkdir -p /data/coverage /data/reference /workspace/output
 
 COPY data/coverage/liver_coverage.bed /data/coverage/liver_coverage.bed
 COPY data/coverage/brain_coverage.bed /data/coverage/brain_coverage.bed

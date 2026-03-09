@@ -69,9 +69,37 @@ def test_descriptions_present():
     bugs_path = Path("/tmp/bugs.txt")
     content = bugs_path.read_text().strip()
     lines = [line for line in content.split('\n') if line.strip()]
-    
+
     for line in lines:
         parts = line.split(':', 2)
         assert len(parts) >= 3, f"Missing description in: {line}"
         description = parts[2].strip()
         assert len(description) > 0, f"Empty description in: {line}"
+
+
+def test_cuda_version_typo_identified():
+    """Root CMakeLists.txt line 5 has 'CUDA_VERISON' (missing 'I') so line 11's
+    find_package(CUDA ${CUDA_VERSION} ...) uses an undefined variable."""
+    bugs_path = Path("/tmp/bugs.txt")
+    content = bugs_path.read_text()
+    assert "CUDA_VERISON" in content or "typo" in content.lower() or "CUDA_VERSION" in content, \
+        ("Expected a bug entry about the 'CUDA_VERISON' typo (should be CUDA_VERSION) "
+         "in root CMakeLists.txt line 5, but it was not found in the report")
+
+
+def test_missing_parenthesis_bugs_identified():
+    """Root CMakeLists.txt line 11 find_package is missing closing ')' and
+    line 16 'if NOT CUDA_FOUND)' is missing the opening '('."""
+    bugs_path = Path("/tmp/bugs.txt")
+    content = bugs_path.read_text()
+    # At least one of these parenthesis issues should be documented
+    has_paren_issue = (
+        "parenthes" in content.lower()
+        or "missing )" in content.lower()
+        or "missing (" in content.lower()
+        or ":11:" in content
+        or ":16:" in content
+    )
+    assert has_paren_issue, \
+        ("Expected at least one bug about missing parentheses in find_package (line 11) "
+         "or 'if NOT CUDA_FOUND)' (line 16)")

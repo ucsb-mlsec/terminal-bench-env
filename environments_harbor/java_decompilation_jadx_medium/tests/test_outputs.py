@@ -84,6 +84,23 @@ def test_findings_key_values_not_empty():
             # Key value should be meaningful (not just whitespace or single character)
             assert len(key_value) >= 2, f"Line {i}: key_value too short to be meaningful: {key_value}"
 
+def test_finds_cryptoutils_base64_key():
+    """Test that the Base64 key from CryptoUtils.java is found"""
+    findings_path = Path("/home/agent/findings.txt")
+    content = findings_path.read_text()
+    # CryptoUtils.java contains: String encodedKey = "SGVsbG9Xb3JsZDEyMzQ1Njc4";
+    assert "SGVsbG9Xb3JsZDEyMzQ1Njc4" in content, \
+        "findings.txt should contain the Base64 key 'SGVsbG9Xb3JsZDEyMzQ1Njc4' from CryptoUtils.java"
+
+def test_finds_aes_key_bytes_in_cryptoutils():
+    """Test that the hardcoded AES key bytes from CryptoUtils.java are found"""
+    findings_path = Path("/home/agent/findings.txt")
+    content = findings_path.read_text()
+    # CryptoUtils.java has: byte[] key = {0x4A, 0x2B, 0x3C, 0x4D, ...}
+    # The finding should reference CryptoUtils.java
+    assert "CryptoUtils.java" in content, \
+        "findings.txt should contain findings from CryptoUtils.java (which has hardcoded AES key bytes and Base64 key)"
+
 def test_findings_no_duplicate_entries():
     """Test that there are no duplicate entries in findings"""
     findings_path = Path("/home/agent/findings.txt")

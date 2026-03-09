@@ -81,14 +81,40 @@ def test_all_ports_valid_range():
     """Test that all port values are within valid port range (1-65535)"""
     solution_path = Path("/workspace/solution.txt")
     content = solution_path.read_text().strip()
-    
+
     config = {}
     for line in content.split('\n'):
         if '=' in line:
             key, value = line.strip().split('=', 1)
             config[key] = value
-    
+
     for key in ["INGRESS_SERVICE_PORT", "SERVICE_TARGET_PORT", "SERVICE_PORT"]:
         port_value = int(config[key])
         assert 1 <= port_value <= 65535, \
             f"{key} must be in valid port range (1-65535), got: {port_value}"
+
+
+def test_service_port_is_8080():
+    """Test that SERVICE_PORT is 8080 matching the application port"""
+    solution_path = Path("/workspace/solution.txt")
+    content = solution_path.read_text().strip()
+    config = {}
+    for line in content.split('\n'):
+        if '=' in line:
+            key, value = line.strip().split('=', 1)
+            config[key] = value
+    assert config.get("SERVICE_PORT") == "8080", \
+        f"Expected SERVICE_PORT=8080 (app runs on port 8080), got: {config.get('SERVICE_PORT')}"
+
+
+def test_ingress_service_port_is_8080():
+    """Test that INGRESS_SERVICE_PORT is 8080 matching the service port"""
+    solution_path = Path("/workspace/solution.txt")
+    content = solution_path.read_text().strip()
+    config = {}
+    for line in content.split('\n'):
+        if '=' in line:
+            key, value = line.strip().split('=', 1)
+            config[key] = value
+    assert config.get("INGRESS_SERVICE_PORT") == "8080", \
+        f"Expected INGRESS_SERVICE_PORT=8080 (ingress must route to service port 8080, not port 80), got: {config.get('INGRESS_SERVICE_PORT')}"

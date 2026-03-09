@@ -86,3 +86,33 @@ def test_identifies_untested_methods():
     
     # Should not list duplicates
     assert len(lines) == len(set(lines)), "Duplicate method names found in output"
+
+
+def test_correct_untested_methods_identified():
+    """Test that divide and power are identified as untested (CalculatorTest.php only tests add/subtract/multiply)"""
+    output_path = Path("/tmp/untested_methods.txt")
+    content = output_path.read_text().strip()
+
+    lines = [line.strip() for line in content.split('\n') if line.strip()]
+
+    # CalculatorTest.php has testAddition, testSubtraction, testMultiplication
+    # It does NOT have tests for divide or power
+    assert 'divide' in lines, \
+        "divide should be listed as untested (CalculatorTest.php has no testDivision method)"
+    assert 'power' in lines, \
+        "power should be listed as untested (CalculatorTest.php has no testPower method)"
+
+
+def test_tested_methods_not_listed():
+    """Test that add, subtract, multiply are NOT listed as untested (they are covered in CalculatorTest.php)"""
+    output_path = Path("/tmp/untested_methods.txt")
+    content = output_path.read_text().strip()
+
+    lines = [line.strip() for line in content.split('\n') if line.strip()]
+
+    assert 'add' not in lines, \
+        "add should NOT be listed as untested (covered by testAddition in CalculatorTest.php)"
+    assert 'subtract' not in lines, \
+        "subtract should NOT be listed as untested (covered by testSubtraction in CalculatorTest.php)"
+    assert 'multiply' not in lines, \
+        "multiply should NOT be listed as untested (covered by testMultiplication in CalculatorTest.php)"

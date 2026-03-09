@@ -93,6 +93,38 @@ def test_exploration_correctness():
     assert states_count >= 1, "Must have at least the initial state"
 
 
+def test_exact_states_count():
+    """Test that STATES equals the exact number of reachable states computed from the model"""
+    results_path = Path("/workspace/exploration_results.txt")
+    content = results_path.read_text().strip()
+    lines = content.split('\n')
+
+    import re
+    states_match = re.match(r'STATES=(\d+)', lines[0])
+    assert states_match is not None, "Could not parse STATES value"
+    states_count = int(states_match.group(1))
+
+    # BFS from (0,0,0) over the 47 transitions in model.txt yields exactly 32 unique states
+    assert states_count == 32, \
+        f"Expected exactly 32 reachable states from BFS on the model, got {states_count}"
+
+
+def test_exact_deadlock_count():
+    """Test that DEADLOCKS equals the exact number of states with no outgoing transitions"""
+    results_path = Path("/workspace/exploration_results.txt")
+    content = results_path.read_text().strip()
+    lines = content.split('\n')
+
+    import re
+    deadlocks_match = re.match(r'DEADLOCKS=(\d+)', lines[1])
+    assert deadlocks_match is not None, "Could not parse DEADLOCKS value"
+    deadlocks_count = int(deadlocks_match.group(1))
+
+    # States with no outgoing transitions: (0,3,0), (0,3,1), (2,3,0), (1,3,1), (2,3,1), (3,3,1) = 6
+    assert deadlocks_count == 6, \
+        f"Expected exactly 6 deadlock states (states with no outgoing transitions), got {deadlocks_count}"
+
+
 def test_status_pass_when_exploration_completes():
     """Test that STATUS is PASS when exploration appears successful"""
     results_path = Path("/workspace/exploration_results.txt")

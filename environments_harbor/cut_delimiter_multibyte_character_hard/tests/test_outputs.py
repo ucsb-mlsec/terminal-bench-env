@@ -107,7 +107,30 @@ def test_processed_multiple_input_files():
     """Test that data from multiple input files was processed"""
     output_path = Path("/data/output/processed.tsv")
     lines = output_path.read_text().strip().split('\n')
-    
+
     # With 3 input files, we should have a reasonable number of records
     # (assuming each file has at least a few valid records)
     assert len(lines) >= 5, f"Only {len(lines)} records found, expected more from 3 input files"
+
+
+def test_known_customer_records_present():
+    """Test that known valid customer records are present in the output"""
+    output_path = Path("/data/output/processed.tsv")
+    content = output_path.read_text()
+
+    # CUST001 with rating 5 should be in the output
+    assert "CUST001" in content, "CUST001 should be in the output (valid record with rating 5)"
+    # CUST042 with rating 4 should be in the output
+    assert "CUST042" in content, "CUST042 should be in the output (valid record with rating 4)"
+
+
+def test_na_customer_excluded():
+    """Test that CUST055 (N/A rating) is excluded from the output"""
+    output_path = Path("/data/output/processed.tsv")
+    lines = output_path.read_text().strip().split('\n')
+
+    # CUST055 has N/A rating so should be excluded
+    for line in lines:
+        parts = line.split('\t')
+        if len(parts) >= 1 and parts[0].strip() == "CUST055":
+            assert False, "CUST055 should be excluded from output (has N/A rating)"

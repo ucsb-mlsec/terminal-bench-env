@@ -17,13 +17,18 @@ RUN apt-get update && \
 
 RUN pip3 install --no-cache-dir --break-system-packages pandas
 
-RUN mkdir -p /home/user/salesforce_data /home/user/output
+RUN mkdir -p /home/user/salesforce_data /home/user/output /workspace/output/salesforce_bulk_api_extract_hard/files/data
 
 COPY data/batch_001_result_a.csv /home/user/salesforce_data/batch_001_result_a.csv
 COPY data/batch_001_result_b.csv /home/user/salesforce_data/batch_001_result_b.csv
 COPY data/batch_002_result_a.csv /home/user/salesforce_data/batch_002_result_a.csv
 COPY data/batch_002_result_b.csv /home/user/salesforce_data/batch_002_result_b.csv
 COPY data/batch_003_result_a.csv /home/user/salesforce_data/batch_003_result_a.csv
+COPY data/batch_001_result_a.csv /workspace/output/salesforce_bulk_api_extract_hard/files/data/batch_001_result_a.csv
+COPY data/batch_001_result_b.csv /workspace/output/salesforce_bulk_api_extract_hard/files/data/batch_001_result_b.csv
+COPY data/batch_002_result_a.csv /workspace/output/salesforce_bulk_api_extract_hard/files/data/batch_002_result_a.csv
+COPY data/batch_002_result_b.csv /workspace/output/salesforce_bulk_api_extract_hard/files/data/batch_002_result_b.csv
+COPY data/batch_003_result_a.csv /workspace/output/salesforce_bulk_api_extract_hard/files/data/batch_003_result_a.csv
 
 WORKDIR /home/user
 

@@ -78,3 +78,22 @@ def test_output_is_reasonable_value():
         assert revenue < 10000000000, f"Revenue seems unreasonably large: {revenue}"
     except ValueError:
         assert False, f"Could not convert output '{content}' to float"
+
+
+def test_total_revenue_is_correct():
+    """Test that the total revenue matches the expected value computed from all HTML tables"""
+    output_path = Path("/task/output/total_revenue.txt")
+    content = output_path.read_text().strip()
+    revenue = float(content)
+
+    # Expected total: sum of (quantity * unit_price) across all 4 HTML files
+    # Q4-2023-sales.html (hardware + software tables): 117445.40
+    # report_q1_2023.html: 78314.27
+    # report_q2_2023.html: 55293.40
+    # sales_report_q3.html (Q3 uses quantity * unit_price, ignoring discount/tax columns): 39564.27
+    # Grand total: 290617.34
+    expected = 290617.34
+    tolerance = 1.0  # allow $1 rounding tolerance
+
+    assert abs(revenue - expected) <= tolerance, \
+        f"Total revenue should be approximately {expected:.2f} (sum of quantity × unit_price across all tables), got {revenue:.2f}"

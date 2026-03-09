@@ -11,10 +11,12 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /var/metrics /output
+RUN mkdir -p /workspace/var/metrics /workspace/output /var/metrics
 
 COPY data/app_metrics.json /var/metrics/app_metrics.json
 COPY data/system_metrics.csv /var/metrics/system_metrics.csv
+COPY data/app_metrics.json /workspace/var/metrics/app_metrics.json
+COPY data/system_metrics.csv /workspace/var/metrics/system_metrics.csv
 
 WORKDIR /workspace
 

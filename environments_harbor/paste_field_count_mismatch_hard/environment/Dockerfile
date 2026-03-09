@@ -11,14 +11,14 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /data/sources /data/merged /solution
+RUN mkdir -p /workspace/data/sources /workspace/data/merged /workspace/solution
 
-COPY data/sources/gateway_a.tsv /data/sources/gateway_a.tsv
-COPY data/sources/gateway_b.tsv /data/sources/gateway_b.tsv
-COPY data/sources/gateway_c.tsv /data/sources/gateway_c.tsv
-COPY data/merged/transactions_corrupted.tsv /data/merged/transactions_corrupted.tsv
+COPY data/sources/gateway_a.tsv /workspace/data/sources/gateway_a.tsv
+COPY data/sources/gateway_b.tsv /workspace/data/sources/gateway_b.tsv
+COPY data/sources/gateway_c.tsv /workspace/data/sources/gateway_c.tsv
+COPY data/merged/transactions_corrupted.tsv /workspace/data/merged/transactions_corrupted.tsv
 
-WORKDIR /data
+WORKDIR /workspace
 
 # Mapped from docker-compose.yaml
 ENV TEST_DIR=/tests

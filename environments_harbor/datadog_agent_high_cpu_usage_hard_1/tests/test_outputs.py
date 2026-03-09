@@ -68,17 +68,44 @@ def test_diagnosis_fix_mentions_interval_change():
     """Test that the fix mentions changing an interval or timing parameter"""
     diagnosis_path = Path("/root/diagnosis.txt")
     content = diagnosis_path.read_text().lower()
-    
+
     # Extract FIX line
     fix_match = re.search(r'fix:\s*(.+)', content, re.IGNORECASE)
     assert fix_match, "FIX field is missing"
-    
+
     fix = fix_match.group(1).lower()
-    
+
     # Fix should mention changing interval or similar timing parameter
     has_timing_fix = any(keyword in fix for keyword in [
         'interval', 'second', 'minute', 'ms', 's', 'change', 'increase',
         'set', 'adjust', 'modify', 'frequency'
     ])
-    
+
     assert has_timing_fix, "FIX should specify changing a timing parameter (interval, frequency, etc.)"
+
+
+def test_diagnosis_identifies_disk_check():
+    """Test that the diagnosis identifies the disk_check.yaml as the problematic config"""
+    diagnosis_path = Path("/root/diagnosis.txt")
+    content = diagnosis_path.read_text()
+
+    # The problematic file is disk_check.yaml with min_collection_interval: 0.001
+    assert "disk_check" in content or "disk" in content.lower(), (
+        "Diagnosis should identify disk_check.yaml as the problematic configuration "
+        "(it has min_collection_interval: 0.001, essentially 1ms polling)"
+    )
+
+
+def test_diagnosis_identifies_bad_interval_value():
+    """Test that the diagnosis identifies the extremely small interval value"""
+    diagnosis_path = Path("/root/diagnosis.txt")
+    content = diagnosis_path.read_text()
+
+    # The bad value is 0.001 (1ms collection interval causing CPU spike)
+    has_bad_value = "0.001" in content or "0.001s" in content
+    has_min_collection = "min_collection_interval" in content
+
+    assert has_min_collection or has_bad_value, (
+        "Diagnosis should identify 'min_collection_interval' or the value '0.001' "
+        "as the root cause of excessive CPU usage"
+    )

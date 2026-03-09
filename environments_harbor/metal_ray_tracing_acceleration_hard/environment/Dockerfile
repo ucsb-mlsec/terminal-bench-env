@@ -21,6 +21,7 @@ RUN pip3 install --no-cache-dir --break-system-packages numpy
 RUN mkdir -p /workspace
 
 COPY data/scene_data.json /workspace/scene_data.json
+COPY data/bvh_nodes.json /workspace/bvh_nodes.json
 COPY data/reference_bounds.json /workspace/reference_bounds.json
 COPY node_validator.py /workspace/node_validator.py
 

@@ -77,6 +77,17 @@ def test_vulnerability_consistency():
     elif vulnerable_value == "yes":
         assert payload_value.lower() != "none", "If vulnerable, PAYLOAD must not be 'none'"
 
+def test_system_is_vulnerable():
+    """Test that the system is correctly identified as VULNERABLE based on config files"""
+    analysis_path = Path("/tmp/analysis.txt")
+    lines = analysis_path.read_text().strip().split('\n')
+    vulnerable_value = lines[0].replace("VULNERABLE: ", "").strip()
+    # proxy_config.txt has header_priority = content-length
+    # server_config.txt has HeaderPriority: Transfer-Encoding
+    # This CL.TE mismatch means the system IS vulnerable
+    assert vulnerable_value == "yes", \
+        "System should be VULNERABLE=yes because proxy uses Content-Length but backend uses Transfer-Encoding (CL.TE mismatch)"
+
 def test_payload_is_http_request():
     """Test that payload contains valid HTTP request structure if vulnerable"""
     analysis_path = Path("/tmp/analysis.txt")

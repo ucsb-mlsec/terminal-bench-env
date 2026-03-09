@@ -82,11 +82,31 @@ def test_no_extra_content():
     """Test that there are no extra blank lines or content"""
     output_path = Path("/home/agent/mv_stats.txt")
     content = output_path.read_text()
-    
+
     # Should end with newline or not, but no multiple trailing newlines
     assert not content.endswith('\n\n'), "File contains extra blank lines at the end"
-    
+
     # Check no blank lines in between
     lines = content.strip().split('\n')
     for i, line in enumerate(lines, 1):
         assert len(line.strip()) > 0, f"Line {i} is blank or contains only whitespace"
+
+
+def test_days_count_is_44():
+    """Test that days_count == 44.
+    init_clickhouse.sql inserts data from 2024-02-01 to 2024-03-15 inclusive, which is
+    29 days in February + 15 days in March = 44 distinct sale dates."""
+    output_path = Path("/home/agent/mv_stats.txt")
+    lines = output_path.read_text().strip().split('\n')
+    days_count = int(lines[0].split('=')[1])
+    assert days_count == 44, \
+        f"Expected days_count=44 (2024-02-01 to 2024-03-15 = 44 days), got {days_count}"
+
+
+def test_latest_date_is_2024_03_15():
+    """Test that latest_date == 2024-03-15, the last date in init_clickhouse.sql."""
+    output_path = Path("/home/agent/mv_stats.txt")
+    lines = output_path.read_text().strip().split('\n')
+    latest_date = lines[1].split('=')[1]
+    assert latest_date == "2024-03-15", \
+        f"Expected latest_date=2024-03-15 (last insert date in init_clickhouse.sql), got {latest_date}"

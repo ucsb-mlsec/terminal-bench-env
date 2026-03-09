@@ -79,8 +79,35 @@ def test_addresses_not_empty():
     output_path = Path("/tmp/buffer_analysis.json")
     with open(output_path, 'r') as f:
         data = json.load(f)
-    
+
     assert len(data["local_address"]) > 0, "local_address cannot be empty"
     assert len(data["remote_address"]) > 0, "remote_address cannot be empty"
     assert data["local_address"] != ":", "local_address must contain valid IP:PORT"
     assert data["remote_address"] != ":", "remote_address must contain valid IP:PORT"
+
+
+def test_correct_max_buffer_bytes():
+    """Test that max_buffer_bytes is exactly 171390 (89234+82156 from snapshot_003.txt)"""
+    output_path = Path("/tmp/buffer_analysis.json")
+    with open(output_path, 'r') as f:
+        data = json.load(f)
+    assert data["max_buffer_bytes"] == 171390, \
+        f"max_buffer_bytes should be 171390 (Recv-Q=89234 + Send-Q=82156 from snapshot_003.txt), got {data['max_buffer_bytes']}"
+
+
+def test_correct_local_address():
+    """Test that local_address is 192.168.1.15:5432 (PostgreSQL socket in snapshot_003.txt)"""
+    output_path = Path("/tmp/buffer_analysis.json")
+    with open(output_path, 'r') as f:
+        data = json.load(f)
+    assert data["local_address"] == "192.168.1.15:5432", \
+        f"local_address should be '192.168.1.15:5432' (the connection with max combined buffer in snapshot_003.txt), got '{data['local_address']}'"
+
+
+def test_correct_remote_address():
+    """Test that remote_address is 10.0.2.50:41256 (client side in snapshot_003.txt)"""
+    output_path = Path("/tmp/buffer_analysis.json")
+    with open(output_path, 'r') as f:
+        data = json.load(f)
+    assert data["remote_address"] == "10.0.2.50:41256", \
+        f"remote_address should be '10.0.2.50:41256' (the client address for max buffer connection in snapshot_003.txt), got '{data['remote_address']}'"

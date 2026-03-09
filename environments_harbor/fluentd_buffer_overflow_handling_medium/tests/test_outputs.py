@@ -111,3 +111,49 @@ def test_only_incorrect_parameters_listed():
     # Should have at least 2-3 parameters identified
     assert len(lines) >= 2, f"Expected at least 2 parameters to be identified, got {len(lines)}"
     assert len(lines) <= 10, f"Too many parameters listed ({len(lines)}), should only list parameters that need changes"
+
+def test_parameters_are_valid_buffer_params():
+    """Test that the analysis only lists parameters that are actually wrong"""
+    analysis_path = Path("/home/candidate/solution/analysis.txt")
+    content = analysis_path.read_text().strip()
+    lines = [l.strip() for l in content.split('\n') if l.strip()]
+    
+    # The original config has these issues:
+    # buffer_chunk_limit: 2m -> should be 8m (too small for throughput)
+    # buffer_queue_limit: 4 -> should be >= 8 (too small, causes overflow)
+    # flush_interval: 30s -> should be reduced for lower latency
+    # The parameters listed should be from the actual config
+    valid_params = ['buffer_chunk_limit', 'buffer_queue_limit', 'flush_interval',
+                    'retry_wait', 'retry_max_interval']
+    for line in lines:
+        param_name = line.split(':')[0].strip()
+        assert param_name in valid_params, \
+            f"Parameter '{param_name}' is not a recognized buffer parameter from the original config"
+
+
+def test_current_values_match_original_config():
+    """Test that current values match the original fluent.conf"""
+    analysis_path = Path("/home/candidate/solution/analysis.txt")
+    content = analysis_path.read_text().strip()
+    
+    # Check buffer_chunk_limit current value is 2m (from original config)
+    if 'buffer_chunk_limit' in content:
+        for line in content.split('\n'):
+            if 'buffer_chunk_limit' in line:
+                parts = line.split(':')
+                if len(parts) == 2:
+                    values = parts[1].strip()
+                    current = values.split('->')[0].strip()
+                    assert '2' in current, \
+                        f"buffer_chunk_limit current value should contain '2' (original is 2m), got: {current}"
+    
+    # Check buffer_queue_limit current value is 4
+    if 'buffer_queue_limit' in content:
+        for line in content.split('\n'):
+            if 'buffer_queue_limit' in line:
+                parts = line.split(':')
+                if len(parts) == 2:
+                    values = parts[1].strip()
+                    current = values.split('->')[0].strip()
+                    assert '4' in current, \
+                        f"buffer_queue_limit current value should contain '4' (original is 4), got: {current}"

@@ -1,8 +1,8 @@
 A clinical genomics lab has sequenced tumor samples from two cancer patients and needs to identify variants that warrant further investigation. The raw sequencing data has been processed into VCF files, but the variants need to be cross-referenced with clinical databases to prioritize which ones are medically relevant.
 
 You have been provided with:
-- Two VCF files located at `/data/patient_A.vcf` and `/data/patient_B.vcf`
-- A clinical annotation database at `/data/clinvar.tsv` containing known pathogenic variants
+- Two VCF files located at `/workspace/data/patient_A.vcf` and `/workspace/data/patient_B.vcf`
+- A clinical annotation database at `/workspace/data/clinvar.tsv` containing known pathogenic variants
 
 **VCF File Format:**
 Each VCF file contains variant calls in standard VCF 4.2 format. The relevant columns are:
@@ -28,7 +28,7 @@ Identify all variants from both patients that meet BOTH of the following criteri
 1. Quality score (QUAL) is at least 20
 2. The variant appears in the clinical database with significance "Pathogenic" or "Likely_pathogenic"
 
-Save your solution as `/solution/filtered_variants.txt` with one variant per line in this exact format:
+Save your solution as `/workspace/solution/filtered_variants.txt` with one variant per line in this exact format:
 ```
 chr1:12345:A>G
 chr2:67890:T>C

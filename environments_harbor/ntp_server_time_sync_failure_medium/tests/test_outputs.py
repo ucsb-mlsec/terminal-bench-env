@@ -95,10 +95,36 @@ def test_has_standard_chronyd_directives():
 def test_valid_file_format():
     """Test that the file can be read and has valid text format"""
     config_path = Path("/root/chrony_fixed.conf")
-    
+
     try:
         content = config_path.read_text()
         # Should be readable as text
         assert isinstance(content, str), "Configuration file should be readable as text"
     except Exception as e:
         assert False, f"Configuration file should be readable: {e}"
+
+
+def test_removes_invalid_ntp_server():
+    """Test that the invalid NTP server is removed from the fixed config"""
+    config_path = Path("/root/chrony_fixed.conf")
+    content = config_path.read_text()
+
+    # ntp.example.invalid is an invalid/unreachable server that causes sync failures
+    assert "ntp.example.invalid" not in content, (
+        "Fixed config should not contain 'ntp.example.invalid' — this is an invalid server "
+        "that causes NTP sync failures"
+    )
+
+
+def test_no_duplicate_driftfile():
+    """Test that there is exactly one driftfile directive"""
+    import re
+    config_path = Path("/root/chrony_fixed.conf")
+    content = config_path.read_text()
+
+    # The original config has two driftfile entries which is invalid
+    driftfile_matches = re.findall(r'^\s*driftfile\s+\S+', content, re.MULTILINE)
+    assert len(driftfile_matches) == 1, (
+        f"Fixed config should have exactly one driftfile directive "
+        f"(original had 2 conflicting entries), got {len(driftfile_matches)}"
+    )

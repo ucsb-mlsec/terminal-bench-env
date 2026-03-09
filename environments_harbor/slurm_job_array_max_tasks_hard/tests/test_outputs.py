@@ -98,12 +98,48 @@ def test_max_array_sizes_within_reasonable_bounds():
     output_path = Path("/tmp/slurm_limits_fix.json")
     with open(output_path, 'r') as f:
         data = json.load(f)
-    
+
     # Reasonable bounds for a research cluster
     MIN_ARRAY_SIZE = 100
     MAX_ARRAY_SIZE = 100000
-    
+
     for field in ["max_array_size_standard", "max_array_size_highmem", "max_array_size_gpu"]:
         value = data[field]
         assert MIN_ARRAY_SIZE <= value <= MAX_ARRAY_SIZE, \
             f"{field} value {value} is outside reasonable bounds ({MIN_ARRAY_SIZE}-{MAX_ARRAY_SIZE})"
+
+
+def test_correct_max_array_size_standard():
+    """Test that max_array_size_standard is exactly 5000 (corrected from wrong value of 3000)"""
+    output_path = Path("/tmp/slurm_limits_fix.json")
+    with open(output_path, 'r') as f:
+        data = json.load(f)
+    assert data["max_array_size_standard"] == 5000, \
+        f"max_array_size_standard should be 5000 (corrected from 3000), got {data['max_array_size_standard']}"
+
+
+def test_correct_max_array_size_highmem():
+    """Test that max_array_size_highmem is exactly 2000 (corrected from wrong value of 5000)"""
+    output_path = Path("/tmp/slurm_limits_fix.json")
+    with open(output_path, 'r') as f:
+        data = json.load(f)
+    assert data["max_array_size_highmem"] == 2000, \
+        f"max_array_size_highmem should be 2000 (corrected from 5000), got {data['max_array_size_highmem']}"
+
+
+def test_correct_max_array_size_gpu():
+    """Test that max_array_size_gpu is exactly 500 (corrected from wrong value of 1000)"""
+    output_path = Path("/tmp/slurm_limits_fix.json")
+    with open(output_path, 'r') as f:
+        data = json.load(f)
+    assert data["max_array_size_gpu"] == 500, \
+        f"max_array_size_gpu should be 500 (corrected from 1000), got {data['max_array_size_gpu']}"
+
+
+def test_correct_total_config_errors():
+    """Test that total_config_errors is exactly 8 (as marked in the config file)"""
+    output_path = Path("/tmp/slurm_limits_fix.json")
+    with open(output_path, 'r') as f:
+        data = json.load(f)
+    assert data["total_config_errors"] == 8, \
+        f"total_config_errors should be 8 (errors 1-8 marked in slurm.conf), got {data['total_config_errors']}"

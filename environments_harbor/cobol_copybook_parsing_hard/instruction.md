@@ -3,8 +3,8 @@ A legacy system migration has left you with a fixed-width data file exported fro
 **Situation:**
 
 You have been provided with:
-- A COBOL copybook definition at `/data/copybook/CUSTOMER.cpy` that describes the record structure
-- A fixed-width data file at `/data/export/CUSTOMER.txt` containing customer records
+- A COBOL copybook definition at `/workspace/data/copybook/CUSTOMER.cpy` that describes the record structure
+- A fixed-width data file at `/workspace/data/export/CUSTOMER.txt` containing customer records
 
 The copybook uses standard COBOL syntax to define field positions and types. Here's the exact structure you'll be working with:
 
@@ -47,7 +47,7 @@ Extract all customer records where the status code is 'A' (active) and the accou
 
 **Output Requirements:**
 
-Save your solution to `/solution/overlimit_customers.txt`
+Save your solution to `/workspace/solution/overlimit_customers.txt`
 
 The output must be a plain text file with one customer ID per line, sorted in ascending numeric order.
 
@@ -59,7 +59,7 @@ Example output format:
 ```
 
 Success criteria:
-- Text file exists at `/solution/overlimit_customers.txt`
+- Text file exists at `/workspace/solution/overlimit_customers.txt`
 - Contains only customer IDs (8 digits each) where status='A' AND balance > credit_limit
 - One customer ID per line
 - Sorted in ascending order

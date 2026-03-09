@@ -1,6 +1,6 @@
 You've inherited a C project that uses GNU Autotools for its build system. The previous developer was migrating from an older autoconf version but left the project in a broken state. When you try to initialize the build system, you encounter M4 macro expansion errors that prevent compilation.
 
-The project structure is:
+The project is located at `/workspace/output/m4_macro_expansion_error_hard/files/` with this structure:
 - configure.ac (main autoconf configuration)
 - m4/custom_check.m4 (custom M4 macro for feature detection)
 - Makefile.am (automake template)

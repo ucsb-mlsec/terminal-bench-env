@@ -14,8 +14,11 @@ RUN pip3 install --no-cache-dir --break-system-packages pysam
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /workspace /output
+RUN mkdir -p /workspace/data /workspace/output
 
+COPY data/sample_reads.sam /workspace/data/sample_reads.sam
+COPY data/genes.gtf /workspace/data/genes.gtf
+COPY data/README.txt /workspace/data/README.txt
 COPY data/sample_reads.sam /workspace/sample_reads.sam
 COPY data/genes.gtf /workspace/genes.gtf
 COPY data/README.txt /workspace/README.txt

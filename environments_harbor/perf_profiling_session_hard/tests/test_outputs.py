@@ -72,3 +72,27 @@ def test_percentage_is_reasonable():
     percentage = int(lines[1].strip())
     # The bottleneck should consume a significant portion of time (at least 10%)
     assert percentage >= 10, f"Reported percentage ({percentage}%) seems too low for a bottleneck"
+
+
+def test_bottleneck_is_calculate_stats():
+    """Test that the identified bottleneck function is calculate_stats (has triple nested loops doing redundant trig calculations)"""
+    bottleneck_path = Path("/tmp/bottleneck.txt")
+    content = bottleneck_path.read_text().strip()
+    lines = content.split('\n')
+    function_name = lines[0].strip()
+
+    # calculate_stats has O(rows * cols * 100) loops with sin/cos per element
+    # This is the obvious bottleneck in process_data.py by design
+    assert function_name == 'calculate_stats', \
+        f"The bottleneck function should be 'calculate_stats' (contains triple nested Python loops with 100 trig calculations per element), got '{function_name}'"
+
+
+def test_bottleneck_percentage_is_high():
+    """Test that calculate_stats consumes the vast majority of CPU time (>= 80%)"""
+    bottleneck_path = Path("/tmp/bottleneck.txt")
+    content = bottleneck_path.read_text().strip()
+    lines = content.split('\n')
+    percentage = int(lines[1].strip())
+
+    assert percentage >= 80, \
+        f"calculate_stats should consume at least 80% of total CPU time (it has O(N^2 * 100) Python loop iterations vs vectorized numpy for other functions), got {percentage}%"

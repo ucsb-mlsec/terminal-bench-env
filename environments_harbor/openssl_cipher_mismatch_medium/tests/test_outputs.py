@@ -102,3 +102,43 @@ def test_server_change_is_yes():
     change_required = match.group(1).strip().lower()
     # Server currently only has TLS 1.3, so it must be changed to support legacy TLS 1.2 client
     assert change_required == "yes", "SERVER_CHANGE_REQUIRED should be 'yes' since server needs TLS 1.2 ciphers enabled"
+
+
+def test_client_tls_version_is_tlsv12():
+    """Test that CLIENT_TLS_VERSION is TLSv1.2 (highest version the OpenSSL 1.0.2k client supports)"""
+    solution_path = Path("/solution/cipher_analysis.txt")
+    content = solution_path.read_text()
+
+    import re
+    match = re.search(r'CLIENT_TLS_VERSION=(.+)', content)
+    assert match, "CLIENT_TLS_VERSION field is malformed"
+
+    tls_version = match.group(1).strip()
+    assert tls_version == "TLSv1.2", \
+        f"CLIENT_TLS_VERSION should be TLSv1.2 (the highest version OpenSSL 1.0.2k supports), got '{tls_version}'"
+
+
+def test_compatible_cipher_is_tls12_cipher():
+    """Test that COMPATIBLE_CIPHER is a TLS 1.2 cipher suite compatible with the legacy client"""
+    solution_path = Path("/solution/cipher_analysis.txt")
+    content = solution_path.read_text()
+
+    import re
+    match = re.search(r'COMPATIBLE_CIPHER=(.+)', content)
+    assert match, "COMPATIBLE_CIPHER field is malformed"
+
+    cipher = match.group(1).strip()
+    # The client supports ECDHE-RSA-AES256-GCM-SHA384 as its strongest cipher
+    # Any valid TLS 1.2 cipher from the client's list is acceptable
+    tls12_ciphers = [
+        'ECDHE-RSA-AES256-GCM-SHA384',
+        'ECDHE-RSA-AES128-GCM-SHA256',
+        'DHE-RSA-AES256-GCM-SHA384',
+        'DHE-RSA-AES128-GCM-SHA256',
+        'ECDHE-RSA-AES256-SHA384',
+        'ECDHE-RSA-AES128-SHA256',
+        'AES256-GCM-SHA384',
+        'AES128-GCM-SHA256',
+    ]
+    assert cipher in tls12_ciphers, \
+        f"COMPATIBLE_CIPHER should be a TLS 1.2 cipher compatible with OpenSSL 1.0.2k client. Got '{cipher}'. Expected one of: {tls12_ciphers}"

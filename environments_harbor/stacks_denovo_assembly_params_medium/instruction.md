@@ -3,10 +3,10 @@ You're reviewing parameter configurations for a Stacks de novo RAD-seq assembly 
 Your task is to validate these parameter configurations against known constraints and best practices for Stacks assembly.
 
 **Available Data:**
-- `/data/configs/param_set_1.txt` - Parameter configuration for high-coverage dataset
-- `/data/configs/param_set_2.txt` - Parameter configuration for low-coverage dataset  
-- `/data/configs/param_set_3.txt` - Parameter configuration for highly divergent populations
-- `/data/configs/validation_rules.txt` - Documentation of parameter constraints and relationships
+- `/workspace/data/configs/param_set_1.txt` - Parameter configuration for high-coverage dataset
+- `/workspace/data/configs/param_set_2.txt` - Parameter configuration for low-coverage dataset
+- `/workspace/data/configs/param_set_3.txt` - Parameter configuration for highly divergent populations
+- `/workspace/data/configs/validation_rules.txt` - Documentation of parameter constraints and relationships
 
 Each parameter file contains four key Stacks parameters:
 ```
@@ -32,7 +32,7 @@ The validation rules file documents several critical constraints that must be sa
 4. For invalid sets, determine which specific constraint is violated
 
 **Solution Requirements:**
-Save your validation results to `/solution/validation_report.txt`
+Save your validation results to `/workspace/solution/validation_report.txt`
 
 The file must contain exactly 3 lines (one per parameter set), formatted as:
 

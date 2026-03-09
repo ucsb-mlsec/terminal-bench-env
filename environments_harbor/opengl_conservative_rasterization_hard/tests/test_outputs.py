@@ -94,3 +94,35 @@ def test_solution_line_order():
     assert lines[1].startswith('mode='), "Second line should be 'mode=...'"
     assert lines[2].startswith('dilation_factor='), "Third line should be 'dilation_factor=...'"
     assert lines[3].startswith('validation_status='), "Fourth line should be 'validation_status=...'"
+
+
+def test_extension_is_validator_approved():
+    """Test that the extension is one accepted by the validator script"""
+    solution_path = Path("/workspace/solution.txt")
+    content = solution_path.read_text()
+    match = re.search(r'^extension=(.+)$', content, re.MULTILINE)
+    extension = match.group(1).strip()
+
+    # The validator.py accepts only these two extensions:
+    valid_extensions = ['GL_NV_conservative_raster', 'GL_INTEL_conservative_rasterization']
+    assert extension in valid_extensions, (
+        f"extension must be one of {valid_extensions} to pass validator.py "
+        f"(GL_ARB_conservative_raster is in the config but rejected by the validator), "
+        f"got: {extension}"
+    )
+
+
+def test_dilation_factor_is_positive():
+    """Test that dilation_factor is positive (rasterizer.conf had invalid negative value)"""
+    solution_path = Path("/workspace/solution.txt")
+    content = solution_path.read_text()
+    match = re.search(r'^dilation_factor=(.+)$', content, re.MULTILINE)
+    dilation_str = match.group(1).strip()
+    dilation = float(dilation_str)
+
+    # rasterizer.conf has dilation_factor=-0.5 which fails validation (must be positive)
+    # The fixed solution must have a positive value
+    assert dilation > 0, (
+        f"dilation_factor must be positive (original rasterizer.conf had -0.5 which fails validation), "
+        f"got: {dilation}"
+    )

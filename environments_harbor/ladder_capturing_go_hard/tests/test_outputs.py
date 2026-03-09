@@ -95,9 +95,20 @@ def test_validation_logic_board_8():
     """Test validation logic for board_8.txt"""
     report_path = Path("/workspace/validation_report.txt")
     content = report_path.read_text()
-    
+
     # Board 8: O at (3,3) surrounded by X stones in cross pattern
     # TARGET: 3,3, NEXT: X
     # O is surrounded and should be capturable
     assert "board_8.txt:" in content, \
         "board_8.txt should have a validation result"
+
+
+def test_all_board_verdicts_correct():
+    """Test that all 8 boards have 'correct' verdicts matching ground truth labels"""
+    report_path = Path("/workspace/validation_report.txt")
+    content = report_path.read_text()
+    # Ground truth: boards 1,2,4,7,8=capturable(should be correct); boards 3,5,6=escapes(should be correct)
+    # A board is 'correct' if the algorithm's prediction matches the ground truth label
+    for board_num in range(1, 9):
+        assert f"board_{board_num}.txt: correct" in content, \
+            f"board_{board_num}.txt should have verdict 'correct' (algorithm prediction should match ground truth label)"

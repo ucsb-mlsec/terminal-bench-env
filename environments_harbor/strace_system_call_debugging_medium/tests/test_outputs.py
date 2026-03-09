@@ -76,11 +76,39 @@ def test_syscall_is_file_access():
     diagnosis_path = Path("/home/agent/diagnosis.txt")
     content = diagnosis_path.read_text().strip()
     lines = content.split('\n')
-    
+
     second_line = lines[1].strip()
     syscall = second_line.split("=", 1)[1]
-    
+
     # Most common syscalls for missing file errors during file opening
     most_likely_syscalls = ["open", "openat", "access", "faccessat", "faccessat2", "stat"]
     assert syscall in most_likely_syscalls, \
         f"SYSCALL '{syscall}' is not a typical file access syscall for missing files"
+
+
+def test_correct_missing_file_path():
+    """Test that the identified missing file matches the config file the analyzer tries to open"""
+    diagnosis_path = Path("/home/agent/diagnosis.txt")
+    content = diagnosis_path.read_text().strip()
+    lines = content.split('\n')
+
+    first_line = lines[0].strip()
+    path = first_line.split("=", 1)[1]
+
+    # The analyzer.py program opens /etc/loganalyzer/config.ini
+    assert path == "/etc/loganalyzer/config.ini", \
+        f"Expected MISSING_FILE=/etc/loganalyzer/config.ini, got {path}"
+
+
+def test_correct_syscall_for_python_open():
+    """Test that the identified syscall is openat, which Python's open() maps to"""
+    diagnosis_path = Path("/home/agent/diagnosis.txt")
+    content = diagnosis_path.read_text().strip()
+    lines = content.split('\n')
+
+    second_line = lines[1].strip()
+    syscall = second_line.split("=", 1)[1]
+
+    # Python's open() uses the openat syscall on Linux
+    assert syscall == "openat", \
+        f"Expected SYSCALL=openat (used by Python's open()), got {syscall}"

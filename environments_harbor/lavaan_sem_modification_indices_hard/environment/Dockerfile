@@ -17,10 +17,10 @@ RUN apt-get update && \
 
 RUN pip3 install --no-cache-dir --break-system-packages pandas
 
-RUN mkdir -p /data /results
+RUN mkdir -p /workspace/data /workspace/results
 
-COPY data/modification_indices.csv /data/modification_indices.csv
-COPY data/model_constraints.txt /data/model_constraints.txt
+COPY data/modification_indices.csv /workspace/data/modification_indices.csv
+COPY data/model_constraints.txt /workspace/data/model_constraints.txt
 
 WORKDIR /workspace
 

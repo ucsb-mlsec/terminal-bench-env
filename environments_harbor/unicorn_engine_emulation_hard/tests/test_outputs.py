@@ -76,3 +76,31 @@ def test_string_not_placeholder():
     invalid_patterns = ['error', 'failed', 'unknown', 'todo', 'placeholder', 'null', 'none', 'empty']
     for pattern in invalid_patterns:
         assert pattern not in first_line, f"First line appears to be a placeholder or error message containing '{pattern}'"
+
+
+def test_extracted_string_is_vm_secret():
+    """Test that the extracted string from VM memory is 'VM_SECRET_2024'.
+    The suspicious.vmc bytecode writes this ASCII string to memory address 0x2000
+    using a series of store-byte instructions."""
+    result_path = Path("/workspace/result.txt")
+    content = result_path.read_text().strip()
+    lines = content.split('\n')
+
+    assert len(lines) >= 1, "Result file has no first line"
+    first_line = lines[0].strip()
+    assert first_line == "VM_SECRET_2024", \
+        f"Expected extracted string 'VM_SECRET_2024', got '{first_line}'"
+
+
+def test_register_r0_value():
+    """Test that the final R0 register value is 0x1337.
+    The suspicious.vmc bytecode computes 0x1337 through a series of arithmetic
+    operations and stores the result in register R0."""
+    result_path = Path("/workspace/result.txt")
+    content = result_path.read_text().strip()
+    lines = content.split('\n')
+
+    assert len(lines) >= 2, "Result file has no second line"
+    second_line = lines[1].strip()
+    assert second_line.lower() == "0x1337", \
+        f"Expected R0 value '0x1337', got '{second_line}'"

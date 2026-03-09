@@ -103,18 +103,34 @@ def test_min_free_memory_reasonable():
     cluster_path = Path("/tmp/cluster_nodes.json")
     with open(cluster_path, 'r') as f:
         cluster_data = json.load(f)
-    
+
     # Load output thresholds
     output_path = Path("/tmp/memory_thresholds.json")
     with open(output_path, 'r') as f:
         thresholds = json.load(f)
-    
+
     min_free_memory_gb = thresholds["min_free_memory_gb"]
-    
+
     # Find smallest node
     nodes = cluster_data["nodes"]
     min_node_memory = min(node["total_memory_gb"] for node in nodes)
-    
+
     # min_free_memory should be reasonable relative to smallest node (typically 0.5-3 GB)
     assert 0.5 <= min_free_memory_gb <= min_node_memory * 0.3, \
         f"min_free_memory_gb {min_free_memory_gb} is not reasonable for cluster (smallest node: {min_node_memory} GB)"
+
+def test_eviction_threshold_accounts_for_highest_usage_ratio():
+    """Test that the eviction threshold accounts for the highest usage ratio in the cluster"""
+    cluster_path = Path("/tmp/cluster_nodes.json")
+    with open(cluster_path, 'r') as f:
+        cluster_data = json.load(f)
+    output_path = Path("/tmp/memory_thresholds.json")
+    with open(output_path, 'r') as f:
+        thresholds = json.load(f)
+    eviction_threshold = thresholds["eviction_threshold"]
+    nodes = cluster_data["nodes"]
+    # The max usage ratio across nodes (node-5: 13.6/16=0.85, node-6: 6.8/8=0.85)
+    max_usage_ratio = max(n["avg_memory_usage_gb"] / n["total_memory_gb"] for n in nodes)
+    # Eviction threshold must be at least the max usage ratio to avoid OOM
+    assert eviction_threshold >= max_usage_ratio, \
+        f"eviction_threshold {eviction_threshold} must be >= max usage ratio {max_usage_ratio:.2f} (from cluster_nodes.json)"

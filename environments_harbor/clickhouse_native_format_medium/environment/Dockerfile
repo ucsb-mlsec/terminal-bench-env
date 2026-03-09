@@ -11,11 +11,11 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /data/input /data/output /solution
+RUN mkdir -p /workspace/data/input /workspace/data/output /workspace/solution
 
-COPY data/input/transactions.csv /data/input/transactions.csv
+COPY data/input/transactions.csv /workspace/data/input/transactions.csv
 
-WORKDIR /solution
+WORKDIR /workspace/solution
 
 # Mapped from docker-compose.yaml
 ENV TEST_DIR=/tests

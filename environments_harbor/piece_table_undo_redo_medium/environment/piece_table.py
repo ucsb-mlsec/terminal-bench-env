@@ -158,42 +158,12 @@ class PieceTable:
     def undo(self):
         """Undo the most recent operation."""
         # TODO: Implement this
-        if not self.history:
-            return False
-        
-        # Save current state to redo stack
-        current_state = {
-            'pieces': [p.copy() for p in self.pieces],
-            'add_buffer': self.add_buffer
-        }
-        self.redo_stack.append(current_state)
-        
-        # Restore previous state
-        previous_state = self.history.pop()
-        self.pieces = previous_state['pieces']
-        self.add_buffer = previous_state['add_buffer']
-        
-        return True
-    
+        pass
+
     def redo(self):
         """Redo an undone operation."""
         # TODO: Implement this
-        if not self.redo_stack:
-            return False
-        
-        # Save current state to history
-        current_state = {
-            'pieces': [p.copy() for p in self.pieces],
-            'add_buffer': self.add_buffer
-        }
-        self.history.append(current_state)
-        
-        # Restore redo state
-        redo_state = self.redo_stack.pop()
-        self.pieces = redo_state['pieces']
-        self.add_buffer = redo_state['add_buffer']
-        
-        return True
+        pass
     
     def get_text(self):
         """Reconstruct and return the current text from the piece table."""

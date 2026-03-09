@@ -11,9 +11,10 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /var/log/postgresql /solution
+RUN mkdir -p /var/log/postgresql /workspace/data /workspace/solution
 
 COPY data/deadlock_incident.log /var/log/postgresql/deadlock_incident.log
+COPY data/deadlock_incident.log /workspace/data/deadlock_incident.log
 
 WORKDIR /workspace
 

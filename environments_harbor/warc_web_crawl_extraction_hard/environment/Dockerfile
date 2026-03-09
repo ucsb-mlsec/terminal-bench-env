@@ -14,11 +14,11 @@ RUN pip3 install --no-cache-dir --break-system-packages beautifulsoup4
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /data /output
+RUN mkdir -p /workspace/data /workspace/output
 
 RUN pip3 install --no-cache-dir --break-system-packages warcio
 
-COPY data/business_crawl.warc.gz /data/business_crawl.warc.gz
+COPY data/business_crawl.warc.gz /workspace/data/business_crawl.warc.gz
 
 WORKDIR /workspace
 

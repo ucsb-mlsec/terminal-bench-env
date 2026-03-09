@@ -56,5 +56,18 @@ def test_single_line_output():
     result_path = Path("/workspace/result.txt")
     content = result_path.read_text()
     lines = content.strip().split('\n')
-    
+
     assert len(lines) == 1, f"Result file should contain exactly one line, found {len(lines)} lines"
+
+
+def test_correct_has_leaks_value():
+    """Test that has_leaks=yes because main.c has a documented memory leak"""
+    result_path = Path("/workspace/result.txt")
+    content = result_path.read_text().strip()
+
+    value = content.split('=')[1] if '=' in content else ""
+
+    # main.c has a comment on line 155: "Memory leak: forgot to free stats"
+    # The Statistics *stats pointer is allocated but never freed before return
+    assert value == "yes", \
+        f"Expected has_leaks=yes (main.c has an unfree'd stats pointer), got has_leaks={value}"

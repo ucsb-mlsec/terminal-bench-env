@@ -14,10 +14,10 @@ RUN pip3 install --no-cache-dir --break-system-packages thrift
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /data /output
+RUN mkdir -p /workspace/data /workspace/output
 
-COPY data/events.json /data/events.json
-COPY data/event.thrift /data/event.thrift
+COPY data/events.json /workspace/data/events.json
+COPY data/event.thrift /workspace/data/event.thrift
 
 WORKDIR /workspace
 

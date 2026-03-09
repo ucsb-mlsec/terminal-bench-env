@@ -12,9 +12,11 @@ RUN apt-get update && \
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
 RUN mkdir -p /workspace/output /workspace/data
+RUN mkdir -p /workspace/output/directx_enhanced_barriers_api_medium/files/data
 
 COPY barrier_transitions.h /workspace/barrier_transitions.h
 COPY data/barrier_usage.json /workspace/data/barrier_usage.json
+COPY data/barrier_usage.json /workspace/output/directx_enhanced_barriers_api_medium/files/data/barrier_usage.json
 
 WORKDIR /workspace
 

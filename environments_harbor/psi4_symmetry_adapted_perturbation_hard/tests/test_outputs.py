@@ -97,16 +97,41 @@ def test_all_values_are_numeric():
     rec_path = Path("/workspace/recommendation.txt")
     content = rec_path.read_text().strip()
     lines = content.split('\n')
-    
+
     energy_value = lines[1].split('=', 1)[1]
     delta_value = lines[2].split('=', 1)[1]
-    
+
     try:
         float(energy_value)
     except ValueError:
         assert False, f"CONVERGED_ENERGY value '{energy_value}' is not a valid number"
-    
+
     try:
         float(delta_value)
     except ValueError:
         assert False, f"CONVERGENCE_DELTA value '{delta_value}' is not a valid number"
+
+def test_correct_recommended_basis():
+    """Test that the recommended basis is aug-cc-pVQZ (the largest converged basis)"""
+    rec_path = Path("/workspace/recommendation.txt")
+    content = rec_path.read_text().strip()
+    lines = content.split('\n')
+    basis_value = lines[0].split('=', 1)[1].strip()
+    # aug-cc-pV5Z failed (numerical instabilities), aug-cc-pVQZ is the largest successful basis
+    assert "qz" in basis_value.lower() or "pVQZ" in basis_value, \
+        f"Expected RECOMMENDED_BASIS to be aug-cc-pVQZ (largest converged basis), got '{basis_value}'"
+
+def test_correct_converged_energy_and_delta():
+    """Test that CONVERGED_ENERGY and CONVERGENCE_DELTA match values from data files"""
+    rec_path = Path("/workspace/recommendation.txt")
+    content = rec_path.read_text().strip()
+    lines = content.split('\n')
+    energy = float(lines[1].split('=', 1)[1])
+    delta = float(lines[2].split('=', 1)[1])
+    # From calculation.log: aug-cc-pVQZ total = -5.47 kcal/mol
+    # From sapt_results.out: aug-cc-pVTZ total = -5.42 kcal/mol
+    # CONVERGENCE_DELTA = |-5.47 - (-5.42)| = 0.05 kcal/mol
+    assert abs(energy - (-5.47)) < 0.05, \
+        f"Expected CONVERGED_ENERGY ≈ -5.47 kcal/mol (from aug-cc-pVQZ output), got {energy}"
+    assert abs(delta - 0.05) < 0.02, \
+        f"Expected CONVERGENCE_DELTA ≈ 0.05 kcal/mol (|(-5.47)-(-5.42)|), got {delta}"

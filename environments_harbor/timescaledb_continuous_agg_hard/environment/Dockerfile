@@ -11,11 +11,11 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /data /solution
+RUN mkdir -p /workspace/data /workspace/solution
 
-COPY data/weather.db /data/weather.db
+COPY data/weather.db /workspace/data/weather.db
 
-WORKDIR /solution
+WORKDIR /workspace
 
 # Mapped from docker-compose.yaml
 ENV TEST_DIR=/tests

@@ -12,7 +12,7 @@ Your task is to analyze these statistics and determine the optimal Adaptive Quer
 
 **Available Input Files:**
 
-`/analysis/partition_stats.json` - Contains partition size distribution:
+`/workspace/analysis/partition_stats.json` - Contains partition size distribution:
 ```json
 {
   "total_partitions": 200,
@@ -24,7 +24,7 @@ Your task is to analyze these statistics and determine the optimal Adaptive Quer
 }
 ```
 
-`/analysis/cluster_config.json` - Contains cluster specifications:
+`/workspace/analysis/cluster_config.json` - Contains cluster specifications:
 ```json
 {
   "executor_count": 10,
@@ -35,7 +35,7 @@ Your task is to analyze these statistics and determine the optimal Adaptive Quer
 }
 ```
 
-`/analysis/current_config.json` - Contains baseline configuration:
+`/workspace/analysis/current_config.json` - Contains baseline configuration:
 ```json
 {
   "spark.sql.adaptive.enabled": false,
@@ -56,7 +56,7 @@ The solution must account for the fact that skewed partitions are 53x larger tha
 
 **Output Requirements:**
 
-Save your solution to `/solution/aqe_config.json`
+Save your solution to `/workspace/solution/aqe_config.json`
 
 The JSON file must contain exactly these three fields:
 ```json

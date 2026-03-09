@@ -86,3 +86,24 @@ def test_output_format_strict():
     
     assert has_bandgap, "BANDGAP_EV= line missing from output"
     assert has_energy, "TOTAL_ENERGY_RY= line missing from output"
+
+def test_bandgap_matches_data_file():
+    """Test that BANDGAP_EV is computed from the actual band structure output data"""
+    output_path = Path("/workspace/bandgap_analysis.txt")
+    content = output_path.read_text()
+    match = re.search(r'BANDGAP_EV=([-+]?\d*\.?\d+)', content)
+    bandgap = float(match.group(1))
+    # From silicon_bands.out: highest occupied = 3.4531 eV, lowest unoccupied = 3.7293 eV
+    # Bandgap = 3.7293 - 3.4531 = 0.2762 eV
+    assert abs(bandgap - 0.2762) < 0.01, \
+        f"BANDGAP_EV {bandgap} does not match expected value from silicon_bands.out (0.2762 eV)"
+
+def test_total_energy_matches_scf_output():
+    """Test that TOTAL_ENERGY_RY matches the converged total energy from silicon_scf.out"""
+    output_path = Path("/workspace/bandgap_analysis.txt")
+    content = output_path.read_text()
+    match = re.search(r'TOTAL_ENERGY_RY=([-+]?\d*\.?\d+)', content)
+    total_energy = float(match.group(1))
+    # From silicon_scf.out: final total energy = -15.82538644 Ry
+    assert abs(total_energy - (-15.82538644)) < 0.001, \
+        f"TOTAL_ENERGY_RY {total_energy} does not match expected value from silicon_scf.out (-15.82538644 Ry)"

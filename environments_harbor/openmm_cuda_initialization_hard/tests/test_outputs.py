@@ -99,3 +99,42 @@ def test_primary_and_fallback_are_different():
     
     if fallback != 'none':
         assert primary != fallback, f"Primary and fallback platforms must be different, both are '{primary}'"
+
+
+def test_primary_platform_is_cpu():
+    """Test that primary_platform is CPU (only non-reference platform that succeeded per logs)"""
+    config_path = Path("/etc/openmm/platform.conf")
+    content = config_path.read_text()
+    lines = content.strip().split('\n')
+
+    primary = lines[0].split('=', 1)[1]
+    # According to platform_errors.log: CUDA FAILED, OpenCL FAILED, CPU SUCCESS
+    assert primary == 'CPU', \
+        f"Primary platform should be CPU (the only non-Reference platform that initialized successfully), got '{primary}'"
+
+
+def test_fallback_platform_is_reference():
+    """Test that fallback_platform is Reference (always available as last resort)"""
+    config_path = Path("/etc/openmm/platform.conf")
+    content = config_path.read_text()
+    lines = content.strip().split('\n')
+
+    fallback = lines[1].split('=', 1)[1]
+    assert fallback == 'Reference', \
+        f"Fallback platform should be Reference (always available), got '{fallback}'"
+
+
+def test_cuda_and_opencl_are_disabled():
+    """Test that both CUDA and OpenCL are listed as disabled platforms"""
+    config_path = Path("/etc/openmm/platform.conf")
+    content = config_path.read_text()
+    lines = content.strip().split('\n')
+
+    disabled_str = lines[2].split('=', 1)[1]
+    assert disabled_str != 'none', "disabled_platforms should not be 'none'; CUDA and OpenCL failed"
+
+    disabled_list = [p.strip() for p in disabled_str.split(',')]
+    assert 'CUDA' in disabled_list, \
+        f"CUDA should be in disabled_platforms (CUDA initialization failed per logs), got: {disabled_list}"
+    assert 'OpenCL' in disabled_list, \
+        f"OpenCL should be in disabled_platforms (OpenCL initialization failed per logs), got: {disabled_list}"

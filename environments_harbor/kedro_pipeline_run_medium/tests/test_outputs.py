@@ -75,17 +75,45 @@ def test_metrics_values_reasonable():
     """Test that metric values are within reasonable ranges based on the dataset"""
     metrics_path = Path("/tmp/pipeline_metrics.txt")
     content = metrics_path.read_text().strip()
-    
+
     metrics = {}
     for line in content.split('\n'):
         if '=' in line:
             key, value = line.split('=', 1)
             metrics[key.strip()] = value.strip()
-    
+
     total_sales = float(metrics['total_sales'])
     unique_customers = int(float(metrics['unique_customers']))
-    
+
     # Based on 150 transactions, reasonable ranges
     assert total_sales > 0, "total_sales should be greater than 0"
     assert unique_customers > 0, "unique_customers should be greater than 0"
     assert unique_customers <= 150, f"unique_customers ({unique_customers}) cannot exceed total transactions (150)"
+
+
+def test_total_sales_exact_value():
+    """Test that total_sales equals 32850.69 (sum of all amounts in sales.csv)"""
+    metrics_path = Path("/tmp/pipeline_metrics.txt")
+    content = metrics_path.read_text().strip()
+    metrics = {}
+    for line in content.split('\n'):
+        if '=' in line:
+            key, value = line.split('=', 1)
+            metrics[key.strip()] = value.strip()
+    total_sales = float(metrics['total_sales'])
+    assert abs(total_sales - 32850.69) < 0.01, \
+        f"Expected total_sales=32850.69 (sum of amount column in sales.csv), got: {total_sales}"
+
+
+def test_unique_customers_exact_value():
+    """Test that unique_customers equals 34 (distinct customer_id values in sales.csv)"""
+    metrics_path = Path("/tmp/pipeline_metrics.txt")
+    content = metrics_path.read_text().strip()
+    metrics = {}
+    for line in content.split('\n'):
+        if '=' in line:
+            key, value = line.split('=', 1)
+            metrics[key.strip()] = value.strip()
+    unique_customers = int(float(metrics['unique_customers']))
+    assert unique_customers == 34, \
+        f"Expected unique_customers=34 (distinct customer_ids in sales.csv), got: {unique_customers}"

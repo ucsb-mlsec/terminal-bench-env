@@ -4,7 +4,7 @@ The system receives XML documents from three different research labs, each using
 
 **The Problem:**
 
-Three XML files are stored in `/data/research/` directory:
+Three XML files are stored in `/workspace/data/research/` directory:
 - `lab_alpha.xml` - Uses namespace prefix 'alpha' for patient data
 - `lab_beta.xml` - Uses namespace prefix 'beta' for clinical trials
 - `lab_gamma.xml` - Uses default namespace (no prefix) for test results
@@ -32,7 +32,7 @@ Extract and consolidate all clinical trial records from these three XML sources.
 
 **Output Requirements:**
 
-Save your consolidated results to `/output/consolidated_trials.json`
+Save your consolidated results to `/workspace/output/consolidated_trials.json`
 
 The JSON file must contain a single array of trial objects. Each trial object should have exactly these fields:
 - `trial_id`: string (the unique trial identifier)

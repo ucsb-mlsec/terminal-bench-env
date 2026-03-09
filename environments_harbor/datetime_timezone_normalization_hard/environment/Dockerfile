@@ -19,9 +19,9 @@ RUN apt-get update && \
 
 RUN pip3 install --no-cache-dir --break-system-packages pytz
 
-RUN mkdir -p /data /output
+RUN mkdir -p /workspace/data /workspace/output
 
-COPY data/metrics.jsonl /data/metrics.jsonl
+COPY data/metrics.jsonl /workspace/data/metrics.jsonl
 
 WORKDIR /workspace
 

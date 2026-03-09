@@ -17,21 +17,22 @@ RUN apt-get update && \
 
 RUN pip3 install --no-cache-dir --break-system-packages avro-python3
 
-RUN mkdir -p /schemas /data /solution
+RUN mkdir -p /workspace/schemas /workspace/data /workspace/solution
 
-COPY data/schemas/user_schema.avsc /schemas/user_schema.avsc
-COPY data/schemas/order_schema.avsc /schemas/order_schema.avsc
-COPY data/schemas/product_schema.avsc /schemas/product_schema.avsc
-COPY data/schemas/payment_schema.avsc /schemas/payment_schema.avsc
-COPY data/schema_mapping.txt /schema_mapping.txt
-COPY data/user_events.json /data/user_events.json
-COPY data/order_data.json /data/order_data.json
-COPY data/product_catalog.json /data/product_catalog.json
-COPY data/inventory_updates.json /data/inventory_updates.json
-COPY data/payment_transactions.json /data/payment_transactions.json
-COPY data/customer_profiles.json /data/customer_profiles.json
-COPY data/shipping_notifications.json /data/shipping_notifications.json
-COPY data/analytics_events.json /data/analytics_events.json
+COPY data/schemas/user_schema.avsc /workspace/schemas/user_schema.avsc
+COPY data/schemas/order_schema.avsc /workspace/schemas/order_schema.avsc
+COPY data/schemas/product_schema.avsc /workspace/schemas/product_schema.avsc
+COPY data/schemas/payment_schema.avsc /workspace/schemas/payment_schema.avsc
+COPY data/schema_mapping.txt /workspace/schema_mapping.txt
+COPY data/schema_mapping.txt /workspace/data/schema_mapping.txt
+COPY data/user_events.json /workspace/data/user_events.json
+COPY data/order_data.json /workspace/data/order_data.json
+COPY data/product_catalog.json /workspace/data/product_catalog.json
+COPY data/inventory_updates.json /workspace/data/inventory_updates.json
+COPY data/payment_transactions.json /workspace/data/payment_transactions.json
+COPY data/customer_profiles.json /workspace/data/customer_profiles.json
+COPY data/shipping_notifications.json /workspace/data/shipping_notifications.json
+COPY data/analytics_events.json /workspace/data/analytics_events.json
 
 WORKDIR /workspace
 

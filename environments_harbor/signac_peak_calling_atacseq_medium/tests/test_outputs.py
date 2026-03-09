@@ -99,7 +99,42 @@ def test_peaks_represent_overlaps():
     """Test that output contains peaks (basic sanity check for overlapping logic)"""
     output_path = Path("/workspace/merged_peaks.bed")
     lines = output_path.read_text().strip().split('\n')
-    
+
     # At minimum, there should be some overlapping peaks
     # This is a basic check that the agent attempted to find overlaps
     assert len(lines) > 0, "No merged peaks found - likely no overlap detection was performed"
+
+def test_known_overlap_chr1_peak1_rep2peak1():
+    """Test that chr1:10000-10500 (rep1) and chr1:10200-10700 (rep2) produce a merged peak"""
+    output_path = Path("/workspace/merged_peaks.bed")
+    lines = output_path.read_text().strip().split('\n')
+
+    # Find chr1 lines spanning this region
+    found = False
+    for line in lines:
+        parts = line.split('\t')
+        if parts[0] == 'chr1':
+            start = int(parts[1])
+            end = int(parts[2])
+            # Merged region from rep1 peak_1 and rep2 rep2_peak_1 should span 10000-10700
+            if start <= 10000 and end >= 10500:
+                found = True
+                break
+    assert found, "Expected a merged peak on chr1 spanning the overlap between peak_1 (10000-10500) and rep2_peak_1 (10200-10700)"
+
+def test_known_overlap_chr1_peak2():
+    """Test that chr1:25000-26000 (rep1) and chr1:25500-26500 (rep2) produce a merged peak"""
+    output_path = Path("/workspace/merged_peaks.bed")
+    lines = output_path.read_text().strip().split('\n')
+
+    found = False
+    for line in lines:
+        parts = line.split('\t')
+        if parts[0] == 'chr1':
+            start = int(parts[1])
+            end = int(parts[2])
+            # Merged from peak_2 (25000-26000) and rep2_peak_2 (25500-26500) = 25000-26500
+            if start <= 25000 and end >= 26000:
+                found = True
+                break
+    assert found, "Expected a merged peak on chr1 spanning the overlap between peak_2 (25000-26000) and rep2_peak_2 (25500-26500)"

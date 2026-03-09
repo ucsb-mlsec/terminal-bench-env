@@ -90,12 +90,33 @@ def test_excluded_directories():
     """Test that files from system directories (/proc, /sys, /dev) are excluded"""
     output_path = Path("/workspace/solution/suspicious_files.txt")
     lines = output_path.read_text().strip().split('\n')
-    
+
     excluded_dirs = ['/proc', '/sys', '/dev']
-    
+
     for i, line in enumerate(lines, 1):
         filepath = line.split('|')[1]
-        
+
         for excluded in excluded_dirs:
             assert not filepath.startswith(excluded + '/') and filepath != excluded, \
                 f"Line {i} contains file from excluded directory {excluded}: {filepath}"
+
+def test_backup_sh_in_results():
+    """Test that /home/user/backup.sh is in the results (ts=1705328625 is within incident window)"""
+    output_path = Path("/workspace/solution/suspicious_files.txt")
+    content = output_path.read_text()
+    assert '/home/user/backup.sh' in content, \
+        "Expected /home/user/backup.sh in results (modified at 2024-01-15 14:23:45 UTC, within incident window)"
+
+def test_monitor_elf_in_results():
+    """Test that /usr/local/bin/monitor.elf is in the results (ts=1705331820 is within incident window)"""
+    output_path = Path("/workspace/solution/suspicious_files.txt")
+    content = output_path.read_text()
+    assert '/usr/local/bin/monitor.elf' in content, \
+        "Expected /usr/local/bin/monitor.elf in results (modified at 2024-01-15 15:17:00 UTC, within incident window)"
+
+def test_result_count():
+    """Test that exactly 7 files are in the results"""
+    output_path = Path("/workspace/solution/suspicious_files.txt")
+    lines = [l for l in output_path.read_text().strip().split('\n') if l.strip()]
+    assert len(lines) == 7, \
+        f"Expected 7 suspicious files in results (7 matching executable/script files in incident window), got: {len(lines)}"

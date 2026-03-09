@@ -79,9 +79,33 @@ def test_output_logical_consistency():
 def test_output_has_reasonable_values():
     """Test that the output has reasonable values (not all zeros)"""
     output_path = Path("/workspace/output/zone_analysis.json")
-    
+
     with open(output_path, 'r') as f:
         data = json.load(f)
-    
+
     assert data["total_neighborhoods"] > 0, \
         "Total neighborhoods should be greater than 0 (input data exists)"
+
+
+def test_total_neighborhoods_is_15():
+    """Test that total_neighborhoods=15, matching the 15 features in neighborhoods.geojson."""
+    output_path = Path("/workspace/output/zone_analysis.json")
+
+    with open(output_path, 'r') as f:
+        data = json.load(f)
+
+    assert data["total_neighborhoods"] == 15, \
+        f"Expected total_neighborhoods=15 (15 features in neighborhoods.geojson), got {data['total_neighborhoods']}"
+
+
+def test_neighborhoods_outside_city_is_3():
+    """Test that neighborhoods_outside_city=3.
+    North Beach (id=8), Sunset (id=11), and Financial District (id=14) have
+    Web Mercator coordinates (values like -13615000) outside the WGS84 city boundary."""
+    output_path = Path("/workspace/output/zone_analysis.json")
+
+    with open(output_path, 'r') as f:
+        data = json.load(f)
+
+    assert data["neighborhoods_outside_city"] == 3, \
+        f"Expected neighborhoods_outside_city=3 (North Beach, Sunset, Financial District have non-WGS84 coordinates), got {data['neighborhoods_outside_city']}"

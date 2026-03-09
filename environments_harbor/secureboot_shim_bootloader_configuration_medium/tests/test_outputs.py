@@ -79,19 +79,31 @@ def test_no_false_positives():
     """Test that invalid configurations were not selected"""
     output_path = Path("/tmp/valid_config.txt")
     config_filename = output_path.read_text().strip()
-    
+
     if config_filename == "NONE":
         # Verify that indeed no valid config exists
         # This is acceptable - the test passes
         return
-    
+
     # If a config was selected, verify it's not one of the invalid ones
     # by checking all requirements are met (already done in previous test)
     # Additional check: verify other configs are indeed invalid
     config_dir = Path("/opt/bootloader_configs")
     all_configs = sorted(config_dir.glob("*.conf"))
-    
+
     assert len(all_configs) > 0, "No configuration files found in /opt/bootloader_configs/"
-    
+
     # The selected config should be the only valid one or the most complete one
     # This is implicitly verified by the previous test checking all requirements
+
+def test_correct_config_selected():
+    """Test that config_03.conf is selected — the only config with valid shim and cert"""
+    output_path = Path("/tmp/valid_config.txt")
+    config_filename = output_path.read_text().strip()
+
+    # config_01: shim path does not exist on filesystem
+    # config_02: shim_empty.efi has 0 bytes
+    # config_03: shim_valid.efi exists with content, cert_valid.pem has valid BEGIN CERTIFICATE
+    # config_04: cert_invalid.pem does not contain valid certificate
+    assert config_filename == "config_03.conf", \
+        f"Expected config_03.conf (only config with existing shim and valid cert), got: {config_filename}"

@@ -98,17 +98,33 @@ def test_expected_services_found():
     """Test that the expected application services are discovered"""
     output_path = Path("/tmp/grpc_discovery.json")
     data = json.loads(output_path.read_text())
-    
+
     # Based on the provided proto files (calculator and user services)
     # The exact service names depend on the proto definitions
     # We expect at least 2 services (excluding reflection)
     assert len(data["services"]) >= 2, \
         f"Expected at least 2 application services, found {len(data['services'])}"
-    
+
     # Services should include calculator and user related services
     service_names_lower = [s.lower() for s in data["services"]]
     has_calculator = any("calculator" in s for s in service_names_lower)
     has_user = any("user" in s for s in service_names_lower)
-    
+
     assert has_calculator or has_user, \
         "Expected to find Calculator and/or User services in the discovered services"
+
+
+def test_exact_services_discovered():
+    """Test that exactly the three services from grpc_server.py are discovered:
+    calculator.Calculator, user.UserService, inventory.InventoryManager.
+    These are the SERVICE_NAMES registered with reflection in grpc_server.py."""
+    output_path = Path("/tmp/grpc_discovery.json")
+    data = json.loads(output_path.read_text())
+
+    services = set(data["services"])
+    expected_services = {"calculator.Calculator", "user.UserService", "inventory.InventoryManager"}
+
+    assert expected_services.issubset(services), \
+        f"Expected services {expected_services} to be in discovered services {services}"
+    assert len(services) == 3, \
+        f"Expected exactly 3 services (calculator.Calculator, user.UserService, inventory.InventoryManager), got {len(services)}: {services}"

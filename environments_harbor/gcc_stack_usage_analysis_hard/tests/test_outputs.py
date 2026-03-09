@@ -80,11 +80,42 @@ def test_exact_format_match():
     report_path = Path("/workspace/stack_report.txt")
     content = report_path.read_text().strip()
     lines = content.split('\n')
-    
+
     # Check that we have exactly the two expected keys
     keys = [line.split('=')[0] for line in lines]
     assert 'dangerous_count' in keys, "dangerous_count key missing"
     assert 'max_usage' in keys, "max_usage key missing"
-    
+
     # Verify no extra content
     assert len(keys) == 2, "File should contain exactly two key=value pairs"
+
+
+def test_dangerous_count_is_11():
+    """Test that dangerous_count=11, the number of functions using >512 bytes of stack.
+    Across all .su files: parse_message(896), update_firmware_block(768),
+    ethernet_packet(688), usb_endpoint_handler(576), crypto_hash(1408),
+    watchdog_handler(672), ethernet_frame_handler(544), parse_header(784),
+    compress_data(960), fragment_payload(520), sort_array(592) = 11 functions."""
+    report_path = Path("/workspace/stack_report.txt")
+    content = report_path.read_text().strip()
+
+    match = re.search(r'dangerous_count=(\d+)', content)
+    assert match is not None, "dangerous_count not found"
+
+    dangerous_count = int(match.group(1))
+    assert dangerous_count == 11, \
+        f"Expected dangerous_count=11 (functions with >512 bytes stack usage per .su files), got {dangerous_count}"
+
+
+def test_max_usage_is_1408():
+    """Test that max_usage=1408, the stack usage of crypto_hash() which is the highest
+    across all .su files in the environment/data/ directory."""
+    report_path = Path("/workspace/stack_report.txt")
+    content = report_path.read_text().strip()
+
+    match = re.search(r'max_usage=(\d+)', content)
+    assert match is not None, "max_usage not found"
+
+    max_usage = int(match.group(1))
+    assert max_usage == 1408, \
+        f"Expected max_usage=1408 (crypto_hash stack usage per .su files), got {max_usage}"

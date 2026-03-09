@@ -79,7 +79,17 @@ def test_percentage_is_meaningful():
     bottleneck_path = Path("/workspace/bottleneck.txt")
     lines = bottleneck_path.read_text().strip().split('\n')
     percentage = float(lines[1].strip())
-    
+
     # A bottleneck should typically consume significant CPU time
     assert percentage > 10, \
         f"Percentage {percentage}% seems too low for a bottleneck (expected > 10%)"
+
+def test_correct_bottleneck_function():
+    """Test that the identified bottleneck is the correct function"""
+    bottleneck_path = Path("/workspace/bottleneck.txt")
+    lines = bottleneck_path.read_text().strip().split('\n')
+    function_name = lines[0].strip()
+    # From analyze.py: find_repeating_patterns is explicitly marked as the BOTTLENECK FUNCTION
+    # It uses a slow O(n^2) substring search with time.sleep() calls
+    assert function_name == "find_repeating_patterns", \
+        f"Expected bottleneck function 'find_repeating_patterns', got '{function_name}'"

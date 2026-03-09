@@ -12,8 +12,8 @@ Your investigation reveals that pre-filtering transactions before the join could
 **Environment Details:**
 - Spark 3.3+ is available in local mode
 - Input files are in CSV format for simplicity
-- Transactions file: `/data/transactions.csv` with columns: transaction_id, product_id, quantity, amount
-- Catalog file: `/data/catalog.csv` with columns: product_id, product_name, category
+- Transactions file: `/workspace/data/transactions.csv` with columns: transaction_id, product_id, quantity, amount
+- Catalog file: `/workspace/data/catalog.csv` with columns: product_id, product_name, category
 - Both files use standard CSV format with headers
 
 **The Problem:**
@@ -30,13 +30,13 @@ Create a PySpark application that optimizes the join operation by implementing a
 
 **Output Specifications:**
 
-Save your solution as: `/solution/bloom_join.py`
+Save your solution as: `/workspace/solution/bloom_join.py`
 
 This Python script must be executable with PySpark and should:
-- Read the input CSV files from `/data/transactions.csv` and `/data/catalog.csv`
+- Read the input CSV files from `/workspace/data/transactions.csv` and `/workspace/data/catalog.csv`
 - Implement the optimized join with pre-filtering
-- Write joined results to `/output/joined_data.csv` (CSV format with headers)
-- Generate a simple metrics file at `/output/metrics.txt`
+- Write joined results to `/workspace/output/joined_data.csv` (CSV format with headers)
+- Generate a simple metrics file at `/workspace/output/metrics.txt`
 
 The metrics.txt file must contain exactly 3 lines in this format:
 ```

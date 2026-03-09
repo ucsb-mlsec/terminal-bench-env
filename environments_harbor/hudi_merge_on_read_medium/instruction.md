@@ -2,7 +2,7 @@ A data warehouse maintains customer account balances using a change-data-capture
 
 You need to compute the current state of all customer accounts by merging the base snapshot with all change records.
 
-The data files are located in `/data/accounts/`:
+The data files are located in `/workspace/data/accounts/`:
 - `base_snapshot.parquet` - Initial account states with columns: account_id, customer_name, balance, last_updated
 - `changes_batch1.parquet` - First batch of changes with columns: account_id, customer_name, balance, last_updated, operation
 - `changes_batch2.parquet` - Second batch of changes with columns: account_id, customer_name, balance, last_updated, operation
@@ -21,7 +21,7 @@ Processing rules:
 
 Your task is to produce the current snapshot of all active accounts after applying all changes.
 
-Save the result to `/output/current_accounts.json` with this structure:
+Save the result to `/workspace/output/current_accounts.json` with this structure:
 
 ```json
 {

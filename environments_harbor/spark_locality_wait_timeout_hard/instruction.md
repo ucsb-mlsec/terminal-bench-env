@@ -13,7 +13,7 @@ Your goal is to analyze the execution patterns and determine the optimal localit
 - Waiting longer for preferred locality (potentially leaving executors idle)
 - Launching tasks immediately with worse locality (incurring data transfer costs)
 
-The task execution log is located at: `/data/spark-task-execution.log`
+The task execution log is located at: `/workspace/data/spark-task-execution.log`
 
 The log format is CSV with the following columns:
 ```
@@ -31,7 +31,7 @@ Analyze the execution data to determine:
 1. What locality wait timeout value (in milliseconds) would optimize performance
 2. What percentage of tasks should achieve at least NODE_LOCAL locality with your recommended setting
 
-Save your analysis results to `/solution/locality-config.txt` in the following format:
+Save your analysis results to `/workspace/solution/locality-config.txt` in the following format:
 
 ```
 spark.locality.wait=<value_in_ms>

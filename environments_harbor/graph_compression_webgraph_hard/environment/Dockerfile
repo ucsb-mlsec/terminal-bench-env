@@ -13,7 +13,9 @@ RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.
 
 RUN mkdir -p /data /solution /tmp
 
-COPY data/social_graph.txt /data/social_graph.txt
+# Generate the social graph data at build time
+COPY data/gen_social_graph.py /tmp/gen_social_graph.py
+RUN python3 /tmp/gen_social_graph.py
 
 WORKDIR /workspace
 

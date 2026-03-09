@@ -19,14 +19,14 @@ RUN apt-get update && \
 RUN apt-get update && apt-get install -y g++ && \
     rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /workspace/src/utils /workspace/src/core
+RUN mkdir -p /workspace/output/undefined_reference_to_main_hard/files/src/utils /workspace/output/undefined_reference_to_main_hard/files/src/core
 
-COPY src/main.c /workspace/src/main.c
-COPY src/utils/helper.c /workspace/src/utils/helper.c
-COPY src/utils/helper.h /workspace/src/utils/helper.h
-COPY src/core/processor.c /workspace/src/core/processor.c
-COPY src/core/processor.h /workspace/src/core/processor.h
-COPY Makefile /workspace/Makefile
+COPY src/main.c /workspace/output/undefined_reference_to_main_hard/files/src/main.c
+COPY src/utils/helper.c /workspace/output/undefined_reference_to_main_hard/files/src/utils/helper.c
+COPY src/utils/helper.h /workspace/output/undefined_reference_to_main_hard/files/src/utils/helper.h
+COPY src/core/processor.c /workspace/output/undefined_reference_to_main_hard/files/src/core/processor.c
+COPY src/core/processor.h /workspace/output/undefined_reference_to_main_hard/files/src/core/processor.h
+COPY Makefile /workspace/output/undefined_reference_to_main_hard/files/Makefile
 
 WORKDIR /workspace
 

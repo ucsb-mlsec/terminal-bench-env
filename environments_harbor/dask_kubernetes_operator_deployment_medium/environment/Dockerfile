@@ -24,11 +24,17 @@ RUN pip3 install --no-cache-dir --break-system-packages \
     kubernetes
 
 RUN mkdir -p /config /tmp
+RUN mkdir -p /workspace/output/dask_kubernetes_operator_deployment_medium/files/config
 
 COPY config/dask-cluster-scheduler.yaml /config/dask-cluster-scheduler.yaml
 COPY config/dask-cluster-workers.yaml /config/dask-cluster-workers.yaml
 COPY config/dask-scheduler-service.yaml /config/dask-scheduler-service.yaml
 COPY config/dask-namespace.yaml /config/dask-namespace.yaml
+
+COPY config/dask-cluster-scheduler.yaml /workspace/output/dask_kubernetes_operator_deployment_medium/files/config/dask-cluster-scheduler.yaml
+COPY config/dask-cluster-workers.yaml /workspace/output/dask_kubernetes_operator_deployment_medium/files/config/dask-cluster-workers.yaml
+COPY config/dask-scheduler-service.yaml /workspace/output/dask_kubernetes_operator_deployment_medium/files/config/dask-scheduler-service.yaml
+COPY config/dask-namespace.yaml /workspace/output/dask_kubernetes_operator_deployment_medium/files/config/dask-namespace.yaml
 
 WORKDIR /workspace
 

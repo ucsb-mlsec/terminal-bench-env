@@ -77,6 +77,32 @@ def test_solution_contains_sort():
     """Test that the solution script contains sort command for proper uniq operation"""
     solution_path = Path("/opt/analytics/solution/fix_pipeline.sh")
     content = solution_path.read_text()
-    
+
     # Check if sort command is present (needed for uniq to work properly)
     assert 'sort' in content, "Solution script should contain 'sort' command for proper deduplication"
+
+
+def test_exact_unique_visitor_count():
+    """Test that the unique visitor count equals exactly 30.
+    access_log_2024_01_15.log has 14 unique IPs (192.168.1.100-104, 10.0.0.50-54, 172.16.0.25-28).
+    access_log_2024_01_16.log has 16 unique IPs (192.168.1.200-205, 10.0.0.75-80, 172.16.0.50-53).
+    No IPs overlap between the two files, giving 14 + 16 = 30 total unique visitors."""
+    output_path = Path("/opt/analytics/data/output/final_count.txt")
+    content = output_path.read_text().strip()
+    count = int(content)
+
+    # Verify the count by computing unique IPs from the log files directly
+    log_dir = Path("/opt/analytics/data/logs/")
+    all_ips = set()
+    for log_file in sorted(log_dir.glob("*.log")):
+        with open(log_file, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    parts = line.split('|')
+                    if len(parts) >= 2:
+                        all_ips.add(parts[1])
+
+    expected_count = len(all_ips)
+    assert count == expected_count, \
+        f"Expected {expected_count} unique visitors (unique IPs from log files), got {count}"

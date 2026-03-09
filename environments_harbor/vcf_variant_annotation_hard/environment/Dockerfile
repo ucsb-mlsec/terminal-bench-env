@@ -11,11 +11,11 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /data /solution
+RUN mkdir -p /workspace/data /workspace/solution
 
-COPY data/patient_A.vcf /data/patient_A.vcf
-COPY data/patient_B.vcf /data/patient_B.vcf
-COPY data/clinvar.tsv /data/clinvar.tsv
+COPY data/patient_A.vcf /workspace/data/patient_A.vcf
+COPY data/patient_B.vcf /workspace/data/patient_B.vcf
+COPY data/clinvar.tsv /workspace/data/clinvar.tsv
 
 WORKDIR /workspace
 

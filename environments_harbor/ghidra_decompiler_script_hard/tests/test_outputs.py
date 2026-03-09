@@ -99,3 +99,47 @@ def test_addresses_are_reasonable():
         # Typical executable addresses are non-zero and not too small
         assert address > 0, f"Address should be greater than 0: {parts[1]}"
         assert address < 0xffffffffffffffff, f"Address seems invalid: {parts[1]}"
+
+def test_output_contains_main():
+    """Test that the 'main' function is in the output"""
+    output_path = Path("/workspace/functions.txt")
+    content = output_path.read_text()
+    function_names = []
+    for line in content.strip().split('\n'):
+        line = line.strip()
+        if line:
+            parts = line.split()
+            if len(parts) >= 2:
+                function_names.append(parts[0])
+    assert 'main' in function_names, "The 'main' function should be listed in the output"
+
+
+def test_output_excludes_library_functions():
+    """Test that common library functions are not included"""
+    output_path = Path("/workspace/functions.txt")
+    content = output_path.read_text()
+    function_names = set()
+    for line in content.strip().split('\n'):
+        parts = line.strip().split()
+        if len(parts) >= 2:
+            function_names.add(parts[0])
+    
+    lib_funcs = ['printf', 'malloc', 'free', 'strlen', 'strcmp', 'puts',
+                 'exit', 'calloc', 'fgets', 'fputs', 'putchar', 'scanf']
+    for func in lib_funcs:
+        assert func not in function_names, \
+            f"Library function '{func}' should not be in the output"
+
+
+def test_addresses_are_unique():
+    """Test that each function has a unique address"""
+    output_path = Path("/workspace/functions.txt")
+    lines = [l.strip() for l in output_path.read_text().strip().split('\n') if l.strip()]
+    addresses = []
+    for line in lines:
+        parts = line.split()
+        if len(parts) >= 2:
+            addresses.append(parts[1])
+    
+    assert len(addresses) == len(set(addresses)), \
+        "Function addresses should be unique"

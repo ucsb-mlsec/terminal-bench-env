@@ -90,14 +90,40 @@ def test_solution_value_is_reasonable():
     solution_path = Path("/root/solution.txt")
     content = solution_path.read_text().strip()
     lines = content.split('\n')
-    
+
     value_line = lines[1].strip()
     value_match = re.match(r'^value=(.+)$', value_line)
     param_value = value_match.group(1).strip()
-    
+
     # Value should not be empty
     assert len(param_value) > 0, "Parameter value is empty"
-    
+
     # Value should not be placeholder text
     invalid_placeholders = ['<recommended_value>', '<value>', 'TODO', 'FIXME', 'XXX']
     assert param_value not in invalid_placeholders, f"Value appears to be a placeholder: {param_value}"
+
+def test_parameter_is_dir():
+    """Test that the identified parameter is 'dir' — the root cause per the redis.conf and logs"""
+    solution_path = Path("/root/solution.txt")
+    content = solution_path.read_text().strip()
+    lines = content.split('\n')
+
+    param_match = re.match(r'^parameter=(.+)$', lines[0].strip())
+    assert param_match, "Could not parse parameter line"
+    param_name = param_match.group(1).strip()
+
+    assert param_name == "dir", \
+        f"Expected parameter='dir' (the read-only path causing AOF failures), got: {param_name}"
+
+def test_value_is_not_readonly_path():
+    """Test that the corrected value does not point to the read-only volume"""
+    solution_path = Path("/root/solution.txt")
+    content = solution_path.read_text().strip()
+    lines = content.split('\n')
+
+    value_match = re.match(r'^value=(.+)$', lines[1].strip())
+    assert value_match, "Could not parse value line"
+    param_value = value_match.group(1).strip()
+
+    assert "/mnt/readonly-volume" not in param_value, \
+        f"Corrected value still points to the read-only volume: {param_value}"

@@ -17,8 +17,11 @@ RUN apt-get update && \
     grub-common && \
     rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /boot/grub /boot /etc/default /root
+RUN mkdir -p /workspace/output/update_grub_configuration_regeneration_hard/files/boot/grub \
+    /workspace/output/update_grub_configuration_regeneration_hard/files/root \
+    /boot/grub /boot /etc/default /root
 
+COPY boot/grub/grub.cfg /workspace/output/update_grub_configuration_regeneration_hard/files/boot/grub/grub.cfg
 COPY boot/grub/grub.cfg /boot/grub/grub.cfg
 COPY etc/default/grub /etc/default/grub
 COPY boot/vmlinuz-5.15.0-91-generic /boot/vmlinuz-5.15.0-91-generic
@@ -28,7 +31,7 @@ COPY boot/initrd.img-5.15.0-91-generic /boot/initrd.img-5.15.0-91-generic
 COPY boot/initrd.img-5.15.0-92-generic /boot/initrd.img-5.15.0-92-generic
 COPY boot/initrd.img-5.15.0-93-generic /boot/initrd.img-5.15.0-93-generic
 
-WORKDIR /root
+WORKDIR /workspace
 
 # Mapped from docker-compose.yaml
 ENV TEST_DIR=/tests

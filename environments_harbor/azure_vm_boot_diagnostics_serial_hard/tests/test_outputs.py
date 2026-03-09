@@ -71,11 +71,39 @@ def test_boot_analysis_format():
     analysis_path = Path("/home/agent/boot_analysis.txt")
     content = analysis_path.read_text().strip()
     lines = content.split('\n')
-    
+
     has_failure_type = any(line.startswith('FAILURE_TYPE=') for line in lines)
     has_failed_component = any(line.startswith('FAILED_COMPONENT=') for line in lines)
     has_error_message = any(line.startswith('ERROR_MESSAGE=') for line in lines)
-    
+
     assert has_failure_type, "Missing FAILURE_TYPE= line"
     assert has_failed_component, "Missing FAILED_COMPONENT= line"
     assert has_error_message, "Missing ERROR_MESSAGE= line"
+
+
+def test_failure_type_is_service_failure():
+    """Test that FAILURE_TYPE is correctly identified as service_failure"""
+    # Serial console log shows postgresql@13-main.service failed to start
+    analysis_path = Path("/home/agent/boot_analysis.txt")
+    content = analysis_path.read_text().strip()
+    for line in content.split('\n'):
+        if line.startswith('FAILURE_TYPE='):
+            failure_type = line.split('=', 1)[1].strip()
+            assert failure_type == 'service_failure', \
+                f"FAILURE_TYPE should be 'service_failure' (postgresql@13-main.service failed), got '{failure_type}'"
+            return
+    assert False, "FAILURE_TYPE line not found"
+
+
+def test_failed_component_is_postgresql():
+    """Test that FAILED_COMPONENT identifies the postgresql service"""
+    # Serial log clearly shows: Failed to start PostgreSQL RDBMS (postgresql@13-main.service)
+    analysis_path = Path("/home/agent/boot_analysis.txt")
+    content = analysis_path.read_text().strip()
+    for line in content.split('\n'):
+        if line.startswith('FAILED_COMPONENT='):
+            failed_component = line.split('=', 1)[1].strip().lower()
+            assert 'postgresql' in failed_component or 'postgres' in failed_component, \
+                f"FAILED_COMPONENT should identify postgresql service, got '{failed_component}'"
+            return
+    assert False, "FAILED_COMPONENT line not found"

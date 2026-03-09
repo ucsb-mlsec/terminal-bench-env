@@ -11,9 +11,9 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /workspace/legacy_flags /workspace/output
+RUN mkdir -p /workspace/data/legacy_flags /workspace/output
 
-COPY data/legacy_flags/feature_config.json /workspace/legacy_flags/feature_config.json
+COPY data/legacy_flags/feature_config.json /workspace/data/legacy_flags/feature_config.json
 
 WORKDIR /workspace
 

@@ -71,10 +71,49 @@ def test_config_issues_contains_descriptions():
     """Test that each issue has a meaningful description"""
     output_path = Path("/tmp/config_issues.txt")
     lines = [line.strip() for line in output_path.read_text().strip().split('\n') if line.strip()]
-    
+
     for i, line in enumerate(lines, 1):
         if ':' in line:
             parts = line.split(':', 1)
             description = parts[1].strip()
             # Description should be at least 10 characters to be meaningful
             assert len(description) >= 10, f"Line {i} has too short description (less than 10 chars): '{description}'"
+
+def test_config_issues_identifies_port_conflict():
+    """Test that the port conflict in config.properties is identified.
+
+    config.properties has both inference_address and management_address on port 8080.
+    """
+    output_path = Path("/tmp/config_issues.txt")
+    content = output_path.read_text().lower()
+    # Should mention config.properties and a port conflict or duplicate port
+    has_port_issue = (
+        ('8080' in content and 'config.properties' in content.lower()) or
+        ('port' in content and ('conflict' in content or 'duplicate' in content or 'same' in content))
+    )
+    assert has_port_issue, (
+        "Expected an issue about port 8080 conflict between inference_address and management_address "
+        "in config.properties, but none found"
+    )
+
+def test_config_issues_identifies_invalid_port():
+    """Test that the invalid port 99999 for metrics_address in config.properties is identified."""
+    output_path = Path("/tmp/config_issues.txt")
+    content = output_path.read_text()
+    has_invalid_port = '99999' in content or ('invalid' in content.lower() and 'port' in content.lower())
+    assert has_invalid_port, (
+        "Expected an issue about invalid port 99999 (metrics_address) in config.properties, but none found"
+    )
+
+def test_config_issues_identifies_negative_workers():
+    """Test that the negative max_workers=-5 in config.properties is identified."""
+    output_path = Path("/tmp/config_issues.txt")
+    content = output_path.read_text().lower()
+    has_negative_workers = (
+        'max_workers' in content or
+        ('negative' in content and 'worker' in content) or
+        '-5' in content
+    )
+    assert has_negative_workers, (
+        "Expected an issue about max_workers=-5 (negative value) in config.properties, but none found"
+    )

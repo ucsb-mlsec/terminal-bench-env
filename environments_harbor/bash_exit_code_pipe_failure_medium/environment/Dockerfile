@@ -11,11 +11,11 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /opt/monitor /var/logs/test
+RUN mkdir -p /opt/monitor /workspace/data
 
 COPY opt/monitor/process_logs.sh /opt/monitor/process_logs.sh
-COPY data/server_valid.log /var/logs/test/server_valid.log
-COPY data/server_corrupted.log /var/logs/test/server_corrupted.log
+COPY data/server_valid.log /workspace/data/server_valid.log
+COPY data/server_corrupted.log /workspace/data/server_corrupted.log
 
 RUN chmod +x /opt/monitor/process_logs.sh
 

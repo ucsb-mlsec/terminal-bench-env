@@ -17,7 +17,7 @@ Your task is to extract the complete temperature time series (Jan 2021 - Dec 202
 
 Calculate the 3-year average temperature for each station and identify which station had the highest average temperature over this period.
 
-Save your results to `/output/station_summary.txt` in this exact format:
+Save your results to `/workspace/output/station_summary.txt` in this exact format:
 
 ```
 STATION_ID,AVG_TEMP_C,HIGHEST

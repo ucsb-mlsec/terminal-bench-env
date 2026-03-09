@@ -79,22 +79,38 @@ def test_credentials_extracted_from_log():
     """Test that the credentials appear to be extracted from the actual log file"""
     credentials_path = Path("/workspace/credentials.txt")
     log_path = Path("/workspace/wps_attack.log")
-    
+
     # Read credentials
     content = credentials_path.read_text()
     lines = content.strip().split('\n')
     pin_value = lines[0].split('=')[1]
     psk_value = lines[1].split('=')[1]
-    
+
     # Read log file
     log_content = log_path.read_text()
-    
+
     # If PIN is not FAILED, it should appear in the log
     if pin_value != 'FAILED':
         assert pin_value in log_content, \
             f"PIN {pin_value} does not appear in the log file - may be incorrect"
-    
+
     # If PSK is not NONE, it should appear in the log
     if psk_value != 'NONE':
         assert psk_value in log_content, \
             f"PSK {psk_value} does not appear in the log file - may be incorrect"
+
+def test_correct_pin():
+    """Test that PIN equals 85947263 (successful WPS PIN from wps_attack.log)"""
+    credentials_path = Path("/workspace/credentials.txt")
+    lines = credentials_path.read_text().strip().split('\n')
+    pin_value = lines[0].split('=')[1]
+    assert pin_value == '85947263', \
+        f"Expected PIN=85947263 (WPS PIN from successful attack in wps_attack.log), got '{pin_value}'"
+
+def test_correct_psk():
+    """Test that PSK equals MySecurePassword123 (WPA-PSK from wps_attack.log)"""
+    credentials_path = Path("/workspace/credentials.txt")
+    lines = credentials_path.read_text().strip().split('\n')
+    psk_value = lines[1].split('=')[1]
+    assert psk_value == 'MySecurePassword123', \
+        f"Expected PSK=MySecurePassword123 (WPA-PSK from wps_attack.log), got '{psk_value}'"

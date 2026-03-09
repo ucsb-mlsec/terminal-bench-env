@@ -2,10 +2,10 @@ You've been handed a production machine learning system that deploys multiple bi
 
 The system has three models in production:
 - Logistic Regression model
-- Random Forest model  
+- Random Forest model
 - Gradient Boosting model
 
-Each model has been making predictions on recent transactions, and the predictions are stored in separate CSV files in `/data/predictions/`. Each CSV contains two columns: `true_label` (0 or 1) and `predicted_probability` (float between 0 and 1).
+Each model has been making predictions on recent transactions, and the predictions are stored in separate CSV files in `/workspace/data/predictions/`. Each CSV contains two columns: `true_label` (0 or 1) and `predicted_probability` (float between 0 and 1).
 
 Your task is to generate comprehensive calibration analysis that will be presented to the compliance team. The analysis must:
 
@@ -19,7 +19,7 @@ The prediction files have inconsistent formatting and may contain missing values
 
 **SOLUTION REQUIREMENTS:**
 
-Save your complete analysis to `/output/calibration_analysis.json`
+Save your complete analysis to `/workspace/output/calibration_analysis.json`
 
 The JSON file must contain exactly these fields:
 ```json

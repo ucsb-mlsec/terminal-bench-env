@@ -15,15 +15,15 @@ RUN apt-get update && \
     apt-get install -y build-essential gcc make && \
     rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /workspace/src/utils /workspace/lib/math /workspace/lib/string
+RUN mkdir -p /workspace/output/makefile_vpath_source_search_medium/files/src/utils /workspace/output/makefile_vpath_source_search_medium/files/lib/math /workspace/output/makefile_vpath_source_search_medium/files/lib/string
 
-COPY Makefile /workspace/Makefile
-COPY src/main.c /workspace/src/main.c
-COPY src/utils/utils.c /workspace/src/utils/utils.c
-COPY lib/math/math_ops.c /workspace/lib/math/math_ops.c
-COPY lib/string/string_ops.c /workspace/lib/string/string_ops.c
+COPY Makefile /workspace/output/makefile_vpath_source_search_medium/files/Makefile
+COPY src/main.c /workspace/output/makefile_vpath_source_search_medium/files/src/main.c
+COPY src/utils/utils.c /workspace/output/makefile_vpath_source_search_medium/files/src/utils/utils.c
+COPY lib/math/math_ops.c /workspace/output/makefile_vpath_source_search_medium/files/lib/math/math_ops.c
+COPY lib/string/string_ops.c /workspace/output/makefile_vpath_source_search_medium/files/lib/string/string_ops.c
 
-WORKDIR /workspace
+WORKDIR /workspace/output/makefile_vpath_source_search_medium/files
 
 # Mapped from docker-compose.yaml
 ENV TEST_DIR=/tests

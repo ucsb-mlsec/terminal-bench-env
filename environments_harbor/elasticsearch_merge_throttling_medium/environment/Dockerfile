@@ -14,6 +14,8 @@ RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.
 RUN mkdir -p /home/user/elasticsearch
 
 COPY data/monitoring_output.txt /home/user/elasticsearch/monitoring_output.txt
+COPY data/cluster_stats.json /home/user/elasticsearch/cluster_stats.json
+COPY data/index_settings.json /home/user/elasticsearch/index_settings.json
 
 WORKDIR /home/user
 

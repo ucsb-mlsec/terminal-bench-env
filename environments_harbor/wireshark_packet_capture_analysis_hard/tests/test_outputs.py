@@ -80,3 +80,65 @@ def test_extracted_specific_credentials():
         assert ':' in cred, f"Credential '{cred}' is not in username:password format"
         parts = cred.split(':', 1)
         assert len(parts[0]) > 0 and len(parts[1]) > 0, f"Credential '{cred}' has empty username or password"
+
+
+def test_contains_form_urlencoded_credentials():
+    """Test that credentials from form-urlencoded POST bodies are extracted correctly.
+    The HTTP log contains 'username=admin&password=secretpass' in a POST to /api/login."""
+    output_path = Path("/workspace/extracted_creds.txt")
+    creds = set(line.strip() for line in output_path.read_text().strip().split('\n') if line.strip())
+
+    assert "admin:secretpass" in creds, \
+        "Missing admin:secretpass (form-urlencoded POST to /api/login)"
+
+
+def test_contains_json_credentials():
+    """Test that credentials from JSON POST bodies are extracted correctly.
+    The HTTP log contains JSON like {\"username\":\"jdoe\",\"password\":\"temp123\"}."""
+    output_path = Path("/workspace/extracted_creds.txt")
+    creds = set(line.strip() for line in output_path.read_text().strip().split('\n') if line.strip())
+
+    assert "jdoe:temp123" in creds, \
+        "Missing jdoe:temp123 (JSON POST to /users/signin)"
+
+
+def test_contains_basic_auth_credentials():
+    """Test that credentials from HTTP Basic Auth headers are decoded and extracted.
+    The log contains 'Authorization: Basic YWRtaW46c3VwZXJzZWNyZXQ=' which decodes
+    to admin:supersecret."""
+    output_path = Path("/workspace/extracted_creds.txt")
+    creds = set(line.strip() for line in output_path.read_text().strip().split('\n') if line.strip())
+
+    assert "admin:supersecret" in creds, \
+        "Missing admin:supersecret (Basic Auth header: YWRtaW46c3VwZXJzZWNyZXQ=)"
+
+
+def test_contains_url_query_credentials():
+    """Test that credentials from URL query parameters are extracted.
+    The log has GET requests with credentials in the URL query string."""
+    output_path = Path("/workspace/extracted_creds.txt")
+    creds = set(line.strip() for line in output_path.read_text().strip().split('\n') if line.strip())
+
+    assert "bob:admin2024" in creds, \
+        "Missing bob:admin2024 (GET /legacy/login.php?username=bob&password=admin2024)"
+
+
+def test_minimum_credential_count():
+    """Test that at least 15 unique clear-text credentials are extracted.
+    The HTTP log contains 23 unique credential pairs across form-urlencoded POST,
+    JSON POST, Basic Auth headers, and URL query parameters."""
+    output_path = Path("/workspace/extracted_creds.txt")
+    creds = [line.strip() for line in output_path.read_text().strip().split('\n') if line.strip()]
+
+    assert len(creds) >= 15, \
+        f"Expected at least 15 unique credentials (log contains 23), got {len(creds)}"
+
+
+def test_excludes_hashed_passwords():
+    """Test that bcrypt/hashed password values are excluded.
+    The log contains a password_hash field with $2b$12$... which should not be extracted."""
+    output_path = Path("/workspace/extracted_creds.txt")
+    content = output_path.read_text()
+
+    assert "$2b$" not in content, \
+        "Hashed passwords (bcrypt $2b$...) should not be included in extracted credentials"

@@ -11,10 +11,10 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /attack_data /solution
+RUN mkdir -p /workspace/attack_data /workspace/solution
 
-COPY data/reaver_session.log /attack_data/reaver_session.log
-COPY data/target_info.txt /attack_data/target_info.txt
+COPY data/reaver_session.log /workspace/attack_data/reaver_session.log
+COPY data/target_info.txt /workspace/attack_data/target_info.txt
 
 WORKDIR /workspace
 

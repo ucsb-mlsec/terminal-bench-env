@@ -18,9 +18,9 @@ RUN apt-get update && \
 
 RUN pip3 install --no-cache-dir --break-system-packages pandas pytz python-dateutil
 
-RUN mkdir -p /data /output
+RUN mkdir -p /workspace/data /workspace/output
 
-COPY data/support_tickets.csv /data/support_tickets.csv
+COPY data/support_tickets.csv /workspace/data/support_tickets.csv
 
 WORKDIR /workspace
 

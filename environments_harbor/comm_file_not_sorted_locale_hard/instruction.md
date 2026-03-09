@@ -3,8 +3,8 @@ A critical data reconciliation pipeline has been failing overnight, causing disc
 The pipeline runs across multiple servers with different locale configurations, and the data files are being sorted in different regional offices before being transmitted to the central processing system. The reconciliation process is failing because files that should match are being reported as different.
 
 Your investigation reveals:
-- Transaction files from 5 different regional offices: `/data/regions/us-east/transactions.txt`, `/data/regions/us-west/transactions.txt`, `/data/regions/eu-central/transactions.txt`, `/data/regions/asia-pacific/transactions.txt`, `/data/regions/latam/transactions.txt`
-- A master reconciliation file at `/data/master/expected_transactions.txt`
+- Transaction files from 5 different regional offices: `/workspace/data/regions/us-east/transactions.txt`, `/workspace/data/regions/us-west/transactions.txt`, `/workspace/data/regions/eu-central/transactions.txt`, `/workspace/data/regions/asia-pacific/transactions.txt`, `/workspace/data/regions/latam/transactions.txt`
+- A master reconciliation file at `/workspace/data/master/expected_transactions.txt`
 - Each regional file contains transaction IDs (alphanumeric strings like "TXN-2024-A1B2", "txn-2024-c3d4", "TXN_2024_E5F6") that should be compared against the master file
 - The files are supposedly pre-sorted, but `comm` is producing inconsistent results
 - Different locale settings (LC_COLLATE) were used during the sorting process in different regions
@@ -28,7 +28,7 @@ The reconciliation failures are blocking month-end financial close. You need to:
 
 **OUTPUT REQUIREMENTS:**
 
-Save your solution to `/solution/fix_report.txt` with the following format (one entry per line):
+Save your solution to `/workspace/solution/fix_report.txt` with the following format (one entry per line):
 
 ```
 MASTER_LOCALE=<locale used in master file>

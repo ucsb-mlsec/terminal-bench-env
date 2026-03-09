@@ -24,9 +24,9 @@ RUN pip3 install --no-cache-dir --break-system-packages \
     numpy \
     scikit-learn
 
-RUN mkdir -p /data /output
+RUN mkdir -p /workspace/data /workspace/output
 
-COPY data/raw_electricity_consumption.csv /data/raw_electricity_consumption.csv
+COPY data/raw_electricity_consumption.csv /workspace/data/raw_electricity_consumption.csv
 
 WORKDIR /workspace
 

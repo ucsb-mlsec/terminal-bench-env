@@ -14,7 +14,18 @@ RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     minisat \
+    build-essential \
+    git \
     && rm -rf /var/lib/apt/lists/*
+
+# Install CaDiCaL SAT solver (supports chronological backtracking)
+RUN cd /tmp && \
+    git clone https://github.com/arminbiere/cadical.git && \
+    cd cadical && \
+    ./configure && \
+    make -j$(nproc) && \
+    cp build/cadical /usr/local/bin/ && \
+    rm -rf /tmp/cadical
 
 RUN mkdir -p /workspace/benchmarks
 

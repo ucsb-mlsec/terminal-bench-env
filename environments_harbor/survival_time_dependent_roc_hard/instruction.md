@@ -7,7 +7,7 @@ The team has collected survival data from 150 patients in a clinical trial. Each
 - An event indicator showing whether the event (death) occurred or the patient was censored
 - A risk score from the predictive model (higher scores indicate higher risk)
 
-The dataset is located at `/data/survival_data.csv` with these columns:
+The dataset is located at `/workspace/data/survival_data.csv` with these columns:
 - `time`: Survival time in months (numeric)
 - `event`: Event indicator (1 = event occurred, 0 = censored)
 - `risk_score`: Model-predicted risk score (numeric, typically between -3 and 3)
@@ -26,7 +26,7 @@ To ensure reproducible results for validation purposes, use random seed 42 for a
 
 **Output Requirements:**
 
-Save your results to `/output/validation_metrics.txt` as a simple text file with exactly four lines in this format:
+Save your results to `/workspace/output/validation_metrics.txt` as a simple text file with exactly four lines in this format:
 
 ```
 auc=0.XXX
@@ -44,7 +44,7 @@ Where:
 **Success Criteria:**
 
 Your solution is correct if:
-- The output file exists at `/output/validation_metrics.txt`
+- The output file exists at `/workspace/output/validation_metrics.txt`
 - All four lines are present in the exact format specified (key=value)
 - The AUC value is between 0 and 1
 - The confidence interval bounds satisfy: ci_lower < auc < ci_upper

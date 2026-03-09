@@ -96,7 +96,20 @@ def test_test_executable_exists():
 def test_makefile_uses_libtool():
     """Test that the Makefile uses libtool commands"""
     makefile_path = Path("/workspace/mathlib/Makefile")
-    
+
     if makefile_path.exists():
         content = makefile_path.read_text()
         assert 'libtool' in content.lower(), "Makefile should use libtool commands"
+
+
+def test_version_info_matches_makefile():
+    """Test that VERSION_INFO is 1:0:0 matching VERSION in Makefile"""
+    solution_path = Path("/workspace/solution.txt")
+    content = solution_path.read_text().strip()
+    version_info = None
+    for line in content.split('\n'):
+        if line.strip().startswith('VERSION_INFO='):
+            version_info = line.split('=', 1)[1].strip()
+            break
+    assert version_info == "1:0:0", \
+        f"Expected VERSION_INFO=1:0:0 (matches VERSION=1:0:0 in Makefile), got: {version_info}"

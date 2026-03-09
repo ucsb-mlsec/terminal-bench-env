@@ -13,13 +13,13 @@ RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.
 
 RUN pip3 install --no-cache-dir --break-system-packages pandas numpy
 
-RUN mkdir -p /data/experiments /solution/output
+RUN mkdir -p /workspace/data/experiments /workspace/solution/output
 
-COPY data/sensor_readings_2024_01.npy /data/experiments/sensor_readings_2024_01.npy
-COPY data/sensor_readings_2024_02.npy /data/experiments/sensor_readings_2024_02.npy
-COPY data/sensor_readings_2024_03.npy /data/experiments/sensor_readings_2024_03.npy
+COPY data/sensor_readings_2024_01.npy /workspace/data/experiments/sensor_readings_2024_01.npy
+COPY data/sensor_readings_2024_02.npy /workspace/data/experiments/sensor_readings_2024_02.npy
+COPY data/sensor_readings_2024_03.npy /workspace/data/experiments/sensor_readings_2024_03.npy
 
-WORKDIR /solution
+WORKDIR /workspace/solution
 
 # Mapped from docker-compose.yaml
 ENV TEST_DIR=/tests

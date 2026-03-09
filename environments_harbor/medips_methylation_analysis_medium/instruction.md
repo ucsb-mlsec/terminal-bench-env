@@ -2,7 +2,7 @@ Your lab has generated MeDIP-seq data from three tissue samples (liver, brain, a
 
 The coverage data is available in `/data/coverage/` as simple text files:
 - liver_coverage.bed
-- brain_coverage.bed  
+- brain_coverage.bed
 - heart_coverage.bed
 
 Each BED file contains tab-separated values with four columns:
@@ -23,7 +23,7 @@ The lab director needs a simple summary showing:
 
 **Output Requirements:**
 
-Save your results to `/output/coverage_summary.json` with this exact structure:
+Save your results to `/workspace/output/coverage_summary.json` with this exact structure:
 
 ```json
 {
@@ -38,4 +38,4 @@ The JSON file must contain:
 - One numeric field for each sample (liver, brain, heart) showing the count of well-covered CpG islands
 - A "best_sample" field with the name of the sample that has the highest count
 
-The solution must be saved as valid JSON at `/output/coverage_summary.json`.
+The solution must be saved as valid JSON at `/workspace/output/coverage_summary.json`.

@@ -17,9 +17,9 @@ RUN apt-get update && \
 
 RUN pip3 install --no-cache-dir --break-system-packages pandas
 
-RUN mkdir -p /data /solution
+RUN mkdir -p /workspace/data /workspace/solution
 
-COPY data/sensor_readings.csv /data/sensor_readings.csv
+COPY data/sensor_readings.csv /workspace/data/sensor_readings.csv
 
 WORKDIR /workspace
 

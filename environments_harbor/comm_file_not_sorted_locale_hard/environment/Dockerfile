@@ -16,14 +16,23 @@ RUN apt-get update && \
     locale-gen en_US.UTF-8 C.UTF-8 en_GB.UTF-8 de_DE.UTF-8 ja_JP.UTF-8 es_ES.UTF-8 && \
     rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /data/master /data/regions/us-east /data/regions/us-west /data/regions/eu-central /data/regions/asia-pacific /data/regions/latam /opt/pipeline /solution
+RUN mkdir -p /workspace/data/master /workspace/data/regions/us-east /workspace/data/regions/us-west /workspace/data/regions/eu-central /workspace/data/regions/asia-pacific /workspace/data/regions/latam /opt/pipeline /workspace/solution
+RUN mkdir -p /workspace/output/comm_file_not_sorted_locale_hard/files/data/master /workspace/output/comm_file_not_sorted_locale_hard/files/data/regions/us-east /workspace/output/comm_file_not_sorted_locale_hard/files/data/regions/us-west /workspace/output/comm_file_not_sorted_locale_hard/files/data/regions/eu-central /workspace/output/comm_file_not_sorted_locale_hard/files/data/regions/asia-pacific /workspace/output/comm_file_not_sorted_locale_hard/files/data/regions/latam
 
-COPY data/master/expected_transactions.txt /data/master/expected_transactions.txt
-COPY data/regions/us-east/transactions.txt /data/regions/us-east/transactions.txt
-COPY data/regions/us-west/transactions.txt /data/regions/us-west/transactions.txt
-COPY data/regions/eu-central/transactions.txt /data/regions/eu-central/transactions.txt
-COPY data/regions/asia-pacific/transactions.txt /data/regions/asia-pacific/transactions.txt
-COPY data/regions/latam/transactions.txt /data/regions/latam/transactions.txt
+COPY data/master/expected_transactions.txt /workspace/data/master/expected_transactions.txt
+COPY data/regions/us-east/transactions.txt /workspace/data/regions/us-east/transactions.txt
+COPY data/regions/us-west/transactions.txt /workspace/data/regions/us-west/transactions.txt
+COPY data/regions/eu-central/transactions.txt /workspace/data/regions/eu-central/transactions.txt
+COPY data/regions/asia-pacific/transactions.txt /workspace/data/regions/asia-pacific/transactions.txt
+COPY data/regions/latam/transactions.txt /workspace/data/regions/latam/transactions.txt
+
+COPY data/master/expected_transactions.txt /workspace/output/comm_file_not_sorted_locale_hard/files/data/master/expected_transactions.txt
+COPY data/regions/us-east/transactions.txt /workspace/output/comm_file_not_sorted_locale_hard/files/data/regions/us-east/transactions.txt
+COPY data/regions/us-west/transactions.txt /workspace/output/comm_file_not_sorted_locale_hard/files/data/regions/us-west/transactions.txt
+COPY data/regions/eu-central/transactions.txt /workspace/output/comm_file_not_sorted_locale_hard/files/data/regions/eu-central/transactions.txt
+COPY data/regions/asia-pacific/transactions.txt /workspace/output/comm_file_not_sorted_locale_hard/files/data/regions/asia-pacific/transactions.txt
+COPY data/regions/latam/transactions.txt /workspace/output/comm_file_not_sorted_locale_hard/files/data/regions/latam/transactions.txt
+
 COPY reconcile.sh /opt/pipeline/reconcile.sh
 
 RUN chmod +x /opt/pipeline/reconcile.sh

@@ -74,9 +74,46 @@ def test_validation_keys_correct():
     result_path = Path("/workspace/validation_result.txt")
     content = result_path.read_text().strip()
     lines = content.split('\n')
-    
+
     expected_keys = ["output_valid", "gradients_valid", "weighting_valid", "overall_correct"]
-    
+
     for i, expected_key in enumerate(expected_keys):
         key = lines[i].split(": ", 1)[0].strip()
         assert key == expected_key, f"Line {i+1} should have key '{expected_key}', got '{key}'"
+
+
+def test_all_checks_pass():
+    """Test that the focal loss implementation passes all validation checks"""
+    result_path = Path("/workspace/validation_result.txt")
+    content = result_path.read_text().strip()
+    lines = content.split('\n')
+
+    values = {}
+    for line in lines:
+        key, value = line.split(": ", 1)
+        values[key.strip()] = value.strip()
+
+    # focal_loss.py correctly implements FL(p_t) = -alpha*(1-p_t)^gamma*log(p_t)
+    # output_valid: yes (focal loss produces non-negative scalar values)
+    assert values["output_valid"] == "yes", (
+        "focal_loss.py produces non-negative scalar loss via focal_loss.mean(), "
+        f"so output_valid should be 'yes', got '{values['output_valid']}'"
+    )
+
+    # gradients_valid: yes (implementation is fully differentiable via PyTorch ops)
+    assert values["gradients_valid"] == "yes", (
+        "focal_loss.py uses only differentiable PyTorch operations (softmax, log, gather), "
+        f"so gradients_valid should be 'yes', got '{values['gradients_valid']}'"
+    )
+
+    # weighting_valid: yes (easy examples have smaller focal weight (1-p_t)^gamma)
+    assert values["weighting_valid"] == "yes", (
+        "focal_loss.py correctly down-weights easy examples via (1-p_t)^gamma, "
+        f"so weighting_valid should be 'yes', got '{values['weighting_valid']}'"
+    )
+
+    # overall_correct: yes (all checks pass)
+    assert values["overall_correct"] == "yes", (
+        "All three validation checks pass for the focal loss implementation, "
+        f"so overall_correct should be 'yes', got '{values['overall_correct']}'"
+    )

@@ -109,11 +109,43 @@ def test_service_structure_preserved():
     """Test that the service structure is preserved from original"""
     solution_path = Path("/home/solution.yml")
     data = yaml.safe_load(solution_path.read_text())
-    
+
     services = data.get("services", {})
-    
+
     # Should have at least basic service configuration
     for service_name, service_config in services.items():
         assert isinstance(service_config, dict), f"Service {service_name} must be a dictionary"
         # Each service should have at least one configuration key
         assert len(service_config) > 0, f"Service {service_name} is empty"
+
+
+def test_broken_patterns_are_fixed():
+    """Test that specific broken variable patterns from original are corrected"""
+    solution_path = Path("/home/solution.yml")
+    content = solution_path.read_text()
+
+    # Original had these broken patterns that must NOT appear in the solution
+    broken_patterns = [
+        '{$',     # reversed brace: {$VAR} instead of ${VAR}
+        '$WEB_PORT}',  # missing opening brace
+        '${DEBUG_MODE',  # missing closing brace
+        '${DATABASE_NAME',  # missing closing brace
+        '$DB_USERNAME}',  # missing opening brace
+        '{$DB_PASSWORD}',  # reversed brace
+        '${WORKER_COUNT:5}',  # wrong separator (should be :- not :)
+        '${SHARED_BUFFERS_SIZE:256MB}',  # wrong separator
+    ]
+
+    for broken in broken_patterns:
+        assert broken not in content, \
+            f"Broken variable pattern '{broken}' from original was not fixed in solution"
+
+
+def test_web_and_database_services_present():
+    """Test that both web and database services are present in the solution"""
+    solution_path = Path("/home/solution.yml")
+    data = yaml.safe_load(solution_path.read_text())
+
+    services = data.get("services", {})
+    assert "web" in services, "Missing 'web' service in solution"
+    assert "database" in services, "Missing 'database' service in solution"

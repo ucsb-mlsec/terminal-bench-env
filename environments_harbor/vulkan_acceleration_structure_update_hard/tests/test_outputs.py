@@ -96,14 +96,35 @@ def test_values_are_consistent():
     result_path = Path("/workspace/analysis_result.txt")
     content = result_path.read_text().strip()
     lines = content.split('\n')
-    
+
     total_rebuilds = int(lines[0].split('=')[1])
     avg_memory = float(lines[1].split('=')[1])
     performance_issue = lines[2].split('=')[1]
-    
+
     # If excessive_rebuilds is identified, there should be a significant number of rebuilds
     if performance_issue == 'excessive_rebuilds':
         assert total_rebuilds > 0, "If performance_issue is excessive_rebuilds, total_rebuilds should be > 0"
-    
+
     # Memory average should be reasonable for the described scenario
     assert 0 < avg_memory < 1000, f"Average memory per frame {avg_memory} seems unreasonable"
+
+def test_performance_issue_is_missing_update_flags():
+    """Test that performance_issue is missing_update_flags (all trace entries have 0x00 build flags)"""
+    result_path = Path("/workspace/analysis_result.txt")
+    content = result_path.read_text().strip()
+    lines = content.split('\n')
+    performance_issue = lines[2].split('=')[1]
+    assert performance_issue == 'missing_update_flags', \
+        f"Expected performance_issue=missing_update_flags (all entries in as_operations.log have 0x00 flags, " \
+        f"missing 0x01 allow_update flag for dynamic content), got '{performance_issue}'"
+
+def test_avg_memory_near_expected():
+    """Test that avg_memory_per_frame is approximately 12.5 MB (mean of memory column in trace)"""
+    result_path = Path("/workspace/analysis_result.txt")
+    content = result_path.read_text().strip()
+    lines = content.split('\n')
+    avg_memory = float(lines[1].split('=')[1])
+    # The trace data memory values cluster around 12.5 MB (45000 bytes each divided by 3600)
+    # Actually memory is directly the 5th column in MB ~ 12.5
+    assert 10.0 <= avg_memory <= 16.0, \
+        f"avg_memory_per_frame {avg_memory} is outside expected range (10.0-16.0 MB) based on trace data"

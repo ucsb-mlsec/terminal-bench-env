@@ -59,8 +59,29 @@ def test_solution_addresses_world_size_or_rank():
     lines = content.split('\n')
     
     parameter_name = lines[0].strip().lower()
-    
+
     # The most common causes of DDP hangs are world_size and rank mismatches
     # world_size must match the number of processes (4 cores available)
     assert parameter_name in ['world_size', 'rank', 'backend', 'num_processes', 'nproc_per_node'], \
         f"Parameter '{parameter_name}' is unlikely to cause initialization hangs in DDP"
+
+
+def test_solution_correct_parameter_is_world_size():
+    """Test that the identified parameter is world_size (the config has world_size=4 with 4 processes)"""
+    solution_path = Path("/workspace/solution.txt")
+    lines = solution_path.read_text().strip().split('\n')
+    parameter_name = lines[0].strip()
+    # The config.yaml has world_size: 4 but rank: 0 hardcoded — all spawned processes read rank=0
+    assert parameter_name in ['world_size', 'rank'], \
+        f"The misconfigured parameter should be 'world_size' or 'rank', got: '{parameter_name}'"
+
+
+def test_correct_value_matches_expected():
+    """Test that the correct value for the parameter makes sense for a 4-process setup"""
+    solution_path = Path("/workspace/solution.txt")
+    lines = solution_path.read_text().strip().split('\n')
+    parameter_name = lines[0].strip()
+    correct_value = lines[2].strip()
+    if parameter_name == 'world_size':
+        assert correct_value == '4', \
+            f"Correct world_size for 4-process training should be 4, got: {correct_value}"

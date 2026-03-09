@@ -1,110 +1,44 @@
-[
-  {
-    "I need to analyze the backup system and identify corrupted files by comparing current checksums against the original checksums stored in checksums.md5.":"```bash"
+{
+  "backup_settings": {
+    "schedule": "daily",
+    "time": "02:00",
+    "retention_days": 30,
+    "compression": true,
+    "encryption": "AES-256",
+    "verify_integrity": true
   },
-  {
-    "I need to analyze the backup system and identify corrupted files by comparing current checksums against the original checksums stored in checksums.md5.":"#!\/bin\/bash"
+  "targets": [
+    {
+      "name": "database",
+      "type": "postgresql",
+      "host": "db.internal.local",
+      "port": 5432,
+      "include_schemas": ["public", "analytics"],
+      "exclude_tables": ["temp_logs", "session_cache"]
+    },
+    {
+      "name": "application_configs",
+      "type": "filesystem",
+      "paths": ["/etc/app/", "/var/config/"],
+      "max_file_size_mb": 100
+    },
+    {
+      "name": "redis_cache",
+      "type": "redis",
+      "host": "redis.internal.local",
+      "port": 6379,
+      "rdb_snapshot": true
+    }
+  ],
+  "notifications": {
+    "email": "ops-team@company.com",
+    "slack_webhook": "https://hooks.example.com/services/FAKE00000/FAKE00000/FAKE_WEBHOOK_FOR_BENCHMARK",
+    "on_failure": true,
+    "on_success": false
   },
-  {
-    "I need to analyze the backup system and identify corrupted files by comparing current checksums against the original checksums stored in checksums.md5.":"# Navigate to backup directory"
-  },
-  {
-    "I need to analyze the backup system and identify corrupted files by comparing current checksums against the original checksums stored in checksums.md5.":"cd \/backup\/configs"
-  },
-  {
-    "I need to analyze the backup system and identify corrupted files by comparing current checksums against the original checksums stored in checksums.md5.":"# Read the checksums.md5 file to see the original checksums"
-  },
-  {
-    "I need to analyze the backup system and identify corrupted files by comparing current checksums against the original checksums stored in checksums.md5.":"if [ -f \"checksums.md5\" ]; then"
-  },
-  {
-    "I need to analyze the backup system and identify corrupted files by comparing current checksums against the original checksums stored in checksums.md5.":"    # Verify each file against its recorded checksum"
-  },
-  {
-    "I need to analyze the backup system and identify corrupted files by comparing current checksums against the original checksums stored in checksums.md5.":"    # Create array to store corrupted files"
-  },
-  {
-    "I need to analyze the backup system and identify corrupted files by comparing current checksums against the original checksums stored in checksums.md5.":"    corrupted_files=()"
-  },
-  {
-    "I need to analyze the backup system and identify corrupted files by comparing current checksums against the original checksums stored in checksums.md5.":"    # Read checksums file line by line"
-  },
-  {
-    "I need to analyze the backup system and identify corrupted files by comparing current checksums against the original checksums stored in checksums.md5.":"    while IFS= read -r line; do"
-  },
-  {
-    "I need to analyze the backup system and identify corrupted files by comparing current checksums against the original checksums stored in checksums.md5.":"        # Parse the checksum and filename (md5sum format: checksum  filename)"
-  },
-  {
-    "I need to analyze the backup system and identify corrupted files by comparing current checksums against the original checksums stored in checksums.md5.":"        original_checksum=$(echo \"$line\" | awk '{print $1}')"
-  },
-  {
-    "I need to analyze the backup system and identify corrupted files by comparing current checksums against the original checksums stored in checksums.md5.":"        filename=$(echo \"$line\" | awk '{print $2}')"
-  },
-  {
-    "I need to analyze the backup system and identify corrupted files by comparing current checksums against the original checksums stored in checksums.md5.":"        # Skip if file doesn't exist"
-  },
-  {
-    "I need to analyze the backup system and identify corrupted files by comparing current checksums against the original checksums stored in checksums.md5.":"        if [ ! -f \"$filename\" ]; then"
-  },
-  {
-    "I need to analyze the backup system and identify corrupted files by comparing current checksums against the original checksums stored in checksums.md5.":"            continue"
-  },
-  {
-    "I need to analyze the backup system and identify corrupted files by comparing current checksums against the original checksums stored in checksums.md5.":"        fi"
-  },
-  {
-    "I need to analyze the backup system and identify corrupted files by comparing current checksums against the original checksums stored in checksums.md5.":"        # Calculate current checksum"
-  },
-  {
-    "I need to analyze the backup system and identify corrupted files by comparing current checksums against the original checksums stored in checksums.md5.":"        current_checksum=$(md5sum \"$filename\" | awk '{print $1}')"
-  },
-  {
-    "I need to analyze the backup system and identify corrupted files by comparing current checksums against the original checksums stored in checksums.md5.":"        # Compare checksums"
-  },
-  {
-    "I need to analyze the backup system and identify corrupted files by comparing current checksums against the original checksums stored in checksums.md5.":"        if [ \"$original_checksum\" != \"$current_checksum\" ]; then"
-  },
-  {
-    "I need to analyze the backup system and identify corrupted files by comparing current checksums against the original checksums stored in checksums.md5.":"            corrupted_files+=(\"$filename:$original_checksum:$current_checksum\")"
-  },
-  {
-    "I need to analyze the backup system and identify corrupted files by comparing current checksums against the original checksums stored in checksums.md5.":"        fi"
-  },
-  {
-    "I need to analyze the backup system and identify corrupted files by comparing current checksums against the original checksums stored in checksums.md5.":"    done < checksums.md5"
-  },
-  {
-    "I need to analyze the backup system and identify corrupted files by comparing current checksums against the original checksums stored in checksums.md5.":"    # Sort and write results"
-  },
-  {
-    "I need to analyze the backup system and identify corrupted files by comparing current checksums against the original checksums stored in checksums.md5.":"    if [ ${#corrupted_files[@]} -eq 0 ]; then"
-  },
-  {
-    "I need to analyze the backup system and identify corrupted files by comparing current checksums against the original checksums stored in checksums.md5.":"        echo \"NO_CORRUPTION_DETECTED\" > \/solution\/corrupted_files.txt"
-  },
-  {
-    "I need to analyze the backup system and identify corrupted files by comparing current checksums against the original checksums stored in checksums.md5.":"    else"
-  },
-  {
-    "I need to analyze the backup system and identify corrupted files by comparing current checksums against the original checksums stored in checksums.md5.":"        printf '%s\\n' \"${corrupted_files[@]}\" | sort > \/solution\/corrupted_files.txt"
-  },
-  {
-    "I need to analyze the backup system and identify corrupted files by comparing current checksums against the original checksums stored in checksums.md5.":"    fi"
-  },
-  {
-    "I need to analyze the backup system and identify corrupted files by comparing current checksums against the original checksums stored in checksums.md5.":"else"
-  },
-  {
-    "I need to analyze the backup system and identify corrupted files by comparing current checksums against the original checksums stored in checksums.md5.":"    echo \"NO_CORRUPTION_DETECTED\" > \/solution\/corrupted_files.txt"
-  },
-  {
-    "I need to analyze the backup system and identify corrupted files by comparing current checksums against the original checksums stored in checksums.md5.":"fi"
-  },
-  {
-    "I need to analyze the backup system and identify corrupted files by comparing current checksums against the original checksums stored in checksums.md5.":"```"
-  },
-  {
-    "I need to analyze the backup system and identify corrupted files by comparing current checksums against the original checksums stored in checksums.md5.":"Now for the backup.json file content as requested:"
+  "storage": {
+    "primary": "s3://company-backups/configs/",
+    "secondary": "/mnt/backup-nas/configs/",
+    "verify_checksum": true
   }
-]
+}

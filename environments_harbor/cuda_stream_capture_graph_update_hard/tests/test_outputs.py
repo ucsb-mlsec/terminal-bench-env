@@ -74,3 +74,32 @@ def test_file_ends_with_newline():
     analysis_path = Path("/workspace/analysis.txt")
     content = analysis_path.read_text()
     assert content.endswith('\n'), "File must end with a newline character"
+
+
+def test_correct_line_number():
+    """Test that the identified line number matches the actual bug location in pipeline.py"""
+    analysis_path = Path("/workspace/analysis.txt")
+    lines = analysis_path.read_text().strip().split('\n')
+    line_num = int(lines[1].strip())
+
+    # The bug in pipeline.py is update_graph() called before capture_graph()
+    # Line 89: self.update_graph(batch_data)  # This is the bug!
+    assert line_num == 89, (
+        f"The bug in pipeline.py is on line 89 (update_graph called before capture_graph), "
+        f"but reported line number is {line_num}"
+    )
+
+
+def test_description_identifies_ordering_bug():
+    """Test that the description correctly identifies the update-before-capture ordering bug"""
+    analysis_path = Path("/workspace/analysis.txt")
+    lines = analysis_path.read_text().strip().split('\n')
+    description = lines[2].lower()
+
+    # The bug is updating graph before capturing it
+    order_keywords = ['update', 'before', 'capture', 'order', 'prior']
+    has_order_keyword = any(kw in description for kw in order_keywords)
+    assert has_order_keyword, (
+        f"Description should mention the ordering issue (update called before capture), "
+        f"got: '{description}'"
+    )

@@ -75,13 +75,54 @@ def test_second_and_third_lines_are_values():
     solution_path = Path("/root/solution.txt")
     content = solution_path.read_text()
     lines = content.strip().split('\n')
-    
+
     old_value = lines[1].strip()
     new_value = lines[2].strip()
-    
+
     # Values should be reasonable (numbers, strings, booleans, etc.)
     assert len(old_value) > 0, "Old value (line 2) is empty"
     assert len(new_value) > 0, "New value (line 3) is empty"
-    
+
     # They should be different
     assert old_value != new_value, "Old value and new value are the same - no fix was applied"
+
+
+def test_parameter_is_min_collection_interval():
+    """Test that the identified parameter is min_collection_interval"""
+    solution_path = Path("/root/solution.txt")
+    lines = solution_path.read_text().strip().split('\n')
+    param_name = lines[0].strip()
+
+    assert param_name == "min_collection_interval", (
+        f"The problematic parameter in datadog.yaml is 'min_collection_interval' "
+        f"(set to 1 second causing all checks to run every second), "
+        f"but got: '{param_name}'"
+    )
+
+
+def test_old_value_is_one():
+    """Test that the old problematic value is 1 (1-second interval causing high CPU)"""
+    solution_path = Path("/root/solution.txt")
+    lines = solution_path.read_text().strip().split('\n')
+    old_value = lines[1].strip()
+
+    assert old_value == "1", (
+        f"The old value of min_collection_interval is '1' (1 second, causing 64 checks/sec), "
+        f"but got: '{old_value}'"
+    )
+
+
+def test_new_value_is_reasonable():
+    """Test that the new value increases the collection interval significantly"""
+    solution_path = Path("/root/solution.txt")
+    lines = solution_path.read_text().strip().split('\n')
+    new_value = lines[2].strip()
+
+    try:
+        new_int = int(new_value)
+        assert new_int >= 15, (
+            f"New min_collection_interval should be at least 15 seconds "
+            f"to reduce CPU usage to acceptable levels, got: {new_int}"
+        )
+    except ValueError:
+        assert False, f"New value should be a number, got: '{new_value}'"

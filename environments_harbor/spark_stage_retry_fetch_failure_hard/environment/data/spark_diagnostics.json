@@ -1,71 +1,52 @@
-[
-  {
-    "I'll analyze the Spark diagnostics file and create the fix file.":"```python"
+{
+  "configuration": {
+    "spark.executor.memory": "4g",
+    "spark.executor.cores": 4,
+    "spark.executor.instances": 10,
+    "spark.network.timeout": "120s",
+    "spark.shuffle.io.maxRetries": 3,
+    "spark.shuffle.io.retryWait": "5s",
+    "spark.reducer.maxSizeInFlight": "48m",
+    "spark.shuffle.compress": true,
+    "spark.serializer": "org.apache.spark.serializer.KryoSerializer"
   },
-  {
-    "I'll analyze the Spark diagnostics file and create the fix file.":"import json"
+  "shuffle_metrics": {
+    "totalShuffleRead": "487GB",
+    "totalShuffleWrite": "502GB",
+    "shuffleReadRecords": 2850000000,
+    "shuffleWriteRecords": 2850000000,
+    "fetchWaitTime_avg_ms": 45000,
+    "fetchWaitTime_max_ms": 140000,
+    "localBlocksFetched": 125000,
+    "remoteBlocksFetched": 875000,
+    "remoteBytesRead": "398GB"
   },
-  {
-    "I'll analyze the Spark diagnostics file and create the fix file.":"# Read the diagnostic data"
+  "network_stats": {
+    "avgFetchTime": 45,
+    "p95FetchTime": 95,
+    "maxFetchWaitTime": 140,
+    "connectionTimeouts": 847,
+    "fetchFailures": 234,
+    "retryCount": 702,
+    "maxRetriesExceeded": true
   },
-  {
-    "I'll analyze the Spark diagnostics file and create the fix file.":"    diagnostics = json.load(f)"
+  "failure_details": {
+    "failedStage": "Stage 14 (shuffle read)",
+    "retryAttempts": 3,
+    "errorMessage": "FetchFailed: timeout waiting for connection from executor-7 after 120000ms",
+    "affectedExecutors": ["executor-2", "executor-5", "executor-7", "executor-9"],
+    "failureTimestamp": "2024-01-15T14:32:18Z"
   },
-  {
-    "I'll analyze the Spark diagnostics file and create the fix file.":"# Analyze the data"
-  },
-  {
-    "I'll analyze the Spark diagnostics file and create the fix file.":"config = diagnostics['configuration']"
-  },
-  {
-    "I'll analyze the Spark diagnostics file and create the fix file.":"shuffle_metrics = diagnostics['shuffle_metrics']"
-  },
-  {
-    "I'll analyze the Spark diagnostics file and create the fix file.":"network_stats = diagnostics['network_stats']"
-  },
-  {
-    "I'll analyze the Spark diagnostics file and create the fix file.":"failure_details = diagnostics['failure_details']"
-  },
-  {
-    "I'll analyze the Spark diagnostics file and create the fix file.":"# Key observations:"
-  },
-  {
-    "I'll analyze the Spark diagnostics file and create the fix file.":"# 1. network.timeout is set to a low value (likely 60s or 120s)"
-  },
-  {
-    "I'll analyze the Spark diagnostics file and create the fix file.":"# 4. Error message indicates \"timeout waiting for connection\""
-  },
-  {
-    "I'll analyze the Spark diagnostics file and create the fix file.":"# The root cause: spark.network.timeout is too low for the shuffle fetch times"
-  },
-  {
-    "I'll analyze the Spark diagnostics file and create the fix file.":"# Current timeout < actual fetch times = premature timeouts = FetchFailed errors"
-  },
-  {
-    "I'll analyze the Spark diagnostics file and create the fix file.":"max_fetch_time = network_stats['maxFetchWaitTime']  # 140s"
-  },
-  {
-    "I'll analyze the Spark diagnostics file and create the fix file.":"p95_fetch_time = network_stats['p95FetchTime']  # 95s"
-  },
-  {
-    "I'll analyze the Spark diagnostics file and create the fix file.":"# Recommended value: Set timeout to accommodate p95 + buffer (2-3x for safety)"
-  },
-  {
-    "I'll analyze the Spark diagnostics file and create the fix file.":"recommended_timeout = '600s'"
-  },
-  {
-    "I'll analyze the Spark diagnostics file and create the fix file.":"# Write the fix"
-  },
-  {
-    "I'll analyze the Spark diagnostics file and create the fix file.":"    f.write('spark.network.timeout\\n')"
-  },
-  {
-    "I'll analyze the Spark diagnostics file and create the fix file.":"    f.write('600s\\n')"
-  },
-  {
-    "I'll analyze the Spark diagnostics file and create the fix file.":"```"
-  },
-  {
-    "I'll analyze the Spark diagnostics file and create the fix file.":"The solution has been written to \/tmp\/spark_fix.txt with the configuration parameter that needs to be changed and its recommended value."
-  }
-]
+  "executor_stats": [
+    {"executorId": "executor-0", "gcTimeMs": 12000, "memoryUsed": "3.2GB", "diskUsed": "45GB"},
+    {"executorId": "executor-1", "gcTimeMs": 15000, "memoryUsed": "3.5GB", "diskUsed": "52GB"},
+    {"executorId": "executor-2", "gcTimeMs": 45000, "memoryUsed": "3.9GB", "diskUsed": "68GB"},
+    {"executorId": "executor-3", "gcTimeMs": 11000, "memoryUsed": "3.1GB", "diskUsed": "41GB"},
+    {"executorId": "executor-4", "gcTimeMs": 13000, "memoryUsed": "3.3GB", "diskUsed": "47GB"},
+    {"executorId": "executor-5", "gcTimeMs": 52000, "memoryUsed": "3.8GB", "diskUsed": "71GB"},
+    {"executorId": "executor-6", "gcTimeMs": 14000, "memoryUsed": "3.4GB", "diskUsed": "49GB"},
+    {"executorId": "executor-7", "gcTimeMs": 68000, "memoryUsed": "3.9GB", "diskUsed": "75GB"},
+    {"executorId": "executor-8", "gcTimeMs": 12000, "memoryUsed": "3.2GB", "diskUsed": "44GB"},
+    {"executorId": "executor-9", "gcTimeMs": 48000, "memoryUsed": "3.8GB", "diskUsed": "67GB"}
+  ]
+}

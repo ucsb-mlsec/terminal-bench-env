@@ -84,8 +84,41 @@ def test_counts_positive():
     """Test that all counts are positive integers"""
     output_path = Path("/tmp/stack_trace_analysis.txt")
     lines = output_path.read_text().strip().split('\n')
-    
+
     for i, line in enumerate(lines):
         parts = line.split('|')
         count = int(parts[1])
         assert count > 0, f"Line {i+1}: Count should be positive, got {count}"
+
+def test_nullpointerexception_count():
+    """Test that NullPointerException appears 15 times per the log file"""
+    output_path = Path("/tmp/stack_trace_analysis.txt")
+    lines = output_path.read_text().strip().split('\n')
+
+    npe_lines = [l for l in lines if 'NullPointerException' in l]
+    assert len(npe_lines) == 1, "Expected exactly one NullPointerException entry"
+
+    count = int(npe_lines[0].split('|')[1])
+    assert count == 15, \
+        f"Expected NullPointerException count=15 (15 occurrences in production.log), got: {count}"
+
+def test_ioexception_count():
+    """Test that IOException appears 7 times per the log file"""
+    output_path = Path("/tmp/stack_trace_analysis.txt")
+    lines = output_path.read_text().strip().split('\n')
+
+    io_lines = [l for l in lines if 'IOException' in l and 'NullPointer' not in l]
+    assert len(io_lines) == 1, "Expected exactly one IOException entry"
+
+    count = int(io_lines[0].split('|')[1])
+    assert count == 7, \
+        f"Expected IOException count=7 (7 occurrences in production.log), got: {count}"
+
+def test_first_entry_is_nullpointerexception():
+    """Test that the first line (highest count) is NullPointerException"""
+    output_path = Path("/tmp/stack_trace_analysis.txt")
+    first_line = output_path.read_text().strip().split('\n')[0]
+
+    exception_type = first_line.split('|')[0]
+    assert 'NullPointerException' in exception_type, \
+        f"Expected first entry to be NullPointerException (count=15, highest), got: {exception_type}"

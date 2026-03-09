@@ -14,11 +14,11 @@ RUN pip3 install --no-cache-dir --break-system-packages biopython
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /data /output
+RUN mkdir -p /workspace/data /workspace/output
 
-COPY data/peaks.bed /data/peaks.bed
-COPY data/genome.fa /data/genome.fa
-COPY data/motifs.txt /data/motifs.txt
+COPY data/peaks.bed /workspace/data/peaks.bed
+COPY data/genome.fa /workspace/data/genome.fa
+COPY data/motifs.txt /workspace/data/motifs.txt
 
 WORKDIR /workspace
 

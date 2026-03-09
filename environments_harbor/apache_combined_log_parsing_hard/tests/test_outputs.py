@@ -121,3 +121,21 @@ def test_script_is_executable():
     assert len(content) > 0, "Script file is empty"
     # Check for basic Python syntax elements
     assert "import" in content or "from" in content, "Script should contain import statements"
+
+
+def test_top_endpoint_is_api_users():
+    """Test that the top_endpoint is /api/users, the most frequently requested path"""
+    # From the log file, /api/users appears far more frequently than any other path
+    output_path = Path("/home/user/log_analysis.json")
+    data = json.loads(output_path.read_text())
+    assert data["top_endpoint"] == "/api/users", \
+        f"top_endpoint should be '/api/users' (most requested path), got '{data['top_endpoint']}'"
+
+
+def test_slowest_backend_is_backend_03():
+    """Test that backend-03 is the slowest backend by average response time"""
+    # From the log file, backend-03 consistently shows the highest response times (>2s entries)
+    output_path = Path("/home/user/log_analysis.json")
+    data = json.loads(output_path.read_text())
+    assert data["slowest_backend"] == "backend-03", \
+        f"slowest_backend should be 'backend-03' (highest avg response time), got '{data['slowest_backend']}'"

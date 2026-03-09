@@ -63,8 +63,29 @@ def test_input_files_exist():
     """Test that input test files exist (environment check)"""
     input_dir = Path("/workspace/verify/inputs")
     assert input_dir.exists(), "Input directory not found - environment setup issue"
-    
+
     expected_inputs = ["input1.txt", "input2.txt", "input4.txt"]
     for input_file in expected_inputs:
         input_path = input_dir / input_file
         assert input_path.exists(), f"Input file {input_file} not found - environment setup issue"
+
+
+def test_terminates_is_true():
+    """Test that processOddEven is correctly identified as terminating"""
+    # processOddEven: when x is odd, recurses with (suc x :: xs) - but suc x is even,
+    # so next call consumes suc x (even branch), then recurses on xs. The list strictly
+    # shrinks in length across two-step pairs, so termination is well-founded.
+    verdict_path = Path("/workspace/verdict.json")
+    with open(verdict_path, 'r') as f:
+        data = json.load(f)
+    assert data["terminates"] == True, \
+        "processOddEven terminates: odd elements are incremented to even and consumed in the next call, so the list shrinks"
+
+
+def test_pattern_is_well_founded():
+    """Test that the recursion pattern is identified as well-founded"""
+    verdict_path = Path("/workspace/verdict.json")
+    with open(verdict_path, 'r') as f:
+        data = json.load(f)
+    assert data["pattern"] == "well-founded", \
+        "processOddEven uses a well-founded recursion pattern (not simple structural recursion)"

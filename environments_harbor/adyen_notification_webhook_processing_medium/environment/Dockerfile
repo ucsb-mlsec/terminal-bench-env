@@ -13,7 +13,9 @@ RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.
 
 RUN mkdir -p /workspace/webhooks
 
+COPY data/webhooks/webhook_001.json /workspace/webhooks/webhook_001.json
 COPY data/webhooks/webhook_002.json /workspace/webhooks/webhook_002.json
+COPY data/webhooks/webhook_003.json /workspace/webhooks/webhook_003.json
 COPY data/webhooks/webhook_004.json /workspace/webhooks/webhook_004.json
 COPY data/webhooks/webhook_005.json /workspace/webhooks/webhook_005.json
 

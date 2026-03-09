@@ -128,9 +128,33 @@ def test_total_value_precision():
     output_path = Path("/workspace/output/summary.json")
     with open(output_path, 'r') as f:
         data = json.load(f)
-    
+
     total_value = data["total_value"]
     # Check if the value has at most 2 decimal places
     rounded_value = round(total_value, 2)
     assert abs(total_value - rounded_value) < 1e-9, \
         f"Total value should be rounded to 2 decimal places, got {total_value}"
+
+
+def test_date_range_starts_in_2023():
+    """Test that the date range starts in 2023 (archive/old_transactions.json has 2023-11-10 entries)"""
+    # archive/old_transactions.json contains valid transactions starting 2023-11-10
+    output_path = Path("/workspace/output/summary.json")
+    with open(output_path, 'r') as f:
+        data = json.load(f)
+    date_range = data["date_range"]
+    start_date = date_range.split(" to ")[0]
+    assert start_date == "2023-11-10", \
+        f"date_range should start at '2023-11-10' (earliest valid transaction in archive), got '{start_date}'"
+
+
+def test_date_range_ends_in_march_2024():
+    """Test that the date range ends in March 2024 (recent/latest_batch.json has entries through 2024-03-07)"""
+    # latest_batch.json (recent/) contains valid transactions up to 2024-03-07
+    output_path = Path("/workspace/output/summary.json")
+    with open(output_path, 'r') as f:
+        data = json.load(f)
+    date_range = data["date_range"]
+    end_date = date_range.split(" to ")[1]
+    assert end_date == "2024-03-07", \
+        f"date_range should end at '2024-03-07' (latest valid transaction in recent batch), got '{end_date}'"

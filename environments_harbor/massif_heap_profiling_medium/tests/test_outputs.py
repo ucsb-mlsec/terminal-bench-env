@@ -87,5 +87,22 @@ def test_no_extra_content():
     report_path = Path("/home/agent/memory_report.txt")
     content = report_path.read_text().strip()
     lines = [line for line in content.split('\n') if line.strip()]
-    
+
     assert len(lines) == 3, f"Expected exactly 3 non-empty lines, got {len(lines)}"
+
+def test_culprit_function_is_generate_treasure():
+    """Test that the identified culprit function is generate_treasure.
+
+    The dungeon.c source explicitly marks 'treasure_desc' as never freed inside
+    generate_treasure, making it the correct answer.
+    """
+    report_path = Path("/home/agent/memory_report.txt")
+    content = report_path.read_text().strip()
+
+    match = re.search(r'^culprit_function=(.+)$', content, re.MULTILINE)
+    assert match, "culprit_function line not found"
+
+    function_name = match.group(1).strip()
+    assert function_name == "generate_treasure", (
+        f"Expected culprit_function=generate_treasure, got culprit_function={function_name}"
+    )

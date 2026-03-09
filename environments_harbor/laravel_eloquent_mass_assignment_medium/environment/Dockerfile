@@ -15,12 +15,12 @@ RUN apt-get update && \
     apt-get install -y php php-cli php-json && \
     rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /src /tmp
+RUN mkdir -p /workspace/output/laravel_eloquent_mass_assignment_medium/files/src /tmp
 
-COPY src/User.php /src/User.php
-COPY test_assignment.php /test_assignment.php
+COPY src/User.php /workspace/output/laravel_eloquent_mass_assignment_medium/files/src/User.php
+COPY test_assignment.php /workspace/output/laravel_eloquent_mass_assignment_medium/files/test_assignment.php
 
-WORKDIR /
+WORKDIR /workspace/output/laravel_eloquent_mass_assignment_medium/files
 
 # Mapped from docker-compose.yaml
 ENV TEST_DIR=/tests

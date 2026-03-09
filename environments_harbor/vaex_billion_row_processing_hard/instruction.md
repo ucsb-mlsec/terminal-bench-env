@@ -1,4 +1,4 @@
-A manufacturing facility's IoT sensor network has been collecting temperature, pressure, and vibration readings from industrial equipment. The data has accumulated to 10 million records stored in `/data/sensor_readings.csv` and needs to be aggregated for a quarterly maintenance report.
+A manufacturing facility's IoT sensor network has been collecting temperature, pressure, and vibration readings from industrial equipment. The data has accumulated to 10 million records stored in `/workspace/data/sensor_readings.csv` and needs to be aggregated for a quarterly maintenance report.
 
 The CSV file contains these columns:
 - sensor_id (integer, 1-500)
@@ -17,7 +17,7 @@ The data volume is substantial enough that naive processing approaches will be s
 
 **Output Requirements:**
 
-Save your results to `/solution/sensor_summary.json` with exactly this structure:
+Save your results to `/workspace/solution/sensor_summary.json` with exactly this structure:
 
 ```json
 {

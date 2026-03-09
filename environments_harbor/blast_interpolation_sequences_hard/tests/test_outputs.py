@@ -64,3 +64,27 @@ def test_control_c_file_exists():
     """Test that the input control.c file exists (sanity check)"""
     control_path = Path("/workspace/target/control.c")
     assert control_path.exists(), "control.c file does not exist - cannot verify the task was performed"
+
+
+def test_status_is_unsafe():
+    """Test that control.c is correctly classified as UNSAFE"""
+    # resource_count can exceed MAX_RESOURCES (100): allocating 15/iter over many iterations
+    # buffer_level can exceed MAX_BUFFER (50): increases with allocations and processing
+    # resource_count can go negative: RELEASING subtracts without lower bound check on input
+    result_path = Path("/workspace/verification_result.txt")
+    content = result_path.read_text().strip()
+    lines = content.split('\n')
+    status_value = lines[0].replace("STATUS: ", "").strip()
+    assert status_value == "UNSAFE", \
+        "control.c has assertions that can fail: resource_count can exceed MAX_RESOURCES and buffer_level can exceed MAX_BUFFER"
+
+
+def test_violations_at_least_two():
+    """Test that at least 2 assertion violations are identified"""
+    # Two distinct assertions can fail: resource_count <= MAX_RESOURCES and buffer_level < MAX_BUFFER
+    result_path = Path("/workspace/verification_result.txt")
+    content = result_path.read_text().strip()
+    lines = content.split('\n')
+    violations_value = int(lines[1].replace("VIOLATIONS: ", "").strip())
+    assert violations_value >= 2, \
+        f"control.c has at least 2 failing assertions (resource bounds and buffer bounds), got {violations_value}"

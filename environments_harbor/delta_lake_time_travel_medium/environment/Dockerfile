@@ -11,24 +11,24 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /data/transactions/versions/v1 \
-    /data/transactions/versions/v2 \
-    /data/transactions/versions/v3 \
-    /data/transactions/versions/v4 \
-    /data/transactions/versions/v5 \
-    /data/transactions/versions/v6 \
-    /data/transactions/versions/v7 \
-    /data/transactions/versions/v8 \
-    /solution
+RUN mkdir -p /workspace/data/transactions/versions/v1 \
+    /workspace/data/transactions/versions/v2 \
+    /workspace/data/transactions/versions/v3 \
+    /workspace/data/transactions/versions/v4 \
+    /workspace/data/transactions/versions/v5 \
+    /workspace/data/transactions/versions/v6 \
+    /workspace/data/transactions/versions/v7 \
+    /workspace/data/transactions/versions/v8 \
+    /workspace/solution
 
-COPY data/transactions/versions/v1/transactions.csv /data/transactions/versions/v1/transactions.csv
-COPY data/transactions/versions/v2/transactions.csv /data/transactions/versions/v2/transactions.csv
-COPY data/transactions/versions/v3/transactions.csv /data/transactions/versions/v3/transactions.csv
-COPY data/transactions/versions/v4/transactions.csv /data/transactions/versions/v4/transactions.csv
-COPY data/transactions/versions/v5/transactions.csv /data/transactions/versions/v5/transactions.csv
-COPY data/transactions/versions/v6/transactions.csv /data/transactions/versions/v6/transactions.csv
-COPY data/transactions/versions/v7/transactions.csv /data/transactions/versions/v7/transactions.csv
-COPY data/transactions/versions/v8/transactions.csv /data/transactions/versions/v8/transactions.csv
+COPY data/transactions/versions/v1/transactions.csv /workspace/data/transactions/versions/v1/transactions.csv
+COPY data/transactions/versions/v2/transactions.csv /workspace/data/transactions/versions/v2/transactions.csv
+COPY data/transactions/versions/v3/transactions.csv /workspace/data/transactions/versions/v3/transactions.csv
+COPY data/transactions/versions/v4/transactions.csv /workspace/data/transactions/versions/v4/transactions.csv
+COPY data/transactions/versions/v5/transactions.csv /workspace/data/transactions/versions/v5/transactions.csv
+COPY data/transactions/versions/v6/transactions.csv /workspace/data/transactions/versions/v6/transactions.csv
+COPY data/transactions/versions/v7/transactions.csv /workspace/data/transactions/versions/v7/transactions.csv
+COPY data/transactions/versions/v8/transactions.csv /workspace/data/transactions/versions/v8/transactions.csv
 
 WORKDIR /workspace
 

@@ -11,9 +11,10 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /tmp /data
+RUN mkdir -p /tmp /data /workspace/output/hadoop_disk_balancer_skew_hard/files/data
 
 COPY data/datanode_metrics.csv /tmp/datanode_metrics.csv
+COPY data/datanode_metrics.csv /workspace/output/hadoop_disk_balancer_skew_hard/files/data/datanode_metrics.csv
 
 WORKDIR /tmp
 

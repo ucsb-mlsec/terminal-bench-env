@@ -11,9 +11,9 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /workspace
+RUN mkdir -p /workspace/data
 
-COPY data/warehouse_map.txt /workspace/warehouse_map.txt
+COPY data/warehouse_map.txt /workspace/data/warehouse_map.txt
 
 WORKDIR /workspace
 

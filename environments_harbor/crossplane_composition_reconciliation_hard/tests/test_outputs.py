@@ -85,9 +85,52 @@ def test_analysis_format_correct():
     analysis_path = Path("/workspace/analysis.txt")
     content = analysis_path.read_text().strip()
     lines = [line.strip() for line in content.split('\n') if line.strip()]
-    
+
     assert len(lines) == 3, f"Expected exactly 3 non-empty lines, found {len(lines)}"
-    
+
     line_prefixes = ['PRIMARY_ISSUE:', 'AFFECTED_FILES:', 'ERROR_TYPE:']
     for i, (line, expected_prefix) in enumerate(zip(lines, line_prefixes)):
         assert line.startswith(expected_prefix), f"Line {i+1} should start with '{expected_prefix}', but got: {line[:30]}"
+
+
+def test_error_type_is_schema_mismatch():
+    """Test that ERROR_TYPE is schema_mismatch (controller.log shows instanceType field mismatch)"""
+    analysis_path = Path("/workspace/analysis.txt")
+    content = analysis_path.read_text().strip()
+    lines = content.split('\n')
+
+    error_type = None
+    for line in lines:
+        if line.startswith('ERROR_TYPE:'):
+            error_type = line.split('ERROR_TYPE:', 1)[1].strip()
+            break
+
+    assert error_type == 'schema_mismatch', (
+        f"controller.log shows 'field instanceType is required by composition but not defined in XRD schema' "
+        f"which is a schema_mismatch error, but got ERROR_TYPE='{error_type}'"
+    )
+
+
+def test_affected_files_include_composition_and_xrd():
+    """Test that AFFECTED_FILES includes composition.yaml and xrd.yaml"""
+    analysis_path = Path("/workspace/analysis.txt")
+    content = analysis_path.read_text().strip()
+    lines = content.split('\n')
+
+    affected_files_value = None
+    for line in lines:
+        if line.startswith('AFFECTED_FILES:'):
+            affected_files_value = line.split('AFFECTED_FILES:', 1)[1].strip()
+            break
+
+    assert affected_files_value is not None, "AFFECTED_FILES line not found"
+    files = [f.strip() for f in affected_files_value.split(',')]
+
+    assert 'composition.yaml' in files, (
+        "composition.yaml should be in AFFECTED_FILES "
+        "(it references spec.parameters.instanceType which doesn't exist in XRD)"
+    )
+    assert 'xrd.yaml' in files, (
+        "xrd.yaml should be in AFFECTED_FILES "
+        "(it defines the schema that's missing the instanceType field)"
+    )

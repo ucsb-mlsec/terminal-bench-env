@@ -22,9 +22,9 @@ RUN apt-get update && \
 RUN apt-get update && apt-get install -y curl && \
     rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /workspace /data
+RUN mkdir -p /workspace/data
 
-COPY data/dataset.bin /data/dataset.bin
+COPY data/dataset.bin /workspace/data/dataset.bin
 COPY test_server.sh /workspace/test_server.sh
 
 RUN chmod +x /workspace/test_server.sh

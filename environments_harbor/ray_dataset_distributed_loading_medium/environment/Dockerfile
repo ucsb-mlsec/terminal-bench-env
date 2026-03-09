@@ -24,11 +24,7 @@ RUN pip3 install --no-cache-dir --break-system-packages pyspark
 
 RUN mkdir -p /data/weather_observations /solution
 
-COPY data/weather_observations/obs_0001.json /data/weather_observations/obs_0001.json
-COPY data/weather_observations/obs_0002.json /data/weather_observations/obs_0002.json
-COPY data/weather_observations/obs_0003.json /data/weather_observations/obs_0003.json
-COPY data/weather_observations/obs_0004.json /data/weather_observations/obs_0004.json
-COPY data/weather_observations/obs_0005.json /data/weather_observations/obs_0005.json
+COPY data/weather_observations/ /data/weather_observations/
 
 WORKDIR /solution
 

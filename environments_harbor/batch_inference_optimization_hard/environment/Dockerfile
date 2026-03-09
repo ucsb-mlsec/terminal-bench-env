@@ -20,8 +20,8 @@ RUN pip3 install --no-cache-dir --break-system-packages numpy
 
 RUN mkdir -p /workspace /data/matrices /data/results /solution
 
-COPY data/matrices/weights.npy /data/matrices/weights.npy
-COPY data/matrices/batch_data.npy /data/matrices/batch_data.npy
+COPY generate_data.py /tmp/generate_data.py
+RUN python3 /tmp/generate_data.py && rm /tmp/generate_data.py
 COPY compute.py /workspace/compute.py
 
 WORKDIR /workspace

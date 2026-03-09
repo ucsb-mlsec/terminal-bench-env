@@ -139,11 +139,31 @@ def test_rho_value_reasonable():
     output_path = Path("/workspace/solution/model_results.txt")
     content = output_path.read_text().strip()
     lines = content.split('\n')
-    
+
     rho_line = lines[0]
     rho_str = rho_line.replace("rho=", "").strip()
     rho_value = float(rho_str)
-    
+
     # For temporal correlation in clinical trials, rho should typically be positive
     # and not extremely close to 0 (which would indicate no correlation structure needed)
     assert rho_value > 0.01, f"rho value seems too low for temporal correlation structure: {rho_value}"
+
+
+def test_pvalue_indicates_significant_autocorrelation():
+    """Test that pvalue shows significant autocorrelation structure"""
+    output_path = Path("/workspace/solution/model_results.txt")
+    content = output_path.read_text().strip()
+    lines = content.split('\n')
+
+    pvalue_line = lines[1]
+    pvalue_str = pvalue_line.replace("pvalue=", "").strip()
+    pvalue = float(pvalue_str)
+
+    # For the clinical_trial.csv data with clear temporal trends (responses increasing
+    # over weeks), the AR1 correlation structure should be statistically significant
+    # compared to the independence model (pvalue < 0.05)
+    assert pvalue < 0.05, (
+        f"pvalue should be < 0.05 indicating significant autocorrelation structure "
+        f"in the clinical trial data (repeated measurements over time show clear correlation), "
+        f"got: {pvalue}"
+    )

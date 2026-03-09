@@ -64,9 +64,10 @@ def test_vulnerable_class_is_correct():
             break
     
     assert vulnerable_class is not None, "vulnerable_class value not found"
-    # The vulnerable class should be one that has a __wakeup or __destruct method that performs dangerous actions
-    # Based on typical PHP object injection scenarios, check for common patterns
-    assert len(vulnerable_class) > 0, "vulnerable_class should not be empty"
+    # The vulnerable class is Logger: it has __destruct() which calls adminAction->execute()
+    # This is the PHP object injection gadget chain: Logger.__destruct -> AdminAction.execute
+    assert vulnerable_class == "Logger", \
+        f"Expected vulnerable_class to be 'Logger' (has __destruct that triggers AdminAction.execute), got '{vulnerable_class}'"
 
 def test_admin_action_is_present():
     """Test that the admin action is described"""

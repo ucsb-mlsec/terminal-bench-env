@@ -102,16 +102,64 @@ def test_cooperative_launch_constraints():
     result_path = Path("/workspace/analysis_result.json")
     with open(result_path, 'r') as f:
         data = json.load(f)
-    
+
     # Based on GPU specs: Max threads per block = 1024, Max block dims = (1024, 1024, 64)
     # Max cooperative blocks for V100 with compute capability 7.0 is typically around 32-128 per SM
     # With 80 SMs on V100, this gives roughly 2560-10240 max cooperative blocks total
-    
+
     # kernel_small_grid.cu should be valid (small grid)
     # kernel_large_grid.cu should be invalid (exceeds max cooperative blocks)
     # kernel_max_threads.cu should check if threads per block <= 1024
     # kernel_2d_valid.cu should be valid if within constraints
     # kernel_3d_invalid.cu should be invalid (likely exceeds 64 in z-dimension)
-    
+
     # At minimum, verify that some categorization was done
     assert len(data["valid_files"]) > 0 or len(data["invalid_files"]) > 0, "No files were categorized"
+
+
+def test_known_invalid_files_are_invalid():
+    """Test that files with known constraint violations are classified as invalid"""
+    result_path = Path("/workspace/analysis_result.json")
+    with open(result_path, 'r') as f:
+        data = json.load(f)
+
+    invalid_files = set(data["invalid_files"])
+
+    # kernel_large_grid.cu: 40000 blocks > max cooperative blocks (32768) → INVALID
+    assert "kernel_large_grid.cu" in invalid_files, (
+        "kernel_large_grid.cu uses 40000 blocks which exceeds the V100 max cooperative blocks (32768), "
+        "so it must be in invalid_files"
+    )
+
+    # kernel_3d_invalid.cu: 8*8*128 = 8192 threads per block > max 1024 → INVALID
+    assert "kernel_3d_invalid.cu" in invalid_files, (
+        "kernel_3d_invalid.cu uses 8x8x128=8192 threads per block which exceeds max 1024, "
+        "so it must be in invalid_files"
+    )
+
+    # kernel_max_threads.cu: 1536 threads per block > max 1024 → INVALID
+    assert "kernel_max_threads.cu" in invalid_files, (
+        "kernel_max_threads.cu uses 1536 threads per block which exceeds max 1024, "
+        "so it must be in invalid_files"
+    )
+
+
+def test_known_valid_files_are_valid():
+    """Test that files within cooperative launch constraints are classified as valid"""
+    result_path = Path("/workspace/analysis_result.json")
+    with open(result_path, 'r') as f:
+        data = json.load(f)
+
+    valid_files = set(data["valid_files"])
+
+    # kernel_small_grid.cu: 256 blocks, 256 threads/block → VALID
+    assert "kernel_small_grid.cu" in valid_files, (
+        "kernel_small_grid.cu uses 256 blocks and 256 threads per block, "
+        "well within V100 constraints, so it must be in valid_files"
+    )
+
+    # kernel_2d_valid.cu: 128*64=8192 blocks, 16*16=256 threads → VALID
+    assert "kernel_2d_valid.cu" in valid_files, (
+        "kernel_2d_valid.cu uses 8192 blocks and 256 threads per block, "
+        "within V100 constraints, so it must be in valid_files"
+    )

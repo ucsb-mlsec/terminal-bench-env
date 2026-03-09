@@ -182,14 +182,27 @@ def test_has_color_assignments():
     """Test that all chromosomes have color assignments"""
     karyotype_path = Path("/workspace/solution/karyotype.txt")
     content = karyotype_path.read_text()
-    
+
     for line in content.split('\n'):
         line = line.strip()
         if not line or line.startswith('#'):
             continue
-        
+
         if line.startswith('chr'):
             parts = line.split()
             assert len(parts) >= 7, f"Chromosome line missing color: {line}"
             color = parts[6]
             assert len(color) > 0, f"Empty color assignment in line: {line}"
+
+
+def test_chromosome_count_matches_filtered_data():
+    """Test that exactly 23 chromosomes pass the 50000 bp filter.
+    Species A: 10 contigs >= 50000 bp (3 small contigs filtered out).
+    Species B: 6 sequences >= 50000 bp (3 filtered out).
+    Species C: 7 sequences >= 50000 bp (3 filtered out). Total = 23."""
+    karyotype_path = Path("/workspace/solution/karyotype.txt")
+    content = karyotype_path.read_text()
+    chr_lines = [l.strip() for l in content.split('\n')
+                 if l.strip() and not l.strip().startswith('#') and l.strip().startswith('chr')]
+    assert len(chr_lines) == 23, \
+        f"Expected 23 chromosomes (10 sp_a + 6 sp_b + 7 sp_c after 50000 bp filter), got {len(chr_lines)}"

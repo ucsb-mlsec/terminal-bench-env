@@ -115,8 +115,17 @@ def test_deployment_report_indicates_work_done():
     report_path = Path("/solution/deployment_report.json")
     with open(report_path, 'r') as f:
         data = json.load(f)
-    
+
     # At least one of these should be non-zero if problems existed
     work_indicators = data["fixed_symlinks"] + data["preserved_directories"] + data["issues_found"]
     # This is a soft check - if all are 0, either nothing was wrong or nothing was done
     # We just verify the structure is correct, actual values depend on environment state
+
+
+def test_total_apps_is_seven():
+    """Test that total_apps is 7 matching the 7 entries in manifest.json"""
+    report_path = Path("/solution/deployment_report.json")
+    with open(report_path, 'r') as f:
+        data = json.load(f)
+    assert data["total_apps"] == 7, \
+        f"Expected total_apps=7 (7 apps in manifest.json: api-service, web-frontend, worker-queue, notification-service, payment-processor, analytics-engine, auth-service), got: {data['total_apps']}"

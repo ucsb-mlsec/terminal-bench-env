@@ -63,7 +63,62 @@ def test_no_extra_text():
     """Test that output contains only the number, no additional text"""
     output_path = Path("/workspace/output/clustering_result.txt")
     content = output_path.read_text().strip()
-    
+
     # Check that there are no words or extra characters
     assert re.match(r'^\d+$', content), \
         f"Output should contain only digits, but contains: '{content}'"
+
+
+def test_otu_count_correctness():
+    """Test that the OTU count matches the expected result from clustering the distance matrix at 0.03 threshold"""
+    import os
+
+    output_path = Path("/workspace/output/clustering_result.txt")
+    content = output_path.read_text().strip()
+    num_otus = int(content)
+
+    # Read the distance matrix and compute expected OTU count using single-linkage clustering
+    input_path = Path("/workspace/data/sequence_distances.dist")
+    with open(input_path, 'r') as f:
+        first_line = f.readline().strip()
+        num_sequences = int(first_line)
+
+        # Parse the distance matrix
+        distances = {}
+        seq_names = []
+        for i in range(num_sequences):
+            parts = f.readline().strip().split()
+            seq_name = parts[0]
+            seq_names.append(seq_name)
+            for j in range(1, len(parts)):
+                dist = float(parts[j])
+                if j - 1 != i:
+                    distances[(i, j - 1)] = dist
+
+    # Perform single-linkage clustering at threshold 0.03
+    # Union-Find for clustering
+    parent = list(range(num_sequences))
+
+    def find(x):
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    def union(a, b):
+        ra, rb = find(a), find(b)
+        if ra != rb:
+            parent[ra] = rb
+
+    threshold = 0.03
+    for i in range(num_sequences):
+        for j in range(i + 1, num_sequences):
+            dist = distances.get((i, j), distances.get((j, i), 1.0))
+            if dist <= threshold:
+                union(i, j)
+
+    expected_otus = len(set(find(i) for i in range(num_sequences)))
+
+    assert num_otus == expected_otus, \
+        f"OTU count {num_otus} does not match expected {expected_otus} " \
+        f"(single-linkage clustering at 0.03 threshold)"

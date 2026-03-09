@@ -106,3 +106,49 @@ def test_memory_address_length():
     hex_digits = address[2:]
     assert len(hex_digits) >= 1, "Memory address should have at least one hex digit"
     assert len(hex_digits) <= 16, "Memory address should not exceed 16 hex digits (64-bit)"
+
+def test_crash_function_is_specific():
+    """Test that the crash function name is a real function (not generic)"""
+    analysis_path = Path("/workspace/analysis.txt")
+    lines = analysis_path.read_text().strip().split('\n')
+    function_line = lines[0]
+    function_name = function_line.split(': ', 1)[1].strip()
+    
+    # Should be a specific function name, not a generic placeholder
+    generic_names = ['main', 'function', 'unknown', 'n/a', 'none']
+    # main is possible but less likely for a parsing crash
+    assert function_name.lower() not in ['function', 'unknown', 'n/a', 'none'], \
+        f"Function name '{function_name}' appears to be a placeholder"
+    assert len(function_name) >= 3, \
+        f"Function name '{function_name}' is too short to be meaningful"
+
+
+def test_crash_reason_describes_memory_issue():
+    """Test that crash reason describes a memory-related issue"""
+    analysis_path = Path("/workspace/analysis.txt")
+    lines = analysis_path.read_text().strip().split('\n')
+    reason_line = lines[1]
+    reason = reason_line.split(': ', 1)[1].strip().lower()
+    
+    memory_terms = ['null', 'segfault', 'segmentation', 'buffer', 'overflow',
+                    'dereference', 'invalid', 'access', 'corruption', 'fault',
+                    'memory', 'pointer', 'stack', 'heap', 'out of bounds']
+    found = [t for t in memory_terms if t in reason]
+    assert len(found) >= 1, \
+        f"Crash reason '{reason}' should describe a memory-related issue (e.g., null pointer, buffer overflow)"
+
+
+def test_memory_address_is_valid_hex():
+    """Test that the memory address is a properly formatted hex address"""
+    analysis_path = Path("/workspace/analysis.txt")
+    lines = analysis_path.read_text().strip().split('\n')
+    address_line = lines[2]
+    address = address_line.split(': ', 1)[1].strip()
+    
+    assert address.startswith('0x'), f"Address must start with 0x, got: {address}"
+    hex_part = address[2:]
+    assert len(hex_part) >= 4, f"Address {address} seems too short"
+    try:
+        int(hex_part, 16)
+    except ValueError:
+        assert False, f"Address {address} is not valid hexadecimal"

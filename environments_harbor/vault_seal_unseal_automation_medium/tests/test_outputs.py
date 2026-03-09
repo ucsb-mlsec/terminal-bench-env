@@ -77,10 +77,31 @@ def test_vault_keys_no_internal_whitespace():
     output_path = Path("/tmp/vault_keys.txt")
     content = output_path.read_text()
     lines = content.strip().split('\n')
-    
+
     # Filter out empty lines
     non_empty_lines = [line for line in lines if line.strip()]
-    
+
     for i, line in enumerate(non_empty_lines):
         key = line.strip()
         assert ' ' not in key and '\t' not in key, f"Line {i+1}: Key contains internal whitespace: '{line}'"
+
+def test_keys_come_from_data_files():
+    """Test that all submitted keys actually exist in the provided data files"""
+    output_path = Path("/tmp/vault_keys.txt")
+    keys_path = Path("/workspace/data/keys.txt")
+    recovery_path = Path("/workspace/data/recovery.dat")
+    archive_path = Path("/workspace/data/archive.log")
+
+    submitted_keys = set(line.strip() for line in output_path.read_text().strip().split('\n') if line.strip())
+
+    all_valid_keys = set()
+    for data_file in [keys_path, recovery_path, archive_path]:
+        if data_file.exists():
+            for line in data_file.read_text().strip().split('\n'):
+                line = line.strip()
+                if len(line) == 44:
+                    all_valid_keys.add(line)
+
+    for key in submitted_keys:
+        assert key in all_valid_keys, \
+            f"Submitted key '{key}' was not found in any of the data files (keys.txt, recovery.dat, archive.log)"

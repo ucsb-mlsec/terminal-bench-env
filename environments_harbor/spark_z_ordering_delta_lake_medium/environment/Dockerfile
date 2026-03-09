@@ -17,9 +17,9 @@ RUN apt-get update && \
 
 RUN pip3 install --no-cache-dir --break-system-packages pandas numpy pyarrow
 
-RUN mkdir -p /data /solution
+RUN mkdir -p /workspace/data /workspace/solution
 
-COPY data/transactions.parquet /data/transactions.parquet
+COPY data/transactions.parquet /workspace/data/transactions.parquet
 
 WORKDIR /workspace
 

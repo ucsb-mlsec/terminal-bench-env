@@ -11,12 +11,15 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /app
+RUN mkdir -p /app /workspace/output/sql_injection_prepared_statement_medium/files
 
 COPY auth_service.py /app/auth_service.py
 COPY user_profile.py /app/user_profile.py
 COPY admin_operations.py /app/admin_operations.py
 COPY test_application.py /app/test_application.py
+COPY auth_service.py /workspace/output/sql_injection_prepared_statement_medium/files/auth_service.py
+COPY user_profile.py /workspace/output/sql_injection_prepared_statement_medium/files/user_profile.py
+COPY admin_operations.py /workspace/output/sql_injection_prepared_statement_medium/files/admin_operations.py
 
 WORKDIR /app
 

@@ -90,7 +90,36 @@ def test_issue_types_match_count():
     """Test that the number of issue_types is reasonable relative to total_issues"""
     analysis_path = Path("/workspace/analysis.json")
     data = json.loads(analysis_path.read_text())
-    
+
     # The number of unique issue types should not exceed total issues
     assert len(data["issue_types"]) <= data["total_issues"], \
         f"Number of issue types ({len(data['issue_types'])}) should not exceed total issues ({data['total_issues']})"
+
+
+def test_exact_total_and_critical_issues():
+    """Test that total_issues=12 and critical_issues=8 (exact values from checkout.cy.js analysis)"""
+    analysis_path = Path("/workspace/analysis.json")
+    data = json.loads(analysis_path.read_text())
+
+    assert data["total_issues"] == 12, (
+        f"Expected total_issues=12 per checkout.cy.js analysis, got {data['total_issues']}"
+    )
+    assert data["critical_issues"] == 8, (
+        f"Expected critical_issues=8 per checkout.cy.js analysis, got {data['critical_issues']}"
+    )
+
+
+def test_expected_issue_types_present():
+    """Test that the 8 expected issue types are identified from checkout.cy.js"""
+    analysis_path = Path("/workspace/analysis.json")
+    data = json.loads(analysis_path.read_text())
+
+    expected_types = {
+        "missing_wait", "fragile_selector", "race_condition", "improper_assertion",
+        "hardcoded_timeout", "multiple_element_match", "animation_not_handled",
+        "overlay_interference"
+    }
+    reported_types = set(data["issue_types"])
+    assert reported_types == expected_types, (
+        f"Expected issue types: {expected_types}, got: {reported_types}"
+    )

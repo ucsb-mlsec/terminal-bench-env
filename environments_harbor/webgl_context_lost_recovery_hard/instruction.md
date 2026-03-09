@@ -19,7 +19,7 @@ You need to determine:
 
 **Input Files:**
 
-The resource tracking logs are located at `/logs/webgl_resources.log`
+The resource tracking logs are located at `/workspace/logs/webgl_resources.log`
 
 Each log entry follows this format:
 ```
@@ -47,7 +47,7 @@ Examine the logs to detect problems that would prevent successful context recove
 
 **Solution Format:**
 
-Save your analysis results to `/solution/recovery_analysis.json`
+Save your analysis results to `/workspace/solution/recovery_analysis.json`
 
 The file must be a JSON object with exactly these four fields:
 

@@ -105,3 +105,33 @@ def test_analysis_content_validity():
     # If problematic_metrics is "none", worst_offender_labels should also be "none"
     if problematic_metrics == "none":
         assert worst_offender_labels == "none", "If problematic_metrics is 'none', worst_offender_labels must also be 'none'"
+
+def test_correct_total_series_count():
+    """Test that total_series matches the actual count from metrics_snapshot.txt"""
+    analysis_path = Path("/solution/analysis.txt")
+    lines = analysis_path.read_text().strip().split('\n')
+    total_series = int(lines[1].split("total_series:", 1)[1])
+    # From metrics_snapshot.txt: 60+60+20+16+12+20+16 = 204 series total
+    assert total_series == 204, \
+        f"Expected total_series=204 (counted from metrics_snapshot.txt), got {total_series}"
+
+def test_correct_problematic_metrics():
+    """Test that problematic metrics are the ones exceeding 50 unique series"""
+    analysis_path = Path("/solution/analysis.txt")
+    lines = analysis_path.read_text().strip().split('\n')
+    problematic_metrics_str = lines[0].split("problematic_metrics:", 1)[1]
+    problematic_metrics = set(problematic_metrics_str.split(','))
+    # From metrics_snapshot.txt: http_requests_total (60) and api_response_time_seconds (60)
+    # both exceed the 50-series threshold
+    expected = {"http_requests_total", "api_response_time_seconds"}
+    assert problematic_metrics == expected, \
+        f"Expected problematic_metrics to be {expected}, got {problematic_metrics}"
+
+def test_correct_worst_offender_labels():
+    """Test that worst_offender_labels identifies the user_id label as the cardinality culprit"""
+    analysis_path = Path("/solution/analysis.txt")
+    lines = analysis_path.read_text().strip().split('\n')
+    worst_offender_labels_str = lines[2].split("worst_offender_labels:", 1)[1]
+    # api_response_time_seconds has user_id as the high-cardinality label
+    assert "user_id" in worst_offender_labels_str, \
+        f"Expected 'user_id' to be in worst_offender_labels, got '{worst_offender_labels_str}'"

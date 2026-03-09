@@ -101,16 +101,37 @@ def test_speedup_is_reasonable():
     analysis_path = Path("/workspace/solution/analysis.txt")
     content = analysis_path.read_text().strip()
     lines = content.split('\n')
-    
+
     speedup_match = re.match(r'average_speedup:\s*([\d.]+)', lines[1])
     assert speedup_match, "Failed to parse speedup value"
-    
+
     speedup = float(speedup_match.group(1))
-    
+
     # Speedup should be at least 1.0 (the faster one should be at least as fast)
     assert speedup >= 1.0, \
         f"average_speedup should be at least 1.0, got: {speedup}"
-    
+
     # Speedup shouldn't be impossibly high
     assert speedup < 1000000, \
         f"average_speedup seems unreasonably high: {speedup}"
+
+
+def test_faster_implementation_is_b():
+    """Test that faster_implementation=B and recommendation=B.
+    Implementation B uses a gap buffer with memmove and maintains a contiguous gap,
+    while Implementation A is a naive byte-by-byte approach that reallocates on every
+    insert/delete. The gap buffer (B) is significantly faster for sequential editing."""
+    analysis_path = Path("/workspace/solution/analysis.txt")
+    content = analysis_path.read_text().strip()
+    lines = content.split('\n')
+
+    faster_match = re.match(r'faster_implementation:\s*([AB])', lines[0])
+    recommendation_match = re.match(r'recommendation:\s*([AB])', lines[2])
+
+    assert faster_match, "Failed to parse faster_implementation"
+    assert recommendation_match, "Failed to parse recommendation"
+
+    assert faster_match.group(1) == "B", \
+        f"Expected faster_implementation=B (gap buffer with memmove vs naive A), got {faster_match.group(1)}"
+    assert recommendation_match.group(1) == "B", \
+        f"Expected recommendation=B (gap buffer implementation), got {recommendation_match.group(1)}"

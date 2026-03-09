@@ -3,7 +3,7 @@ Your infrastructure team has provided a snapshot of your HDFS cluster's current 
 You've been given cluster state data that includes information about available erasure coding policies, current storage usage, and directory characteristics. Your job is to analyze this data and determine the optimal policy assignments.
 
 CLUSTER STATE DATA:
-The file `/input/cluster_state.json` contains:
+The file `/workspace/input/cluster_state.json` contains:
 ```json
 {
   "available_policies": [
@@ -39,7 +39,7 @@ CONSTRAINTS:
 - Each directory must be assigned exactly one erasure coding policy
 - The policy must be selected from the available_policies list
 - Hot data should target approximately 1.5x storage overhead
-- Warm data should target approximately 1.4x storage overhead  
+- Warm data should target approximately 1.4x storage overhead
 - Cold data should target approximately 1.3x storage overhead
 - Critical data must tolerate at least 3 node failures
 - The total storage usage after EC conversion must fit within cluster capacity
@@ -48,12 +48,12 @@ YOUR TASK:
 Analyze the cluster state and determine which erasure coding policy should be assigned to each directory. Calculate the expected storage savings and verify that the solution meets all requirements.
 
 DELIVERABLE:
-Save your analysis results to `/solution/policy_recommendations.json` with this structure:
+Save your analysis results to `/workspace/solution/policy_recommendations.json` with this structure:
 
 ```json
 {
   "hot_data_policy": "policy_name",
-  "warm_data_policy": "policy_name", 
+  "warm_data_policy": "policy_name",
   "cold_data_policy": "policy_name",
   "critical_data_policy": "policy_name"
 }

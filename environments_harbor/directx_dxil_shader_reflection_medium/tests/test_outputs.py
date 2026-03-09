@@ -80,6 +80,40 @@ def test_has_rw_resources_format():
     assert has_rw_resources is not None, "has_rw_resources field not found"
     assert has_rw_resources in ['true', 'false'], f"has_rw_resources must be 'true' or 'false', got: '{has_rw_resources}'"
 
+def test_shader_model_is_cs_6_0():
+    """Test that the shader model is correctly identified as cs_6_0"""
+    output_path = Path("/workspace/shader_info.txt")
+    content = output_path.read_text().strip()
+
+    shader_model = None
+    for line in content.split('\n'):
+        if line.startswith('shader_model='):
+            shader_model = line.split('=', 1)[1].strip()
+            break
+
+    assert shader_model == 'cs_6_0', (
+        f"compute_kernel.hlsl comment states 'Shader Model: cs_6_0', "
+        f"but shader_info.txt reports '{shader_model}'"
+    )
+
+
+def test_thread_group_is_256_1_1():
+    """Test that the thread group is correctly identified as 256,1,1"""
+    output_path = Path("/workspace/shader_info.txt")
+    content = output_path.read_text().strip()
+
+    thread_group = None
+    for line in content.split('\n'):
+        if line.startswith('thread_group='):
+            thread_group = line.split('=', 1)[1].strip()
+            break
+
+    assert thread_group == '256,1,1', (
+        f"compute_kernel.hlsl has [numthreads(256, 1, 1)], "
+        f"but thread_group is reported as '{thread_group}'"
+    )
+
+
 def test_shader_info_matches_source():
     """Test that extracted metadata matches the actual HLSL source file"""
     source_path = Path("/workspace/shaders/compute_kernel.hlsl")

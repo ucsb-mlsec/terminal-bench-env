@@ -1,6 +1,6 @@
 A scientific research lab has stored experimental data in an HDF5 file with a complex hierarchical structure. The data contains measurements from multiple sensors across different experimental runs, organized in nested groups. The lab needs this data converted to a flat CSV format for analysis in spreadsheet software.
 
-You've been given an HDF5 file located at `/data/experiments.h5` that contains the following structure:
+You've been given an HDF5 file located at `/workspace/data/experiments.h5` that contains the following structure:
 - Multiple experiment groups (e.g., "experiment_001", "experiment_002", etc.)
 - Each experiment contains sensor groups (e.g., "temperature", "pressure", "humidity")
 - Each sensor group contains datasets with measurement arrays and metadata attributes
@@ -16,7 +16,7 @@ Your task is to extract all numerical measurement data from this hierarchical st
 
 **Output Specifications:**
 
-Save your solution as a CSV file at: `/solution/measurements.csv`
+Save your solution as a CSV file at: `/workspace/solution/measurements.csv`
 
 The CSV must have exactly these columns (in this order):
 - experiment_id: The experiment group name

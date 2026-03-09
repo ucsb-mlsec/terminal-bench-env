@@ -96,12 +96,30 @@ def test_no_extra_formatting():
     """Test that there are no extra spaces or formatting issues"""
     solution_path = Path("/solution/beacon_config.txt")
     lines = solution_path.read_text().strip().split('\n')
-    
+
     for i, line in enumerate(lines):
         # Check no leading/trailing spaces on the line
         assert line == line.strip(), f"Line {i+1} should not have leading or trailing spaces"
-        
+
         # Check format key=value with no spaces around =
         parts = line.split("=", 1)
         assert len(parts) == 2, f"Line {i+1} should have exactly one '=' separator"
         assert parts[0] == parts[0].strip(), f"Line {i+1} key should not have spaces"
+
+
+def test_c2_server_is_correct():
+    """Test that c2_server decodes to '192.168.45.128:8443' from beacon.conf line 1."""
+    solution_path = Path("/solution/beacon_config.txt")
+    lines = solution_path.read_text().strip().split('\n')
+    c2_server = lines[0].split("=", 1)[1]
+    assert c2_server == "192.168.45.128:8443", \
+        f"Expected c2_server=192.168.45.128:8443 (decoded from beacon.conf line 1), got: {c2_server}"
+
+
+def test_sleep_interval_is_correct():
+    """Test that sleep_interval decodes to '45' from beacon.conf line 2."""
+    solution_path = Path("/solution/beacon_config.txt")
+    lines = solution_path.read_text().strip().split('\n')
+    sleep_interval = lines[1].split("=", 1)[1]
+    assert sleep_interval == "45", \
+        f"Expected sleep_interval=45 (decoded from beacon.conf line 2), got: {sleep_interval}"

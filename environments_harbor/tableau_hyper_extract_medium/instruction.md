@@ -1,6 +1,6 @@
 Your company's product management team maintains a product catalog in CSV format, but the business intelligence team needs this data in Tableau Hyper format for their dashboards. The current CSV-based workflow is causing slow dashboard load times.
 
-You have a product catalog CSV file located at `/data/products.csv` with the following structure:
+You have a product catalog CSV file located at `/workspace/data/products.csv` with the following structure:
 - product_id (integer)
 - product_name (text)
 - category (text)
@@ -14,9 +14,9 @@ Your objective is to convert this CSV data into a Tableau Hyper extract that pre
 
 **Deliverables:**
 
-Create a Tableau Hyper extract file at: `/output/product_catalog.hyper`
+Create a Tableau Hyper extract file at: `/workspace/output/product_catalog.hyper`
 
-After creating the extract, produce a simple validation report at: `/output/validation.txt` with these exact statistics:
+After creating the extract, produce a simple validation report at: `/workspace/output/validation.txt` with these exact statistics:
 
 ```
 total_products=<number of products>

@@ -13,7 +13,7 @@ During the last OOM event, the database was killed instead of the batch processo
 
 **Available Data:**
 
-You'll find a file at `/data/process_info.json` containing current OOM scores and process details from the affected system:
+You'll find a file at `/workspace/data/process_info.json` containing current OOM scores and process details from the affected system:
 
 ```json
 {
@@ -47,14 +47,14 @@ Analyze the configuration and determine the correct OOM score adjustments needed
 **Requirements:**
 
 - Database must have the lowest kill probability
-- Batch processor must have the highest kill probability  
+- Batch processor must have the highest kill probability
 - Web application should be in the middle
 - Use standard OOM score adjustment values that follow Linux best practices
 - Your solution must explain what's wrong with the current configuration
 
 **Deliverable:**
 
-Create a JSON file at `/solution/oom_fix.json` with this exact structure:
+Create a JSON file at `/workspace/solution/oom_fix.json` with this exact structure:
 
 ```json
 {

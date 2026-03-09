@@ -81,14 +81,32 @@ def test_analysis_contains_actionable_fix():
     """Test that the recommended fix is specific and actionable"""
     diagnosis_path = Path("/tmp/lag_diagnosis.txt")
     lines = diagnosis_path.read_text().strip().split('\n')
-    
+
     fix_line = lines[2]
     fix_value = fix_line.split("RECOMMENDED_FIX:", 1)[1].strip().lower()
-    
+
     # Check that the fix is not generic/vague
     assert len(fix_value) > 20, f"RECOMMENDED_FIX seems too short/vague: {fix_value}"
-    
+
     # Should mention specific actions or configurations
     actionable_keywords = ['increase', 'decrease', 'reduce', 'change', 'set', 'configure', 'add', 'remove', 'modify', 'adjust', 'scale']
     has_action = any(keyword in fix_value for keyword in actionable_keywords)
     assert has_action, f"RECOMMENDED_FIX should contain an actionable change (increase/decrease/configure/etc.)"
+
+
+def test_current_lag_matches_metrics_data():
+    """Test that CURRENT_LAG equals 76543 (sum of partition lags from consumer_group_metrics.json)"""
+    diagnosis_path = Path("/tmp/lag_diagnosis.txt")
+    lines = diagnosis_path.read_text().strip().split('\n')
+    lag_value = int(lines[1].split("CURRENT_LAG:", 1)[1].strip())
+    assert lag_value == 76543, \
+        f"Expected CURRENT_LAG=76543 (sum of partition lags 19222+19121+18946+19254 from consumer_group_metrics.json), got: {lag_value}"
+
+
+def test_root_cause_identifies_slow_consumer():
+    """Test that ROOT_CAUSE identifies slow consumer or processing bottleneck"""
+    diagnosis_path = Path("/tmp/lag_diagnosis.txt")
+    lines = diagnosis_path.read_text().strip().split('\n')
+    root_cause = lines[0].split("ROOT_CAUSE:", 1)[1].strip().lower()
+    assert any(word in root_cause for word in ["slow", "consumer", "processing", "throughput", "partition"]), \
+        f"ROOT_CAUSE should identify slow consumer processing issue, got: {root_cause}"

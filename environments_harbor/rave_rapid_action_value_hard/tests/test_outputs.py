@@ -138,3 +138,76 @@ def test_select_move_signature():
             # Should have at least: self, board_state, player
             assert len(params) >= 3, f"select_move must accept at least 3 parameters (self, board_state, player), got {params}"
             break
+
+
+def test_improved_ai_produces_valid_moves_on_benchmark():
+    """Test that the improved AI produces valid moves for benchmark positions"""
+    ai_path = Path("/solution/improved_ai.py")
+
+    spec = importlib.util.spec_from_file_location("improved_ai_test", ai_path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["improved_ai_test"] = module
+    spec.loader.exec_module(module)
+
+    # Find the AI class
+    classes = [obj for name, obj in module.__dict__.items()
+               if isinstance(obj, type) and not name.startswith('_') and hasattr(obj, 'select_move')]
+    assert len(classes) > 0, "No class with select_move found"
+
+    ai_cls = classes[0]
+
+    # Read benchmark positions
+    benchmark_path = Path("/data/benchmark_positions.txt")
+    assert benchmark_path.exists(), "benchmark_positions.txt not found"
+
+    lines = benchmark_path.read_text().strip().split('\n')
+    assert len(lines) >= 5, "Need at least 5 benchmark positions"
+
+    # Test first 5 positions
+    for line in lines[:5]:
+        parts = line.split('|')
+        assert len(parts) == 3, f"Invalid benchmark line format: {line}"
+
+        pos_id, board_state, player_str = parts
+        player = int(player_str)
+
+        # Instantiate AI and get a move
+        ai_instance = ai_cls()
+        move = ai_instance.select_move(board_state, player, iterations=100, seed=42)
+
+        # Move must be valid: integer 0-224 and on an empty cell
+        assert isinstance(move, int), f"Position {pos_id}: select_move returned {type(move)}, expected int"
+        assert 0 <= move <= 224, f"Position {pos_id}: move {move} is out of range [0, 224]"
+        assert board_state[move] == '.', (
+            f"Position {pos_id}: move {move} is on an occupied cell "
+            f"('{board_state[move]}'), must be on empty cell ('.')"
+        )
+
+
+def test_improved_ai_deterministic_with_seed():
+    """Test that the AI produces the same move with the same seed"""
+    ai_path = Path("/solution/improved_ai.py")
+
+    spec = importlib.util.spec_from_file_location("improved_ai_det", ai_path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["improved_ai_det"] = module
+    spec.loader.exec_module(module)
+
+    classes = [obj for name, obj in module.__dict__.items()
+               if isinstance(obj, type) and not name.startswith('_') and hasattr(obj, 'select_move')]
+    ai_cls = classes[0]
+
+    # Use a simple board state
+    board_state = '.' * 225
+
+    # Run twice with same seed
+    ai1 = ai_cls()
+    move1 = ai1.select_move(board_state, 1, iterations=50, seed=12345)
+
+    ai2 = ai_cls()
+    move2 = ai2.select_move(board_state, 1, iterations=50, seed=12345)
+
+    assert move1 == move2, (
+        f"AI is not deterministic: seed=12345 produced move {move1} and {move2}. "
+        f"Same seed must produce same move."
+    )

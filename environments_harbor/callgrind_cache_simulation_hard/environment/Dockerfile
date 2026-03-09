@@ -16,6 +16,7 @@ RUN apt-get update && \
     linux-tools-common \
     linux-tools-generic \
     binutils \
+    valgrind \
     && rm -rf /var/lib/apt/lists/*
 
 # Install dependencies from Phase 2.5 analysis

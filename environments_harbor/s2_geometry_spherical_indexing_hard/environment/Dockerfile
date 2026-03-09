@@ -19,9 +19,9 @@ RUN apt-get update && \
 
 RUN pip3 install --no-cache-dir --break-system-packages s2sphere
 
-RUN mkdir -p /data /output
+RUN mkdir -p /workspace/data /workspace/output
 
-COPY data/stations.txt /data/stations.txt
+COPY data/stations.txt /workspace/data/stations.txt
 
 WORKDIR /workspace
 

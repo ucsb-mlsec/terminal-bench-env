@@ -25,9 +25,9 @@ RUN pip3 install --no-cache-dir --break-system-packages \
     scipy \
     statsmodels
 
-RUN mkdir -p /data /solution
+RUN mkdir -p /workspace/data /workspace/solution
 
-COPY data/pilot_study.csv /data/pilot_study.csv
+COPY data/pilot_study.csv /workspace/data/pilot_study.csv
 
 WORKDIR /workspace
 

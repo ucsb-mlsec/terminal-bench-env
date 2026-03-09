@@ -98,12 +98,29 @@ def test_app_build_gradle_has_multidex_dependency():
 def test_application_class_extends_multidex():
     """Test that MyApplication class properly handles multidex"""
     app_class = Path("/workspace/android_app/app/src/main/java/com/example/app/MyApplication.kt")
-    
+
     if app_class.exists():
         content = app_class.read_text()
-        
+
         # Check if it extends MultiDexApplication or calls MultiDex.install()
-        has_multidex = ("MultiDexApplication" in content or 
+        has_multidex = ("MultiDexApplication" in content or
                        ("MultiDex.install" in content and "attachBaseContext" in content))
-        
+
         assert has_multidex, "MyApplication.kt should extend MultiDexApplication or call MultiDex.install()"
+
+
+def test_min_sdk_is_19():
+    """Test that min_sdk is 19 (the value from app/build.gradle minSdk 19)"""
+    import re
+    result_path = Path("/workspace/result.txt")
+    content = result_path.read_text().strip()
+    lines = [line.strip() for line in content.split('\n') if line.strip()]
+
+    min_sdk_match = re.match(r'^min_sdk=(\d+)$', lines[0])
+    assert min_sdk_match, f"Could not parse min_sdk from first line: {lines[0]}"
+    min_sdk = int(min_sdk_match.group(1))
+
+    assert min_sdk == 19, (
+        f"The minSdk in android_app/app/build.gradle is 19, "
+        f"but result.txt reports min_sdk={min_sdk}"
+    )

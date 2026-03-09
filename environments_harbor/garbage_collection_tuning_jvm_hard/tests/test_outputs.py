@@ -74,21 +74,34 @@ def test_descriptions_are_meaningful():
     """Test that ISSUE and BENEFIT descriptions contain meaningful content"""
     output_path = Path("/opt/javaapp/diagnostics/selected_config.txt")
     lines = output_path.read_text().strip().split('\n')
-    
+
     issue_desc = lines[1].split('=', 1)[1].strip()
     benefit_desc = lines[2].split('=', 1)[1].strip()
-    
+
     # Check that descriptions have reasonable length
     assert len(issue_desc) > 15, "ISSUE description seems too short to be meaningful"
     assert len(benefit_desc) > 15, "BENEFIT description seems too short to be meaningful"
-    
+
     # Check that descriptions contain some keywords related to GC/performance
     gc_keywords = ['gc', 'pause', 'heap', 'memory', 'throughput', 'latency', 'collection', 'generation', 'full']
     issue_lower = issue_desc.lower()
     benefit_lower = benefit_desc.lower()
-    
+
     has_gc_keyword_issue = any(keyword in issue_lower for keyword in gc_keywords)
     has_gc_keyword_benefit = any(keyword in benefit_lower for keyword in gc_keywords)
-    
+
     assert has_gc_keyword_issue, "ISSUE description should mention GC/performance related terms"
     assert has_gc_keyword_benefit, "BENEFIT description should mention GC/performance related terms"
+
+
+def test_selected_config_is_c():
+    """Test that SELECTED=C, the G1GC configuration with 4GB heap.
+    gc_analysis.log shows Parallel GC with 15 Full GCs/hour averaging 920ms pauses and 96% heap
+    utilization. Config C (G1GC + 4GB heap) directly addresses both problems:
+    larger heap reduces pressure and G1GC avoids stop-the-world Full GCs."""
+    output_path = Path("/opt/javaapp/diagnostics/selected_config.txt")
+    lines = output_path.read_text().strip().split('\n')
+
+    selected = lines[0].split('=')[1].strip()
+    assert selected == "C", \
+        f"Expected SELECTED=C (G1GC with 4GB heap per available_configs.txt), got SELECTED={selected}"

@@ -86,14 +86,52 @@ def test_no_duplicate_operations():
     """Test that no operation is flagged more than once"""
     output_path = Path("/tmp/security_audit.txt")
     lines = output_path.read_text().strip().split('\n')
-    
+
     operations = []
     for line in lines[1:]:
         line = line.strip()
         if line and line.startswith("FLAGGED: "):
             op_name = line.replace("FLAGGED: ", "").strip()
             operations.append(op_name)
-    
+
     unique_operations = set(operations)
     assert len(operations) == len(unique_operations), \
         f"Duplicate operations found: {[op for op in operations if operations.count(op) > 1]}"
+
+
+def test_introspection_enabled_and_exact_flagged_operations():
+    """Test that INTROSPECTION: enabled (schema has __schema and __type in Query type)
+    and exactly 25 operations are flagged from schema.graphql based on admin/delete/
+    remove/destroy/purge/revoke/secret/token/password/credential/key keywords.
+    Sorted alphabetically: adminCreateUser, adminDashboard, adminDeleteAll, adminListUsers,
+    adminUpdateRole, deleteAccount, deleteProduct, deleteUser, destroySession, getAdminStats,
+    getApiKey, getCredentials, getSecretConfig, getUserPassword, getUserToken, purgeCache,
+    purgeData, removeAccount, removeProduct, resetPassword, revokeAccess, revokeApiKey,
+    revokeToken, updatePassword, updateToken."""
+    output_path = Path("/tmp/security_audit.txt")
+    content = output_path.read_text().strip()
+    lines = content.split('\n')
+
+    # Check introspection status
+    assert lines[0] == "INTROSPECTION: enabled", \
+        f"Expected 'INTROSPECTION: enabled' (schema has __schema/__type in Query), got '{lines[0]}'"
+
+    # Extract flagged operations
+    operations = []
+    for line in lines[1:]:
+        line = line.strip()
+        if line and line.startswith("FLAGGED: "):
+            op_name = line.replace("FLAGGED: ", "").strip()
+            operations.append(op_name)
+
+    expected_operations = sorted([
+        "adminCreateUser", "adminDashboard", "adminDeleteAll", "adminListUsers",
+        "adminUpdateRole", "deleteAccount", "deleteProduct", "deleteUser",
+        "destroySession", "getAdminStats", "getApiKey", "getCredentials",
+        "getSecretConfig", "getUserPassword", "getUserToken", "purgeCache",
+        "purgeData", "removeAccount", "removeProduct", "resetPassword",
+        "revokeAccess", "revokeApiKey", "revokeToken", "updatePassword", "updateToken"
+    ])
+
+    assert operations == expected_operations, \
+        f"Expected {len(expected_operations)} flagged operations in alphabetical order, got {len(operations)}: {operations}"

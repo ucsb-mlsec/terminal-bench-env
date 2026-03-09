@@ -82,7 +82,40 @@ def test_coverage_percentage_is_reasonable():
     report_path = Path("/workspace/coverage_report.txt")
     content = report_path.read_text().strip()
     lines = content.split('\n')
-    
+
     percentage = int(lines[1].strip())
     # The lowest coverage function should realistically be less than 100%
     assert percentage < 100, f"The lowest coverage function should have less than 100% coverage, got: {percentage}"
+
+
+def test_lowest_coverage_functions_correct():
+    """Test that the two functions with lowest coverage are validateNumericRange and validateURL"""
+    report_path = Path("/workspace/coverage_report.txt")
+    content = report_path.read_text().strip()
+    lines = content.split('\n')
+
+    function1 = lines[0].strip()
+    function2 = lines[2].strip()
+    reported_functions = {function1, function2}
+
+    expected_lowest = {"validateNumericRange", "validateURL"}
+    assert reported_functions == expected_lowest, (
+        f"The two functions with lowest coverage should be validateNumericRange and validateURL "
+        f"(coverage 15-25% and 20-30% respectively per test_validator.cpp), "
+        f"but got: {reported_functions}"
+    )
+
+
+def test_combined_lowest_coverage_percentage_reasonable():
+    """Test that the reported percentage reflects the lower of the two low-coverage functions"""
+    report_path = Path("/workspace/coverage_report.txt")
+    content = report_path.read_text().strip()
+    lines = content.split('\n')
+
+    percentage = int(lines[1].strip())
+    # validateNumericRange has 15-25% coverage, validateURL has 20-30% coverage
+    # The percentage should reflect one of these low values
+    assert percentage <= 30, (
+        f"Coverage percentage should be <= 30 (low-coverage functions have 15-30% coverage), "
+        f"got: {percentage}"
+    )

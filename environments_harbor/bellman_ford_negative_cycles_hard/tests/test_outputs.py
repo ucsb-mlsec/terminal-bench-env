@@ -138,6 +138,27 @@ def test_total_currencies_reasonable():
     output_path = Path("/workspace/arbitrage_report.json")
     with open(output_path, 'r') as f:
         data = json.load(f)
-    
+
     assert data["total_currencies"] > 0, "Must have at least one valid currency"
     assert data["total_currencies"] <= 50, "Currency count exceeds expected maximum of 50"
+
+
+def test_total_currencies_is_twelve():
+    """Test that 12 valid currencies are identified from the exchange rate data"""
+    # Valid currencies in exchange_rates.json: BTC, ETH, USDT, LTC, XRP, ADA, DOT, LINK, UNI, MATIC, AVAX, SOL
+    # Invalid codes: BT, ETHH, 123, US$, null, BTCC, LT = these should be excluded
+    output_path = Path("/workspace/arbitrage_report.json")
+    with open(output_path, 'r') as f:
+        data = json.load(f)
+    assert data["total_currencies"] == 12, \
+        f"total_currencies should be 12 (BTC,ETH,USDT,LTC,XRP,ADA,DOT,LINK,UNI,MATIC,AVAX,SOL), got {data['total_currencies']}"
+
+
+def test_corrupted_entries_count_significant():
+    """Test that at least 20 corrupted entries are identified in the exchange rate data"""
+    # exchange_rates.json has: 6 negative rates + 5 zero rates + 6 invalid timestamps + 8 invalid currency codes = 25+
+    output_path = Path("/workspace/arbitrage_report.json")
+    with open(output_path, 'r') as f:
+        data = json.load(f)
+    assert data["corrupted_entries"] >= 20, \
+        f"corrupted_entries should be >= 20 (negative/zero rates, invalid timestamps, bad currency codes), got {data['corrupted_entries']}"

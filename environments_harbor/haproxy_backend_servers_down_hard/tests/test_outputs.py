@@ -59,6 +59,30 @@ def test_filenames_reference_haproxy_configs():
             # Filename should not be empty and should look like a config file
             assert not filename.startswith('/'), f"Line {i} uses full path instead of filename: {filename}"
 
+def test_config_identifies_wrong_server_port():
+    """Test that the config_fixes.txt identifies the incorrect server port (9000 instead of correct port)"""
+    output_path = Path("/root/config_fixes.txt")
+    content = output_path.read_text().strip()
+    # haproxy.cfg has servers on port 9000 which is incorrect
+    assert "9000" in content or "port" in content.lower(), \
+        "config_fixes.txt should identify the incorrect server port 9000"
+
+def test_config_identifies_zero_check_interval():
+    """Test that the config_fixes.txt identifies the inter 0 health check interval issue"""
+    output_path = Path("/root/config_fixes.txt")
+    content = output_path.read_text().strip()
+    # haproxy.cfg has 'inter 0' which disables health check intervals
+    assert "inter" in content.lower() or "interval" in content.lower() or "check" in content.lower(), \
+        "config_fixes.txt should identify the 'inter 0' health check interval issue"
+
+def test_config_identifies_duplicate_httpchk():
+    """Test that the config_fixes.txt identifies the duplicate option httpchk directive"""
+    output_path = Path("/root/config_fixes.txt")
+    content = output_path.read_text().strip()
+    # haproxy.cfg has duplicate 'option httpchk' directives
+    assert "httpchk" in content.lower() or "duplicate" in content.lower() or "option" in content.lower(), \
+        "config_fixes.txt should identify the duplicate 'option httpchk' directive"
+
 def test_all_issues_are_distinct():
     """Test that all 3 issues describe different problems"""
     output_path = Path("/root/config_fixes.txt")

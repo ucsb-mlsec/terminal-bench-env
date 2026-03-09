@@ -129,10 +129,42 @@ def test_docker_arguments_format():
     """Test that arguments are properly formatted if specified"""
     solution_path = Path("/workspace/solution.submit")
     content = solution_path.read_text()
-    
+
     # If arguments are specified, check they exist
     if re.search(r'arguments\s*=', content, re.IGNORECASE):
         args_match = re.search(r'arguments\s*=\s*(.+)', content, re.IGNORECASE)
         assert args_match, "Arguments directive found but no arguments specified"
         args_value = args_match.group(1).strip()
         assert len(args_value) > 0, "Arguments directive should not be empty"
+
+
+def test_docker_image_from_job_specifications():
+    """The job_specifications.yaml defines jobs using specific docker images:
+    python:3.9-slim (data_processing), tensorflow/tensorflow:2.12.0-gpu (gpu_training),
+    jupyter/scipy-notebook:latest (analysis_pipeline), nvidia/cuda:11.8.0-base (batch_compute).
+    At least one of these must appear in the submit file."""
+    solution_path = Path("/workspace/solution.submit")
+    content = solution_path.read_text()
+    expected_images = [
+        "python:3.9-slim",
+        "tensorflow/tensorflow:2.12.0-gpu",
+        "jupyter/scipy-notebook:latest",
+        "nvidia/cuda:11.8.0-base",
+    ]
+    found = any(img in content for img in expected_images)
+    assert found, \
+        (f"Expected at least one Docker image from job_specifications.yaml to appear "
+         f"in solution.submit. Checked: {expected_images}")
+
+
+def test_gpu_jobs_request_gpus():
+    """The gpu_training job requires 2 GPUs and batch_compute requires 1 GPU.
+    If the GPU training image is referenced, request_gpus must be >= 1."""
+    solution_path = Path("/workspace/solution.submit")
+    content = solution_path.read_text()
+    gpu_images = ["tensorflow/tensorflow", "nvidia/cuda"]
+    uses_gpu_image = any(img in content for img in gpu_images)
+    if uses_gpu_image:
+        assert re.search(r'request_gpus\s*=\s*[1-9]', content, re.IGNORECASE), \
+            ("The submit file uses a GPU Docker image but does not request any GPUs "
+             "via 'request_gpus'. At least 1 GPU must be requested.")

@@ -25,9 +25,9 @@ RUN pip3 install --no-cache-dir --break-system-packages \
     scikit-learn \
     statsmodels
 
-RUN mkdir -p /data /solution
+RUN mkdir -p /workspace/data /workspace/solution
 
-COPY data/energy_consumption.csv /data/energy_consumption.csv
+COPY data/energy_consumption.csv /workspace/data/energy_consumption.csv
 
 WORKDIR /workspace
 

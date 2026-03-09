@@ -1,143 +1,113 @@
 [
   {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"Let me start by reading the available diagnostic files:"
+    "parameter": "max_wal_senders",
+    "value": "10",
+    "source": "postgresql.conf",
+    "server": "primary"
   },
   {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"```bash"
+    "parameter": "wal_level",
+    "value": "replica",
+    "source": "postgresql.conf",
+    "server": "primary"
   },
   {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"cat \/var\/diagnostic_data\/primary_replication_slots.json"
+    "parameter": "wal_keep_size",
+    "value": "2048",
+    "unit": "MB",
+    "source": "postgresql.conf",
+    "server": "primary"
   },
   {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"cat \/var\/diagnostic_data\/standby_status.json"
+    "parameter": "max_replication_slots",
+    "value": "10",
+    "source": "postgresql.conf",
+    "server": "primary"
   },
   {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"cat \/var\/diagnostic_data\/wal_stats.json"
+    "parameter": "synchronous_commit",
+    "value": "off",
+    "source": "postgresql.conf",
+    "server": "primary"
   },
   {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"cat \/var\/diagnostic_data\/system_metrics.json"
+    "parameter": "checkpoint_completion_target",
+    "value": "0.9",
+    "source": "postgresql.conf",
+    "server": "primary"
   },
   {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"cat \/var\/diagnostic_data\/postgres_config.json"
+    "parameter": "shared_buffers",
+    "value": "8192",
+    "unit": "MB",
+    "source": "postgresql.conf",
+    "server": "primary"
   },
   {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"```"
+    "parameter": "wal_buffers",
+    "value": "256",
+    "unit": "MB",
+    "source": "postgresql.conf",
+    "server": "primary"
   },
   {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"1. Calculate the replication lag in bytes (difference between WAL positions)"
+    "parameter": "hot_standby",
+    "value": "on",
+    "source": "postgresql.conf",
+    "server": "standby"
   },
   {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"2. Identify the bottleneck by examining:"
+    "parameter": "max_standby_streaming_delay",
+    "value": "30000",
+    "unit": "ms",
+    "source": "postgresql.conf",
+    "server": "standby"
   },
   {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"   - WAL generation rate vs application rate"
+    "parameter": "max_standby_archive_delay",
+    "value": "30000",
+    "unit": "ms",
+    "source": "postgresql.conf",
+    "server": "standby"
   },
   {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"   - Disk I\/O metrics on standby"
+    "parameter": "wal_receiver_timeout",
+    "value": "60000",
+    "unit": "ms",
+    "source": "postgresql.conf",
+    "server": "standby"
   },
   {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"   - Network throughput"
+    "parameter": "shared_buffers",
+    "value": "4096",
+    "unit": "MB",
+    "source": "postgresql.conf",
+    "server": "standby"
   },
   {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"   - CPU utilization"
+    "parameter": "effective_io_concurrency",
+    "value": "2",
+    "source": "postgresql.conf",
+    "server": "standby",
+    "note": "Low value may limit parallel disk I/O"
   },
   {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"   - Configuration parameters"
+    "parameter": "maintenance_work_mem",
+    "value": "512",
+    "unit": "MB",
+    "source": "postgresql.conf",
+    "server": "standby"
   },
   {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"Let me examine the key metrics:"
+    "parameter": "max_worker_processes",
+    "value": "4",
+    "source": "postgresql.conf",
+    "server": "standby"
   },
   {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"**From primary_replication_slots.json:**"
-  },
-  {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"- Primary's current WAL LSN position"
-  },
-  {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"- Standby's confirmed flush LSN"
-  },
-  {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"- Replication slot status"
-  },
-  {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"**From standby_status.json:**"
-  },
-  {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"- Received LSN position"
-  },
-  {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"- Flushed LSN position"
-  },
-  {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"- Applied LSN position"
-  },
-  {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"- Receiver status"
-  },
-  {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"**From wal_stats.json:**"
-  },
-  {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"- WAL generation rate (bytes\/sec)"
-  },
-  {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"- WAL application rate (bytes\/sec)"
-  },
-  {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"- If application rate < generation rate = lag accumulation"
-  },
-  {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"**From system_metrics.json:**"
-  },
-  {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"- Standby disk write IOPS and throughput"
-  },
-  {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"- Standby disk queue depth and latency"
-  },
-  {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"- Network bandwidth utilization"
-  },
-  {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"- CPU usage"
-  },
-  {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"**From postgres_config.json:**"
-  },
-  {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"- Configuration parameters that might affect performance"
-  },
-  {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"The lag in bytes = Primary's current WAL position - Standby's applied\/flushed position"
-  },
-  {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"Common causes to identify:"
-  },
-  {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"- Network bandwidth saturation"
-  },
-  {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"- CPU bottleneck on standby"
-  },
-  {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"- Long-running queries blocking WAL application"
-  },
-  {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"Now I'll create the analysis output:"
-  },
-  {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"```bash"
-  },
-  {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"cat > \/tmp\/lag_cause.txt << 'EOF'"
-  },
-  {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"PRIMARY_CAUSE: Standby disk write throughput insufficient for WAL application rate"
-  },
-  {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"LAG_BYTES: 3458923520"
-  },
-  {
-    "I'll analyze the PostgreSQL replication lag issue by first examining the diagnostic data files.":"EOF"
+    "parameter": "max_parallel_workers",
+    "value": "2",
+    "source": "postgresql.conf",
+    "server": "standby"
   }
 ]

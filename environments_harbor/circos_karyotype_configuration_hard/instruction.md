@@ -4,7 +4,7 @@ Your task is to create a properly formatted Circos karyotype file that integrate
 
 **Current Situation:**
 
-The `/data` directory contains:
+The `/workspace/data` directory contains:
 - `species_a_contigs.txt` - Tab-delimited contig information (may have inconsistent formatting)
 - `species_b_assembly.gff` - GFF3 format assembly file (needs parsing)
 - `species_c_raw.fasta` - FASTA file with sequence headers containing size information
@@ -34,7 +34,7 @@ The `/data` directory contains:
 
 **Output Specification:**
 
-Save your final karyotype file to: `/solution/karyotype.txt`
+Save your final karyotype file to: `/workspace/solution/karyotype.txt`
 
 The file must follow standard Circos karyotype format:
 ```

@@ -1,6 +1,6 @@
 You're helping optimize a warehouse robot navigation system. The warehouse has a grid layout with obstacles (shelving units), and robots need to find efficient paths between storage locations.
 
-A warehouse map file has been provided at `/workspace/warehouse_map.txt` showing the grid layout. The file uses:
+A warehouse map file has been provided at `/workspace/data/warehouse_map.txt` showing the grid layout. The file uses:
 - '.' for walkable floor space
 - '#' for obstacles (shelving units)
 - 'S' for the starting position

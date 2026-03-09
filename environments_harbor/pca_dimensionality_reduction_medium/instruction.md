@@ -2,7 +2,7 @@ A wine quality prediction model is suffering from overfitting and slow training 
 
 Your task is to reduce the dimensionality of the feature space while retaining at least 95% of the variance in the data. The reduced features should be used to evaluate model performance improvements.
 
-Dataset location: `/data/wine_quality.csv`
+Dataset location: `/workspace/data/wine_quality.csv`
 
 The dataset has the following structure:
 - First 11 columns: physicochemical features (numerical values)
@@ -16,7 +16,7 @@ Requirements:
 4. Calculate the variance ratio for each selected component
 5. Compare the dimensionality before and after reduction
 
-Save your solution to: `/solution/pca_results.json`
+Save your solution to: `/workspace/solution/pca_results.json`
 
 Output format (JSON):
 {

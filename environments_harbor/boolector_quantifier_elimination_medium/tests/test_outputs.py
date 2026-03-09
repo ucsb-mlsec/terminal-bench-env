@@ -105,9 +105,34 @@ def test_solution_not_placeholder():
     """Test that the solution is not a placeholder or empty formula"""
     solution_path = Path("/workspace/solution.txt")
     lines = solution_path.read_text().strip().split('\n')
-    
+
     formula = lines[1].split('=', 1)[1].strip()
-    
+
     # Check that formula is not just "true" or "false" (unless that's the actual answer)
     # and that it's not obviously a placeholder
     assert formula.lower() not in ["todo", "placeholder", ""], "Formula appears to be a placeholder"
+
+
+def test_sat_value_is_yes():
+    """Test that the formula is satisfiable (SAT=yes).
+    The original constraint (exists intermediate: intermediate=bvadd(current,1) and next=intermediate
+    and current<=2) is satisfiable for current=0b00, intermediate=next=0b01."""
+    solution_path = Path("/workspace/solution.txt")
+    lines = solution_path.read_text().strip().split('\n')
+    sat_value = lines[0].split('=', 1)[1].strip()
+    assert sat_value == "yes", f"Expected SAT=yes (the quantified formula is satisfiable), got SAT={sat_value}"
+
+
+def test_formula_captures_bvadd_and_bvule():
+    """Test that the quantifier-free formula preserves the key constraints from the original.
+    The original encodes: next = bvadd(current, #b01) AND bvule(current, #b10).
+    The QE result should reference 'next', 'current', bvadd or bv, and bvule or equivalent."""
+    solution_path = Path("/workspace/solution.txt")
+    lines = solution_path.read_text().strip().split('\n')
+    formula = lines[1].split('=', 1)[1].strip().lower()
+    # Formula must reference the variables and key operations
+    has_next = 'next' in formula
+    has_current = 'current' in formula
+    has_add_or_equiv = 'bvadd' in formula or 'bv' in formula
+    assert has_next and has_current, f"Formula must reference 'next' and 'current' variables, got: {formula}"
+    assert has_add_or_equiv, f"Formula should reference bitvector operations (bvadd etc.), got: {formula}"

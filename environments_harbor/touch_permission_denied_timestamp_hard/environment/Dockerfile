@@ -12,41 +12,41 @@ RUN apt-get update && \
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
 # Create necessary directories
-RUN mkdir -p /data/archive/docs \
-    /data/archive/logs \
-    /data/archive/protected \
-    /data/archive/backup \
-    /data/archive/temp \
-    /data/archive/readonly_mount \
-    /solution
+RUN mkdir -p /workspace/data/archive/docs \
+    /workspace/data/archive/logs \
+    /workspace/data/archive/protected \
+    /workspace/data/archive/backup \
+    /workspace/data/archive/temp \
+    /workspace/data/archive/readonly_mount \
+    /workspace/solution
 
 # Copy reference timestamp file
-COPY data/reference.timestamp /data/reference.timestamp
+COPY data/reference.timestamp /workspace/data/reference.timestamp
 
 # Copy files list
-COPY data/files_to_sync.txt /data/files_to_sync.txt
+COPY data/files_to_sync.txt /workspace/data/files_to_sync.txt
 
 # Copy archive files
-COPY data/archive/docs/report1.txt /data/archive/docs/report1.txt
-COPY data/archive/docs/report2.log /data/archive/docs/report2.log
-COPY data/archive/logs/access.log /data/archive/logs/access.log
-COPY data/archive/logs/error.log /data/archive/logs/error.log
-COPY data/archive/protected/secret1.dat /data/archive/protected/secret1.dat
-COPY data/archive/protected/secret2.dat /data/archive/protected/secret2.dat
-COPY data/archive/protected/secret3.conf /data/archive/protected/secret3.conf
-COPY data/archive/backup/file1.bak /data/archive/backup/file1.bak
-COPY data/archive/backup/file2.bak /data/archive/backup/file2.bak
-COPY data/archive/temp/data1.tmp /data/archive/temp/data1.tmp
-COPY data/archive/temp/data2.tmp /data/archive/temp/data2.tmp
-COPY data/archive/readonly_mount/locked1.txt /data/archive/readonly_mount/locked1.txt
-COPY data/archive/readonly_mount/locked2.txt /data/archive/readonly_mount/locked2.txt
-COPY data/archive/readonly_mount/locked3.log /data/archive/readonly_mount/locked3.log
+COPY data/archive/docs/report1.txt /workspace/data/archive/docs/report1.txt
+COPY data/archive/docs/report2.log /workspace/data/archive/docs/report2.log
+COPY data/archive/logs/access.log /workspace/data/archive/logs/access.log
+COPY data/archive/logs/error.log /workspace/data/archive/logs/error.log
+COPY data/archive/protected/secret1.dat /workspace/data/archive/protected/secret1.dat
+COPY data/archive/protected/secret2.dat /workspace/data/archive/protected/secret2.dat
+COPY data/archive/protected/secret3.conf /workspace/data/archive/protected/secret3.conf
+COPY data/archive/backup/file1.bak /workspace/data/archive/backup/file1.bak
+COPY data/archive/backup/file2.bak /workspace/data/archive/backup/file2.bak
+COPY data/archive/temp/data1.tmp /workspace/data/archive/temp/data1.tmp
+COPY data/archive/temp/data2.tmp /workspace/data/archive/temp/data2.tmp
+COPY data/archive/readonly_mount/locked1.txt /workspace/data/archive/readonly_mount/locked1.txt
+COPY data/archive/readonly_mount/locked2.txt /workspace/data/archive/readonly_mount/locked2.txt
+COPY data/archive/readonly_mount/locked3.log /workspace/data/archive/readonly_mount/locked3.log
 
 # Mount the readonly_mount directory as read-only
-RUN mount --bind /data/archive/readonly_mount /data/archive/readonly_mount || true && \
-    mount -o remount,ro /data/archive/readonly_mount || true
+RUN mount --bind /workspace/data/archive/readonly_mount /workspace/data/archive/readonly_mount || true && \
+    mount -o remount,ro /workspace/data/archive/readonly_mount || true
 
-WORKDIR /data
+WORKDIR /workspace
 
 # Mapped from docker-compose.yaml
 ENV TEST_DIR=/tests

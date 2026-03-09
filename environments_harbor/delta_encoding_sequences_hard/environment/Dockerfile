@@ -17,9 +17,9 @@ RUN apt-get update && \
 
 RUN pip3 install --no-cache-dir --break-system-packages numpy pandas
 
-RUN mkdir -p /data/sensors /solution
+RUN mkdir -p /workspace/data/sensors /workspace/solution
 
-COPY data/raw_readings.csv /data/sensors/raw_readings.csv
+COPY data/raw_readings.csv /workspace/data/sensors/raw_readings.csv
 
 WORKDIR /workspace
 

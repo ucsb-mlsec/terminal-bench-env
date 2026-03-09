@@ -68,11 +68,23 @@ def test_filesystem_was_extracted():
     output_path = Path("/tmp/firmware_analysis.txt")
     content = output_path.read_text().strip()
     lines = content.split('\n')
-    
+
     second_line = lines[1].strip()
     value_str = second_line.split(':', 1)[1].strip()
     total_bytes = int(value_str)
-    
+
     # A real filesystem extraction should result in some significant size
     # This ensures the agent didn't just output dummy values
     assert total_bytes >= 100, f"total_bytes ({total_bytes}) seems too small for a real filesystem extraction"
+
+
+def test_etc_found_is_yes():
+    """Test that etc_found is 'yes' (the firmware contains /etc directory)"""
+    output_path = Path("/tmp/firmware_analysis.txt")
+    content = output_path.read_text().strip()
+    lines = content.split('\n')
+
+    first_line = lines[0].strip()
+    value = first_line.split(':', 1)[1].strip()
+    assert value == 'yes', \
+        f"etc_found should be 'yes' because the firmware contains an /etc directory, got: '{value}'"

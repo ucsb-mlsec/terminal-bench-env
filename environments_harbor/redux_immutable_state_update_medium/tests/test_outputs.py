@@ -89,10 +89,21 @@ def test_violations_count_reasonable():
     """Test that the violations count is within a reasonable range"""
     solution_path = Path("/workspace/solution.txt")
     content = solution_path.read_text().strip()
-    
+
     violations_line = [line for line in content.split('\n') if line.startswith("violations_fixed=")][0]
     violations_value = violations_line.split('=', 1)[1].strip()
     violations_count = int(violations_value)
-    
+
     # Based on typical Redux reducer bugs, expect between 3-15 violations
     assert 3 <= violations_count <= 15, f"violations_fixed count seems unreasonable: {violations_count}. Expected between 3-15 violations."
+
+def test_violations_fixed_exact_count():
+    """Test that violations_fixed=8, matching the 8 direct mutations in preferencesReducer.js"""
+    solution_path = Path("/workspace/solution.txt")
+    content = solution_path.read_text().strip()
+
+    violations_line = [line for line in content.split('\n') if line.startswith("violations_fixed=")][0]
+    violations_count = int(violations_line.split('=', 1)[1].strip())
+
+    assert violations_count == 8, \
+        f"Expected violations_fixed=8 (8 direct state mutations in preferencesReducer.js), got: {violations_count}"

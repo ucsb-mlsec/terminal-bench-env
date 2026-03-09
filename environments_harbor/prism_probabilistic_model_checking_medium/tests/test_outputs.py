@@ -120,3 +120,33 @@ def test_analysis_mathematically_valid():
     # Expected steps should be reasonable (not too small for a 6-state chain with retries)
     assert data["expected_steps"] >= 1.0, "Expected steps should be at least 1"
     assert data["expected_steps"] < 1000, "Expected steps seems unreasonably high"
+
+def test_correct_success_probability():
+    """Test that success_probability matches the analytically computed value"""
+    output_path = Path("/workspace/analysis_results.json")
+    with open(output_path, 'r') as f:
+        data = json.load(f)
+    # Analytical: P(success) = 15/17 ≈ 0.88235 (from transition matrix in protocol_model.json)
+    expected = 15 / 17  # ≈ 0.88235
+    assert abs(data["success_probability"] - expected) < 0.01, \
+        f"Expected success_probability ≈ {expected:.5f} (15/17), got {data['success_probability']}"
+
+def test_correct_failure_probability():
+    """Test that failure_probability matches the analytically computed value"""
+    output_path = Path("/workspace/analysis_results.json")
+    with open(output_path, 'r') as f:
+        data = json.load(f)
+    # Analytical: P(failure) = 2/17 ≈ 0.11765
+    expected = 2 / 17
+    assert abs(data["failure_probability"] - expected) < 0.01, \
+        f"Expected failure_probability ≈ {expected:.5f} (2/17), got {data['failure_probability']}"
+
+def test_correct_expected_steps():
+    """Test that expected_steps matches the analytically computed value"""
+    output_path = Path("/workspace/analysis_results.json")
+    with open(output_path, 'r') as f:
+        data = json.load(f)
+    # Analytical: total expected steps from state 0 = 2 + 25/17 ≈ 3.47
+    expected = 2 + 25 / 17  # ≈ 3.4706
+    assert abs(data["expected_steps"] - expected) < 0.1, \
+        f"Expected expected_steps ≈ {expected:.2f} (2+25/17), got {data['expected_steps']}"

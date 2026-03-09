@@ -100,3 +100,26 @@ def test_minimum_converged_encut():
             energy_diff = float(diff_match.group(1))
             # If 200 is reported, it should be a special case
             assert encut_value == 200, "ENCUT=200 should only be reported in special cases"
+
+def test_converged_encut_is_400():
+    """Test that CONVERGED_ENCUT equals 400 eV (first ENCUT where energy difference < 1 meV/atom)"""
+    import re
+    result_path = Path("/workspace/convergence_result.txt")
+    content = result_path.read_text()
+    match = re.search(r'CONVERGED_ENCUT=(\d+)', content)
+    assert match is not None, "CONVERGED_ENCUT not found in convergence_result.txt"
+    encut_value = int(match.group(1))
+    assert encut_value == 400, \
+        f"Expected CONVERGED_ENCUT=400 (400 eV is first ENCUT meeting <1 meV/atom convergence criterion), got {encut_value}"
+
+def test_converged_energy_near_expected():
+    """Test that CONVERGED_ENERGY is approximately -10.850234 eV (energy at ENCUT=400)"""
+    import re
+    result_path = Path("/workspace/convergence_result.txt")
+    content = result_path.read_text()
+    match = re.search(r'CONVERGED_ENERGY=([-\d.]+)', content)
+    if match:
+        energy = float(match.group(1))
+        # Allow tolerance of 0.01 eV around expected value from OUTCAR
+        assert abs(energy - (-10.850234)) < 0.01, \
+            f"Expected CONVERGED_ENERGY near -10.850234 eV, got {energy}"

@@ -12,7 +12,7 @@ The library preparation could have used one of three strand-specificity protocol
 
 Your goal is to determine which protocol was used by examining how the reads align relative to the annotated gene features.
 
-Save your answer to `/output/result.txt` as a single line containing only one of these three values:
+Save your answer to `/workspace/output/result.txt` as a single line containing only one of these three values:
 ```
 unstranded
 ```

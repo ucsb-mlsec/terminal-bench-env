@@ -81,9 +81,21 @@ def test_forks_present_if_max_value_nonzero():
     """Test that if max_value > 0, then forks > 0"""
     solution_path = Path("/workspace/solution.txt")
     lines = solution_path.read_text().strip().split('\n')
-    
+
     forks = int(lines[1].split('=')[1])
     max_value = int(lines[2].split('=')[1])
-    
+
     if max_value > 0:
         assert forks > 0, f"If max_value={max_value} > 0, then forks should be > 0, got: {forks}"
+
+
+def test_max_value_is_9():
+    """Test that max_value=9, representing a queen that can be captured.
+    Position 5 contains a knight fork on f7 that attacks king (g8) and queen (d8),
+    making the queen (value=9) the highest-value capturable piece across all positions."""
+    solution_path = Path("/workspace/solution.txt")
+    lines = solution_path.read_text().strip().split('\n')
+
+    max_value = int(lines[2].split('=')[1])
+    assert max_value == 9, \
+        f"Expected max_value=9 (queen is the highest-value fork target per position5.fen), got {max_value}"

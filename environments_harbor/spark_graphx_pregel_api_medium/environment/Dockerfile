@@ -14,11 +14,11 @@ RUN pip3 install --no-cache-dir --break-system-packages pyspark
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /data /solution
+RUN mkdir -p /workspace/data /workspace/solution
 
-COPY data/network_edges.txt /data/network_edges.txt
+COPY data/network_edges.txt /workspace/data/network_edges.txt
 
-WORKDIR /solution
+WORKDIR /workspace
 
 # Mapped from docker-compose.yaml
 ENV TEST_DIR=/tests

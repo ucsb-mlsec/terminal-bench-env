@@ -132,3 +132,34 @@ def test_query3_has_match_statement():
     query3_path = Path("/workspace/optimized/query3.cyp")
     content = query3_path.read_text().upper()
     assert 'MATCH' in content, "query3.cyp does not contain MATCH statement"
+
+
+def test_query2_uses_parameterized_topic_filter():
+    """Test that optimized query2 uses a parameter for the topic filter"""
+    query2_path = Path("/workspace/optimized/query2.cyp")
+    content = query2_path.read_text()
+
+    # Original query2 has WHERE t.name = 'Technology' hardcoded string literal
+    # Optimization should use a parameter ($topic or similar) for cache-friendliness
+    has_param = '$' in content
+    assert has_param, (
+        "Optimized query2 should use a parameter (e.g. $topic) instead of hardcoded 'Technology' "
+        "for better query plan caching"
+    )
+
+
+def test_query1_merges_match_clauses():
+    """Test that optimized query1 combines separate MATCH clauses into fewer clauses"""
+    query1_path = Path("/workspace/optimized/query1.cyp")
+    content = query1_path.read_text().upper()
+
+    # Original query1 has 3 separate MATCH clauses which causes cartesian products
+    # Optimized version should merge them or use fewer MATCH statements
+    match_count = content.count('\nMATCH ')
+    # Count leading MATCH too
+    if content.strip().startswith('MATCH'):
+        match_count += 1
+    assert match_count < 3, (
+        f"Optimized query1 should use fewer than 3 separate MATCH clauses "
+        f"(original had 3 separate MATCHes causing cartesian product risk), got {match_count}"
+    )

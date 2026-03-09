@@ -99,3 +99,45 @@ def test_all_values_parseable():
     
     assert isinstance(clustering_score, float), "Clustering score must be a float"
     assert isinstance(perplexity, float), "Perplexity must be a float"
+
+
+def test_status_is_success():
+    """Test that status is SUCCESS since the embeddings have well-separated clusters.
+    The dataset was generated with 5 distinct cluster centers (noise std=0.5) separated
+    by distances > 2.0 in 64-dimensional space, so t-SNE should reveal clear clusters."""
+    analysis_path = Path("/workspace/solution/analysis.txt")
+    lines = analysis_path.read_text().strip().split('\n')
+
+    status = lines[1].strip().split('=')[1]
+    assert status == "SUCCESS", \
+        "Status should be SUCCESS because the embeddings have well-separated topic clusters"
+
+
+def test_clustering_score_indicates_good_separation():
+    """Test that clustering_score > 0.4, indicating meaningful topic separation.
+    The embeddings were generated with 5 tight clusters (std=0.5) around well-separated
+    centers, so any reasonable clustering metric should yield a high score."""
+    analysis_path = Path("/workspace/solution/analysis.txt")
+    lines = analysis_path.read_text().strip().split('\n')
+
+    score = float(lines[0].strip().split('=')[1])
+    assert score > 0.4, \
+        f"Clustering score {score} is too low; the embeddings have 5 well-separated clusters and should score > 0.4"
+
+
+def test_status_consistent_with_score():
+    """Test that status is consistent with the clustering score value."""
+    analysis_path = Path("/workspace/solution/analysis.txt")
+    lines = analysis_path.read_text().strip().split('\n')
+
+    score = float(lines[0].strip().split('=')[1])
+    status = lines[1].strip().split('=')[1]
+
+    # A score above 0.5 should always be SUCCESS
+    if score >= 0.5:
+        assert status == "SUCCESS", \
+            f"Score {score} >= 0.5 should yield status=SUCCESS, got {status}"
+    # A score below 0.2 should always be FAILED
+    if score < 0.2:
+        assert status == "FAILED", \
+            f"Score {score} < 0.2 should yield status=FAILED, got {status}"

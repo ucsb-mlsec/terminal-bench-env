@@ -4,7 +4,7 @@ You've been given the ensemble model's complete prediction history on a represen
 
 **Available Data:**
 
-The file `/workspace/teacher_predictions.csv` contains the ensemble model's outputs on 5,000 samples:
+The file `/workspace/data/teacher_predictions.csv` contains the ensemble model's outputs on 5,000 samples:
 - Columns: `feature_1`, `feature_2`, ..., `feature_20`, `teacher_probability`
 - Each row represents one prediction
 - Features are numerical values (already preprocessed and normalized)

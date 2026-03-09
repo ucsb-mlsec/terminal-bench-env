@@ -11,10 +11,10 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /data/copybook /data/export /solution
+RUN mkdir -p /workspace/data/copybook /workspace/data/export /workspace/solution
 
-COPY data/copybook/CUSTOMER.cpy /data/copybook/CUSTOMER.cpy
-COPY data/export/CUSTOMER.txt /data/export/CUSTOMER.txt
+COPY data/copybook/CUSTOMER.cpy /workspace/data/copybook/CUSTOMER.cpy
+COPY data/export/CUSTOMER.txt /workspace/data/export/CUSTOMER.txt
 
 WORKDIR /workspace
 

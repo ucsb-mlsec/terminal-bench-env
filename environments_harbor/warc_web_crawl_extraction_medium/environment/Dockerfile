@@ -11,11 +11,12 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /data /output
+RUN mkdir -p /workspace/data /workspace/output /workspace/output/warc_web_crawl_extraction_medium/files/data
 
 RUN pip3 install --no-cache-dir --break-system-packages warcio
 
-COPY data/crawl.warc.gz /data/crawl.warc.gz
+COPY data/crawl.warc.gz /workspace/data/crawl.warc.gz
+COPY data/crawl.warc.gz /workspace/output/warc_web_crawl_extraction_medium/files/data/crawl.warc.gz
 
 WORKDIR /workspace
 

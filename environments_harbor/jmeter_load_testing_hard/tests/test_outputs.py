@@ -62,6 +62,17 @@ def test_throughput_value_positive():
     throughput = float(throughput_line.split('=')[1])
     assert throughput > 0, f"Throughput value must be positive, got: {throughput}"
 
+def test_degradation_point_near_300_users():
+    """Test that the degradation point is correctly identified around 300 concurrent users"""
+    output_path = Path("/home/agent/performance_summary.txt")
+    content = output_path.read_text().strip()
+    lines = content.split('\n')
+    users = int(lines[0].split('=')[1])
+    # test_results.jtl shows first 500 error at Users-315 with 315 concurrent users
+    # The degradation point should be around 300 users
+    assert 200 <= users <= 400, \
+        f"degradation_point_users should be around 300 (first errors appear at ~315 users in test_results.jtl), got {users}"
+
 def test_values_extracted_from_actual_data():
     """Test that the values appear to be based on actual analysis (reasonable ranges)"""
     output_path = Path("/home/agent/performance_summary.txt")

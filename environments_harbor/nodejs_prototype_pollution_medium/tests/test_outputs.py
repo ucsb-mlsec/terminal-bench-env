@@ -64,10 +64,27 @@ def test_function_name_exists_in_auth():
     """Test that the function name exists in auth.js"""
     solution_path = Path("/home/challenge/solution.txt")
     auth_path = Path("/home/challenge/auth.js")
-    
+
     lines = solution_path.read_text().strip().split('\n')
     function_name = lines[0].strip()
-    
+
     auth_content = auth_path.read_text()
     # Check if function name appears in auth.js (as function declaration or export)
     assert function_name in auth_content, f"Function '{function_name}' not found in auth.js"
+
+
+def test_correct_vulnerable_function():
+    """Test that the correct vulnerable function is identified"""
+    solution_path = Path("/home/challenge/solution.txt")
+    lines = solution_path.read_text().strip().split('\n')
+    function_name = lines[0].strip()
+
+    # authenticateUser calls deepMerge(userSession, credentials) without sanitizing
+    # __proto__ keys, then checks userSession.isAdmin — allowing prototype pollution
+    # to grant admin access. deepMerge is the helper but authenticateUser is the
+    # exploitable entry point.
+    assert function_name == "authenticateUser", (
+        f"The vulnerable function should be 'authenticateUser' "
+        f"(calls deepMerge with user-supplied credentials enabling __proto__ pollution "
+        f"to bypass the isAdmin check), got: {function_name}"
+    )

@@ -13,12 +13,12 @@ RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.
 
 RUN pip3 install --no-cache-dir --break-system-packages pyjwt
 
-RUN mkdir -p /data/requests /config /output
+RUN mkdir -p /workspace/data/requests /workspace/config /workspace/output
 
-COPY data/requests/requests_001.json /data/requests/requests_001.json
-COPY data/requests/requests_002.json /data/requests/requests_002.json
-COPY data/requests/requests_003.json /data/requests/requests_003.json
-COPY config/secret.key /config/secret.key
+COPY data/requests/requests_001.json /workspace/data/requests/requests_001.json
+COPY data/requests/requests_002.json /workspace/data/requests/requests_002.json
+COPY data/requests/requests_003.json /workspace/data/requests/requests_003.json
+COPY config/secret.key /workspace/config/secret.key
 
 WORKDIR /workspace
 

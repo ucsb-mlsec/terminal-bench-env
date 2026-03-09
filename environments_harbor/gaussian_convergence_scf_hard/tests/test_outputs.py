@@ -110,14 +110,54 @@ def test_no_blank_lines():
     classification_path = Path("/workspace/classification.txt")
     content = classification_path.read_text()
     lines = content.split('\n')
-    
+
     # Check if there are any blank lines (except possibly a trailing newline)
     non_empty_lines = [line for line in lines if line.strip()]
-    
+
     # If the file ends with a newline, we'll have an empty string at the end
     if content.endswith('\n'):
         expected_line_count = len(non_empty_lines) + 1
     else:
         expected_line_count = len(non_empty_lines)
-    
+
     assert len(lines) == expected_line_count, f"File contains blank lines. Expected {expected_line_count} lines total, found {len(lines)}"
+
+
+def test_correct_classifications():
+    """Test that each log file is classified correctly based on error signatures.
+    Classifications derived by reading each log:
+    calc_001,007,013=poor_initial_guess; calc_002,008=linear_dependency;
+    calc_003,009,014=oscillating; calc_004,010,015=slow_convergence;
+    calc_005,011=grid_error; calc_006,012=geometry_issue."""
+    classification_path = Path("/workspace/classification.txt")
+    lines = classification_path.read_text().strip().split('\n')
+
+    actual = {}
+    for line in lines:
+        line = line.strip()
+        if line:
+            filename, category = line.split('=')
+            actual[filename] = category
+
+    expected = {
+        "calc_001.log": "poor_initial_guess",
+        "calc_002.log": "linear_dependency",
+        "calc_003.log": "oscillating",
+        "calc_004.log": "slow_convergence",
+        "calc_005.log": "grid_error",
+        "calc_006.log": "geometry_issue",
+        "calc_007.log": "poor_initial_guess",
+        "calc_008.log": "linear_dependency",
+        "calc_009.log": "oscillating",
+        "calc_010.log": "slow_convergence",
+        "calc_011.log": "grid_error",
+        "calc_012.log": "geometry_issue",
+        "calc_013.log": "poor_initial_guess",
+        "calc_014.log": "oscillating",
+        "calc_015.log": "slow_convergence",
+    }
+
+    for filename, expected_category in expected.items():
+        assert filename in actual, f"{filename} not found in classification output"
+        assert actual[filename] == expected_category, \
+            f"{filename}: expected '{expected_category}', got '{actual[filename]}'"

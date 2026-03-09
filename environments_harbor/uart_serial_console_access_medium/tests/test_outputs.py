@@ -95,8 +95,26 @@ def test_timestamps_reasonable():
     solution_path = Path("/home/agent/solution.json")
     with open(solution_path, 'r') as f:
         data = json.load(f)
-    
+
     assert data["interrupt_window_start"] >= 0, \
         "interrupt_window_start must be non-negative"
     assert data["interrupt_window_end"] <= 300, \
         "interrupt_window_end seems unreasonably large (>300 seconds)"
+
+
+def test_interrupt_window_matches_boot_log():
+    """Test that the interrupt window corresponds to the U-Boot autoboot countdown in the log"""
+    solution_path = Path("/home/agent/solution.json")
+    with open(solution_path, 'r') as f:
+        data = json.load(f)
+
+    # boot_capture.log shows 'Hit any key to stop autoboot' countdown from ~0.8s to ~4.4s
+    # The window starts at [0.803156] when countdown 3 first appears
+    # and ends around [4.236234] (last count=1) or [4.437892] (boot starts)
+    start = data["interrupt_window_start"]
+    end = data["interrupt_window_end"]
+
+    assert 0.5 <= start <= 1.5, \
+        f"interrupt_window_start should be ~0.8s (start of autoboot countdown), got {start}"
+    assert 3.5 <= end <= 5.0, \
+        f"interrupt_window_end should be ~4.2-4.4s (end of autoboot countdown), got {end}"

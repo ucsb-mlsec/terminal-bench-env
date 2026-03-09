@@ -1,4 +1,4 @@
-A SQLite database backup was exported from a production system, but the export process was interrupted and resulted in incomplete data. The database file is located at `/backup/incomplete.db` and contains three tables with foreign key relationships:
+A SQLite database backup was exported from a production system, but the export process was interrupted and resulted in incomplete data. The database file is located at `/workspace/backup/incomplete.db` and contains three tables with foreign key relationships:
 
 - `users` table (parent)
 - `orders` table (references users)
@@ -13,9 +13,9 @@ The cleaned database must:
 - Contain no orphaned records (all foreign key references must be valid)
 - Preserve all records that have valid relationships
 
-After cleaning the database, save it to `/solution/cleaned.db` with foreign key enforcement enabled.
+After cleaning the database, save it to `/workspace/solution/cleaned.db` with foreign key enforcement enabled.
 
-Additionally, create a summary report at `/solution/cleanup_report.txt` containing exactly three lines in this format:
+Additionally, create a summary report at `/workspace/solution/cleanup_report.txt` containing exactly three lines in this format:
 
 ```
 orphaned_orders=<number>
@@ -31,7 +31,7 @@ Where:
 The report must be a plain text file with exactly these three lines in key=value format, in the order shown above.
 
 Success criteria:
-- `/solution/cleaned.db` exists and has foreign key enforcement enabled
+- `/workspace/solution/cleaned.db` exists and has foreign key enforcement enabled
 - The cleaned database contains no foreign key violations
-- `/solution/cleanup_report.txt` exists with the correct format and accurate counts
+- `/workspace/solution/cleanup_report.txt` exists with the correct format and accurate counts
 - All valid data (records with proper relationships) is preserved in the cleaned database

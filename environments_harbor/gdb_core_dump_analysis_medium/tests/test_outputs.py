@@ -90,29 +90,77 @@ def test_solution_correct_analysis():
     solution_path = Path("/workspace/solution.txt")
     content = solution_path.read_text().strip()
     lines = content.split('\n')
-    
+
     # Parse the solution
     solution_dict = {}
     for line in lines:
         if '=' in line:
             key, value = line.split('=', 1)
             solution_dict[key.strip()] = value.strip()
-    
+
     # Read the backtrace to verify the answer
     backtrace_path = Path("/workspace/crash_logs/gdb_backtrace.txt")
     assert backtrace_path.exists(), "Backtrace file not found for verification"
     backtrace = backtrace_path.read_text()
-    
+
     # The actual crash location should be in frame #0 of the backtrace
     # This is where we verify the student found the correct answer
     assert 'function' in solution_dict, "Solution missing 'function' key"
     assert 'line' in solution_dict, "Solution missing 'line' key"
     assert 'cause' in solution_dict, "Solution missing 'cause' key"
-    
+
     # Verify the function name is reasonable (not empty, looks like a C function name)
     function_name = solution_dict['function']
     assert re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', function_name), f"Function name '{function_name}' doesn't look like a valid C function name"
-    
+
     # Verify line number is reasonable
     line_num = int(solution_dict['line'])
     assert 1 <= line_num <= 10000, f"Line number {line_num} seems unreasonable"
+
+
+def test_crash_function_is_process_request():
+    """Test that function=process_request, from gdb_backtrace.txt frame #0:
+    'process_request (request=0x0) at processor.c:187'"""
+    solution_path = Path("/workspace/solution.txt")
+    lines = solution_path.read_text().strip().split('\n')
+
+    solution_dict = {}
+    for line in lines:
+        if '=' in line:
+            key, value = line.split('=', 1)
+            solution_dict[key.strip()] = value.strip()
+
+    assert solution_dict.get('function') == 'process_request', \
+        f"Expected function=process_request (frame #0 in gdb_backtrace.txt), got {solution_dict.get('function')}"
+
+
+def test_crash_line_is_187():
+    """Test that line=187, from gdb_backtrace.txt frame #0:
+    'process_request (request=0x0) at processor.c:187'"""
+    solution_path = Path("/workspace/solution.txt")
+    lines = solution_path.read_text().strip().split('\n')
+
+    solution_dict = {}
+    for line in lines:
+        if '=' in line:
+            key, value = line.split('=', 1)
+            solution_dict[key.strip()] = value.strip()
+
+    assert solution_dict.get('line') == '187', \
+        f"Expected line=187 (from processor.c:187 in gdb_backtrace.txt), got {solution_dict.get('line')}"
+
+
+def test_crash_cause_is_null_pointer():
+    """Test that cause=null_pointer, since gdb_backtrace.txt shows request=0x0
+    (null pointer dereference in process_request)."""
+    solution_path = Path("/workspace/solution.txt")
+    lines = solution_path.read_text().strip().split('\n')
+
+    solution_dict = {}
+    for line in lines:
+        if '=' in line:
+            key, value = line.split('=', 1)
+            solution_dict[key.strip()] = value.strip()
+
+    assert solution_dict.get('cause') == 'null_pointer', \
+        f"Expected cause=null_pointer (request=0x0 is a null pointer per backtrace), got {solution_dict.get('cause')}"

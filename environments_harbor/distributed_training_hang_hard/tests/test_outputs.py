@@ -65,11 +65,33 @@ def test_description_is_technical():
     fix_path = Path("/workspace/fix.txt")
     lines = fix_path.read_text().strip().split('\n')
     second_line = lines[1].strip().lower()
-    
+
     # Should contain some technical terms related to distributed training issues
-    relevant_keywords = ['barrier', 'rank', 'sync', 'deadlock', 'block', 'hang', 'process', 
+    relevant_keywords = ['barrier', 'rank', 'sync', 'deadlock', 'block', 'hang', 'process',
                         'collective', 'broadcast', 'gather', 'scatter', 'reduce', 'wait',
                         'uneven', 'mismatch', 'distributed', 'ddp', 'loop', 'condition']
-    
+
     has_keyword = any(keyword in second_line for keyword in relevant_keywords)
     assert has_keyword, f"Description doesn't contain relevant technical keywords: '{second_line}'"
+
+
+def test_first_line_points_to_correct_file():
+    """Test that the fix points to train_ddp.py where the barrier issue is"""
+    fix_path = Path("/workspace/fix.txt")
+    lines = fix_path.read_text().strip().split('\n')
+    first_line = lines[0].strip()
+    file_path = first_line.split(':')[0]
+    # The barrier deadlock is in train_ddp.py (rank==0 guard around dist.barrier())
+    assert file_path == '/workspace/train_ddp.py', \
+        f"Primary blocking issue should be in /workspace/train_ddp.py, got: {file_path}"
+
+
+def test_first_line_line_number_references_barrier():
+    """Test that the identified line number is where the conditional barrier is"""
+    fix_path = Path("/workspace/fix.txt")
+    lines = fix_path.read_text().strip().split('\n')
+    first_line = lines[0].strip()
+    line_num = int(first_line.split(':')[1])
+    # The barrier call on rank==0 only is at line 58 in train_ddp.py
+    assert line_num == 58, \
+        f"The identified line {line_num} should be 58 (the rank-conditional barrier call)"

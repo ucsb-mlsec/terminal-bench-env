@@ -71,22 +71,46 @@ def test_validation_accuracy():
     result_path = Path("/workspace/shader_validation/validation_result.txt")
     content = result_path.read_text().strip()
     lines = content.split('\n')
-    
+
     # Extract reported counts
     reported_invalid = int(re.match(r'invalid_shaders=(\d+)', lines[0]).group(1))
     reported_valid = int(re.match(r'valid_shaders=(\d+)', lines[1]).group(1))
-    
+
     # Read binding rules to understand validation criteria
     rules_path = Path("/workspace/shader_validation/binding_rules.txt")
-    
+
     # Count actual shader files
     shaders_dir = Path("/workspace/shader_validation/shaders/")
     hlsl_files = list(shaders_dir.glob("*.hlsl"))
-    
+
     # Validate that analysis was performed (non-zero results for 8 shaders)
     total_analyzed = reported_invalid + reported_valid
     assert total_analyzed == len(hlsl_files), \
         f"Must analyze all {len(hlsl_files)} shader files, but got {total_analyzed} total"
-    
+
     # Both counts should be reasonable (at least some shaders exist)
     assert total_analyzed > 0, "Must have analyzed at least one shader file"
+
+
+def test_correct_invalid_shader_count():
+    """Test that exactly 4 shaders are identified as invalid"""
+    result_path = Path("/workspace/shader_validation/validation_result.txt")
+    content = result_path.read_text().strip()
+    lines = content.split('\n')
+
+    reported_invalid = int(re.match(r'invalid_shaders=(\d+)', lines[0]).group(1))
+    reported_valid = int(re.match(r'valid_shaders=(\d+)', lines[1]).group(1))
+
+    # Based on analysis of shaders:
+    # INVALID (4): ui.hlsl (SamplerState with b register), lighting.hlsl (Texture with b register,
+    #              Sampler with t register), water.hlsl (Texture with s register),
+    #              particle.hlsl (space-1 negative space, RWBuffer with t register)
+    # VALID (4): shadow.hlsl, skybox.hlsl, postprocess.hlsl, terrain.hlsl
+    assert reported_invalid == 4, (
+        f"Expected 4 invalid shaders (ui.hlsl, lighting.hlsl, water.hlsl, particle.hlsl), "
+        f"but got invalid_shaders={reported_invalid}"
+    )
+    assert reported_valid == 4, (
+        f"Expected 4 valid shaders (shadow.hlsl, skybox.hlsl, postprocess.hlsl, terrain.hlsl), "
+        f"but got valid_shaders={reported_valid}"
+    )

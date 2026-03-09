@@ -92,13 +92,51 @@ def test_no_attack_format():
     """Test that if no attack detected, all fields are empty"""
     output_path = Path("/home/agent/attack_summary.txt")
     lines = output_path.read_text().strip().split('\n')
-    
+
     attack_detected = lines[0].split("=", 1)[1]
     source_ip = lines[1].split("=", 1)[1]
     attacker_account = lines[2].split("=", 1)[1]
     extracted_accounts = lines[3].split("=", 1)[1]
-    
+
     if attack_detected == "false":
         assert len(source_ip) == 0, "SOURCE_IP must be empty when ATTACK_DETECTED=false"
         assert len(attacker_account) == 0, "ATTACKER_ACCOUNT must be empty when ATTACK_DETECTED=false"
         assert len(extracted_accounts) == 0, "EXTRACTED_ACCOUNTS must be empty when ATTACK_DETECTED=false"
+
+
+def test_attack_is_detected():
+    """Test that an attack is correctly detected (log contains clear DCSync attack evidence)"""
+    output_path = Path("/home/agent/attack_summary.txt")
+    lines = output_path.read_text().strip().split('\n')
+    attack_detected = lines[0].split("=", 1)[1]
+    assert attack_detected == "true", \
+        "The log contains clear DS-Replication-Get-Changes events - ATTACK_DETECTED must be 'true'"
+
+
+def test_correct_source_ip():
+    """Test that the identified source IP matches the attacker IP in the log"""
+    output_path = Path("/home/agent/attack_summary.txt")
+    lines = output_path.read_text().strip().split('\n')
+    source_ip = lines[1].split("=", 1)[1]
+    assert source_ip == "192.168.1.100", \
+        f"SOURCE_IP should be '192.168.1.100' based on DC events log, got '{source_ip}'"
+
+
+def test_correct_attacker_account():
+    """Test that the attacker account matches the log evidence"""
+    output_path = Path("/home/agent/attack_summary.txt")
+    lines = output_path.read_text().strip().split('\n')
+    attacker_account = lines[2].split("=", 1)[1]
+    assert "john.doe" in attacker_account.lower() or "CORP\\john.doe" == attacker_account, \
+        f"ATTACKER_ACCOUNT should identify 'john.doe' based on DC events log, got '{attacker_account}'"
+
+
+def test_extracted_accounts_include_administrator_and_krbtgt():
+    """Test that Administrator and krbtgt are in extracted accounts (confirmed in log)"""
+    output_path = Path("/home/agent/attack_summary.txt")
+    lines = output_path.read_text().strip().split('\n')
+    extracted_accounts = lines[3].split("=", 1)[1]
+    assert "Administrator" in extracted_accounts, \
+        f"EXTRACTED_ACCOUNTS must include 'Administrator' (seen in DS-Replication events), got '{extracted_accounts}'"
+    assert "krbtgt" in extracted_accounts, \
+        f"EXTRACTED_ACCOUNTS must include 'krbtgt' (seen in DS-Replication events), got '{extracted_accounts}'"

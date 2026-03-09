@@ -5,13 +5,13 @@ A Salesforce data export has been provided in `/data/salesforce_export/` contain
 - Contacts (people associated with accounts)
 - Opportunities (sales deals)
 - OpportunityContactRoles (linking contacts to opportunities)
-- Cases (support tickets)
+- Cases (support tickets) - Note: Cases.csv may not be present in the export. If it is missing, assume there are no open support cases for any account.
 
 Your goal is to identify accounts that meet ALL of the following criteria:
 1. The account has at least 3 active contacts (Status = 'Active')
 2. The account has at least 2 closed-won opportunities (Stage = 'Closed Won') with a total value exceeding $500,000
 3. At least one of those closed-won opportunities has a contact in a decision-maker role (Role = 'Decision Maker' or 'Executive Sponsor')
-4. The account has fewer than 5 open support cases (Status = 'Open' or 'In Progress')
+4. The account has fewer than 5 open support cases (Status = 'Open' or 'In Progress'). If Cases.csv does not exist, this criterion is automatically satisfied.
 5. The account's industry is either 'Technology', 'Finance', or 'Healthcare'
 
 The data files use standard Salesforce relationship patterns:

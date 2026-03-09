@@ -103,3 +103,29 @@ def test_current_and_required_values_differ():
     
     assert current != required, \
         f"current_value and required_value are the same ({current}), no change would be made"
+
+
+def test_parameter_is_task_time_limit():
+    """Test that the identified parameter is task_time_limit from celeryconfig.py"""
+    # celeryconfig.py has task_time_limit = 150, which causes tasks > 150s to fail
+    # Tasks needing 180s fail with SoftTimeLimitExceeded (error_logs.txt shows 150s exceeded)
+    diagnosis_path = Path("/workspace/diagnosis.json")
+    data = json.loads(diagnosis_path.read_text())
+    parameter_name = data["parameter_name"]
+    assert parameter_name in ["task_time_limit", "task_soft_time_limit"], \
+        f"parameter_name should be 'task_time_limit' or 'task_soft_time_limit' (celeryconfig.py has both set too low), got '{parameter_name}'"
+
+
+def test_current_value_is_150():
+    """Test that current_value is 150 (task_time_limit = 150 in celeryconfig.py)"""
+    # celeryconfig.py: task_time_limit = 150 (hard limit that kills tasks > 150s)
+    diagnosis_path = Path("/workspace/diagnosis.json")
+    data = json.loads(diagnosis_path.read_text())
+    parameter_name = data["parameter_name"]
+    current_value = data["current_value"]
+    if parameter_name == "task_time_limit":
+        assert int(current_value) == 150, \
+            f"current_value for task_time_limit should be 150 (as set in celeryconfig.py), got {current_value}"
+    elif parameter_name == "task_soft_time_limit":
+        assert int(current_value) == 120, \
+            f"current_value for task_soft_time_limit should be 120 (as set in celeryconfig.py), got {current_value}"

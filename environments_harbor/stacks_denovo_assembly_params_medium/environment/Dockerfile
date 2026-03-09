@@ -11,12 +11,12 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /data/configs /solution
+RUN mkdir -p /workspace/data/configs /workspace/solution
 
-COPY data/configs/param_set_1.txt /data/configs/param_set_1.txt
-COPY data/configs/param_set_2.txt /data/configs/param_set_2.txt
-COPY data/configs/param_set_3.txt /data/configs/param_set_3.txt
-COPY data/configs/validation_rules.txt /data/configs/validation_rules.txt
+COPY data/configs/param_set_1.txt /workspace/data/configs/param_set_1.txt
+COPY data/configs/param_set_2.txt /workspace/data/configs/param_set_2.txt
+COPY data/configs/param_set_3.txt /workspace/data/configs/param_set_3.txt
+COPY data/configs/validation_rules.txt /workspace/data/configs/validation_rules.txt
 
 WORKDIR /workspace
 

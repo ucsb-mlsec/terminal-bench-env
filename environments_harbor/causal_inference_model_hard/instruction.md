@@ -2,7 +2,7 @@ A healthcare research team has collected observational data from two hospitals s
 
 Your task is to build a causal inference pipeline that estimates the true treatment effect while accounting for confounding variables. The dataset contains patient records with demographics, baseline health metrics, treatment assignment, and outcomes.
 
-**Dataset Location:** `/data/patient_records.csv`
+**Dataset Location:** `/workspace/data/patient_records.csv`
 
 The dataset includes:
 - Patient demographics (age, gender, income_level)
@@ -31,7 +31,7 @@ The current analysis shows a naive treatment effect, but this is likely biased. 
 
 **Solution Output:**
 
-Save your results to `/solution/causal_results.json` with this exact structure:
+Save your results to `/workspace/solution/causal_results.json` with this exact structure:
 
 ```json
 {

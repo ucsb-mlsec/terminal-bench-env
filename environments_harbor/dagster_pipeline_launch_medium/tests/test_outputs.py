@@ -82,10 +82,35 @@ def test_record_count_matches_output():
     result_path = Path("/workspace/result.json")
     with open(result_path, 'r') as f:
         data = json.load(f)
-    
+
     record_count = data["record_count"]
     output_path = Path(data["output_path"])
-    
+
     # Verify that if there are records claimed, the file has content
     if record_count > 0:
         assert output_path.stat().st_size > 10, f"record_count is {record_count} but output file is too small to contain that many records"
+
+
+def test_pipeline_name_correct():
+    """Test that pipeline_name is 'process_sales_data' (the actual pipeline defined in __init__.py)"""
+    result_path = Path("/workspace/result.json")
+    with open(result_path, 'r') as f:
+        data = json.load(f)
+
+    assert data["pipeline_name"] == "process_sales_data", (
+        f"Pipeline is named 'process_sales_data' in sales_pipeline/__init__.py, "
+        f"but got: '{data['pipeline_name']}'"
+    )
+
+
+def test_record_count_is_five():
+    """Test that record_count is 5 (transactions.csv has 5 unique products)"""
+    result_path = Path("/workspace/result.json")
+    with open(result_path, 'r') as f:
+        data = json.load(f)
+
+    assert data["record_count"] == 5, (
+        f"transactions.csv groups by product yielding 5 records "
+        f"(Laptop, Mouse, Keyboard, Monitor, Headphones), "
+        f"but got record_count={data['record_count']}"
+    )

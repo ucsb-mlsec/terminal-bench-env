@@ -23,6 +23,7 @@ RUN mkdir -p /home/analyst/evidence /home/analyst
 
 COPY data/auth_events.csv /home/analyst/evidence/auth_events.csv
 COPY data/domain_config.txt /home/analyst/evidence/domain_config.txt
+COPY data/kerberos_tickets.json /home/analyst/evidence/kerberos_tickets.json
 
 WORKDIR /home/analyst
 

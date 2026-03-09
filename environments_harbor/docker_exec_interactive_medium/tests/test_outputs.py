@@ -58,7 +58,25 @@ def test_file_name_is_valid():
     fix_path = Path("/tmp/fix.txt")
     content = fix_path.read_text().strip()
     lines = content.split('\n')
-    
+
     file_value = lines[1].split("file:", 1)[1].strip()
     valid_files = ["app.conf", "database.yml"]
     assert file_value in valid_files, f"File name '{file_value}' is not a valid configuration file (expected one of {valid_files})"
+
+
+def test_correct_file_is_app_conf():
+    """Test that the identified file is app.conf where the wrong port is configured"""
+    fix_path = Path("/tmp/fix.txt")
+    lines = fix_path.read_text().strip().split('\n')
+    file_value = lines[1].split("file:", 1)[1].strip()
+    assert file_value == "app.conf", \
+        f"The configuration file with the wrong port value is app.conf, got: {file_value}"
+
+
+def test_correct_value_is_standard_postgres_port():
+    """Test that the correct_value is the standard PostgreSQL port 5432"""
+    fix_path = Path("/tmp/fix.txt")
+    lines = fix_path.read_text().strip().split('\n')
+    correct_value = lines[2].split("correct_value:", 1)[1].strip()
+    assert correct_value == "5432", \
+        f"The correct DATABASE_PORT for PostgreSQL should be 5432, got: {correct_value}"

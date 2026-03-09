@@ -27,7 +27,7 @@ RUN pip3 install --no-cache-dir --break-system-packages \
     netCDF4 \
     numpy
 
-RUN mkdir -p /data/climate /output
+RUN mkdir -p /data/climate /workspace/output
 
 COPY data/climate/temp_2021.nc /data/climate/temp_2021.nc
 COPY data/climate/temp_2022.nc /data/climate/temp_2022.nc

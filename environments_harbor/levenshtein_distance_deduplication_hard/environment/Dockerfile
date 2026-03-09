@@ -11,12 +11,12 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /data /output
+RUN mkdir -p /workspace/output/levenshtein_distance_deduplication_hard/files/data /workspace/output
 
 RUN pip3 install --no-cache-dir --break-system-packages pandas
 
-COPY data/customers.csv /data/customers.csv
-COPY data/known_duplicates.txt /data/known_duplicates.txt
+COPY data/customers.csv /workspace/output/levenshtein_distance_deduplication_hard/files/data/customers.csv
+COPY data/known_duplicates.txt /workspace/output/levenshtein_distance_deduplication_hard/files/data/known_duplicates.txt
 
 WORKDIR /workspace
 

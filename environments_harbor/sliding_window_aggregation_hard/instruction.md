@@ -1,6 +1,6 @@
 You are working with a high-frequency trading system that needs to analyze stock price movements in real-time. The system has logged millions of price ticks, and you need to compute various statistics over sliding time windows to identify trading opportunities.
 
-The trading desk has provided you with a large dataset of stock price ticks in `/data/stock_ticks.csv`. Each line contains:
+The trading desk has provided you with a large dataset of stock price ticks in `/workspace/data/stock_ticks.csv`. Each line contains:
 - timestamp (Unix epoch in milliseconds)
 - symbol (stock ticker)
 - price (float)
@@ -35,7 +35,7 @@ Window sizes required: 5 seconds, 30 seconds, 1 minute, 5 minutes, and 15 minute
 
 **Output Requirements:**
 
-You must create a program that processes the input data and saves results to `/solution/window_stats.json`.
+You must create a program that processes the input data and saves results to `/workspace/solution/window_stats.json`.
 
 The output file must contain a JSON object where:
 - Top-level keys are stock symbols
@@ -62,10 +62,10 @@ Example output structure:
 - Your solution must complete processing within 2 minutes on a standard system
 
 **Success Criteria:**
-- Output file exists at `/solution/window_stats.json`
+- Output file exists at `/workspace/solution/window_stats.json`
 - JSON is valid and follows the specified structure
 - All required symbols are present with all 5 window sizes
 - Price calculations are accurate within 0.01 tolerance
 - Processing completes within the time limit
 
-Save your solution program (in any language) to `/solution/` and ensure it can be executed to generate the required output file.
+Save your solution program (in any language) to `/workspace/solution/` and ensure it can be executed to generate the required output file.

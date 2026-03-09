@@ -11,9 +11,9 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /workspace /tmp
+RUN mkdir -p /workspace/data /tmp
 
-COPY data/render_pipeline.json /workspace/render_pipeline.json
+COPY data/render_pipeline.json /workspace/data/render_pipeline.json
 
 WORKDIR /workspace
 

@@ -72,3 +72,19 @@ def test_resource_definition_format():
     
     # Check that it starts with moldyn_lic (resource name comes first)
     assert moldyn_line.startswith('moldyn_lic'), "Resource definition should start with resource name 'moldyn_lic'"
+
+
+def test_total_license_count_is_15():
+    """Test that the configuration specifies 15 total licenses (matching TOTAL_LICENSES in moldyn_status.txt)"""
+    config_path = Path("/workspace/pbs_license_resource.conf")
+    content = config_path.read_text()
+    assert '15' in content, \
+        "Configuration must specify 15 total licenses (matching TOTAL_LICENSES=15 from moldyn_status.txt)"
+
+
+def test_resource_type_is_long():
+    """Test that the resource type is 'long' (numeric consumable resource type in PBS for license counts)"""
+    config_path = Path("/workspace/pbs_license_resource.conf")
+    content = config_path.read_text()
+    assert 'type=long' in content, \
+        "PBS consumable license resources should use 'type=long' for integer license counts"

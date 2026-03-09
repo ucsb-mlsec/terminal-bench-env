@@ -96,3 +96,46 @@ def test_all_performance_thresholds_met():
     assert fraud_recall >= 0.75 and precision >= 0.60 and f1_score >= 0.70, \
         f"Not all thresholds met: fraud_recall={fraud_recall:.2f} (need ≥0.75), " \
         f"precision={precision:.2f} (need ≥0.60), f1_score={f1_score:.2f} (need ≥0.70)"
+
+
+def test_script_runs_and_produces_valid_metrics():
+    """Test that train_model.py can be executed and produces valid metrics independently"""
+    import subprocess
+    import os
+
+    script_path = Path("/solution/train_model.py")
+    assert script_path.exists(), "train_model.py does not exist"
+
+    # Remove existing metrics to ensure fresh generation
+    metrics_path = Path("/solution/metrics.json")
+    if metrics_path.exists():
+        os.remove(str(metrics_path))
+
+    # Run the training script
+    result = subprocess.run(
+        [sys.executable, str(script_path)],
+        capture_output=True, text=True, timeout=300
+    )
+    assert result.returncode == 0, f"train_model.py failed with exit code {result.returncode}: {result.stderr[:500]}"
+
+    # Verify metrics.json was recreated
+    assert metrics_path.exists(), "train_model.py did not regenerate metrics.json"
+
+    with open(metrics_path, 'r') as f:
+        metrics = json.load(f)
+
+    # Verify all thresholds are met by the freshly generated metrics
+    assert metrics["fraud_recall"] >= 0.75, f"Re-run fraud_recall {metrics['fraud_recall']:.2f} < 0.75"
+    assert metrics["precision"] >= 0.60, f"Re-run precision {metrics['precision']:.2f} < 0.60"
+    assert metrics["f1_score"] >= 0.70, f"Re-run f1_score {metrics['f1_score']:.2f} < 0.70"
+
+
+def test_model_uses_correct_data_split():
+    """Test that the training script uses 80/20 split with random_state=42"""
+    script_path = Path("/solution/train_model.py")
+    content = script_path.read_text()
+
+    # Check for train_test_split usage with correct parameters
+    assert "train_test_split" in content, "Script should use train_test_split"
+    assert "random_state" in content, "Script should set random_state for reproducibility"
+    assert "42" in content, "Script should use random_state=42 as specified"

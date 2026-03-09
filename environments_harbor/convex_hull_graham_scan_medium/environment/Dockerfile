@@ -14,9 +14,9 @@ RUN pip3 install --no-cache-dir --break-system-packages numpy
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /data /solution
+RUN mkdir -p /workspace/data /workspace/solution
 
-COPY data/stations.txt /data/stations.txt
+COPY data/stations.txt /workspace/data/stations.txt
 
 WORKDIR /workspace
 

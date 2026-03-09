@@ -25,11 +25,16 @@ RUN apt-get update && apt-get install -y dotnet-sdk-8.0 && \
     rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /workspace/SampleApp /workspace/config
+RUN mkdir -p /workspace/output/dotnet_nuget_package_restore_medium/files/SampleApp
 
 COPY SampleApp/SampleApp.csproj /workspace/SampleApp/SampleApp.csproj
 COPY SampleApp/Program.cs /workspace/SampleApp/Program.cs
 COPY SampleApp/nuget.config /workspace/SampleApp/nuget.config
 COPY config/nuget.config /workspace/config/nuget.config
+
+COPY SampleApp/SampleApp.csproj /workspace/output/dotnet_nuget_package_restore_medium/files/SampleApp/SampleApp.csproj
+COPY SampleApp/Program.cs /workspace/output/dotnet_nuget_package_restore_medium/files/SampleApp/Program.cs
+COPY SampleApp/nuget.config /workspace/output/dotnet_nuget_package_restore_medium/files/SampleApp/nuget.config
 
 WORKDIR /workspace/SampleApp
 

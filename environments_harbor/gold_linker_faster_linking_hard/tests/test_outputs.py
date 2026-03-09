@@ -110,6 +110,18 @@ def test_test_script_executes():
     
     assert result.returncode == 0, f"Test script failed with exit code {result.returncode}. Output: {result.stdout}\nError: {result.stderr}"
 
+def test_linker_is_gold():
+    """Test that linker=gold, as the task requires using the GNU gold linker
+    (faster than the default ld/bfd linker for large C++ projects)."""
+    solution_path = Path("/workspace/solution.txt")
+    content = solution_path.read_text().strip()
+    lines = content.split('\n')
+
+    linker_value = lines[0].split('=', 1)[1].strip()
+    assert linker_value == "gold", \
+        f"Expected linker=gold (the GNU gold linker as required by the task), got linker={linker_value}"
+
+
 def test_calculator_functionality():
     """Test that the calculator produces correct results"""
     calc_path = Path("/workspace/mathlib/calculator")

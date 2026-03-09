@@ -121,11 +121,45 @@ def test_solution_satisfies_constraints_if_satisfiable():
     
     # Check power balance if load is specified
     if load_requirement is not None:
-        total_generation = (solution["solar_output"] + 
-                          solution["wind_output"] + 
+        total_generation = (solution["solar_output"] +
+                          solution["wind_output"] +
                           solution["battery_discharge"])
         total_consumption = load_requirement + solution["grid_export"]
-        
+
         # Allow small floating point tolerance (0.1 kW)
         assert abs(total_generation - total_consumption) < 0.1, \
             f"Power balance violated: generation={total_generation}, consumption={total_consumption}"
+
+
+def test_system_is_satisfiable_and_balanced():
+    """Test that the energy system is correctly identified as satisfiable and that
+    the power balance constraint is met. The config has total_demand=75.0 kW, solar max=52.5,
+    wind range=[2.5,42.0], battery max_discharge=20.0, grid_export in [0.0,30.0].
+    A valid solution exists (e.g. solar=45.3+wind=35.8=81.1 → grid_export=6.1 after 75kW load).
+    The section key in the config is 'load_requirements' (not 'load')."""
+    solution_path = Path("/workspace/solution.json")
+    config_path = Path("/workspace/energy_config.json")
+
+    with open(solution_path, 'r') as f:
+        solution = json.load(f)
+
+    with open(config_path, 'r') as f:
+        config_data = json.load(f)
+
+    assert solution["satisfiable"] is True, \
+        "The energy system constraints are satisfiable — solution should report satisfiable=True"
+
+    # Extract total demand from 'load_requirements' section
+    total_demand = None
+    for item in config_data:
+        if item.get("section") == "load_requirements" and item.get("parameter") == "total_demand_kw":
+            total_demand = item.get("value")
+
+    assert total_demand is not None, "Could not find total_demand_kw in load_requirements section"
+
+    # Verify power balance: solar + wind + battery = demand + grid_export (within tolerance)
+    total_generation = solution["solar_output"] + solution["wind_output"] + solution["battery_discharge"]
+    total_consumption = total_demand + solution["grid_export"]
+
+    assert abs(total_generation - total_consumption) < 0.1, \
+        f"Power balance violated: generation={total_generation:.3f} kW, consumption={total_consumption:.3f} kW (demand={total_demand} + grid_export={solution['grid_export']})"

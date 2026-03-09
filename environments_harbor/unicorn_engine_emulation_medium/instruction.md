@@ -1,6 +1,6 @@
 During a security audit, you discovered a suspicious x86 assembly program that manipulates data in unexpected ways. The program has been provided as assembly source code, but you need to understand its runtime behavior by tracking how it modifies CPU registers during execution.
 
-You'll find a file named `program.asm` in `/home/agent/challenge/` containing x86 (32-bit) assembly code. This program performs a series of arithmetic and logical operations on register values, starting with specific initial values.
+You'll find a file named `program.asm` in `/workspace/challenge/` containing x86 (32-bit) assembly code. This program performs a series of arithmetic and logical operations on register values, starting with specific initial values.
 
 The program begins execution at address 0x1000000 with the following initial register state:
 - EAX = 0x00000042
@@ -20,7 +20,7 @@ You need to determine the final hexadecimal values of the four general-purpose r
 
 **Output Requirements:**
 
-Save your solution to `/home/agent/solution/registers.txt`
+Save your solution to `/workspace/solution/registers.txt`
 
 The file should contain exactly four lines, one for each register, in this format:
 ```

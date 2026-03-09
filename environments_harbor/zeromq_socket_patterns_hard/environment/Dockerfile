@@ -20,9 +20,7 @@ RUN pip3 install --no-cache-dir --break-system-packages pyzmq
 
 RUN mkdir -p /home/user/solution
 
-COPY chat_system.py /home/user/solution/fixed_chat_system.py
-
-RUN chmod +x /home/user/solution/fixed_chat_system.py
+COPY chat_system.py /home/user/chat_system.py
 
 WORKDIR /home/user/solution
 

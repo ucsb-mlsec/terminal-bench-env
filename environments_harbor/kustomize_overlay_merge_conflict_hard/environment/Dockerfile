@@ -24,7 +24,11 @@ RUN mkdir -p /workspace/base \
     /workspace/overlays/dev \
     /workspace/overlays/staging \
     /workspace/overlays/prod \
-    /solution
+    /solution \
+    /workspace/output/kustomize_overlay_merge_conflict_hard/files/base \
+    /workspace/output/kustomize_overlay_merge_conflict_hard/files/overlays/dev \
+    /workspace/output/kustomize_overlay_merge_conflict_hard/files/overlays/staging \
+    /workspace/output/kustomize_overlay_merge_conflict_hard/files/overlays/prod
 
 COPY base/deployment.yaml /workspace/base/deployment.yaml
 COPY base/service.yaml /workspace/base/service.yaml
@@ -43,6 +47,25 @@ COPY overlays/staging/configmap-patch.yaml /workspace/overlays/staging/configmap
 COPY overlays/prod/kustomization.yaml /workspace/overlays/prod/kustomization.yaml
 COPY overlays/prod/deployment-patch.yaml /workspace/overlays/prod/deployment-patch.yaml
 COPY overlays/prod/service-patch.yaml /workspace/overlays/prod/service-patch.yaml
+
+# Also copy to the path expected by tests
+COPY base/deployment.yaml /workspace/output/kustomize_overlay_merge_conflict_hard/files/base/deployment.yaml
+COPY base/service.yaml /workspace/output/kustomize_overlay_merge_conflict_hard/files/base/service.yaml
+COPY base/configmap.yaml /workspace/output/kustomize_overlay_merge_conflict_hard/files/base/configmap.yaml
+COPY base/kustomization.yaml /workspace/output/kustomize_overlay_merge_conflict_hard/files/base/kustomization.yaml
+
+COPY overlays/dev/kustomization.yaml /workspace/output/kustomize_overlay_merge_conflict_hard/files/overlays/dev/kustomization.yaml
+COPY overlays/dev/deployment-patch.yaml /workspace/output/kustomize_overlay_merge_conflict_hard/files/overlays/dev/deployment-patch.yaml
+
+COPY overlays/staging/kustomization.yaml /workspace/output/kustomize_overlay_merge_conflict_hard/files/overlays/staging/kustomization.yaml
+COPY overlays/staging/deployment-patch.yaml /workspace/output/kustomize_overlay_merge_conflict_hard/files/overlays/staging/deployment-patch.yaml
+COPY overlays/staging/memory-patch.json /workspace/output/kustomize_overlay_merge_conflict_hard/files/overlays/staging/memory-patch.json
+COPY overlays/staging/cpu-patch.json /workspace/output/kustomize_overlay_merge_conflict_hard/files/overlays/staging/cpu-patch.json
+COPY overlays/staging/configmap-patch.yaml /workspace/output/kustomize_overlay_merge_conflict_hard/files/overlays/staging/configmap-patch.yaml
+
+COPY overlays/prod/kustomization.yaml /workspace/output/kustomize_overlay_merge_conflict_hard/files/overlays/prod/kustomization.yaml
+COPY overlays/prod/deployment-patch.yaml /workspace/output/kustomize_overlay_merge_conflict_hard/files/overlays/prod/deployment-patch.yaml
+COPY overlays/prod/service-patch.yaml /workspace/output/kustomize_overlay_merge_conflict_hard/files/overlays/prod/service-patch.yaml
 
 WORKDIR /workspace
 

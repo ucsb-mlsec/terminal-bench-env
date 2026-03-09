@@ -82,13 +82,46 @@ def test_all_environments_unique():
     versions_path = Path("/home/agent/versions.txt")
     content = versions_path.read_text().strip()
     lines = [line.strip() for line in content.split('\n') if line.strip()]
-    
+
     environments = []
     for line in lines:
         env = line.split('=', 1)[0]
         environments.append(env)
-    
+
     assert len(environments) == len(set(environments)), f"Duplicate environments found: {environments}"
     assert 'prod' in environments, "Missing prod environment"
     assert 'staging' in environments, "Missing staging environment"
     assert 'dev' in environments, "Missing dev environment"
+
+
+def test_correct_prod_version():
+    """Test that prod version is v2.4.1 (from prod.conf config file)"""
+    versions_path = Path("/home/agent/versions.txt")
+    content = versions_path.read_text().strip()
+    lines = [line.strip() for line in content.split('\n') if line.strip()]
+    prod_line = [l for l in lines if l.startswith('prod=')][0]
+    prod_version = prod_line.split('=', 1)[1]
+    assert prod_version == "v2.4.1", \
+        f"prod version should be 'v2.4.1' (from prod.conf), got '{prod_version}'"
+
+
+def test_correct_staging_version():
+    """Test that staging version is v2.5.0-rc1 (from staging.conf config file)"""
+    versions_path = Path("/home/agent/versions.txt")
+    content = versions_path.read_text().strip()
+    lines = [line.strip() for line in content.split('\n') if line.strip()]
+    staging_line = [l for l in lines if l.startswith('staging=')][0]
+    staging_version = staging_line.split('=', 1)[1]
+    assert staging_version == "v2.5.0-rc1", \
+        f"staging version should be 'v2.5.0-rc1' (from staging.conf), got '{staging_version}'"
+
+
+def test_correct_dev_version():
+    """Test that dev version is v2.5.0-beta3 (from dev.conf config file)"""
+    versions_path = Path("/home/agent/versions.txt")
+    content = versions_path.read_text().strip()
+    lines = [line.strip() for line in content.split('\n') if line.strip()]
+    dev_line = [l for l in lines if l.startswith('dev=')][0]
+    dev_version = dev_line.split('=', 1)[1]
+    assert dev_version == "v2.5.0-beta3", \
+        f"dev version should be 'v2.5.0-beta3' (from dev.conf), got '{dev_version}'"

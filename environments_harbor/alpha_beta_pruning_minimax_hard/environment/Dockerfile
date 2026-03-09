@@ -14,6 +14,7 @@ RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.
 RUN mkdir -p /workspace/test_positions
 
 COPY tictactoe_ai.py /workspace/tictactoe_ai.py
+COPY data/position_1.json /workspace/test_positions/position_1.json
 COPY data/position_2.json /workspace/test_positions/position_2.json
 COPY data/position_3.json /workspace/test_positions/position_3.json
 COPY data/position_4.json /workspace/test_positions/position_4.json

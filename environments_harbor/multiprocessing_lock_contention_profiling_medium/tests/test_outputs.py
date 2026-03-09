@@ -62,9 +62,25 @@ def test_bottleneck_identified():
     analysis_path = Path("/tmp/analysis.json")
     with open(analysis_path, 'r') as f:
         data = json.load(f)
-    
+
     bottleneck_name = data.get("bottleneck_name", "").lower()
-    
+
     # Should not be generic placeholder text
     invalid_names = ["unknown", "none", "n/a", "todo", "placeholder", ""]
     assert bottleneck_name not in invalid_names, f"Bottleneck name appears to be a placeholder: {bottleneck_name}"
+
+
+def test_correct_bottleneck_name():
+    """Test that the bottleneck is correctly identified as output_lock"""
+    analysis_path = Path("/tmp/analysis.json")
+    with open(analysis_path, 'r') as f:
+        data = json.load(f)
+
+    bottleneck_name = data.get("bottleneck_name", "")
+
+    # process_data.py uses output_lock (Manager Lock) that all workers must acquire
+    # to write results — this is the contention point
+    assert bottleneck_name == "output_lock", (
+        f"The bottleneck should be 'output_lock' (Manager Lock used by all workers to write results), "
+        f"got: {bottleneck_name}"
+    )

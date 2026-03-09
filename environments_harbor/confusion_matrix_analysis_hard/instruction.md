@@ -4,16 +4,16 @@ A critical issue has emerged with your deployed image classification model. The 
 
 Your prediction logs and ground truth data are stored separately and have accumulated quality issues:
 
-1. **Prediction Files** (`/data/predictions/pred_*.csv`)
+1. **Prediction Files** (`/workspace/data/predictions/pred_*.csv`)
    - Multiple CSV files, each with columns: sample_id, prediction, score
    - Some predictions use numeric class IDs (0-3) instead of class names
    - Some sample IDs appear multiple times across files (keep highest score)
 
-2. **Ground Truth File** (`/data/truth/labels.csv`)
+2. **Ground Truth File** (`/workspace/data/truth/labels.csv`)
    - Columns: sample_id, actual_class
    - Contains labels for all samples, but some are marked as "unknown" (exclude these)
 
-3. **Class Mapping** (`/data/config/classes.txt`)
+3. **Class Mapping** (`/workspace/data/config/classes.txt`)
    - Simple text file mapping: 0=Healthy, 1=Rust, 2=Blight, 3=Mildew
    - Needed to decode numeric predictions
 
@@ -30,7 +30,7 @@ Merge the fragmented data, resolve inconsistencies, and compute the confusion ma
 
 **Output Requirements:**
 
-Save your results to `/output/matrix.txt` as a simple text file with this exact format:
+Save your results to `/workspace/output/matrix.txt` as a simple text file with this exact format:
 
 ```
 actual\predicted,Blight,Healthy,Mildew,Rust
@@ -48,4 +48,4 @@ The first row is the header (actual\predicted followed by class names in alphabe
 - Numeric class IDs correctly converted to names
 - Unknown labels excluded
 - Matrix shows counts in alphabetical class order: Blight, Healthy, Mildew, Rust
-- Output saved to exactly `/output/matrix.txt` in the specified CSV format
+- Output saved to exactly `/workspace/output/matrix.txt` in the specified CSV format

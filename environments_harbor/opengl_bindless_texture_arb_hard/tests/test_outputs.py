@@ -78,15 +78,45 @@ def test_exact_format_with_spaces():
     """Test that the format matches exactly with proper spacing"""
     analysis_path = Path("/workspace/analysis.txt")
     lines = analysis_path.read_text().strip().split('\n')
-    
+
     # Each line should have format "key: value" with a single space after colon
     for i, line in enumerate(lines, 1):
         parts = line.split(':', 1)
         assert len(parts) == 2, f"Line {i} must contain exactly one colon"
-        
+
         key = parts[0]
         value_with_space = parts[1]
-        
+
         # Check that value starts with a space
         assert value_with_space.startswith(' '), \
             f"Line {i}: Value must be preceded by a space after colon"
+
+
+def test_correct_analysis_values():
+    """Test that the analysis contains the correct values from the source code"""
+    analysis_path = Path("/workspace/analysis.txt")
+    lines = analysis_path.read_text().strip().split('\n')
+
+    extension_check = lines[0].split(":", 1)[1].strip()
+    incompatible_count = int(lines[1].split(":", 1)[1].strip())
+    handle_generation = lines[2].split(":", 1)[1].strip()
+
+    # renderer_init.cpp uses glewIsSupported("GL_ARB_bindless_texture") — extension check present
+    assert extension_check == "yes", (
+        f"extension_check_present should be 'yes' "
+        f"(renderer_init.cpp calls glewIsSupported('GL_ARB_bindless_texture')), got: {extension_check}"
+    )
+
+    # 4 of 5 shaders declare 'uniform sampler' (incompatible with bindless):
+    # material_pbr.frag, particle.frag, skybox.frag, terrain.frag (post_process.frag uses uvec2)
+    assert incompatible_count == 4, (
+        f"incompatible_shaders should be 4 "
+        f"(material_pbr, particle, skybox, terrain have sampler2D uniforms incompatible with bindless), "
+        f"got: {incompatible_count}"
+    )
+
+    # texture_manager.cpp uses glGetTextureHandle() instead of glGetTextureHandleARB()
+    assert handle_generation == "no", (
+        f"handle_generation_correct should be 'no' "
+        f"(texture_manager.cpp calls glGetTextureHandle without ARB suffix), got: {handle_generation}"
+    )

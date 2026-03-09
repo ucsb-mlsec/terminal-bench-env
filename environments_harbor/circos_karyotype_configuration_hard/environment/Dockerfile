@@ -19,13 +19,13 @@ RUN apt-get update && \
 
 RUN pip3 install --no-cache-dir --break-system-packages biopython
 
-RUN mkdir -p /data /solution
+RUN mkdir -p /workspace/data /workspace/solution
 
-COPY data/species_a_contigs.txt /data/species_a_contigs.txt
-COPY data/species_b_assembly.gff /data/species_b_assembly.gff
-COPY data/species_c_raw.fasta /data/species_c_raw.fasta
-COPY data/color_scheme.conf /data/color_scheme.conf
-COPY data/reference_bands.txt /data/reference_bands.txt
+COPY data/species_a_contigs.txt /workspace/data/species_a_contigs.txt
+COPY data/species_b_assembly.gff /workspace/data/species_b_assembly.gff
+COPY data/species_c_raw.fasta /workspace/data/species_c_raw.fasta
+COPY data/color_scheme.conf /workspace/data/color_scheme.conf
+COPY data/reference_bands.txt /workspace/data/reference_bands.txt
 
 WORKDIR /workspace
 

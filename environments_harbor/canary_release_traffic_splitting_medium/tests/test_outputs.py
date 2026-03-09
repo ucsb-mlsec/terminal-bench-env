@@ -105,3 +105,33 @@ def test_fixed_config_has_proxy_pass():
     fixed_config_path = Path("/home/developer/fixed_app.conf")
     content = fixed_config_path.read_text()
     assert "proxy_pass" in content, "Configuration should contain proxy_pass directive to route to upstream"
+
+
+def test_broken_config_had_equal_weights():
+    """Test that the original broken config had equal weights (weight=1 on both servers),
+    confirming the agent identified the actual issue from /etc/nginx/conf.d/app.conf."""
+    solution_path = Path("/home/developer/solution.txt")
+    content = solution_path.read_text().strip().lower()
+    # The broken config had weight=1 on both servers (50/50 split, not 85/15)
+    # The solution should mention equal weights or wrong weights as the issue
+    issue_line = [l for l in content.split('\n') if l.startswith('issue=')]
+    assert len(issue_line) > 0, "No ISSUE line found"
+    issue_text = issue_line[0]
+    # Must describe a weights problem
+    assert any(term in issue_text for term in ['weight', 'equal', 'wrong', 'incorrect', 'misconfig', 'split', 'ratio']), \
+        f"ISSUE should describe a weight/ratio problem, got: {issue_text}"
+
+
+def test_stable_server_has_higher_weight():
+    """Test that the stable server (192.168.1.10:8080) has the higher weight (85%) in the fixed config."""
+    import re
+    fixed_config_path = Path("/home/developer/fixed_app.conf")
+    content = fixed_config_path.read_text()
+    # Find weight for each server
+    stable_match = re.search(r'192\.168\.1\.10:8080\s+weight=(\d+)', content)
+    canary_match = re.search(r'192\.168\.1\.11:8080\s+weight=(\d+)', content)
+    assert stable_match and canary_match, "Could not find both server weight directives"
+    stable_weight = int(stable_match.group(1))
+    canary_weight = int(canary_match.group(1))
+    assert stable_weight > canary_weight, \
+        f"Stable server weight ({stable_weight}) should be greater than canary weight ({canary_weight})"

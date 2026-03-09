@@ -143,8 +143,21 @@ def test_reads_processed():
     """Test that at least some reads were processed (total > 0)"""
     report_path = Path("/workspace/output/filter_report.txt")
     content = report_path.read_text().strip()
-    
+
     lines = content.split('\n')
     total_reads = int(lines[0].split('=')[1])
-    
+
     assert total_reads > 0, "No reads were processed from the input file"
+
+
+def test_total_reads_matches_input():
+    """Test that TOTAL_READS matches the number of reads in the input FASTQ file"""
+    report_path = Path("/workspace/output/filter_report.txt")
+    content = report_path.read_text().strip()
+
+    lines = content.split('\n')
+    total_reads = int(lines[0].split('=')[1])
+
+    # The input file has 120 reads (120 @SEQ_ header lines)
+    assert total_reads == 120, \
+        f"TOTAL_READS should be 120 (number of reads in raw_sequences.fastq), got {total_reads}"

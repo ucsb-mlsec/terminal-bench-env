@@ -23,7 +23,7 @@ RUN mkdir -p /workspace/weather_app/src /workspace/weather_app/data /workspace/s
 
 COPY weather_app/src/main.cpp /workspace/weather_app/src/main.cpp
 COPY weather_app/data/weather.json /workspace/weather_app/data/weather.json
-COPY weather_app/CMakeLists.txt /workspace/solution/CMakeLists.txt
+COPY weather_app/CMakeLists.txt /workspace/weather_app/CMakeLists.txt.reference
 
 WORKDIR /workspace
 

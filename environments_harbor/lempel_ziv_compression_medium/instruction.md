@@ -3,7 +3,7 @@ You've been asked to build a text compression utility for a document archival sy
 Your task is to create a compression tool that reduces file size by identifying and replacing repeated sequences in the input text. The tool should work with any text content and produce compressed output that can be decompressed back to the original.
 
 **Input:**
-A text file is provided at `/tmp/input.txt` containing the content that needs to be compressed.
+A text file is provided at `/workspace/data/input.txt` containing the content that needs to be compressed.
 
 **Requirements:**
 1. The compressed output must be smaller than the original for typical text with repetition
@@ -20,7 +20,7 @@ The script must accept two command-line arguments:
 
 When run in compress mode:
 ```bash
-python3 /tmp/compress.py compress /tmp/input.txt
+python3 /tmp/compress.py compress /workspace/data/input.txt
 ```
 The script should output the compressed data to stdout in the following simple text format:
 - Each line represents one encoded token
@@ -35,7 +35,7 @@ L:e
 L:l
 L:l
 L:o
-L: 
+L:
 R:6,5
 ```
 This would represent "Hello Hello" (the second "Hello" references back 6 positions and copies 5 characters).

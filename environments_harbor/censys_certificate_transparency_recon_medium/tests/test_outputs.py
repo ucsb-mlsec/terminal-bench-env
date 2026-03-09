@@ -75,9 +75,38 @@ def test_valid_subdomain_structure():
     """Test that all entries have valid subdomain structure"""
     output_path = Path("/home/agent/subdomains.txt")
     lines = output_path.read_text().strip().split('\n')
-    
+
     for line in lines:
         # Should have at least one character before .techcorp.example
         prefix = line.replace('.techcorp.example', '')
         assert len(prefix) > 0, f"Line '{line}' has no subdomain prefix"
         assert line.count('.') >= 2, f"Line '{line}' does not have valid subdomain structure"
+
+
+def test_known_subdomains_present():
+    """Test that well-known subdomains from the CT log data are in the output.
+    The ct_logs.json contains api.techcorp.example, www.techcorp.example,
+    mail.techcorp.example, staging.techcorp.example, and admin.techcorp.example
+    as non-wildcard, non-base-domain entries."""
+    output_path = Path("/home/agent/subdomains.txt")
+    lines_set = set(output_path.read_text().strip().split('\n'))
+    required = [
+        'api.techcorp.example',
+        'www.techcorp.example',
+        'mail.techcorp.example',
+        'staging.techcorp.example',
+        'admin.techcorp.example',
+    ]
+    for sub in required:
+        assert sub in lines_set, f"Expected subdomain '{sub}' not found in output (present in ct_logs.json)"
+
+
+def test_subdomain_count_matches_ct_log():
+    """Test that the output has approximately the correct number of unique subdomains
+    extracted from ct_logs.json (excluding base domain and wildcards). The log contains
+    roughly 80+ unique non-wildcard subdomains of techcorp.example."""
+    output_path = Path("/home/agent/subdomains.txt")
+    lines = output_path.read_text().strip().split('\n')
+    # Confirm a reasonable number were extracted; the data contains ~80 unique subdomains
+    assert len(lines) >= 50, \
+        f"Expected at least 50 unique subdomains from ct_logs.json, got {len(lines)}"

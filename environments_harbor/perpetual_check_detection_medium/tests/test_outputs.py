@@ -94,3 +94,33 @@ def test_no_extra_fields():
     
     assert actual_fields == expected_fields, \
         f"JSON should have exactly these fields: {expected_fields}, but got: {actual_fields}"
+
+
+def test_perpetual_check_is_detected():
+    """Test that perpetual check is correctly detected (positions 3,7,11,15,19 all repeat identically)"""
+    result_path = Path("/home/challenge/result.json")
+    with open(result_path, 'r') as f:
+        data = json.load(f)
+
+    assert data["perpetual_check_detected"] is True, \
+        "perpetual_check_detected should be True (game log shows positions repeating cyclically in a check pattern)"
+
+
+def test_cycle_length_is_correct():
+    """Test that cycle_length is 4 (position repeats every 4 moves: positions 3,7,11,15,19)"""
+    result_path = Path("/home/challenge/result.json")
+    with open(result_path, 'r') as f:
+        data = json.load(f)
+
+    assert data["cycle_length"] == 4, \
+        f"cycle_length should be 4 (position 'Ra1,Nb6,Qd8,Kg1,Kh7|black' repeats at moves 3,7,11,15,19 - every 4 moves), got {data['cycle_length']}"
+
+
+def test_repeated_position_count_is_correct():
+    """Test that repeated_position_count is at least 3 (the position appears at least 5 times)"""
+    result_path = Path("/home/challenge/result.json")
+    with open(result_path, 'r') as f:
+        data = json.load(f)
+
+    assert data["repeated_position_count"] >= 3, \
+        f"repeated_position_count should be at least 3 (the same position appears at moves 3,7,11,15,19), got {data['repeated_position_count']}"

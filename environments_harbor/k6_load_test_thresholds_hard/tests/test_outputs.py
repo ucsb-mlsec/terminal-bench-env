@@ -112,18 +112,41 @@ def test_reported_counts_reasonable():
     """Test that reported counts are reasonable given the number of files"""
     result_path = Path("/home/solution/result.txt")
     content = result_path.read_text().strip()
-    
+
     data = {}
     for line in content.split('\n'):
         key, value = line.split('=')
         data[key] = int(value)
-    
+
     # Should have modified between 1 and 5 scripts
     assert 0 <= data['scripts_modified'] <= 5, f"scripts_modified={data['scripts_modified']} is out of reasonable range (0-5)"
-    
+
     # Should have some thresholds if scripts were modified
     if data['scripts_modified'] > 0:
         assert data['thresholds_added'] > 0, "If scripts were modified, thresholds_added should be greater than 0"
-    
+
     # Metrics covered should be reasonable (typically 1-10 distinct metrics)
     assert 0 <= data['metrics_covered'] <= 20, f"metrics_covered={data['metrics_covered']} is out of reasonable range"
+
+
+def test_all_five_scripts_modified():
+    """Test that all 5 k6 scripts were modified (scripts_modified=5)"""
+    result_path = Path("/home/solution/result.txt")
+    content = result_path.read_text().strip()
+    data = {}
+    for line in content.split('\n'):
+        key, value = line.split('=')
+        data[key] = int(value)
+    assert data['scripts_modified'] == 5, \
+        f"Expected scripts_modified=5 (all 5 k6 test scripts need SLA thresholds per SLA_REQUIREMENTS.md), got: {data['scripts_modified']}"
+
+
+def test_user_service_has_correct_thresholds():
+    """Test that user-service.test.js has correct SLA thresholds per SLA_REQUIREMENTS.md"""
+    test_file = Path("/workspace/output/k6_load_test_thresholds_hard/files/tests/user-service.test.js")
+    if test_file.exists():
+        content = test_file.read_text()
+        assert "p(95)<200" in content, \
+            f"user-service.test.js should have 'p(95)<200' threshold (SLA requires p95 <= 200ms)"
+        assert "rate<0.01" in content, \
+            f"user-service.test.js should have 'rate<0.01' for error rate (SLA requires <= 1%)"

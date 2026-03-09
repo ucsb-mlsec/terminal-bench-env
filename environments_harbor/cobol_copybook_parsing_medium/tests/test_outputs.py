@@ -97,6 +97,41 @@ def test_output_has_expected_accounts():
     """Test that output contains at least some accounts (basic sanity check)"""
     output_path = Path("/workspace/output/priority_accounts.txt")
     lines = output_path.read_text().strip().split('\n')
-    
+
     # There should be at least 1 account meeting the criteria
     assert len(lines) >= 1, "No qualifying accounts found - expected at least some premium accounts with balance > $25,000 opened before 2020"
+
+
+def test_all_accounts_are_premium_type():
+    """Test that all output accounts have account type 'P' (Premium).
+    The COBOL data field ACCOUNT-TYPE is a single character in position 10 of each record."""
+    output_path = Path("/workspace/output/priority_accounts.txt")
+    data_path = Path("/workspace/data/customer_data.txt")
+    output_lines = output_path.read_text().strip().split('\n')
+    data_lines = {line[:9]: line for line in data_path.read_text().strip().split('\n') if line.strip()}
+
+    for i, line in enumerate(output_lines, 1):
+        customer_id = line.split('|')[0].strip()
+        if customer_id in data_lines:
+            record = data_lines[customer_id]
+            account_type = record[9]  # 10th character (0-indexed = 9)
+            assert account_type == 'P', \
+                f"Line {i}: customer {customer_id} has account_type='{account_type}', expected 'P' (Premium)"
+
+
+def test_all_accounts_opened_before_2020():
+    """Test that all output accounts have open dates before 2020.
+    OPEN-DATE (PIC 9(8)) starts at position 18 (0-indexed) in the COBOL record."""
+    output_path = Path("/workspace/output/priority_accounts.txt")
+    data_path = Path("/workspace/data/customer_data.txt")
+    output_lines = output_path.read_text().strip().split('\n')
+    data_lines = {line[:9]: line for line in data_path.read_text().strip().split('\n') if line.strip()}
+
+    for i, line in enumerate(output_lines, 1):
+        customer_id = line.split('|')[0].strip()
+        if customer_id in data_lines:
+            record = data_lines[customer_id]
+            open_date = record[18:26]  # OPEN-DATE: chars 18-25 (0-indexed)
+            open_year = int(open_date[:4])
+            assert open_year < 2020, \
+                f"Line {i}: customer {customer_id} opened in {open_year}, must be before 2020"

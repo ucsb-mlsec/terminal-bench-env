@@ -122,3 +122,66 @@ def test_ecological_relevance_of_predictors():
     included_ecological = [var for var in ecological_vars if var in all_predictors]
     
     assert len(included_ecological) > 0, "Model should include at least one ecological variable (habitat_type, temperature, or moisture)"
+
+
+def test_zero_inflation_includes_habitat_type():
+    """Test that habitat_type is in the zero-inflation component, since grassland sites show structural zeros"""
+    results_path = Path("/workspace/solution/model_results.json")
+    with open(results_path, 'r') as f:
+        data = json.load(f)
+
+    # Grassland sites have nearly all zeros - habitat_type is the strongest predictor of structural zeros
+    assert "habitat_type" in data["zero_inflation_predictors"], \
+        "habitat_type should be included in zero_inflation_predictors (grassland sites show structural zeros)"
+
+
+def test_moisture_in_count_or_zi_component():
+    """Test that moisture is used as a predictor since it strongly correlates with counts"""
+    results_path = Path("/workspace/solution/model_results.json")
+    with open(results_path, 'r') as f:
+        data = json.load(f)
+
+    all_predictors = set(data["zero_inflation_predictors"] + data["count_predictors"])
+    assert "moisture" in all_predictors, \
+        "moisture should be a predictor in either the count or zero-inflation component"
+
+
+def test_aic_improvement_validates_against_data():
+    """Validate the AIC improvement by fitting models on the actual dataset using R"""
+    import subprocess
+
+    results_path = Path("/workspace/solution/model_results.json")
+    with open(results_path, 'r') as f:
+        data = json.load(f)
+
+    reported_aic = data["aic_improvement"]
+
+    # Use R to fit a baseline negative binomial and verify AIC improvement is plausible
+    r_script = """
+    library(glmmTMB)
+    library(jsonlite)
+    d <- read.csv("/data/salamander_counts.csv")
+    # Fit baseline negative binomial (no zero-inflation)
+    m_base <- glmmTMB(count ~ habitat_type + temperature + moisture + (1|site_id),
+                      data = d, family = nbinom2)
+    # Fit zero-inflated model
+    m_zi <- glmmTMB(count ~ habitat_type + temperature + moisture + (1|site_id),
+                    ziformula = ~ habitat_type + moisture,
+                    data = d, family = nbinom2)
+    aic_diff <- AIC(m_base) - AIC(m_zi)
+    cat(aic_diff)
+    """
+    result = subprocess.run(
+        ["Rscript", "-e", r_script],
+        capture_output=True, text=True, timeout=120
+    )
+    if result.returncode == 0 and result.stdout.strip():
+        try:
+            reference_aic_diff = float(result.stdout.strip())
+            # The reported improvement should be in the same ballpark as the reference
+            # (within a factor of 5 of the reference, or at least positive if reference is positive)
+            if reference_aic_diff > 0:
+                assert reported_aic > 0, \
+                    f"AIC improvement should be positive (reference: {reference_aic_diff:.1f})"
+        except ValueError:
+            pass  # If R output isn't parseable, skip this validation

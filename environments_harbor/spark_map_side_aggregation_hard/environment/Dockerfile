@@ -21,9 +21,9 @@ RUN apt-get update && apt-get install -y openjdk-11-jre-headless && \
 
 RUN pip3 install --no-cache-dir --break-system-packages pyspark
 
-RUN mkdir -p /data/events /output /solution
+RUN mkdir -p /workspace/data/events /workspace/output /workspace/solution
 
-COPY data/events/user_events.csv /data/events/user_events.csv
+COPY data/events/user_events.csv /workspace/data/events/user_events.csv
 
 WORKDIR /workspace
 

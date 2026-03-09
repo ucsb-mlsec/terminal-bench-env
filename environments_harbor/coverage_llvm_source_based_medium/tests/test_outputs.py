@@ -91,9 +91,30 @@ def test_no_extra_fields():
     summary_path = Path("/workspace/coverage_summary.json")
     with open(summary_path, 'r') as f:
         data = json.load(f)
-    
+
     expected_fields = {"covered_lines", "total_lines", "coverage_percent"}
     actual_fields = set(data.keys())
-    
+
     assert actual_fields == expected_fields, \
         f"JSON should contain exactly {expected_fields}, but has {actual_fields}"
+
+
+def test_coverage_reflects_incomplete_test_suite():
+    """Test that coverage is below 100% (divide and modulo functions are untested)"""
+    summary_path = Path("/workspace/coverage_summary.json")
+    with open(summary_path, 'r') as f:
+        data = json.load(f)
+
+    coverage_percent = data["coverage_percent"]
+    # test_calculator.c explicitly does NOT test divide() or modulo()
+    # So coverage should be significantly below 100%
+    assert coverage_percent < 100.0, (
+        f"Coverage should be < 100% since divide() and modulo() are not tested, "
+        f"but got coverage_percent={coverage_percent}"
+    )
+    # The tested functions (add, subtract, multiply) cover roughly 3/5 of functions
+    # Actual line coverage depends on code paths but should be between 20-80%
+    assert coverage_percent > 10.0, (
+        f"Coverage seems too low ({coverage_percent}%). "
+        "add(), subtract(), and multiply() are all tested and should contribute significant coverage."
+    )

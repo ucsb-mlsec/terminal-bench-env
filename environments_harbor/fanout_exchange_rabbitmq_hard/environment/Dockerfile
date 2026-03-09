@@ -22,6 +22,7 @@ RUN mkdir -p /tmp/rabbitmq_configs /tmp
 
 COPY config/rabbitmq.conf /tmp/rabbitmq_configs/rabbitmq.conf
 COPY config/advanced.config /tmp/rabbitmq_configs/advanced.config
+COPY config/definitions.json /tmp/rabbitmq_configs/definitions.json
 
 WORKDIR /tmp
 

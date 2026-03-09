@@ -105,3 +105,29 @@ def test_pam_file_is_in_correct_directory():
     
     file_path = match.group(1).strip()
     assert file_path.startswith('/etc/pam.d/'), f"PAM config file should be in /etc/pam.d/, got: {file_path}"
+
+
+def test_misconfigured_file_is_common_auth():
+    """Test that the misconfigured file is common-auth (has requisite pam_deny.so that blocks authentication)"""
+    report_path = Path("/root/pam_recovery_report.txt")
+    content = report_path.read_text()
+
+    match = re.search(r'MISCONFIGURED_FILE=(.+)', content)
+    assert match, "MISCONFIGURED_FILE field not found"
+
+    file_path = match.group(1).strip()
+    assert file_path == '/etc/pam.d/common-auth', \
+        f"The misconfigured file should be '/etc/pam.d/common-auth' (contains 'auth requisite pam_deny.so' on line 15), got: '{file_path}'"
+
+
+def test_issue_type_is_incorrect_control():
+    """Test that ISSUE_TYPE is 'incorrect_control' (requisite pam_deny.so blocks auth)"""
+    report_path = Path("/root/pam_recovery_report.txt")
+    content = report_path.read_text()
+
+    match = re.search(r'ISSUE_TYPE=(.+)', content)
+    assert match, "ISSUE_TYPE field not found"
+
+    issue_type = match.group(1).strip()
+    assert issue_type == 'incorrect_control', \
+        f"ISSUE_TYPE should be 'incorrect_control' (pam_deny.so with requisite/required control blocks auth), got: '{issue_type}'"

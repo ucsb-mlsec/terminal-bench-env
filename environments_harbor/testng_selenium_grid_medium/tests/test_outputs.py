@@ -84,3 +84,17 @@ def test_pom_xml_exists():
     assert pom_path.exists(), "pom.xml file should exist"
     content = pom_path.read_text()
     assert len(content) > 0, "pom.xml should not be empty"
+
+
+def test_correct_total_test_count():
+    """Test that total equals 5 (3 LoginTest + 2 FormTest methods)"""
+    results_path = Path("/workspace/results.txt")
+    content = results_path.read_text().strip()
+    lines = content.split('\n')
+
+    total = int(lines[0].split('=')[1])
+
+    # LoginTest.java has 3 @Test methods: testValidLogin, testInvalidLogin, testLogout
+    # FormTest.java has 2 @Test methods: testFormSubmission, testFormValidation
+    assert total == 5, \
+        f"Expected total=5 (3 LoginTest + 2 FormTest methods), got total={total}"

@@ -69,15 +69,30 @@ def test_values_are_reasonable():
     report_path = Path("/tmp/syscall_report.txt")
     content = report_path.read_text().strip()
     lines = content.split('\n')
-    
+
     # Parse the values
     syscall_name = lines[0].split('=', 1)[1].strip()
     invocation_count = int(lines[1].split('=', 1)[1].strip())
     total_bytes = int(lines[2].split('=', 1)[1].strip())
-    
+
     # The syscall for reading should be 'read'
     assert syscall_name == 'read', f"Expected syscall_name to be 'read', found '{syscall_name}'"
-    
+
     # Counts should be consistent (if there were reads, there should be bytes)
     if invocation_count > 0:
         assert total_bytes >= 0, "If there were read invocations, total_bytes should be non-negative"
+
+
+def test_exact_invocation_count_and_bytes():
+    """Test that the exact count and byte total match the app_trace.txt data.
+    Counting read(0, ...) calls in app_trace.txt: 13 calls from stdin (fd=0).
+    Total bytes: 9+6+3+15+14+4+2+3+4+13+4+25+3 = 105."""
+    report_path = Path("/tmp/syscall_report.txt")
+    content = report_path.read_text().strip()
+    lines = content.split('\n')
+    invocation_count = int(lines[1].split('=', 1)[1].strip())
+    total_bytes = int(lines[2].split('=', 1)[1].strip())
+    assert invocation_count == 13, \
+        f"Expected invocation_count=13 (13 read(0,...) calls in app_trace.txt), got {invocation_count}"
+    assert total_bytes == 105, \
+        f"Expected total_bytes=105 (sum of return values from all read(0,...) calls), got {total_bytes}"

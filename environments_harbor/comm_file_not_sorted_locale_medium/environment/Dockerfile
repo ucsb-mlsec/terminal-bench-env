@@ -11,15 +11,15 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /data/transactions /pipeline /solution
+RUN mkdir -p /workspace/data/transactions /workspace/pipeline /workspace/solution
 
-COPY data/transactions/transactions_system_a.txt /data/transactions/transactions_system_a.txt
-COPY data/transactions/transactions_system_b.txt /data/transactions/transactions_system_b.txt
-COPY pipeline/compare_transactions.sh /pipeline/compare_transactions.sh
+COPY data/transactions/transactions_system_a.txt /workspace/data/transactions/transactions_system_a.txt
+COPY data/transactions/transactions_system_b.txt /workspace/data/transactions/transactions_system_b.txt
+COPY pipeline/compare_transactions.sh /workspace/pipeline/compare_transactions.sh
 
-RUN chmod +x /pipeline/compare_transactions.sh
+RUN chmod +x /workspace/pipeline/compare_transactions.sh
 
-WORKDIR /solution
+WORKDIR /workspace/solution
 
 # Mapped from docker-compose.yaml
 ENV TEST_DIR=/tests

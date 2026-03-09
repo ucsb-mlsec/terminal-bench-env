@@ -78,8 +78,29 @@ def test_dockerfile_has_entrypoint_or_cmd():
     """Test that the Dockerfile still has proper ENTRYPOINT or CMD configuration"""
     dockerfile_path = Path("/workspace/Dockerfile")
     content = dockerfile_path.read_text()
-    
+
     has_entrypoint = 'ENTRYPOINT' in content
     has_cmd = 'CMD' in content
-    
+
     assert has_entrypoint or has_cmd, "Dockerfile must have either ENTRYPOINT or CMD defined"
+
+
+def test_init_process_is_tini():
+    """Test that tini is used as the init process (it is pre-installed in this environment)"""
+    summary_path = Path("/tmp/fix_summary.txt")
+    content = summary_path.read_text().strip()
+    match = re.search(r'^init_process=(.+)$', content, re.MULTILINE)
+    assert match, "init_process field not found"
+    value = match.group(1).strip().lower()
+    assert value == 'tini', \
+        f"Expected init_process to be 'tini' (pre-installed in this environment), got: '{value}'"
+
+
+def test_dockerfile_uses_tini_as_entrypoint():
+    """Test that the modified Dockerfile uses tini as the ENTRYPOINT"""
+    dockerfile_path = Path("/workspace/Dockerfile")
+    content = dockerfile_path.read_text()
+    assert 'tini' in content.lower(), \
+        "Dockerfile must use tini as the init process (it is pre-installed)"
+    assert 'ENTRYPOINT' in content, \
+        "Dockerfile must configure tini via ENTRYPOINT"

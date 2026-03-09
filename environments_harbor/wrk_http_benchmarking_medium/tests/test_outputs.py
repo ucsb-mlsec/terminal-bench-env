@@ -73,20 +73,38 @@ def test_benchmark_logs_were_read():
     summary_path = Path("/workspace/performance_summary.txt")
     content = summary_path.read_text().strip()
     lines = content.split('\n')
-    
+
     # Verify the files exist (they should, but this validates parsing was possible)
     benchmark_dir = Path("/workspace/benchmarks")
     if not benchmark_dir.exists():
         benchmark_dir = Path("/workspace")
-    
+
     endpoint_a_log = benchmark_dir / "endpoint_a.log"
     endpoint_b_log = benchmark_dir / "endpoint_b.log"
     endpoint_c_log = benchmark_dir / "endpoint_c.log"
-    
+
     # At least verify the output is not placeholder values
     first_line = lines[0]
     second_line = lines[1]
-    
+
     assert "placeholder" not in first_line.lower(), "Output appears to contain placeholder values"
     assert "placeholder" not in second_line.lower(), "Output appears to contain placeholder values"
     assert "TODO" not in content, "Output appears to be incomplete"
+
+def test_best_throughput_is_endpoint_b():
+    """Test that best_throughput is endpoint_b (~1150 req/sec vs endpoint_a ~856 and endpoint_c ~345)"""
+    summary_path = Path("/workspace/performance_summary.txt")
+    content = summary_path.read_text().strip()
+    first_line = content.split('\n')[0]
+    endpoint = first_line.split('=')[1]
+    assert endpoint == 'endpoint_b', \
+        f"Expected best_throughput=endpoint_b (highest Requests/sec in benchmark logs), got '{endpoint}'"
+
+def test_max_latency_is_from_endpoint_c():
+    """Test that max_latency_ms is approximately 450.23 (max latency from endpoint_c.log)"""
+    summary_path = Path("/workspace/performance_summary.txt")
+    content = summary_path.read_text().strip()
+    second_line = content.split('\n')[1]
+    latency = float(second_line.split('=')[1])
+    assert abs(latency - 450.23) < 1.0, \
+        f"Expected max_latency_ms near 450.23 (from endpoint_c.log Max latency), got {latency}"

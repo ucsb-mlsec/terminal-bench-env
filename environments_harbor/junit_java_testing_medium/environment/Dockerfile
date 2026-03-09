@@ -22,7 +22,9 @@ RUN apt-get update && apt-get install -y default-jdk && \
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 
 RUN mkdir -p /workspace/src/main/java/com/userservice && \
-    mkdir -p /workspace/src/test/java/com/userservice
+    mkdir -p /workspace/src/test/java/com/userservice && \
+    mkdir -p /workspace/output/junit_java_testing_medium/files/src/main/java/com/userservice && \
+    mkdir -p /workspace/output/junit_java_testing_medium/files/src/test/java/com/userservice
 
 COPY pom.xml /workspace/pom.xml
 COPY src/main/java/com/userservice/User.java /workspace/src/main/java/com/userservice/User.java
@@ -30,6 +32,13 @@ COPY src/main/java/com/userservice/UserService.java /workspace/src/main/java/com
 COPY src/main/java/com/userservice/UserValidator.java /workspace/src/main/java/com/userservice/UserValidator.java
 COPY src/test/java/com/userservice/UserServiceTest.java /workspace/src/test/java/com/userservice/UserServiceTest.java
 COPY src/test/java/com/userservice/UserValidatorTest.java /workspace/src/test/java/com/userservice/UserValidatorTest.java
+
+COPY pom.xml /workspace/output/junit_java_testing_medium/files/pom.xml
+COPY src/main/java/com/userservice/User.java /workspace/output/junit_java_testing_medium/files/src/main/java/com/userservice/User.java
+COPY src/main/java/com/userservice/UserService.java /workspace/output/junit_java_testing_medium/files/src/main/java/com/userservice/UserService.java
+COPY src/main/java/com/userservice/UserValidator.java /workspace/output/junit_java_testing_medium/files/src/main/java/com/userservice/UserValidator.java
+COPY src/test/java/com/userservice/UserServiceTest.java /workspace/output/junit_java_testing_medium/files/src/test/java/com/userservice/UserServiceTest.java
+COPY src/test/java/com/userservice/UserValidatorTest.java /workspace/output/junit_java_testing_medium/files/src/test/java/com/userservice/UserValidatorTest.java
 
 WORKDIR /workspace
 

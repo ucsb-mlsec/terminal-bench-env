@@ -77,13 +77,37 @@ def test_validation_report_uses_valid_issue_codes():
     """Test that only valid issue codes are used in critical_issues"""
     report_path = Path("/workspace/validation_report.txt")
     lines = report_path.read_text().strip().split('\n')
-    
+
     critical_issues_match = re.match(r'critical_issues:\s*(.+)', lines[2].strip())
     critical_issues = critical_issues_match.group(1).strip()
-    
+
     valid_codes = {"QUANT_BIT", "LORA_RANK", "LORA_ALPHA", "DROPOUT", "BATCH_SIZE", "MISSING_FIELD", "TYPE_ERROR", "none"}
-    
+
     if critical_issues != "none":
         issue_list = [issue.strip() for issue in critical_issues.split(',')]
         for issue in issue_list:
             assert issue in valid_codes, f"Invalid issue code found: {issue}. Valid codes are: {valid_codes}"
+
+
+def test_status_is_fail():
+    """Test that status is FAIL (the config has multiple issues: bits=8 not 4, rank=256 out of bounds, alpha<rank incompatible, dropout=1.5 out of range)"""
+    report_path = Path("/workspace/validation_report.txt")
+    lines = report_path.read_text().strip().split('\n')
+    status_match = re.match(r'status:\s*(PASS|FAIL)', lines[0].strip())
+    status = status_match.group(1)
+    assert status == "FAIL", \
+        f"status should be 'FAIL' (qlora_config.yaml has: bits=8 (needs 4), rank=256 (>128), dropout=1.5 (>1.0)), got '{status}'"
+
+
+def test_required_issues_detected():
+    """Test that QUANT_BIT, LORA_RANK, and DROPOUT issues are all detected from the config"""
+    report_path = Path("/workspace/validation_report.txt")
+    lines = report_path.read_text().strip().split('\n')
+    critical_issues_match = re.match(r'critical_issues:\s*(.+)', lines[2].strip())
+    critical_issues = critical_issues_match.group(1).strip()
+    # qlora_config.yaml has: bits=8 (must be 4 -> QUANT_BIT), rank=256 (>128 -> LORA_RANK), dropout=1.5 (>1.0 -> DROPOUT)
+    required_issues = {"QUANT_BIT", "LORA_RANK", "DROPOUT"}
+    found_issues = set(issue.strip() for issue in critical_issues.split(','))
+    for issue in required_issues:
+        assert issue in found_issues, \
+            f"Expected issue '{issue}' to be detected from qlora_config.yaml (bits=8, rank=256, dropout=1.5), but found: {critical_issues}"

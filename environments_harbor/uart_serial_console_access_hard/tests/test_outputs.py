@@ -67,18 +67,36 @@ def test_credentials_are_valid():
     """Test that the discovered credentials match expected patterns for IoT devices"""
     solution_path = Path("/tmp/solution.txt")
     content = solution_path.read_text().strip()
-    
+
     username_match = re.search(r'username=(.+)', content)
     password_match = re.search(r'password=(.+)', content)
-    
+
     assert username_match and password_match, "Could not parse username or password"
-    
+
     username = username_match.group(1).strip()
     password = password_match.group(1).strip()
-    
+
     # Username should be reasonable (alphanumeric, common patterns)
     assert re.match(r'^[a-zA-Z0-9_\-]+$', username), f"Username '{username}' contains invalid characters"
-    
+
     # Password should not be placeholder text
     invalid_passwords = ['<password>', 'password', 'PLACEHOLDER', 'TODO', 'FIXME']
     assert password.lower() not in [p.lower() for p in invalid_passwords], f"Password appears to be a placeholder: {password}"
+
+
+def test_correct_credentials_from_boot_log():
+    """Test that the credentials match those exposed in the IoT gateway boot log"""
+    solution_path = Path("/tmp/solution.txt")
+    content = solution_path.read_text().strip()
+
+    username_match = re.search(r'username=(.+)', content)
+    password_match = re.search(r'password=(.+)', content)
+
+    username = username_match.group(1).strip()
+    password = password_match.group(1).strip()
+
+    # boot.log line 202: iot-gateway: DEBUG: admin_user=root, admin_password=iot_gw_2023!
+    assert username == "root", \
+        f"Expected username=root (from boot.log debug output), got {username}"
+    assert password == "iot_gw_2023!", \
+        f"Expected password=iot_gw_2023! (from boot.log debug output), got {password}"

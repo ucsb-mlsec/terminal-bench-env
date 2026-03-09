@@ -53,9 +53,22 @@ def test_profile_svg_substantial_content():
     """Test that the SVG contains substantial profiling data"""
     profile_path = Path("/tmp/profile.svg")
     content = profile_path.read_text()
-    
+
     # Count some elements to ensure it's not a minimal/empty flame graph
     rect_count = content.count("<rect")
     text_count = content.count("<text")
-    
+
     assert rect_count > 5 or text_count > 5, f"SVG has too few elements (rects: {rect_count}, texts: {text_count}) - may be empty or incomplete flame graph"
+
+
+def test_profile_svg_contains_expected_functions():
+    """Test that the flame graph contains function names from the profiled code"""
+    profile_path = Path("/tmp/profile.svg")
+    content = profile_path.read_text()
+
+    # The profiled code (process_data.py) contains these functions that should appear in the flame graph
+    expected_functions = ['calculate_statistics', 'load_data', 'process_data']
+
+    found_functions = [f for f in expected_functions if f in content]
+    assert len(found_functions) >= 1, \
+        f"Flame graph should contain at least one function from process_data.py. Expected one of {expected_functions}, found none in SVG"

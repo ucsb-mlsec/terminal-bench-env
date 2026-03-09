@@ -96,16 +96,52 @@ def test_values_are_reasonable():
     """Test that the extracted values are in reasonable ranges for TeraChem calculations"""
     analysis_path = Path("/workspace/analysis_summary.txt")
     lines = analysis_path.read_text().strip().split('\n')
-    
+
     energy_str = lines[1].split('=', 1)[1]
     energy = float(energy_str)
-    
+
     # Typical molecular energies in Hartree are in the range of -1 to -10000
     assert -10000 <= energy <= -1, \
         f"Energy value {energy} Hartree is outside typical range for molecular calculations"
-    
+
     failed_count = int(lines[2].split('=', 1)[1])
     successful_count = 5 - failed_count
-    
+
     assert successful_count >= 1, \
         "There should be at least one successfully converged calculation to determine lowest energy"
+
+
+def test_correct_lowest_energy_conformer():
+    """Test that conformer_2 is identified as the lowest energy (most stable) conformer"""
+    analysis_path = Path("/workspace/analysis_summary.txt")
+    lines = analysis_path.read_text().strip().split('\n')
+
+    conformer_name = lines[0].split('=', 1)[1]
+
+    # conformer_2.out has FINAL_ENERGY=-458.823156 which is the lowest (most negative) energy
+    assert conformer_name == "conformer_2.xyz", \
+        f"Expected LOWEST_ENERGY_CONFORMER=conformer_2.xyz, got {conformer_name}"
+
+
+def test_correct_lowest_energy_value():
+    """Test that the final energy matches conformer_2's energy from the output file"""
+    analysis_path = Path("/workspace/analysis_summary.txt")
+    lines = analysis_path.read_text().strip().split('\n')
+
+    energy = float(lines[1].split('=', 1)[1])
+
+    # conformer_2.out shows FINAL_ENERGY=-458.823156
+    assert abs(energy - (-458.823156)) < 0.001, \
+        f"Expected FINAL_ENERGY=-458.823156, got {energy}"
+
+
+def test_correct_failed_count():
+    """Test that exactly 1 conformer failed to converge"""
+    analysis_path = Path("/workspace/analysis_summary.txt")
+    lines = analysis_path.read_text().strip().split('\n')
+
+    failed_count = int(lines[2].split('=', 1)[1])
+
+    # conformer_3.out has 'DID NOT CONVERGE' status; all others converged
+    assert failed_count == 1, \
+        f"Expected FAILED_COUNT=1 (only conformer_3 failed), got {failed_count}"

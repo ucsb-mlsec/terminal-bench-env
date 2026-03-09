@@ -11,9 +11,10 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /data /solution
+RUN mkdir -p /workspace/data /workspace/solution /workspace/output/vcftools_filtering_syntax_hard/files/data
 
-COPY data/variants.vcf /data/variants.vcf
+COPY data/variants.vcf /workspace/data/variants.vcf
+COPY data/variants.vcf /workspace/output/vcftools_filtering_syntax_hard/files/data/variants.vcf
 
 WORKDIR /workspace
 

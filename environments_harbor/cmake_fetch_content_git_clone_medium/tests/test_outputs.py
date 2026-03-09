@@ -75,7 +75,7 @@ def test_app_output_contains_json_data():
 def test_executable_was_built():
     """Test that the executable was successfully built"""
     build_dir = Path("/workspace/json_parser_app/build")
-    
+
     # Check common executable names and locations
     possible_executables = [
         build_dir / "json_parser_app",
@@ -83,7 +83,20 @@ def test_executable_was_built():
         build_dir / "main",
         build_dir / "app"
     ]
-    
+
     executable_found = any(exe.exists() for exe in possible_executables)
     assert executable_found or not build_dir.exists(), \
         "Build directory exists but no executable found - this suggests build may have failed"
+
+
+def test_app_output_matches_json_parser_format():
+    """The main.cpp prints: 'Configuration loaded: server=<server>, port=<port>'.
+    The APP_OUTPUT in solution.txt must reflect this format."""
+    solution_path = Path("/workspace/solution.txt")
+    content = solution_path.read_text()
+    app_output_match = re.search(r'APP_OUTPUT=(.+)', content)
+    assert app_output_match is not None, "APP_OUTPUT line not found"
+    app_output = app_output_match.group(1).strip()
+    assert "Configuration loaded" in app_output or "server=" in app_output, \
+        (f"APP_OUTPUT should contain 'Configuration loaded: server=..., port=...' "
+         f"as printed by main.cpp, but got: '{app_output}'")

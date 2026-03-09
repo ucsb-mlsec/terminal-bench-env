@@ -141,3 +141,37 @@ def test_analysis_values_consistent():
     if not valid_spec:
         assert safety_violations > 0 or liveness_violations > 0 or contradictions, \
             "If valid_specification=false, there should be violations or contradictions"
+
+
+def test_analysis_valid_specification_is_true():
+    """Test that the traffic light specification is correctly identified as valid"""
+    # The traffic_light_spec.txt defines a consistent RED->GREEN->YELLOW->RED cycle
+    # with no contradictory requirements — it should be valid
+    analysis_path = Path("/workspace/analysis.txt")
+    content = analysis_path.read_text()
+    match = re.search(r"valid_specification=(true|false)", content)
+    assert match is not None
+    assert match.group(1) == "true", \
+        "valid_specification should be 'true': the traffic light spec has no contradictions"
+
+
+def test_analysis_no_safety_violations():
+    """Test that no safety violations are found in the specification"""
+    # The spec requires mutual exclusion and no state skipping, which are well-defined
+    analysis_path = Path("/workspace/analysis.txt")
+    content = analysis_path.read_text()
+    match = re.search(r"safety_violations=(\d+)", content)
+    assert match is not None
+    assert int(match.group(1)) == 0, \
+        "safety_violations should be 0: the spec's safety requirements are satisfiable"
+
+
+def test_analysis_no_contradictions():
+    """Test that no logical contradictions are found in the specification"""
+    # The traffic_light_spec.txt has consistent timing and transition requirements
+    analysis_path = Path("/workspace/analysis.txt")
+    content = analysis_path.read_text()
+    match = re.search(r"contradictions=(true|false)", content)
+    assert match is not None
+    assert match.group(1) == "false", \
+        "contradictions should be 'false': the spec has no contradictory requirements"

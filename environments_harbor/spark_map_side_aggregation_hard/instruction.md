@@ -4,7 +4,7 @@ Investigation revealed that the input data has severe partitioning issues: some 
 
 **Current Situation:**
 
-Input data location: `/data/events/user_events.csv`
+Input data location: `/workspace/data/events/user_events.csv`
 
 The CSV file contains user activity events with this structure:
 - user_id: string identifier
@@ -29,7 +29,7 @@ You need to analyze the current data partitioning and aggregation behavior, then
 The job must compute these metrics for each user:
 - Total number of events
 - Number of page_view events
-- Number of click events  
+- Number of click events
 - Number of purchase events
 - Sum of all values
 
@@ -43,14 +43,14 @@ The job must compute these metrics for each user:
 
 **Deliverable:**
 
-Create an optimized Spark job saved to: `/solution/process_events.py`
+Create an optimized Spark job saved to: `/workspace/solution/process_events.py`
 
-The job must be executable with: `spark-submit /solution/process_events.py`
+The job must be executable with: `spark-submit /workspace/solution/process_events.py`
 
 Your job should:
-1. Read from `/data/events/user_events.csv`
+1. Read from `/workspace/data/events/user_events.csv`
 2. Compute the required aggregations efficiently
-3. Write results to `/output/user_stats.csv`
+3. Write results to `/workspace/output/user_stats.csv`
 
 The output CSV must have exactly these columns (header row required):
 ```
@@ -68,7 +68,7 @@ user_2,243,120,98,25,2345.67
 
 **Success Criteria:**
 
-- The output file `/output/user_stats.csv` exists and is valid CSV
+- The output file `/workspace/output/user_stats.csv` exists and is valid CSV
 - All 10,000 users appear exactly once in the output
 - Metrics are mathematically correct (sum of page_views + clicks + purchases = total_events for each user)
 - The job completes without out-of-memory errors

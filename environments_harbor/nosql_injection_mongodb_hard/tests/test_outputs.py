@@ -84,15 +84,49 @@ def test_fixed_txt_line_numbers_valid():
     """Test that line numbers in fixed.txt reference valid lines in auth.js"""
     fixed_path = Path("/app/fixed.txt")
     auth_path = Path("/app/auth.js")
-    
+
     auth_content = auth_path.read_text()
     auth_lines = auth_content.split('\n')
     total_lines = len(auth_lines)
-    
+
     fixed_content = fixed_path.read_text().strip()
     lines = fixed_content.split('\n')
-    
+
     line_numbers = [int(line.split(':')[0].strip()) for line in lines]
-    
+
     for line_num in line_numbers:
         assert 1 <= line_num <= total_lines, f"Line number {line_num} is out of range (auth.js has {total_lines} lines)"
+
+
+def test_correct_vulnerability_line_numbers():
+    """Test that the correct line numbers are identified for each vulnerability type"""
+    fixed_path = Path("/app/fixed.txt")
+    fixed_content = fixed_path.read_text().strip()
+    lines = fixed_content.split('\n')
+
+    vuln_map = {}
+    for line in lines:
+        parts = line.split(':')
+        line_num, vuln_type = int(parts[0]), parts[1]
+        vuln_map[vuln_type] = line_num
+
+    # auth.js vulnerabilities (1-indexed line numbers):
+    # Line 28-31: OPERATOR_INJECTION - findOne({username: username, password: password})
+    #   allows $ne/$gt operators injected as objects
+    # Line 72-76: QUERY_MANIPULATION - const userQuery = query || {}; userQuery.resetToken = resetToken
+    #   allows attacker-controlled query object merged with server constraints
+    # Line 122-124: TYPE_COERCION - findOne({ email: email }) where email from req.query
+    #   allows regex injection via string type coercion
+
+    assert vuln_map.get("OPERATOR_INJECTION") in range(23, 55), (
+        f"OPERATOR_INJECTION should be on a line in the login endpoint (lines 23-54), "
+        f"got line {vuln_map.get('OPERATOR_INJECTION')}"
+    )
+    assert vuln_map.get("QUERY_MANIPULATION") in range(59, 107), (
+        f"QUERY_MANIPULATION should be on a line in the reset-password endpoint (lines 59-106), "
+        f"got line {vuln_map.get('QUERY_MANIPULATION')}"
+    )
+    assert vuln_map.get("TYPE_COERCION") in range(110, 149), (
+        f"TYPE_COERCION should be on a line in the user lookup endpoint (lines 110-148), "
+        f"got line {vuln_map.get('TYPE_COERCION')}"
+    )

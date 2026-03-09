@@ -11,9 +11,9 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /data/rsem_results /solution
+RUN mkdir -p /workspace/data/rsem_results /workspace/solution
 
-COPY data/rsem_results/sample.genes.results /data/rsem_results/sample.genes.results
+COPY data/rsem_results/sample.genes.results /workspace/data/rsem_results/sample.genes.results
 
 WORKDIR /workspace
 

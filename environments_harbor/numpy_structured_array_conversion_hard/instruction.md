@@ -2,7 +2,7 @@ A research laboratory has been collecting experimental measurements stored in Nu
 
 **The Situation:**
 
-The lab's data acquisition system has generated binary files in `/data/experiments/` containing structured arrays. Each file represents a different experimental run, and the arrays contain:
+The lab's data acquisition system has generated binary files in `/workspace/data/experiments/` containing structured arrays. Each file represents a different experimental run, and the arrays contain:
 
 - A `sensor_id` field (integer)
 - A `timestamp` field (Unix timestamp as integer)
@@ -32,7 +32,7 @@ The files contain real-world measurement problems:
 
 **Your Task:**
 
-Process all `.npy` files in `/data/experiments/` and convert them into a single clean dataset. You need to:
+Process all `.npy` files in `/workspace/data/experiments/` and convert them into a single clean dataset. You need to:
 
 1. Load all structured arrays from the `.npy` files
 2. Flatten the nested `reading` structure into separate columns
@@ -42,16 +42,16 @@ Process all `.npy` files in `/data/experiments/` and convert them into a single 
 
 **Output Requirements:**
 
-Create a Python script saved at `/solution/convert.py`
+Create a Python script saved at `/workspace/solution/convert.py`
 
 The script must be executable as:
 ```bash
-python /solution/convert.py
+python /workspace/solution/convert.py
 ```
 
 When executed, the script must:
-- Process all `.npy` files in `/data/experiments/`
-- Generate a single CSV file at `/output/measurements.csv` with these columns (in this exact order):
+- Process all `.npy` files in `/workspace/data/experiments/`
+- Generate a single CSV file at `/workspace/output/measurements.csv` with these columns (in this exact order):
   - sensor_id
   - timestamp
   - temperature
@@ -59,7 +59,7 @@ When executed, the script must:
   - humidity
   - status
 
-- Generate a summary file at `/output/summary.txt` containing exactly 3 lines:
+- Generate a summary file at `/workspace/output/summary.txt` containing exactly 3 lines:
 ```
 total_records=<number>
 invalid_temperatures=<number>

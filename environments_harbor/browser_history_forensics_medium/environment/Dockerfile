@@ -15,9 +15,9 @@ RUN apt-get update && apt-get install -y sqlite3 && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /forensics /solution
+RUN mkdir -p /forensics/data /solution
 
-COPY data/places.sqlite /forensics/places.sqlite
+COPY data/places.sqlite /forensics/data/places.sqlite
 
 WORKDIR /workspace
 

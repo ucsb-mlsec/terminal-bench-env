@@ -101,9 +101,48 @@ def test_no_extra_whitespace():
     solution_path = Path("/home/solution.txt")
     content = solution_path.read_text().strip()
     lines = content.split('\n')
-    
+
     for i, line in enumerate(lines):
         assert ' = ' not in line, \
             f"Line {i+1} should not have spaces around '=': {line}"
         assert line == line.strip(), \
             f"Line {i+1} should not have leading/trailing whitespace: '{line}'"
+
+
+def test_entries_lost_correct_value():
+    """Test that entries_lost equals 12500, calculated from the error log.
+    The log shows 25 'dropped 500 entries' events from 02:35:16 to 02:35:40 (25 seconds),
+    each dropping exactly 500 entries: 25 x 500 = 12500 total."""
+    solution_path = Path("/home/solution.txt")
+    content = solution_path.read_text().strip()
+    lines = content.split('\n')
+
+    entries_lost = int(lines[1].split('=')[1])
+    assert entries_lost == 12500, \
+        f"Expected entries_lost=12500 (25 drop events x 500 entries each per error.log), got {entries_lost}"
+
+
+def test_root_cause_correct_value():
+    """Test that root_cause is buffer_queue_limit_too_small.
+    The error log shows 'buffer queue is full (8/8)' immediately before the crash,
+    indicating the queue_limit_length of 8 was the bottleneck."""
+    solution_path = Path("/home/solution.txt")
+    content = solution_path.read_text().strip()
+    lines = content.split('\n')
+
+    root_cause = lines[2].split('=')[1]
+    assert root_cause == "buffer_queue_limit_too_small", \
+        f"Expected root_cause=buffer_queue_limit_too_small (queue was full 8/8 per error.log), got {root_cause}"
+
+
+def test_buffer_size_needed_at_least_24mb():
+    """Test that buffer_size_needed_mb is at least 24, derived from metrics.log.
+    At crash time, total_limit_size was 24117248 bytes (~23MB) and it was still insufficient,
+    so the needed buffer must be at least 24MB."""
+    solution_path = Path("/home/solution.txt")
+    content = solution_path.read_text().strip()
+    lines = content.split('\n')
+
+    buffer_size = int(lines[0].split('=')[1])
+    assert buffer_size >= 24, \
+        f"Expected buffer_size_needed_mb >= 24 (metrics.log shows ~23MB was insufficient at crash), got {buffer_size}"

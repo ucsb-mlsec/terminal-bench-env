@@ -11,9 +11,9 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /workspace /solution
+RUN mkdir -p /workspace/data /solution
 
-COPY data/attack_spec.json /workspace/attack_spec.json
+COPY data/attack_spec.json /workspace/data/attack_spec.json
 
 WORKDIR /workspace
 

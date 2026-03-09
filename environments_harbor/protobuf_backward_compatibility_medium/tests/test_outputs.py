@@ -80,3 +80,21 @@ def test_field_numbers_changed():
         new_number = match.group(3)
         
         assert old_number != new_number, f"Field {field_name} has same old and new number: {old_number}"
+
+def test_username_field_corrected_to_2():
+    """Test that username field number is corrected from 5 to 2 (original assignment)"""
+    solution_path = Path("/workspace/solution.txt")
+    content = solution_path.read_text()
+    # In user_profile_original.proto: username=2; in user_profile.proto: username=5
+    # Correction must show username:5->2
+    assert "username:5->2" in content, \
+        f"Expected correction 'username:5->2' (username was field 2 originally), not found in: {content!r}"
+
+def test_email_field_corrected_to_3():
+    """Test that email field number is corrected from 6 to 3 (original assignment)"""
+    solution_path = Path("/workspace/solution.txt")
+    content = solution_path.read_text()
+    # In user_profile_original.proto: email=3; in user_profile.proto: email=6
+    # Correction must show email:6->3
+    assert "email:6->3" in content, \
+        f"Expected correction 'email:6->3' (email was field 3 originally), not found in: {content!r}"

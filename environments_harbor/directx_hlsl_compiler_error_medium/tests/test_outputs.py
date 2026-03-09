@@ -87,8 +87,40 @@ def test_shader_no_obvious_errors():
     """Test that the shader doesn't contain obvious error markers"""
     fixed_shader_path = Path("/workspace/fixed_pixel.hlsl")
     content = fixed_shader_path.read_text().lower()
-    
+
     # Check for common error indicators
     assert "error" not in content or "// error" in content, "Shader contains error markers"
     assert "todo" not in content or "// todo" in content, "Shader contains TODO markers indicating incomplete code"
     assert "fix" not in content or "// fix" in content, "Shader contains FIX markers indicating broken code"
+
+
+def test_shader_fixes_type_errors():
+    """Test that the fixed shader corrects the HLSL type errors from broken_pixel.hlsl"""
+    fixed_shader_path = Path("/workspace/fixed_pixel.hlsl")
+    content = fixed_shader_path.read_text()
+
+    # broken_pixel.hlsl uses 'Float4' (capital F) which is invalid HLSL - should be 'float4'
+    assert 'Float4' not in content, (
+        "Fixed shader should not contain 'Float4' (capital F is invalid HLSL). "
+        "Use 'float4' (all lowercase)"
+    )
+
+    # broken_pixel.hlsl uses 'vector4' return type - should be 'float4 : SV_TARGET'
+    assert 'vector4' not in content, (
+        "Fixed shader should not contain 'vector4' (invalid type). "
+        "Use 'float4 : SV_TARGET' as the return type"
+    )
+
+
+def test_shader_has_sv_target_semantic():
+    """Test that the fixed shader has the SV_TARGET semantic on the return type"""
+    import re
+    fixed_shader_path = Path("/workspace/fixed_pixel.hlsl")
+    content = fixed_shader_path.read_text()
+
+    # The original was missing SV_TARGET on the return type
+    has_sv_target = bool(re.search(r'SV_TARGET', content, re.IGNORECASE))
+    assert has_sv_target, (
+        "Fixed shader should have SV_TARGET (or SV_Target) semantic on the return type. "
+        "broken_pixel.hlsl was missing this required semantic."
+    )

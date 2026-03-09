@@ -89,11 +89,34 @@ def test_result_format_exact():
     """Test that the result file follows the exact format specified"""
     result_path = Path("/workspace/result.txt")
     content = result_path.read_text().strip()
-    
+
     lines = content.split('\n')
     assert len(lines) == 3, f"Expected exactly 3 lines in result file, got {len(lines)}"
-    
+
     # Check each line starts with the expected key
     assert lines[0].startswith("status="), "First line should start with 'status='"
     assert lines[1].startswith("records_processed="), "Second line should start with 'records_processed='"
     assert lines[2].startswith("total_revenue="), "Third line should start with 'total_revenue='"
+
+
+def test_total_revenue_matches_csv():
+    """Test that total_revenue equals the sum of revenue column in sales_data.csv"""
+    import csv
+
+    result_path = Path("/workspace/result.txt")
+    content = result_path.read_text().strip()
+
+    revenue_match = re.search(r'total_revenue=([\d.]+)', content)
+    assert revenue_match is not None, "Could not find total_revenue value in result file"
+    reported_revenue = float(revenue_match.group(1))
+
+    sales_path = Path("/workspace/sales_data.csv")
+    expected_revenue = 0.0
+    with open(sales_path, 'r') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            expected_revenue += float(row['revenue'])
+
+    expected_revenue = round(expected_revenue, 2)
+    assert abs(reported_revenue - expected_revenue) < 0.02, \
+        f"total_revenue {reported_revenue} does not match sum of revenue column in sales_data.csv ({expected_revenue})"

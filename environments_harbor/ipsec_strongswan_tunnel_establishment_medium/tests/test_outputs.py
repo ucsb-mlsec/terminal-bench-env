@@ -70,6 +70,22 @@ def test_config_valid_is_yes():
     config_valid = config_valid_match.group(1)
     assert config_valid == "YES", f"CONFIG_VALID should be YES after fixes, but got {config_valid}"
 
+def test_identifies_invalid_subnet_mask():
+    """Test that the invalid subnet mask /33 is identified as an error"""
+    output_path = Path("/root/config_fixes.txt")
+    content = output_path.read_text()
+    # swanctl.conf has remote_ts = 192.168.200.0/33 which is an invalid subnet mask (max is /32)
+    assert "/33" in content or "subnet" in content.lower() or "remote_ts" in content.lower(), \
+        "config_fixes.txt should identify the invalid subnet mask /33 in remote_ts"
+
+def test_identifies_missing_closing_brace():
+    """Test that the missing closing brace for the remote block is identified"""
+    output_path = Path("/root/config_fixes.txt")
+    content = output_path.read_text().lower()
+    # swanctl.conf is missing a closing } for the remote {} block
+    assert "brace" in content or "bracket" in content or "syntax" in content or "remote" in content, \
+        "config_fixes.txt should identify the missing closing brace in the remote block"
+
 def test_error_count_reasonable():
     """Test that ERROR_COUNT is a reasonable positive number"""
     output_path = Path("/root/config_fixes.txt")

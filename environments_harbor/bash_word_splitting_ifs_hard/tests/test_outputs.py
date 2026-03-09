@@ -90,3 +90,17 @@ def test_diagnosis_correctness():
     elif issue_type == "restoration":
         # Should identify where IFS is not properly restored
         assert True, "Restoration type diagnosis accepted"
+
+
+def test_ifs_line_number_is_correct():
+    """Test that LINE identifies line 14 where IFS=',' is set globally without restoration"""
+    # In /opt/process_customers.sh, line 14 is 'IFS=','
+    # It sets IFS globally for the entire script, never restoring it — a scope/restoration problem
+    diagnosis_path = Path("/tmp/diagnosis.txt")
+    content = diagnosis_path.read_text().strip()
+    lines = content.split('\n')
+    line_match = re.match(r'LINE=(\d+)', lines[0])
+    assert line_match is not None
+    line_num = int(line_match.group(1))
+    assert line_num == 14, \
+        f"LINE should be 14 (where 'IFS=,' is set globally in process_customers.sh), got {line_num}"

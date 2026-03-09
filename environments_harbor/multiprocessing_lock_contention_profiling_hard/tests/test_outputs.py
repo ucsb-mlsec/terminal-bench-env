@@ -78,10 +78,31 @@ def test_threshold_is_reasonable():
     """Test that the threshold value is within a reasonable range"""
     bottleneck_path = Path("/workspace/bottleneck.txt")
     content = bottleneck_path.read_text().strip()
-    
+
     lines = content.split('\n')
     threshold = int(lines[1].split('=', 1)[1].strip())
-    
+
     # Threshold should be reasonable (typically between 2 and 16 for most bottleneck scenarios)
     assert 2 <= threshold <= 16, \
         f"Threshold {threshold} seems unreasonable (expected between 2 and 16)"
+
+
+def test_correct_bottleneck_and_threshold():
+    """Test that the bottleneck is process_semaphore and threshold is 2"""
+    bottleneck_path = Path("/workspace/bottleneck.txt")
+    content = bottleneck_path.read_text().strip()
+    lines = content.split('\n')
+
+    bottleneck_value = lines[0].split('=', 1)[1].strip()
+    threshold_value = int(lines[1].split('=', 1)[1].strip())
+
+    # processor.py uses process_semaphore = Semaphore(1), which serializes all workers
+    # Any worker count > 1 causes contention — threshold is 2
+    assert bottleneck_value == "process_semaphore", (
+        f"The bottleneck should be 'process_semaphore' (Semaphore(1) that serializes all work), "
+        f"got: {bottleneck_value}"
+    )
+    assert threshold_value == 2, (
+        f"The threshold should be 2 (contention occurs with 2+ workers on Semaphore(1)), "
+        f"got: {threshold_value}"
+    )

@@ -96,6 +96,36 @@ def test_config_weakness_not_empty():
     
     assert len(data["config_weakness"].strip()) > 0, "config_weakness cannot be empty"
 
+def test_attack_type_is_cl_te():
+    """Test that the attack type is correctly identified as CL.TE based on traffic_capture.txt"""
+    output_path = Path("/tmp/smuggling_analysis.json")
+    with open(output_path, 'r') as f:
+        data = json.load(f)
+    # The traffic_capture.txt shows requests with both Content-Length and Transfer-Encoding
+    # which is a CL.TE (Content-Length / Transfer-Encoding) smuggling attack
+    assert data["attack_type"] == "CL.TE", \
+        f"attack_type should be 'CL.TE' based on traffic capture analysis, got '{data.get('attack_type')}'"
+
+def test_bypassed_endpoint_is_admin():
+    """Test that the bypassed endpoint is the /admin path found in traffic_capture.txt"""
+    output_path = Path("/tmp/smuggling_analysis.json")
+    with open(output_path, 'r') as f:
+        data = json.load(f)
+    # The traffic_capture.txt shows smuggled requests targeting /admin/users
+    endpoint = data["bypassed_endpoint"]
+    assert "/admin" in endpoint, \
+        f"bypassed_endpoint should contain '/admin' based on the smuggled request in traffic_capture.txt, got '{endpoint}'"
+
+def test_smuggled_requests_count_matches_traffic():
+    """Test that the smuggled_requests_count reflects the actual smuggling attempts in traffic_capture.txt"""
+    output_path = Path("/tmp/smuggling_analysis.json")
+    with open(output_path, 'r') as f:
+        data = json.load(f)
+    # traffic_capture.txt has 7 requests total; requests 3, 5, 7 contain CL.TE smuggling attempts
+    count = data["smuggled_requests_count"]
+    assert count >= 3, \
+        f"smuggled_requests_count should be at least 3 (requests 3, 5, 7 contain CL.TE attacks), got {count}"
+
 def test_config_weakness_length():
     """Test that config_weakness is within the max length"""
     output_path = Path("/tmp/smuggling_analysis.json")

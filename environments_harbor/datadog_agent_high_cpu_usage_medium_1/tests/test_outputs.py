@@ -89,20 +89,39 @@ def test_identifies_correct_performance_issue():
     """Test that the analysis identifies a realistic performance issue"""
     analysis_path = Path("/root/analysis.txt")
     content = analysis_path.read_text().strip()
-    
+
     problematic_file = None
     issue_type = None
-    
+
     for line in content.split('\n'):
         line = line.strip()
         if line.startswith('problematic_file:'):
             problematic_file = line.split(':', 1)[1].strip()
         elif line.startswith('issue_type:'):
             issue_type = line.split(':', 1)[1].strip().lower()
-    
+
     # The issue type should mention performance-related problems
-    performance_keywords = ['interval', 'frequent', 'timeout', 'recursive', 'collection', 
+    performance_keywords = ['interval', 'frequent', 'timeout', 'recursive', 'collection',
                           'cpu', 'resource', 'excessive', 'missing', 'slow']
-    
+
     has_performance_keyword = any(keyword in issue_type for keyword in performance_keywords)
     assert has_performance_keyword, f"issue_type '{issue_type}' does not describe a performance-related problem"
+
+
+def test_process_check_identified_as_problematic():
+    """Test that process.yaml is identified as the problematic file (collection_interval: 1 with wildcard)"""
+    analysis_path = Path("/root/analysis.txt")
+    content = analysis_path.read_text().strip()
+
+    problematic_file = None
+    for line in content.split('\n'):
+        if line.strip().startswith('problematic_file:'):
+            problematic_file = line.split(':', 1)[1].strip()
+            break
+
+    assert problematic_file == "conf.d/process.yaml", (
+        f"process.yaml has collection_interval: 1 with search_string: ['.*'] matching ALL processes - "
+        f"this is the most aggressive config causing high CPU usage. "
+        f"disk.yaml uses 15s, cpu.yaml uses 10s, nginx.yaml uses 30s, but process.yaml uses 1s. "
+        f"Expected problematic_file='conf.d/process.yaml', got '{problematic_file}'"
+    )

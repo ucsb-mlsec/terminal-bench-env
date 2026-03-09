@@ -141,7 +141,50 @@ def test_manifest_contains_package():
     info_path = Path("/tmp/aar_info.txt")
     lines = info_path.read_text().strip().split('\n')
     aar_path = Path(lines[0].strip())
-    
+
     with zipfile.ZipFile(aar_path, 'r') as zip_ref:
         manifest_content = zip_ref.read('AndroidManifest.xml').decode('utf-8', errors='ignore')
         assert 'com.example.library' in manifest_content, "AndroidManifest.xml must contain package com.example.library"
+
+
+def test_aar_path_is_absolute():
+    """Test that the AAR path in aar_info.txt is an absolute path"""
+    info_path = Path("/tmp/aar_info.txt")
+    lines = info_path.read_text().strip().split('\n')
+    aar_path_str = lines[0].strip()
+    assert aar_path_str.startswith('/'), f"AAR path must be absolute, got: {aar_path_str}"
+
+
+def test_sha256_checksum_format():
+    """Test that the SHA256 checksum is exactly 64 hex characters"""
+    import re
+    info_path = Path("/tmp/aar_info.txt")
+    lines = info_path.read_text().strip().split('\n')
+    checksum = lines[1].strip()
+    assert re.match(r'^[0-9a-f]{64}$', checksum), \
+        f"SHA256 checksum must be exactly 64 lowercase hex characters, got: {checksum}"
+
+
+def test_classes_jar_contains_all_source_classes():
+    """Test that classes.jar contains compiled classes matching the 5 source files"""
+    info_path = Path("/tmp/aar_info.txt")
+    lines = info_path.read_text().strip().split('\n')
+    aar_path = Path(lines[0].strip())
+
+    with zipfile.ZipFile(aar_path, 'r') as aar_zip:
+        classes_jar_data = aar_zip.read('classes.jar')
+
+    import tempfile
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.jar') as tmp_jar:
+        tmp_jar.write(classes_jar_data)
+        tmp_jar_path = tmp_jar.name
+
+    try:
+        with zipfile.ZipFile(tmp_jar_path, 'r') as jar_zip:
+            jar_files = jar_zip.namelist()
+        # All 5 source files should be compiled and present
+        class_files = [f for f in jar_files if f.endswith('.class')]
+        assert len(class_files) >= 5, \
+            f"Expected at least 5 compiled .class files in classes.jar, found {len(class_files)}: {class_files}"
+    finally:
+        os.unlink(tmp_jar_path)

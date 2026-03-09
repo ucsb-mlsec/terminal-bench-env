@@ -22,16 +22,16 @@ RUN apt-get update && apt-get install -y openjdk-11-jre-headless && \
 
 RUN pip3 install --no-cache-dir --break-system-packages pyspark
 
-RUN mkdir -p /data/orders /app /test /solution
+RUN mkdir -p /workspace/data/orders /workspace/app /workspace/test /workspace/solution
 
-COPY data/orders/orders_batch1.csv /data/orders/orders_batch1.csv
-COPY data/orders/orders_batch2.csv /data/orders/orders_batch2.csv
-COPY analytics.py /app/analytics.py
-COPY test/add_new_orders.sh /test/add_new_orders.sh
+COPY data/orders/orders_batch1.csv /workspace/data/orders/orders_batch1.csv
+COPY data/orders/orders_batch2.csv /workspace/data/orders/orders_batch2.csv
+COPY analytics.py /workspace/app/analytics.py
+COPY test/add_new_orders.sh /workspace/test/add_new_orders.sh
 
-RUN chmod +x /test/add_new_orders.sh
+RUN chmod +x /workspace/test/add_new_orders.sh
 
-WORKDIR /app
+WORKDIR /workspace
 
 # Mapped from docker-compose.yaml
 ENV TEST_DIR=/tests

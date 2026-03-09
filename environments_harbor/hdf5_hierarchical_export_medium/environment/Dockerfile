@@ -23,9 +23,10 @@ RUN apt-get update && apt-get install -y libhdf5-dev && \
 
 RUN pip3 install --no-cache-dir --break-system-packages h5py pandas
 
-RUN mkdir -p /data /solution
+RUN mkdir -p /workspace/data /workspace/solution /workspace/output/hdf5_hierarchical_export_medium/files/data
 
-COPY data/experiments.h5 /data/experiments.h5
+COPY data/experiments.h5 /workspace/data/experiments.h5
+COPY data/experiments.h5 /workspace/output/hdf5_hierarchical_export_medium/files/data/experiments.h5
 
 WORKDIR /workspace
 

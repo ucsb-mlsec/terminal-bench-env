@@ -18,11 +18,11 @@ RUN apt-get update && \
 
 RUN pip3 install --no-cache-dir --break-system-packages pyspark pandas pyarrow
 
-RUN mkdir -p /data /solution
+RUN mkdir -p /workspace/data /workspace/solution
 
-COPY data/sales_transactions.csv /data/sales_transactions.csv
+COPY data/sales_transactions.csv /workspace/data/sales_transactions.csv
 
-WORKDIR /solution
+WORKDIR /workspace
 
 # Mapped from docker-compose.yaml
 ENV TEST_DIR=/tests

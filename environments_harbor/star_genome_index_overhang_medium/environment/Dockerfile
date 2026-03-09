@@ -11,14 +11,14 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /data/rnaseq_samples /solution
+RUN mkdir -p /workspace/data/rnaseq_samples /workspace/solution
 
-COPY data/rnaseq_samples/sample1.fastq /data/rnaseq_samples/sample1.fastq
-COPY data/rnaseq_samples/sample2.fastq /data/rnaseq_samples/sample2.fastq
-COPY data/rnaseq_samples/sample3.fastq /data/rnaseq_samples/sample3.fastq
-COPY data/rnaseq_samples/sample4.fastq /data/rnaseq_samples/sample4.fastq
-COPY data/rnaseq_samples/sample5.fastq /data/rnaseq_samples/sample5.fastq
-COPY data/rnaseq_samples/sample6.fastq /data/rnaseq_samples/sample6.fastq
+COPY data/rnaseq_samples/sample1.fastq /workspace/data/rnaseq_samples/sample1.fastq
+COPY data/rnaseq_samples/sample2.fastq /workspace/data/rnaseq_samples/sample2.fastq
+COPY data/rnaseq_samples/sample3.fastq /workspace/data/rnaseq_samples/sample3.fastq
+COPY data/rnaseq_samples/sample4.fastq /workspace/data/rnaseq_samples/sample4.fastq
+COPY data/rnaseq_samples/sample5.fastq /workspace/data/rnaseq_samples/sample5.fastq
+COPY data/rnaseq_samples/sample6.fastq /workspace/data/rnaseq_samples/sample6.fastq
 
 WORKDIR /workspace
 

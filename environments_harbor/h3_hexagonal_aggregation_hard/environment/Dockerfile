@@ -17,11 +17,11 @@ RUN apt-get update && \
 
 RUN pip3 install --no-cache-dir --break-system-packages pandas h3
 
-RUN mkdir -p /data/rides /solution
+RUN mkdir -p /workspace/data/rides /workspace/solution
 
-COPY data/rides/san_francisco.csv /data/rides/san_francisco.csv
-COPY data/rides/new_york.csv /data/rides/new_york.csv
-COPY data/rides/chicago.csv /data/rides/chicago.csv
+COPY data/rides/san_francisco.csv /workspace/data/rides/san_francisco.csv
+COPY data/rides/new_york.csv /workspace/data/rides/new_york.csv
+COPY data/rides/chicago.csv /workspace/data/rides/chicago.csv
 
 WORKDIR /workspace
 

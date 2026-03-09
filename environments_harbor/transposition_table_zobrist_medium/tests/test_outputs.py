@@ -95,6 +95,31 @@ def test_reasonable_output_values():
     output_path = Path("/tmp/cache_results.json")
     with open(output_path, 'r') as f:
         data = json.load(f)
-    
+
     assert data["total_positions"] > 0, \
         "total_positions should be greater than 0 if positions were processed"
+
+
+def test_exact_counts_match_positions_file():
+    """Test that total_positions, unique_positions, and duplicate_count exactly match
+    the positions.txt file contents. positions.txt has 495 lines, 33 unique positions,
+    and therefore 462 duplicate positions."""
+    output_path = Path("/tmp/cache_results.json")
+    positions_path = Path("/workspace/positions.txt")
+
+    with open(positions_path, 'r') as f:
+        positions = [line.strip() for line in f if line.strip()]
+
+    expected_total = len(positions)
+    expected_unique = len(set(positions))
+    expected_duplicates = expected_total - expected_unique
+
+    with open(output_path, 'r') as f:
+        data = json.load(f)
+
+    assert data["total_positions"] == expected_total, \
+        f"Expected total_positions={expected_total} (lines in positions.txt), got {data['total_positions']}"
+    assert data["unique_positions"] == expected_unique, \
+        f"Expected unique_positions={expected_unique} (distinct positions in positions.txt), got {data['unique_positions']}"
+    assert data["duplicate_count"] == expected_duplicates, \
+        f"Expected duplicate_count={expected_duplicates} (total - unique), got {data['duplicate_count']}"

@@ -19,9 +19,10 @@ RUN apt-get update && \
 
 RUN pip3 install --no-cache-dir --break-system-packages sqlparse
 
-RUN mkdir -p /var/log/mysql /opt/database /home/agent
+RUN mkdir -p /var/log/mysql /workspace/output/mysql_slow_query_missing_index_hard/files/data /home/agent
 
 COPY data/slow-query.log /var/log/mysql/slow-query.log
+COPY data/schema.sql /workspace/output/mysql_slow_query_missing_index_hard/files/data/schema.sql
 COPY data/schema.sql /opt/database/schema.sql
 
 WORKDIR /home/agent

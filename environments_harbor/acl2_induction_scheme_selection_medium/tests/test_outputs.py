@@ -79,7 +79,7 @@ def test_unique_function_names():
     """Test that each function appears only once in the output"""
     output_path = Path("/tmp/recursion_patterns.txt")
     lines = output_path.read_text().strip().split('\n')
-    
+
     function_names = []
     for line in lines:
         line = line.strip()
@@ -88,6 +88,65 @@ def test_unique_function_names():
         parts = line.split()
         if len(parts) >= 1:
             function_names.append(parts[0])
-    
+
     duplicates = [name for name in function_names if function_names.count(name) > 1]
     assert len(duplicates) == 0, f"Duplicate function names found in output: {set(duplicates)}"
+
+
+def test_specific_function_classifications():
+    """Test that specific known functions are classified correctly based on functions.lisp"""
+    output_path = Path("/tmp/recursion_patterns.txt")
+    lines = output_path.read_text().strip().split('\n')
+
+    classifications = {}
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        parts = line.split()
+        if len(parts) >= 3:
+            classifications[parts[0]] = (parts[1], parts[2])
+
+    # list-length and factorial are SINGLE_VAR
+    if 'list-length' in classifications:
+        assert classifications['list-length'][0] == 'SINGLE_VAR', \
+            f"list-length should be SINGLE_VAR, got {classifications['list-length'][0]}"
+    if 'factorial' in classifications:
+        assert classifications['factorial'][0] == 'SINGLE_VAR', \
+            f"factorial should be SINGLE_VAR, got {classifications['factorial'][0]}"
+
+    # sum-list-acc and reverse-acc use accumulators
+    if 'sum-list-acc' in classifications:
+        assert classifications['sum-list-acc'][0] == 'ACCUMULATOR', \
+            f"sum-list-acc should be ACCUMULATOR, got {classifications['sum-list-acc'][0]}"
+
+    # is-even and is-odd are MUTUAL
+    if 'is-even' in classifications:
+        assert classifications['is-even'][0] == 'MUTUAL', \
+            f"is-even should be MUTUAL, got {classifications['is-even'][0]}"
+
+    # ackermann uses nested recursion
+    if 'ackermann' in classifications:
+        assert classifications['ackermann'][0] == 'NESTED', \
+            f"ackermann should be NESTED, got {classifications['ackermann'][0]}"
+
+
+def test_accumulator_functions_use_acc_variable():
+    """Test that accumulator functions identify 'lst' or 'acc' as primary variable"""
+    output_path = Path("/tmp/recursion_patterns.txt")
+    lines = output_path.read_text().strip().split('\n')
+
+    classifications = {}
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        parts = line.split()
+        if len(parts) >= 3:
+            classifications[parts[0]] = (parts[1], parts[2])
+
+    # sum-list-acc recurses on lst (not acc)
+    if 'sum-list-acc' in classifications and classifications['sum-list-acc'][0] == 'ACCUMULATOR':
+        primary_var = classifications['sum-list-acc'][1]
+        assert primary_var == 'lst', \
+            f"sum-list-acc primary variable should be 'lst', got '{primary_var}'"

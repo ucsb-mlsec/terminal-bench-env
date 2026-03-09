@@ -151,3 +151,36 @@ def test_performance_metrics_are_positive():
     assert report['optimized_memory_mb'] > 0, "Optimized memory must be positive"
     assert report['memory_reduction_percent'] >= 0, "Memory reduction must be non-negative"
     assert report['rendering_time_ms'] > 0, "Rendering time must be positive"
+
+def test_memory_reduction_meets_requirement():
+    """Test that memory reduction is at least 90%"""
+    import json as json_mod
+    report_path = Path("/workspace/solution/performance_report.json")
+    with open(report_path) as f:
+        report = json_mod.load(f)
+    reduction = report.get("memory_reduction_percent", 0)
+    assert reduction >= 90, \
+        f"Memory reduction {reduction}% does not meet the 90% requirement"
+
+
+def test_optimized_memory_under_500mb():
+    """Test that optimized memory usage is under 500MB"""
+    import json as json_mod
+    report_path = Path("/workspace/solution/performance_report.json")
+    with open(report_path) as f:
+        report = json_mod.load(f)
+    opt_mem = report.get("optimized_memory_mb", 999)
+    assert opt_mem < 500, \
+        f"Optimized memory {opt_mem}MB exceeds 500MB limit"
+
+
+def test_solution_uses_flyweight_pattern():
+    """Test that the solution implements shared intrinsic state (flyweight pattern)"""
+    solution_path = Path("/workspace/solution/optimized_renderer.py")
+    content = solution_path.read_text()
+    # Flyweight pattern should share objects for common properties
+    sharing_indicators = ['dict', 'cache', 'pool', 'shared', 'flyweight', 'intern',
+                         '__slots__', 'factory', 'get_or_create', 'setdefault']
+    found = [ind for ind in sharing_indicators if ind in content.lower()]
+    assert len(found) >= 1, \
+        "Solution should use object sharing (dict/cache/pool/factory pattern) for the flyweight pattern"

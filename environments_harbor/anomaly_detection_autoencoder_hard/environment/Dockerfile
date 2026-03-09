@@ -11,13 +11,13 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /workspace/sensor_data /tmp
+RUN mkdir -p /workspace/data/sensor_data /tmp
 
 RUN pip3 install --no-cache-dir --break-system-packages pandas numpy scikit-learn scipy
 
-COPY data/sensor_data/training_normal.csv /workspace/sensor_data/training_normal.csv
-COPY data/sensor_data/validation_mixed.csv /workspace/sensor_data/validation_mixed.csv
-COPY data/sensor_data/validation_labels.csv /workspace/sensor_data/validation_labels.csv
+COPY data/sensor_data/training_normal.csv /workspace/data/sensor_data/training_normal.csv
+COPY data/sensor_data/validation_mixed.csv /workspace/data/sensor_data/validation_mixed.csv
+COPY data/sensor_data/validation_labels.csv /workspace/data/sensor_data/validation_labels.csv
 
 WORKDIR /workspace
 

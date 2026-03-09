@@ -17,7 +17,7 @@ The problem is that when any intermediate stage fails (due to malformed data, mi
 1. Analyze the existing monitoring script to understand how it processes data through pipelines
 2. Identify why pipeline failures are being masked
 3. Fix the script so that it properly detects when ANY command in a pipeline fails
-4. Test your fix by running the script against the provided test log files in `/var/logs/test/`
+4. Test your fix by running the script against the provided test log files in `/workspace/data/`
 5. Verify that the script now correctly fails when intermediate pipeline stages fail
 
 **Solution Requirements:**

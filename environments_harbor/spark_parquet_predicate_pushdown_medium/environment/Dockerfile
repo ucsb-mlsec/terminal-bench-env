@@ -17,12 +17,12 @@ RUN apt-get update && \
 
 RUN pip3 install --no-cache-dir --break-system-packages pandas pyarrow fastparquet
 
-RUN mkdir -p /data /app /solution
+RUN mkdir -p /workspace/data /workspace/app /workspace/solution
 
-COPY data/employees.parquet /data/employees.parquet
-COPY app/query_employees.py /app/query_employees.py
+COPY data/employees.parquet /workspace/data/employees.parquet
+COPY app/query_employees.py /workspace/app/query_employees.py
 
-WORKDIR /app
+WORKDIR /workspace
 
 # Mapped from docker-compose.yaml
 ENV TEST_DIR=/tests

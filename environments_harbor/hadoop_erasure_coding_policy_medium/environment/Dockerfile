@@ -11,9 +11,10 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /workspace/hdfs_config /tmp
+RUN mkdir -p /workspace/hdfs_config /workspace/hdfs_config/data /tmp
 
 COPY data/ec-policies.json /workspace/hdfs_config/ec-policies.json
+COPY data/ec-policies.json /workspace/hdfs_config/data/ec-policies.json
 COPY data/storage-requirements.txt /workspace/hdfs_config/storage-requirements.txt
 COPY config/hdfs-site.xml /workspace/hdfs_config/hdfs-site.xml
 

@@ -82,6 +82,24 @@ def test_no_duplicates():
     """Test that there are no duplicate positions in the output"""
     output_path = Path("/workspace/output/deletion_hotspots.txt")
     lines = output_path.read_text().strip().split('\n')
-    
+
     unique_lines = set(lines)
     assert len(lines) == len(unique_lines), f"Duplicate positions found. Total lines: {len(lines)}, Unique: {len(unique_lines)}"
+
+def test_chr1_5045_is_hotspot():
+    """Test that chr1:5045 is identified as a deletion hotspot"""
+    output_path = Path("/workspace/output/deletion_hotspots.txt")
+    content = output_path.read_text().strip()
+    # chr1:5045 has many 3D deletions at exactly that position with mapq >= 20,
+    # coverage >= 10, >= 30% deletion rate, and 80%+ consistent deletion size (3D)
+    assert "chr1:5045" in content, \
+        "Expected chr1:5045 to be a deletion hotspot (multiple reads with 3D deletion at this position)"
+
+def test_output_count_is_reasonable():
+    """Test that the output has a reasonable number of hotspot positions"""
+    output_path = Path("/workspace/output/deletion_hotspots.txt")
+    lines = output_path.read_text().strip().split('\n')
+    count = len([l for l in lines if l.strip()])
+    # From alignments.tsv: chr1:5045 is the primary hotspot, chr2:10535 may also qualify
+    assert 1 <= count <= 5, \
+        f"Expected 1-5 deletion hotspots from alignments.tsv, got {count}"

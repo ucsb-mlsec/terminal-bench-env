@@ -61,6 +61,16 @@ def test_no_module_prefix():
     bottleneck_path = Path("/workspace/bottleneck.txt")
     lines = bottleneck_path.read_text().strip().split('\n')
     function_name = lines[0].strip()
-    
+
     assert '.' not in function_name, \
         f"Function name should not include module prefix. Found: '{function_name}'"
+
+def test_correct_bottleneck_function():
+    """Test that the identified bottleneck is the correct function"""
+    bottleneck_path = Path("/workspace/bottleneck.txt")
+    lines = bottleneck_path.read_text().strip().split('\n')
+    function_name = lines[0].strip()
+    # From processor.py: validate_data_uniqueness has a nested O(n^2) loop
+    # with repeated math.sqrt calls - it is the clear performance bottleneck
+    assert function_name == "validate_data_uniqueness", \
+        f"Expected bottleneck function 'validate_data_uniqueness', got '{function_name}'"

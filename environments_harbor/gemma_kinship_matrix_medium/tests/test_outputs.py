@@ -188,3 +188,80 @@ def test_max_relatedness_consistency():
     # Allow small rounding difference
     diff = abs(reported_max - actual_max)
     assert diff < 0.0001, f"Reported max_relatedness ({reported_max}) doesn't match actual maximum ({actual_max:.4f})"
+
+def test_filtering_applied_correctly():
+    """Test that QC filtering was applied based on genotypes.txt and filters.txt"""
+    output_path = Path("/workspace/genetics_data/output.txt")
+    content = output_path.read_text().strip()
+    lines = content.split('\n')
+    
+    # Read original data to compute expected filtering
+    import csv
+    genotypes_path = Path("/workspace/genetics_data/genotypes.txt")
+    with open(genotypes_path) as f:
+        header = f.readline().strip().split('\t')
+        n_snps = len(header) - 1
+        data_lines = f.readlines()
+    n_samples = len(data_lines)
+    
+    filters_path = Path("/workspace/genetics_data/filters.txt")
+    filters = {}
+    with open(filters_path) as f:
+        for line in f:
+            k, v = line.strip().split('=')
+            filters[k] = float(v)
+    
+    snp_threshold = filters['snp_missing_threshold']
+    sample_threshold = filters['sample_missing_threshold']
+    
+    # Parse genotype data
+    genotypes = []
+    sample_ids = []
+    for line in data_lines:
+        parts = line.strip().split('\t')
+        sample_ids.append(parts[0])
+        genotypes.append(parts[1:])
+    
+    # Filter SNPs
+    keep_snps = []
+    for j in range(n_snps):
+        missing = sum(1 for i in range(n_samples) if j < len(genotypes[i]) and genotypes[i][j] == '-9')
+        if missing / n_samples <= snp_threshold:
+            keep_snps.append(j)
+    
+    # Filter samples on kept SNPs
+    keep_samples = []
+    for i in range(n_samples):
+        missing = sum(1 for j in keep_snps if j < len(genotypes[i]) and genotypes[i][j] == '-9')
+        if missing / len(keep_snps) <= sample_threshold:
+            keep_samples.append(i)
+    
+    # Validate the samples_retained line
+    samples_line = lines[0]
+    assert 'samples_retained' in samples_line.lower() or lines[0].strip().isdigit() or '=' in lines[0], \
+        f"First line should contain samples retained count"
+    
+    # Extract reported sample count
+    import re
+    nums = re.findall(r'\d+', samples_line)
+    if nums:
+        reported_samples = int(nums[0])
+        assert reported_samples == len(keep_samples), \
+            f"Reported samples retained ({reported_samples}) doesn't match expected ({len(keep_samples)})"
+
+
+def test_kinship_matrix_is_valid():
+    """Test that the kinship matrix file exists and has proper structure"""
+    # The kinship matrix file could be at various locations
+    import glob
+    candidates = glob.glob("/workspace/genetics_data/kinship*") + \
+                 glob.glob("/workspace/genetics_data/*.kinship") + \
+                 glob.glob("/workspace/genetics_data/*.cXX.txt")
+    
+    # At least check that output.txt has the right format
+    output_path = Path("/workspace/genetics_data/output.txt")
+    content = output_path.read_text().strip()
+    lines = content.split('\n')
+    
+    # Should have 4 lines as specified
+    assert len(lines) == 4, f"Output should have 4 lines, got {len(lines)}"

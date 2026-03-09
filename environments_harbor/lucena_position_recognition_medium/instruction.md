@@ -1,6 +1,6 @@
 You're maintaining a chess endgame training application. The system has a database of chess positions, but some entries may be corrupted or incorrectly labeled. Your job is to validate positions that are supposed to be Lucena positions based on their structural characteristics.
 
-In the current directory, you'll find a file `positions.json` containing chess positions. Each position includes a FEN (Forsyth-Edwards Notation) string and metadata about whether it's claimed to be a Lucena position.
+In the workspace, you'll find a file `/workspace/data/positions.json` containing chess positions. Each position includes a FEN (Forsyth-Edwards Notation) string and metadata about whether it's claimed to be a Lucena position.
 
 The file structure looks like this:
 ```json

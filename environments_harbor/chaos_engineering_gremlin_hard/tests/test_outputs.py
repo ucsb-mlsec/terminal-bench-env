@@ -80,3 +80,31 @@ def test_report_format_exact():
     
     assert has_first_failure, "Report must contain first_failure_ms line"
     assert has_complete_failure, "Report must contain complete_failure_ms line"
+
+
+def test_first_failure_at_or_above_150ms():
+    """Test that first_failure_ms >= 150ms.
+    health_check.py uses a 150ms timeout; at 0ms/50ms/100ms latency the health check
+    should succeed, so the first failure can only occur at >= 150ms."""
+    report_path = Path("/workspace/latency_report.txt")
+    content = report_path.read_text()
+    match = re.search(r'first_failure_ms=(\d+)', content)
+    assert match is not None, "Could not parse first_failure_ms"
+    first_failure = int(match.group(1))
+    assert first_failure >= 150, \
+        f"health_check.py has a 150ms timeout, so first failure cannot occur below 150ms. Got first_failure_ms={first_failure}"
+
+
+def test_complete_failure_at_or_above_first_failure():
+    """Test that complete_failure_ms >= first_failure_ms and >= 150ms."""
+    report_path = Path("/workspace/latency_report.txt")
+    content = report_path.read_text()
+    first_match = re.search(r'first_failure_ms=(\d+)', content)
+    complete_match = re.search(r'complete_failure_ms=(\d+)', content)
+    assert first_match and complete_match
+    first_failure = int(first_match.group(1))
+    complete_failure = int(complete_match.group(1))
+    assert complete_failure >= first_failure, \
+        f"complete_failure_ms ({complete_failure}) must be >= first_failure_ms ({first_failure})"
+    assert complete_failure >= 150, \
+        f"complete_failure_ms ({complete_failure}) must be >= 150ms given the health checker timeout"

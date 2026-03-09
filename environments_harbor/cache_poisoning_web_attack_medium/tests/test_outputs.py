@@ -78,3 +78,26 @@ def test_no_extra_whitespace_or_content():
     # Check that each line has only one colon in the expected position
     assert lines[0].count(":") >= 1, "First line must contain a colon after HEADER"
     assert lines[1].count(":") >= 1, "Second line must contain a colon after URL"
+
+
+def test_header_is_x_forwarded_host():
+    """Test that the identified header is X-Forwarded-Host.
+    The http_traffic.txt data shows an attack request to /static/main.js carrying
+    'X-Forwarded-Host: attacker-evil.com', and cache_config.conf lists X-Forwarded-Host
+    in cache_key_excludes (unkeyed but forwarded to backend), making it the poisoning vector."""
+    answer_path = Path("/workspace/answer.txt")
+    lines = answer_path.read_text().strip().split('\n')
+    header_value = lines[0].split("HEADER: ", 1)[1].strip()
+    assert header_value == "X-Forwarded-Host", \
+        f"Expected HEADER=X-Forwarded-Host (unkeyed header used in cache poisoning attack), got: {header_value}"
+
+
+def test_url_is_poisoned_static_resource():
+    """Test that the identified URL is /static/main.js.
+    The traffic log shows the cache-poisoned response was for /static/main.js,
+    injected with attacker-evil.com via the X-Forwarded-Host header."""
+    answer_path = Path("/workspace/answer.txt")
+    lines = answer_path.read_text().strip().split('\n')
+    url_value = lines[1].split("URL: ", 1)[1].strip()
+    assert url_value == "/static/main.js", \
+        f"Expected URL=/static/main.js (the poisoned cached resource), got: {url_value}"

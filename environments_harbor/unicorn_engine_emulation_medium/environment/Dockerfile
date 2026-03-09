@@ -26,11 +26,11 @@ RUN apt-get update && apt-get install -y nasm && \
 
 RUN pip3 install --no-cache-dir --break-system-packages unicorn
 
-RUN mkdir -p /home/agent/challenge /home/agent/solution
+RUN mkdir -p /workspace/challenge /workspace/solution
 
-COPY challenge/program.asm /home/agent/challenge/program.asm
+COPY challenge/program.asm /workspace/challenge/program.asm
 
-WORKDIR /home/agent
+WORKDIR /workspace
 
 # Mapped from docker-compose.yaml
 ENV TEST_DIR=/tests

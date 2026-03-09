@@ -94,20 +94,38 @@ def test_function_exists_in_app():
     """Test that the identified function actually exists in app.py"""
     solution_path = Path("/home/agent/solution.txt")
     content = solution_path.read_text()
-    
+
     # Extract function name
     function_match = re.search(r'FUNCTION:\s*(\S+)', content)
     assert function_match, "Could not parse FUNCTION field"
-    
+
     function_name = function_match.group(1).strip()
-    
+
     # Check if function exists in app.py
     app_path = Path("/home/agent/webapp/app.py")
     assert app_path.exists(), "app.py file not found"
-    
+
     app_content = app_path.read_text()
-    
+
     # Look for function definition
     function_def_pattern = rf'def\s+{re.escape(function_name)}\s*\('
     assert re.search(function_def_pattern, app_content), \
         f"Function '{function_name}' not found in app.py"
+
+
+def test_function_is_known_vulnerable_function():
+    """Test that the identified function is one of the known CRLF-vulnerable functions"""
+    solution_path = Path("/home/agent/solution.txt")
+    content = solution_path.read_text()
+
+    function_match = re.search(r'FUNCTION:\s*(\S+)', content)
+    assert function_match, "Could not parse FUNCTION field"
+    function_name = function_match.group(1).strip()
+
+    # The two vulnerable functions in app.py are 'download' (Content-Disposition header)
+    # and 'setlang' (X-Language-Preference header)
+    vulnerable_functions = {'download', 'setlang'}
+    assert function_name in vulnerable_functions, (
+        f"Function '{function_name}' is not one of the known CRLF-vulnerable functions "
+        f"({vulnerable_functions}) in app.py"
+    )

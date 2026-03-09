@@ -11,8 +11,9 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /var/log /tmp
+RUN mkdir -p /workspace/output/lynis_system_hardening_audit_medium/files/data /var/log /tmp
 
+COPY data/lynis-report.dat /workspace/output/lynis_system_hardening_audit_medium/files/data/lynis-report.dat
 COPY data/lynis-report.dat /var/log/lynis-report.dat
 
 WORKDIR /workspace

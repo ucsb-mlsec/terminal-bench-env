@@ -71,12 +71,36 @@ def test_vulnerability_analysis_completeness():
     """Test that all three components of the analysis are non-trivial"""
     vuln_path = Path("/tmp/vulnerability.txt")
     lines = vuln_path.read_text().strip().split('\n')
-    
+
     # Ensure each line has meaningful content
     assert len(lines[0].strip()) > 0, "Line number cannot be empty"
     assert len(lines[1].strip()) > 0, "Vulnerability type cannot be empty"
     assert len(lines[2].strip()) > 0, "Exploitation resource cannot be empty"
-    
+
     # Ensure it's not placeholder text
     assert lines[1].strip() != "TYPE", "Vulnerability type appears to be a placeholder"
     assert lines[2].strip() != "/path/to/file", "Exploitation resource appears to be a placeholder"
+
+
+def test_correct_vulnerable_line_number():
+    """Test that the identified line number points to the system() call using the USER env variable"""
+    vuln_path = Path("/tmp/vulnerability.txt")
+    lines = vuln_path.read_text().strip().split('\n')
+
+    line_number = int(lines[0].strip())
+
+    # In backup_tool.c, the system(backup_command) call using unsanitized USER env variable is at line 66
+    assert line_number == 66, \
+        f"Expected line number 66 (system(backup_command) call), got {line_number}"
+
+
+def test_correct_vulnerability_type():
+    """Test that the vulnerability type is ENV_INJECTION"""
+    vuln_path = Path("/tmp/vulnerability.txt")
+    lines = vuln_path.read_text().strip().split('\n')
+
+    vuln_type = lines[1].strip()
+
+    # The vulnerability is that USER env variable (attacker-controlled) is used in a system() call
+    assert vuln_type == "ENV_INJECTION", \
+        f"Expected ENV_INJECTION (USER env var used in system()), got {vuln_type}"

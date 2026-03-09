@@ -83,13 +83,41 @@ def test_root_cause_is_meaningful():
     fix_summary_path = Path("/app/fix_summary.txt")
     content = fix_summary_path.read_text().strip()
     lines = content.split('\n')
-    
+
     root_cause_value = lines[0].split("root_cause:", 1)[1].strip().lower()
-    
+
     # Check it's not a placeholder
     placeholder_words = ['todo', 'tbd', 'fixme', 'placeholder', 'xxx', 'unknown']
     for word in placeholder_words:
         assert word not in root_cause_value, f"root_cause appears to be a placeholder containing '{word}'"
-    
+
     # Check it has reasonable length (at least 10 characters)
     assert len(root_cause_value) >= 10, "root_cause description should be at least 10 characters"
+
+
+def test_validator_bugs_fixed():
+    """Test that the four validation bugs in validator.py are fixed"""
+    import re
+    validator_path = Path("/app/processor/validator.py")
+    assert validator_path.exists(), "validator.py should exist at /app/processor/validator.py"
+
+    content = validator_path.read_text()
+
+    # Bug 1: postal code should accept 9-digit format (12345-6789)
+    assert r'^\d{5}$' not in content, (
+        "Postal code regex should accept 9-digit format (12345-6789), "
+        "but still only accepts 5-digit format"
+    )
+
+    # Bug 2: email should allow plus signs
+    email_pattern_match = re.search(r'pattern\s*=\s*r[\'"](.+?)[\'"]', content)
+    if email_pattern_match:
+        # Check that '+' is in the character class for email validation
+        assert r'[a-zA-Z0-9._-]' not in content or '+' in content, (
+            "Email validation should allow plus signs in local part"
+        )
+
+    # Bug 3: quantity should accept floats
+    assert 'isinstance(quantity, int)' not in content or 'float' in content, (
+        "Quantity validation should accept float/decimal quantities (items sold by weight)"
+    )

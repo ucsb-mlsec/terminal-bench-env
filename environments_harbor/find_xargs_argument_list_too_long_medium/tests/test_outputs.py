@@ -80,6 +80,32 @@ def test_processes_log_files_only():
     """Test that only .log files were processed (by verifying reasonable output)"""
     output_path = Path("/home/agent/error_counts.txt")
     content = output_path.read_text().strip()
-    
+
     # Should have at least some error codes found from the log files
     assert len(content) > 0, "No error codes found - script may not have processed .log files correctly"
+
+
+def test_error_counts_match_log_files():
+    """Test that error counts match values computed directly from log files"""
+    import re
+    from collections import Counter
+    from pathlib import Path as P
+
+    # Count all ERR-XXXX occurrences across all .log files in /var/log/app/
+    log_dir = P("/var/log/app")
+    counts = Counter()
+
+    for log_file in log_dir.rglob("*.log"):
+        for line in log_file.read_text().split('\n'):
+            m = re.search(r'ERR-\d{4}', line)
+            if m:
+                counts[m.group(0)] += 1
+
+    # Compare with output
+    output_path = P("/home/agent/error_counts.txt")
+    for line in output_path.read_text().strip().split('\n'):
+        if line.strip():
+            code, count_str = line.strip().split('=')
+            expected = counts.get(code, 0)
+            assert int(count_str) == expected, \
+                f"Count for {code}: expected {expected}, got {count_str}"

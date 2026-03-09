@@ -11,7 +11,7 @@ Your task is to analyze the relationship between the treatment variables and bio
 5. Include proper statistical inference (standard errors, p-values) for all predictors
 6. Generate diagnostic information to assess model adequacy
 
-The raw data file is located at `/data/biomarker_study.csv` with the following structure:
+The raw data file is located at `/workspace/data/biomarker_study.csv` with the following structure:
 - patient_id: unique identifier
 - age: patient age in years
 - treatment: binary indicator (0=control, 1=treatment)
@@ -21,7 +21,7 @@ The raw data file is located at `/data/biomarker_study.csv` with the following s
 
 When a measurement is censored (censored=1), the biomarker value represents the detection limit (0.5), not the true concentration.
 
-Save your complete analysis results to `/output/analysis_results.json` with the following structure:
+Save your complete analysis results to `/workspace/output/analysis_results.json` with the following structure:
 
 {
   "model_coefficients": {

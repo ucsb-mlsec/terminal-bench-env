@@ -25,9 +25,9 @@ RUN pip3 install --no-cache-dir --break-system-packages \
     scikit-learn \
     lifelines
 
-RUN mkdir -p /data /output
+RUN mkdir -p /workspace/data /workspace/output
 
-COPY data/survival_data.csv /data/survival_data.csv
+COPY data/survival_data.csv /workspace/data/survival_data.csv
 
 WORKDIR /workspace
 

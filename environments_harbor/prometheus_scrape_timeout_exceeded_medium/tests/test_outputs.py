@@ -100,3 +100,33 @@ def test_recommendation_logic():
             new_timeout = int(recommended_fix.split('_')[-1])
             assert new_timeout > expected_response, \
                 f"Recommended timeout ({new_timeout}s) should be greater than expected response ({expected_response}s)"
+
+def test_correct_configured_timeout():
+    """Test that CONFIGURED_TIMEOUT matches the actual prometheus.yml setting"""
+    analysis_path = Path("/solution/analysis.txt")
+    content = analysis_path.read_text().strip()
+    lines = content.split('\n')
+    configured_timeout = int(lines[0].split('=')[1])
+    # From prometheus.yml: custom-exporter job has scrape_timeout: 8s
+    assert configured_timeout == 8, \
+        f"Expected CONFIGURED_TIMEOUT=8 (from prometheus.yml scrape_timeout), got {configured_timeout}"
+
+def test_correct_expected_response():
+    """Test that EXPECTED_RESPONSE matches the actual exporter total delay"""
+    analysis_path = Path("/solution/analysis.txt")
+    content = analysis_path.read_text().strip()
+    lines = content.split('\n')
+    expected_response = int(lines[1].split('=')[1])
+    # From exporter.py: collect_metrics() sleeps 8+7+5=20 seconds total
+    assert expected_response == 20, \
+        f"Expected EXPECTED_RESPONSE=20 (total sleep in exporter.py is 20s), got {expected_response}"
+
+def test_correct_recommended_fix():
+    """Test that RECOMMENDED_FIX is fix_exporter_code given the excessive delays"""
+    analysis_path = Path("/solution/analysis.txt")
+    content = analysis_path.read_text().strip()
+    lines = content.split('\n')
+    recommended_fix = lines[2].split('=')[1]
+    # With 20s delay vs 8s timeout, the exporter code should be fixed (delays are unnecessary)
+    assert recommended_fix == "fix_exporter_code", \
+        f"Expected RECOMMENDED_FIX=fix_exporter_code, got {recommended_fix}"

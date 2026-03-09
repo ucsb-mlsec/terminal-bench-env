@@ -98,12 +98,40 @@ def test_credential_extraction_logic():
     """Test that the payload includes credential extraction logic"""
     fixed_payload_path = Path("/workspace/fixed_payload.txt")
     content = fixed_payload_path.read_text()
-    
+
     # Should have commands related to credential extraction
     has_credential_logic = 'credential' in content.lower() or \
                           'password' in content.lower() or \
                           'browser' in content.lower() or \
                           'chrome' in content.lower() or \
                           'firefox' in content.lower()
-    
+
     assert has_credential_logic, "Payload missing credential extraction logic"
+
+
+def test_typos_fixed_attackmode():
+    """Test that 'ATACKMODE' typo is fixed to 'ATTACKMODE'"""
+    fixed_payload_path = Path("/workspace/fixed_payload.txt")
+    content = fixed_payload_path.read_text()
+    assert 'ATACKMODE' not in content, \
+        "Typo 'ATACKMODE' not corrected to 'ATTACKMODE'"
+
+
+def test_typos_fixed_dlay():
+    """Test that 'DLAY' typos are fixed to 'DELAY'"""
+    fixed_payload_path = Path("/workspace/fixed_payload.txt")
+    content = fixed_payload_path.read_text()
+    import re
+    # DLAY should not appear as a standalone command (only DELAY should exist)
+    dlay_lines = [line for line in content.split('\n')
+                  if re.match(r'^\s*DLAY\b', line)]
+    assert len(dlay_lines) == 0, \
+        f"Typo 'DLAY' not corrected to 'DELAY' — found in lines: {dlay_lines}"
+
+
+def test_typos_fixed_entrr():
+    """Test that 'ENTRR' typos are fixed to 'ENTER'"""
+    fixed_payload_path = Path("/workspace/fixed_payload.txt")
+    content = fixed_payload_path.read_text()
+    assert 'ENTRR' not in content, \
+        "Typo 'ENTRR' not corrected to 'ENTER'"

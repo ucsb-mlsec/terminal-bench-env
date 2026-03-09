@@ -11,9 +11,9 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /data /output
+RUN mkdir -p /workspace/data /output
 
-COPY data/fragment_lengths.txt /data/fragment_lengths.txt
+COPY data/fragment_lengths.txt /workspace/data/fragment_lengths.txt
 
 WORKDIR /workspace
 

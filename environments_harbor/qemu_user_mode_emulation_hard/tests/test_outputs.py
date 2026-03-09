@@ -98,3 +98,65 @@ def test_line_order():
     assert lines[0].startswith('IP_ADDRESS='), f"First line should start with 'IP_ADDRESS=', found: {lines[0]}"
     assert lines[1].startswith('PORT='), f"Second line should start with 'PORT=', found: {lines[1]}"
     assert lines[2].startswith('TOKEN='), f"Third line should start with 'TOKEN=', found: {lines[2]}"
+
+
+def test_config_values_match_binary_output():
+    """Test that config values match what the binary actually outputs when run with qemu"""
+    import subprocess
+
+    config_path = Path("/solution/config.txt")
+    config_lines = config_path.read_text().strip().split('\n')
+
+    # Parse the config file
+    config = {}
+    for line in config_lines:
+        key, value = line.split('=', 1)
+        config[key] = value
+
+    # Run the binary using qemu-arm-static to get the actual decoded config
+    binary_path = Path("/evidence/device_binary")
+    assert binary_path.exists(), "device_binary not found at /evidence/"
+
+    # Try different qemu variants
+    qemu_bins = ['qemu-arm-static', 'qemu-arm']
+    result = None
+    for qemu in qemu_bins:
+        try:
+            result = subprocess.run(
+                [qemu, str(binary_path), '--dump-config'],
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+            if result.returncode == 0:
+                break
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            continue
+
+    assert result is not None and result.returncode == 0, (
+        "Could not run device_binary with qemu. This is needed to verify the extracted config."
+    )
+
+    output = result.stdout.strip()
+    # The binary outputs: IP_ADDRESS=x.x.x.x\nPORT=xxxx\nTOKEN=xxxxx
+    output_config = {}
+    for line in output.split('\n'):
+        if '=' in line:
+            key, value = line.split('=', 1)
+            output_config[key.strip()] = value.strip()
+
+    # Verify each value matches
+    assert config.get('IP_ADDRESS') == output_config.get('IP_ADDRESS'), (
+        f"IP_ADDRESS mismatch: config has '{config.get('IP_ADDRESS')}' "
+        f"but binary outputs '{output_config.get('IP_ADDRESS')}'"
+    )
+
+    assert config.get('PORT') == output_config.get('PORT'), (
+        f"PORT mismatch: config has '{config.get('PORT')}' "
+        f"but binary outputs '{output_config.get('PORT')}'"
+    )
+
+    assert config.get('TOKEN') == output_config.get('TOKEN'), (
+        f"TOKEN mismatch: config has '{config.get('TOKEN')}' "
+        f"but binary outputs '{output_config.get('TOKEN')}'"
+    )

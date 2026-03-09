@@ -76,7 +76,17 @@ def test_no_extra_content():
     analysis_path = Path("/home/agent/lag_analysis.txt")
     content = analysis_path.read_text()
     lines = content.split('\n')
-    
+
     # Count non-empty lines
     non_empty_lines = [line for line in lines if line.strip()]
     assert len(non_empty_lines) == 3, f"File should contain exactly 3 lines, found {len(non_empty_lines)} non-empty lines"
+
+
+def test_peak_lag_exact_value():
+    """Test that PEAK_LAG equals 702691 (sum of partition lags at 12:30 from consumer_offsets.log)"""
+    analysis_path = Path("/home/agent/lag_analysis.txt")
+    lines = analysis_path.read_text().strip().split('\n')
+    peak_lag_text = lines[2].strip().replace("PEAK_LAG: ", "").strip()
+    peak_lag_value = int(peak_lag_text)
+    assert peak_lag_value == 702691, \
+        f"Expected PEAK_LAG=702691 (103931+111064+120036+117369+128251+122040 from consumer_offsets.log at 12:30), got: {peak_lag_value}"

@@ -85,3 +85,45 @@ def test_solution_identifies_issues():
     # The solution should identify at least some issues
     assert values['TOTAL_ISSUES'] > 0, \
         "TOTAL_ISSUES is 0, but the shader project has include system problems"
+
+
+def test_correct_syntax_error_count():
+    """Test that SYNTAX_ERRORS is at least 2 (vertex_shader line 9 missing quotes, fragment_shader line 5 missing opening quote)"""
+    solution_path = Path("/workspace/solution.txt")
+    values = {}
+    for line in solution_path.read_text().strip().split('\n'):
+        line = line.strip()
+        if line and '=' in line:
+            key, value = line.split('=')
+            values[key.strip()] = int(value.strip())
+
+    assert values.get('SYNTAX_ERRORS', 0) >= 2, \
+        f"SYNTAX_ERRORS should be at least 2 (vertex_shader.glsl:9 missing quotes, fragment_shader.glsl:5 missing opening quote), got {values.get('SYNTAX_ERRORS', 0)}"
+
+
+def test_correct_missing_files_count():
+    """Test that MISSING_FILES is at least 2 (lighting_helpers.glsl referenced but missing, geometry_utils.glsl missing)"""
+    solution_path = Path("/workspace/solution.txt")
+    values = {}
+    for line in solution_path.read_text().strip().split('\n'):
+        line = line.strip()
+        if line and '=' in line:
+            key, value = line.split('=')
+            values[key.strip()] = int(value.strip())
+
+    assert values.get('MISSING_FILES', 0) >= 2, \
+        f"MISSING_FILES should be at least 2 (lighting_helpers.glsl and geometry_utils.glsl are missing from the project), got {values.get('MISSING_FILES', 0)}"
+
+
+def test_correct_incorrect_paths_count():
+    """Test that INCORRECT_PATHS is at least 1 (fragment_shader.glsl includes /includes/color_utils.glsl but file is under /common/)"""
+    solution_path = Path("/workspace/solution.txt")
+    values = {}
+    for line in solution_path.read_text().strip().split('\n'):
+        line = line.strip()
+        if line and '=' in line:
+            key, value = line.split('=')
+            values[key.strip()] = int(value.strip())
+
+    assert values.get('INCORRECT_PATHS', 0) >= 1, \
+        f"INCORRECT_PATHS should be at least 1 (fragment_shader.glsl uses wrong path '/includes/color_utils.glsl' instead of '/common/'), got {values.get('INCORRECT_PATHS', 0)}"

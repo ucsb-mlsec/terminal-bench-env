@@ -83,11 +83,75 @@ def test_makefile_modified_for_lto():
     """Test that the Makefile was likely modified to include LTO flags"""
     makefile_path = Path("/workspace/mathlib/Makefile")
     assert makefile_path.exists(), "Makefile does not exist"
-    
+
     content = makefile_path.read_text()
-    
+
     # Check for LTO-related flags in the Makefile
     lto_indicators = ['-flto', 'LTO', 'lto']
     has_lto_config = any(indicator in content for indicator in lto_indicators)
-    
+
     assert has_lto_config, "Makefile does not appear to be configured for LTO (no LTO flags found)"
+
+
+def test_makefile_has_flto_flag():
+    """Test that the Makefile specifically contains -flto compiler flag"""
+    makefile_path = Path("/workspace/mathlib/Makefile")
+    content = makefile_path.read_text()
+    assert '-flto' in content, "Makefile must contain -flto flag for link-time optimization"
+
+
+def test_solution_script_rebuilds_successfully():
+    """Test that the solution script can rebuild the project"""
+    result = subprocess.run(
+        ["bash", "/workspace/solution.sh"],
+        capture_output=True, text=True, timeout=120,
+        cwd="/workspace"
+    )
+    assert result.returncode == 0, \
+        f"solution.sh failed with return code {result.returncode}: {result.stderr[:300]}"
+
+
+def test_benchmark_binary_runs_correctly():
+    """Test that the benchmark binary runs and completes successfully"""
+    # Look for the benchmark binary
+    benchmark_paths = [
+        Path("/workspace/mathlib/benchmark"),
+        Path("/workspace/mathlib/bench"),
+        Path("/workspace/mathlib/test"),
+    ]
+
+    bench_path = None
+    for p in benchmark_paths:
+        if p.exists() and os.access(p, os.X_OK):
+            bench_path = p
+            break
+
+    if bench_path is None:
+        # Try to find any executable in the mathlib directory
+        import glob
+        for f in glob.glob("/workspace/mathlib/*"):
+            fp = Path(f)
+            if fp.is_file() and os.access(fp, os.X_OK) and not fp.suffix:
+                bench_path = fp
+                break
+
+    assert bench_path is not None, "No benchmark executable found in /workspace/mathlib/"
+
+    result = subprocess.run(
+        [str(bench_path)],
+        capture_output=True, text=True, timeout=60,
+        cwd="/workspace/mathlib"
+    )
+    assert result.returncode == 0, \
+        f"Benchmark binary failed with return code {result.returncode}: {result.stderr[:200]}"
+
+
+def test_built_objects_exist():
+    """Test that build artifacts were produced with LTO"""
+    mathlib_path = Path("/workspace/mathlib")
+
+    # Check for object files or libraries
+    artifacts = list(mathlib_path.glob("*.o")) + list(mathlib_path.glob("*.a")) + \
+                list(mathlib_path.glob("*.so")) + list(mathlib_path.glob("benchmark"))
+
+    assert len(artifacts) > 0, "No build artifacts found in /workspace/mathlib/"

@@ -125,6 +125,16 @@ def test_no_empty_values():
             assert '=,' not in line, f"Line {i+1} has empty value before comma: {line}"
             assert '= ' not in line, f"Line {i+1} has empty value before space: {line}"
 
+def test_measurement_names_from_input():
+    """Test that output contains measurement names from the input metrics.log file"""
+    output_path = Path("/tmp/influxdb_output.txt")
+    content = output_path.read_text()
+    # metrics.log contains these metric names: cpu_usage, memory_usage, disk_io, network_throughput
+    expected_measurements = ["cpu_usage", "memory_usage", "disk_io", "network_throughput"]
+    found_measurements = [m for m in expected_measurements if m in content]
+    assert len(found_measurements) >= 2, \
+        f"Output should contain measurement names from metrics.log, found only: {found_measurements}"
+
 def test_input_file_processed():
     """Test that the input file was processed"""
     input_path = Path("/tmp/metrics.log")

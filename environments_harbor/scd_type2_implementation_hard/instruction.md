@@ -4,7 +4,7 @@ The current state of the data warehouse contains a customer dimension table with
 
 **Initial Data:**
 
-The existing dimension table is in `/warehouse/dim_customer.csv` with these records:
+The existing dimension table is in `/workspace/warehouse/dim_customer.csv` with these records:
 ```
 customer_key,customer_id,name,email,city,state,effective_date,end_date,is_current
 1,C001,Alice Johnson,alice.j@email.com,Seattle,WA,2024-01-01,9999-12-31,1
@@ -14,7 +14,7 @@ customer_key,customer_id,name,email,city,state,effective_date,end_date,is_curren
 5,C005,Emma Davis,emma.d@email.com,Boston,MA,2024-01-01,9999-12-31,1
 ```
 
-The new daily extract is in `/data/customer_updates_2024_03_15.csv`:
+The new daily extract is in `/workspace/data/customer_updates_2024_03_15.csv`:
 ```
 customer_id,name,email,city,state
 C001,Alice Johnson,alice.johnson@newemail.com,Seattle,WA
@@ -43,7 +43,7 @@ Your pipeline must handle the following scenarios correctly:
 
 **Output Requirements:**
 
-Save the updated dimension table to `/warehouse/dim_customer_updated.csv`
+Save the updated dimension table to `/workspace/warehouse/dim_customer_updated.csv`
 
 The output must:
 - Contain ALL records (expired historical records, updated current records, and new records)

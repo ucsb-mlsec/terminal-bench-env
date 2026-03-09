@@ -17,11 +17,11 @@ RUN apt-get update && \
 
 RUN pip3 install --no-cache-dir --break-system-packages pandas numpy scikit-learn
 
-RUN mkdir -p /data/predictions /output
+RUN mkdir -p /workspace/data/predictions /workspace/output
 
-COPY data/predictions/logistic_regression_predictions.csv /data/predictions/logistic_regression_predictions.csv
-COPY data/predictions/random_forest_predictions.csv /data/predictions/random_forest_predictions.csv
-COPY data/predictions/gradient_boosting_predictions.csv /data/predictions/gradient_boosting_predictions.csv
+COPY data/predictions/logistic_regression_predictions.csv /workspace/data/predictions/logistic_regression_predictions.csv
+COPY data/predictions/random_forest_predictions.csv /workspace/data/predictions/random_forest_predictions.csv
+COPY data/predictions/gradient_boosting_predictions.csv /workspace/data/predictions/gradient_boosting_predictions.csv
 
 WORKDIR /workspace
 

@@ -94,9 +94,30 @@ def test_logical_consistency():
     result_path = Path("/solution/result.txt")
     content = result_path.read_text().strip()
     lines = content.split('\n')
-    
+
     degraded_minutes = int(lines[0].split('=')[1])
     min_hit_ratio = float(lines[1].split('=')[1])
-    
+
     if degraded_minutes > 0:
         assert min_hit_ratio < 0.65, f"If degraded_minutes > 0, min_hit_ratio should be < 0.65 (degradation condition), got {min_hit_ratio}"
+
+def test_correct_degraded_minutes():
+    """Test that degraded_minutes matches the analytically computed value from cache_metrics.txt"""
+    result_path = Path("/solution/result.txt")
+    content = result_path.read_text().strip()
+    lines = content.split('\n')
+    degraded_minutes = int(lines[0].split('=')[1])
+    # From cache_metrics.txt: 15 one-minute intervals where both
+    # cache_hit_ratio < 0.65 AND p95 response time > 0.1s
+    assert degraded_minutes == 15, \
+        f"Expected degraded_minutes=15 (from cache_metrics.txt analysis), got {degraded_minutes}"
+
+def test_correct_min_hit_ratio():
+    """Test that min_hit_ratio matches the minimum observed in degraded periods"""
+    result_path = Path("/solution/result.txt")
+    content = result_path.read_text().strip()
+    lines = content.split('\n')
+    min_hit_ratio = float(lines[1].split('=')[1])
+    # From cache_metrics.txt: minimum cache_hit_ratio during degraded minutes = 0.42
+    assert abs(min_hit_ratio - 0.42) < 0.01, \
+        f"Expected min_hit_ratio=0.42 (from cache_metrics.txt: lowest value during degraded period), got {min_hit_ratio}"

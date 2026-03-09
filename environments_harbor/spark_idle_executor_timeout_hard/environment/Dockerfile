@@ -11,9 +11,9 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /data /opt/spark/conf /solution /config
+RUN mkdir -p /workspace/data /opt/spark/conf /workspace/solution /workspace/config
 
-COPY data/workload_summary.json /data/workload_summary.json
+COPY data/workload_summary.json /workspace/data/workload_summary.json
 COPY config/spark-defaults.conf /opt/spark/conf/spark-defaults.conf
 
 WORKDIR /workspace

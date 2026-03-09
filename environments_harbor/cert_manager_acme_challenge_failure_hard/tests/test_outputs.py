@@ -51,8 +51,32 @@ def test_solution_not_placeholder():
     """Test that the solution is not a placeholder or example"""
     solution_path = Path("/root/solution.txt")
     content = solution_path.read_text().lower()
-    
+
     # Check for common placeholder text
     placeholders = ['example', 'todo', 'fixme', 'placeholder', 'tbd']
     assert not any(placeholder in content for placeholder in placeholders), \
         "Solution appears to contain placeholder text"
+
+
+def test_solution_identifies_clouddns_credentials_problem():
+    """The logs show repeated 'service account key is empty' errors when loading from
+    secret 'clouddns-credentials'. The ClusterIssuer references secret name
+    'clouddns-service-account', but the actual secret in the environment is
+    'clouddns-secret'. The root cause is the credentials secret mismatch / empty key."""
+    solution_path = Path("/root/solution.txt")
+    content = solution_path.read_text().lower()
+    assert any(k in content for k in ["credential", "secret", "clouddns", "service account"]), \
+        ("Expected the solution to mention the CloudDNS credentials problem "
+         "(secret name mismatch or empty service account key), "
+         f"but got: {solution_path.read_text().strip()}")
+
+
+def test_solution_references_secret_resource():
+    """The second line should reference the Secret resource or the ClusterIssuer
+    that points to the wrong secret name."""
+    solution_path = Path("/root/solution.txt")
+    lines = [l.strip() for l in solution_path.read_text().strip().split('\n') if l.strip()]
+    resource_line = lines[1].lower()
+    assert any(k in resource_line for k in ["secret", "clusterissuer", "issuer", "clouddns"]), \
+        (f"Expected line 2 to reference the problematic Secret or ClusterIssuer, "
+         f"got: {lines[1]}")

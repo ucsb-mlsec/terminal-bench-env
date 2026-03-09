@@ -88,19 +88,55 @@ def test_logical_consistency():
     """Test that the assessment is logically consistent"""
     assessment_path = Path("/tmp/threat_assessment.txt")
     content = assessment_path.read_text()
-    
+
     fields = {}
     for line in content.split('\n'):
         if '=' in line:
             key, value = line.split('=', 1)
             fields[key.strip()] = value.strip()
-    
+
     # If PRIMARY_ACTION is BENIGN, THREAT_LEVEL should be NONE or LOW
     if fields.get("PRIMARY_ACTION") == "BENIGN":
         assert fields.get("THREAT_LEVEL") in ["NONE", "LOW"], \
             "BENIGN actions should have NONE or LOW threat level"
-    
+
     # If PRIMARY_ACTION is DESTROY or BACKDOOR, THREAT_LEVEL should not be NONE
     if fields.get("PRIMARY_ACTION") in ["DESTROY", "BACKDOOR"]:
         assert fields.get("THREAT_LEVEL") != "NONE", \
             f"{fields.get('PRIMARY_ACTION')} actions should not have NONE threat level"
+
+def test_primary_action_is_backdoor():
+    """Test that PRIMARY_ACTION=BACKDOOR — the payload installs a reverse shell backdoor"""
+    assessment_path = Path("/tmp/threat_assessment.txt")
+    fields = {}
+    for line in assessment_path.read_text().split('\n'):
+        if '=' in line:
+            key, value = line.split('=', 1)
+            fields[key.strip()] = value.strip()
+
+    assert fields.get("PRIMARY_ACTION") == "BACKDOOR", \
+        f"Expected PRIMARY_ACTION=BACKDOOR (payload creates reverse shell at /tmp/.hidden/backdoor.sh), got: {fields.get('PRIMARY_ACTION')}"
+
+def test_target_system_is_linux():
+    """Test that TARGET_SYSTEM=LINUX — the payload uses CTRL-ALT-T and Linux-specific cron"""
+    assessment_path = Path("/tmp/threat_assessment.txt")
+    fields = {}
+    for line in assessment_path.read_text().split('\n'):
+        if '=' in line:
+            key, value = line.split('=', 1)
+            fields[key.strip()] = value.strip()
+
+    assert fields.get("TARGET_SYSTEM") == "LINUX", \
+        f"Expected TARGET_SYSTEM=LINUX (payload uses CTRL-ALT-T terminal shortcut and cron), got: {fields.get('TARGET_SYSTEM')}"
+
+def test_threat_level_is_critical_or_high():
+    """Test that THREAT_LEVEL is CRITICAL or HIGH for this reverse shell backdoor"""
+    assessment_path = Path("/tmp/threat_assessment.txt")
+    fields = {}
+    for line in assessment_path.read_text().split('\n'):
+        if '=' in line:
+            key, value = line.split('=', 1)
+            fields[key.strip()] = value.strip()
+
+    assert fields.get("THREAT_LEVEL") in ["CRITICAL", "HIGH"], \
+        f"Expected THREAT_LEVEL=CRITICAL or HIGH for a persistent reverse shell backdoor, got: {fields.get('THREAT_LEVEL')}"

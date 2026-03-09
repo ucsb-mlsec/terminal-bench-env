@@ -16,9 +16,9 @@ RUN apt-get update && \
     jq \
     && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /input /solution
+RUN mkdir -p /workspace/input /workspace/solution
 
-COPY data/topology.json /input/topology.json
+COPY data/topology.json /workspace/input/topology.json
 
 WORKDIR /workspace
 

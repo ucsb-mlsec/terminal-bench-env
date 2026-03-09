@@ -22,7 +22,15 @@ RUN apt-get update && \
 RUN mkdir -p /workspace/dev /workspace/staging /workspace/prod \
     /workspace/modules/networking /workspace/modules/application \
     /workspace/modules/database /workspace/modules/monitoring \
-    /workspace/modules/logging
+    /workspace/modules/logging \
+    /workspace/output/terraform_module_source_version_conflict_hard/files/dev \
+    /workspace/output/terraform_module_source_version_conflict_hard/files/staging \
+    /workspace/output/terraform_module_source_version_conflict_hard/files/prod \
+    /workspace/output/terraform_module_source_version_conflict_hard/files/modules/networking \
+    /workspace/output/terraform_module_source_version_conflict_hard/files/modules/application \
+    /workspace/output/terraform_module_source_version_conflict_hard/files/modules/database \
+    /workspace/output/terraform_module_source_version_conflict_hard/files/modules/monitoring \
+    /workspace/output/terraform_module_source_version_conflict_hard/files/modules/logging
 
 COPY dev/main.tf /workspace/dev/main.tf
 COPY staging/main.tf /workspace/staging/main.tf
@@ -38,6 +46,21 @@ COPY modules/monitoring/main.tf /workspace/modules/monitoring/main.tf
 COPY modules/monitoring/variables.tf /workspace/modules/monitoring/variables.tf
 COPY modules/logging/main.tf /workspace/modules/logging/main.tf
 COPY modules/logging/variables.tf /workspace/modules/logging/variables.tf
+
+COPY dev/main.tf /workspace/output/terraform_module_source_version_conflict_hard/files/dev/main.tf
+COPY staging/main.tf /workspace/output/terraform_module_source_version_conflict_hard/files/staging/main.tf
+COPY prod/main.tf /workspace/output/terraform_module_source_version_conflict_hard/files/prod/main.tf
+COPY modules/networking/main.tf /workspace/output/terraform_module_source_version_conflict_hard/files/modules/networking/main.tf
+COPY modules/networking/variables.tf /workspace/output/terraform_module_source_version_conflict_hard/files/modules/networking/variables.tf
+COPY modules/networking/outputs.tf /workspace/output/terraform_module_source_version_conflict_hard/files/modules/networking/outputs.tf
+COPY modules/application/main.tf /workspace/output/terraform_module_source_version_conflict_hard/files/modules/application/main.tf
+COPY modules/application/variables.tf /workspace/output/terraform_module_source_version_conflict_hard/files/modules/application/variables.tf
+COPY modules/database/main.tf /workspace/output/terraform_module_source_version_conflict_hard/files/modules/database/main.tf
+COPY modules/database/variables.tf /workspace/output/terraform_module_source_version_conflict_hard/files/modules/database/variables.tf
+COPY modules/monitoring/main.tf /workspace/output/terraform_module_source_version_conflict_hard/files/modules/monitoring/main.tf
+COPY modules/monitoring/variables.tf /workspace/output/terraform_module_source_version_conflict_hard/files/modules/monitoring/variables.tf
+COPY modules/logging/main.tf /workspace/output/terraform_module_source_version_conflict_hard/files/modules/logging/main.tf
+COPY modules/logging/variables.tf /workspace/output/terraform_module_source_version_conflict_hard/files/modules/logging/variables.tf
 
 WORKDIR /workspace
 

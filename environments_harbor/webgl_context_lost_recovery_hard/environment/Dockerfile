@@ -11,9 +11,9 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /logs /solution
+RUN mkdir -p /workspace/logs /workspace/solution
 
-COPY data/webgl_resources.log /logs/webgl_resources.log
+COPY data/webgl_resources.log /workspace/logs/webgl_resources.log
 
 WORKDIR /workspace
 

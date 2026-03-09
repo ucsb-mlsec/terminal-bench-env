@@ -93,12 +93,52 @@ def test_no_minicom_metadata_in_fields():
     output_path = Path("/root/crash_analysis.json")
     with open(output_path, 'r') as f:
         data = json.load(f)
-    
+
     error_message = data.get("error_message", "")
     failed_component = data.get("failed_component", "")
-    
+
     # Check that minicom metadata patterns are not present
     minicom_patterns = ["Welcome to minicom", "OPTIONS:", "Compiled on", "Port /dev/"]
     for pattern in minicom_patterns:
         assert pattern not in error_message, f"error_message contains minicom metadata: '{pattern}'"
         assert pattern not in failed_component, f"failed_component contains minicom metadata: '{pattern}'"
+
+def test_correct_panic_time():
+    """Test that panic_time matches 14:35:18 from the minicom crash log.
+
+    The log shows the kernel panic message timestamped at 14:35:18.
+    """
+    output_path = Path("/root/crash_analysis.json")
+    with open(output_path, 'r') as f:
+        data = json.load(f)
+
+    panic_time = data.get("panic_time", "")
+    assert panic_time == "14:35:18", f"Expected panic_time=14:35:18, got panic_time={panic_time}"
+
+def test_error_message_contains_kernel_panic():
+    """Test that error_message contains the kernel panic text from the crash log.
+
+    The log shows: 'Kernel panic - not syncing: Fatal exception in interrupt'.
+    """
+    output_path = Path("/root/crash_analysis.json")
+    with open(output_path, 'r') as f:
+        data = json.load(f)
+
+    error_message = data.get("error_message", "")
+    assert "Kernel panic" in error_message, (
+        f"error_message should contain 'Kernel panic', got: '{error_message}'"
+    )
+    assert "Fatal exception in interrupt" in error_message, (
+        f"error_message should contain 'Fatal exception in interrupt', got: '{error_message}'"
+    )
+
+def test_correct_failed_component():
+    """Test that failed_component is systemd-journald, which segfaulted before the panic."""
+    output_path = Path("/root/crash_analysis.json")
+    with open(output_path, 'r') as f:
+        data = json.load(f)
+
+    failed_component = data.get("failed_component", "")
+    assert failed_component == "systemd-journald", (
+        f"Expected failed_component=systemd-journald, got failed_component={failed_component}"
+    )

@@ -83,7 +83,21 @@ def test_line_order():
     output_path = Path("/tmp/incident_metrics.txt")
     content = output_path.read_text().strip()
     lines = content.split('\n')
-    
+
     assert lines[0].startswith('metrics:'), "First line must be 'metrics:'"
     assert lines[1].startswith('healthy_targets:'), "Second line must be 'healthy_targets:'"
     assert lines[2].startswith('total_series:'), "Third line must be 'total_series:'"
+
+def test_correct_healthy_targets_count():
+    """Test that healthy_targets matches the count of up=1 entries in up_query.json"""
+    output_path = Path("/tmp/incident_metrics.txt")
+    content = output_path.read_text().strip()
+    lines = content.split('\n')
+    match = re.match(r'^healthy_targets:\s*(\d+)$', lines[1])
+    assert match, f"Second line format is incorrect: {lines[1]}"
+    healthy_count = int(match.group(1))
+    # From up_query.json: 10 entries with value=1 (prometheus, server1, server3, alertmanager,
+    # grafana, api-prod-01, db-master, db-replica-01, rabbitmq, nginx, blackbox = 10)
+    # 4 entries with value=0 (server2, api-prod-02, cache-01, elasticsearch)
+    assert healthy_count == 10, \
+        f"Expected healthy_targets=10 (from up_query.json: 10 targets with value=1), got {healthy_count}"

@@ -95,8 +95,24 @@ def test_analysis_appears_reasonable():
     output_path = Path("/home/agent/swap_analysis.json")
     with open(output_path, 'r') as f:
         data = json.load(f)
-    
+
     # If there's swap activity detected, metrics should be reasonable
     if data["thrashing_detected"]:
         assert data["avg_swap_in_per_sec"] > 0 or data["avg_swap_out_per_sec"] > 0, \
             "If thrashing detected, at least one swap metric should be positive"
+
+def test_thrashing_is_detected():
+    """Test that thrashing_detected is True (vmstat_monitor.log shows persistent swap-in/out)"""
+    output_path = Path("/home/agent/swap_analysis.json")
+    with open(output_path, 'r') as f:
+        data = json.load(f)
+    assert data["thrashing_detected"] is True, \
+        "Expected thrashing_detected=true based on vmstat_monitor.log showing sustained swap activity"
+
+def test_peak_swap_in_is_7420():
+    """Test that peak_swap_in equals 7420 (maximum si value in vmstat_monitor.log)"""
+    output_path = Path("/home/agent/swap_analysis.json")
+    with open(output_path, 'r') as f:
+        data = json.load(f)
+    assert data["peak_swap_in"] == 7420, \
+        f"Expected peak_swap_in=7420 (max si value from vmstat_monitor.log), got {data['peak_swap_in']}"

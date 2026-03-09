@@ -1,6 +1,6 @@
 A distributed social network analysis platform needs to identify all connected communities within a network graph. The platform has been experiencing issues with scalability and memory efficiency when processing large social graphs.
 
-You are provided with a social network graph at `/data/network_graph.txt` where each line represents a friendship connection between two users. The file format is:
+You are provided with a social network graph at `/workspace/data/network_graph.txt` where each line represents a friendship connection between two users. The file format is:
 ```
 user_id_1<TAB>user_id_2
 ```
@@ -13,11 +13,11 @@ Your objective is to identify all connected components in this graph and determi
 - Isolated nodes that appear in the edge list
 - Potential duplicate edges
 
-The graph data file `/data/network_graph.txt` is already available in the environment. You need to process this graph and identify which users belong to which community.
+The graph data file `/workspace/data/network_graph.txt` is already available in the environment. You need to process this graph and identify which users belong to which community.
 
-Your solution must be saved as a Python script at `/solution/community_finder.py`. This script should be executable and process the graph data to identify connected components.
+Your solution must be saved as a Python script at `/workspace/solution/community_finder.py`. This script should be executable and process the graph data to identify connected components.
 
-After processing, save the analysis results to `/solution/communities.json` with the following structure:
+After processing, save the analysis results to `/workspace/solution/communities.json` with the following structure:
 
 ```json
 {

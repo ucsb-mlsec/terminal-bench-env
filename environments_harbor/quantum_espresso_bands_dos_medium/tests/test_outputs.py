@@ -87,7 +87,7 @@ def test_bandgap_value_is_numeric():
     """Test that the band gap value is a valid number with 2 decimal places"""
     output_path = Path("/workspace/bandgap.txt")
     content = output_path.read_text().strip()
-    
+
     for line in content.split('\n'):
         if line.startswith('BAND_GAP='):
             value_str = line.split('=')[1]
@@ -99,3 +99,25 @@ def test_bandgap_value_is_numeric():
                 assert len(decimal_part) == 2, f"Band gap value must have exactly 2 decimal places, got {len(decimal_part)}"
             except ValueError:
                 assert False, f"Band gap value '{value_str}' is not a valid number"
+
+def test_correct_bandgap_and_type():
+    """Test that the band gap value and type match the bands.dat.gnu data"""
+    output_path = Path("/workspace/bandgap.txt")
+    content = output_path.read_text().strip()
+    lines = content.split('\n')
+    bandgap = None
+    gap_type = None
+    for line in lines:
+        if line.startswith('BAND_GAP='):
+            bandgap = float(line.split('=')[1])
+        if line.startswith('GAP_TYPE='):
+            gap_type = line.split('=')[1]
+    # From bands.dat.gnu: VBM at k=0 (band 15 = -0.3210 relative to Fermi)
+    # CBM from band 14 crossing zero near k=0.300 (value ~+0.0633)
+    # Band gap ≈ 0.0633 - (-0.3210) ≈ 0.38 eV; gap is indirect (VBM at Γ, CBM at different k)
+    assert bandgap is not None, "Could not extract BAND_GAP value"
+    assert gap_type is not None, "Could not extract GAP_TYPE value"
+    assert abs(bandgap - 0.38) < 0.1, \
+        f"Expected BAND_GAP ≈ 0.38 eV (from bands.dat.gnu: VBM=-0.3210 at k=0, CBM≈+0.06 at k≈0.3), got {bandgap}"
+    assert gap_type == 'indirect', \
+        f"Expected GAP_TYPE=indirect (VBM at Γ, CBM at different k-point), got '{gap_type}'"

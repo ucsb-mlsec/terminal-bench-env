@@ -75,6 +75,40 @@ def test_no_extra_content():
     validation_path = Path("/workspace/results/validation.txt")
     content = validation_path.read_text()
     lines = [line for line in content.split('\n') if line.strip()]
-    
+
     assert len(lines) == 4, \
         f"File should contain exactly 4 non-empty lines, found {len(lines)}. No headers or extra text allowed."
+
+
+def test_age_fails_proportional_hazards():
+    """Test that age FAILS the proportional hazards test (per instruction example with actual data)"""
+    validation_path = Path("/workspace/results/validation.txt")
+    lines = validation_path.read_text().strip().split('\n')
+
+    results = {}
+    for line in lines:
+        parts = line.split(':')
+        if len(parts) == 2:
+            results[parts[0].strip()] = parts[1].strip()
+
+    assert results.get('age') == 'FAIL', (
+        f"The instruction example shows age: FAIL (violates proportional hazards assumption p < 0.05), "
+        f"but got age: {results.get('age')}"
+    )
+
+
+def test_treatment_passes_proportional_hazards():
+    """Test that treatment PASSES the proportional hazards test"""
+    validation_path = Path("/workspace/results/validation.txt")
+    lines = validation_path.read_text().strip().split('\n')
+
+    results = {}
+    for line in lines:
+        parts = line.split(':')
+        if len(parts) == 2:
+            results[parts[0].strip()] = parts[1].strip()
+
+    assert results.get('treatment') == 'PASS', (
+        f"The instruction example shows treatment: PASS (proportional hazards assumption holds), "
+        f"but got treatment: {results.get('treatment')}"
+    )

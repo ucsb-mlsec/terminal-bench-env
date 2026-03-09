@@ -68,14 +68,30 @@ def test_fix_provides_actionable_solution():
     diagnosis_path = Path("/tmp/aof_diagnosis.txt")
     content = diagnosis_path.read_text().strip()
     lines = content.split('\n')
-    
+
     fix_value = lines[1].replace("FIX=", "").strip().lower()
-    
+
     # Fix should be substantial and actionable
     assert len(fix_value) > 15, f"FIX is too short to be a specific solution: {fix_value}"
-    
+
     # Should not be generic advice
     generic_phrases = ['check the', 'investigate', 'look at', 'examine']
     is_generic = any(phrase in fix_value for phrase in generic_phrases)
-    
+
     assert not is_generic, f"FIX should be specific, not generic advice: {fix_value}"
+
+def test_issue_mentions_missing_temp_directory():
+    """Test that ISSUE identifies the missing aof-rewrite-temp-dir as the root cause"""
+    diagnosis_path = Path("/tmp/aof_diagnosis.txt")
+    content = diagnosis_path.read_text().strip()
+    lines = content.split('\n')
+
+    issue_value = lines[0].replace("ISSUE=", "").strip().lower()
+
+    # The redis log shows: "Failed opening the temp file for AOF rewrite in directory
+    # /mnt/tmpfs/redis-aof-rewrite/: No such file or directory"
+    # The root cause is the aof-rewrite-temp-dir path doesn't exist
+    missing_dir_keywords = ['missing', 'not exist', 'no such', 'temp', 'tmpfs', 'directory', 'aof-rewrite']
+    has_keyword = any(kw in issue_value for kw in missing_dir_keywords)
+    assert has_keyword, \
+        f"ISSUE should identify the missing temp directory (/mnt/tmpfs/redis-aof-rewrite/ doesn't exist), got: {issue_value}"

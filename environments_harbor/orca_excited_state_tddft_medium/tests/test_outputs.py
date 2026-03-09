@@ -103,3 +103,25 @@ def test_no_header_or_comments():
         assert line.startswith('STATE='), f"Line does not start with STATE=: {line}"
         # No comment characters
         assert not line.strip().startswith('#'), f"Line contains comment character: {line}"
+
+
+def test_active_transitions_count():
+    """Test that exactly 8 active transitions are reported (states with oscillator strength > 0.01 from molecule_tddft.out)"""
+    output_path = Path("/workspace/active_transitions.txt")
+    lines = output_path.read_text().strip().split('\n')
+
+    # From molecule_tddft.out, states with f > 0.01:
+    # STATE 2 (f=0.0289), STATE 4 (f=0.1456), STATE 6 (f=0.0789), STATE 8 (f=0.2134),
+    # STATE 11 (f=0.0456), STATE 13 (f=0.1678), STATE 16 (f=0.0612), STATE 19 (f=0.0923)
+    assert len(lines) == 8, \
+        f"Expected 8 active transitions (oscillator strength > 0.01) from the ORCA output, found {len(lines)}"
+
+
+def test_highest_oscillator_strength_state():
+    """Test that STATE 8 (f=0.2134) is included in the active transitions"""
+    output_path = Path("/workspace/active_transitions.txt")
+    content = output_path.read_text()
+
+    # STATE 8 has the highest oscillator strength (0.2134) in molecule_tddft.out
+    assert 'OSCILLATOR=0.2134' in content, \
+        "STATE 8 with oscillator strength 0.2134 (highest in ORCA output) should be in active transitions"

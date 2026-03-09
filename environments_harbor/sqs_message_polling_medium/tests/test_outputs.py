@@ -78,8 +78,16 @@ def test_processed_orders_fields_not_empty():
     """Test that none of the fields in processed orders are empty"""
     output_path = Path("/tmp/processed_orders.txt")
     lines = output_path.read_text().strip().split('\n')
-    
+
     for i, line in enumerate(lines):
         fields = line.split(',')
         for j, field in enumerate(fields):
             assert len(field.strip()) > 0, f"Line {i+1}, field {j+1} is empty: {line}"
+
+
+def test_correct_unique_order_count():
+    """Test that exactly 20 unique orders are processed (order_ids 12345-12364 across all 5 message files)"""
+    output_path = Path("/tmp/processed_orders.txt")
+    lines = output_path.read_text().strip().split('\n')
+    assert len(lines) == 20, \
+        f"Expected exactly 20 unique orders (order_ids 12345-12364 after deduplication across all message files), got {len(lines)}"

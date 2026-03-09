@@ -15,9 +15,9 @@ RUN apt-get update && apt-get install -y sqlite3 && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /data /solution
+RUN mkdir -p /workspace/data /workspace/solution
 
-COPY data/legacy_orders.db /data/legacy_orders.db
+COPY data/legacy_orders.db /workspace/data/legacy_orders.db
 
 WORKDIR /workspace
 

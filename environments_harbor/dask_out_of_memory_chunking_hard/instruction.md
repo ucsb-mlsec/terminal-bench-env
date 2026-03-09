@@ -12,7 +12,7 @@ Fix the data processing pipeline to handle the large dataset efficiently without
 4. Produce accurate results identical to what a full in-memory computation would yield
 
 **Data Location:**
-- Input CSV files are located in `/data/transactions/` directory
+- Input CSV files are located in `/workspace/data/transactions/` directory
 - Each CSV has columns: transaction_id, customer_id, amount, timestamp, category
 - Total dataset size exceeds available memory when loaded at once
 
@@ -29,12 +29,12 @@ Fix the data processing pipeline to handle the large dataset efficiently without
 - Results must be mathematically correct (no approximations)
 
 **Output Requirements:**
-Save your solution as a Python script at `/solution/process_data.py`
+Save your solution as a Python script at `/workspace/solution/process_data.py`
 
 The script must:
-- Read all CSV files from `/data/transactions/`
+- Read all CSV files from `/workspace/data/transactions/`
 - Process the data using appropriate chunking strategies
-- Write results to `/solution/customer_metrics.json`
+- Write results to `/workspace/solution/customer_metrics.json`
 
 The output JSON file should have this simple structure:
 ```json

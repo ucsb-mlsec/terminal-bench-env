@@ -2,7 +2,7 @@ A climate research team has collected temperature data from weather stations and
 
 Your task is to extract basic information from the NetCDF climate dataset and create a summary report.
 
-The NetCDF file is located at: `/data/climate/temperature_data.nc`
+The NetCDF file is located at: `/workspace/data/climate/temperature_data.nc`
 
 The file contains:
 - A dimension called `station` (representing weather station IDs)
@@ -18,7 +18,7 @@ Your task is to determine:
 3. What is the overall temperature range across all stations and all time periods (minimum and maximum values found in the entire dataset)
 4. How many stations have at least one temperature reading above 35°C
 
-Save your results to: `/output/summary.json`
+Save your results to: `/workspace/output/summary.json`
 
 The output must be a JSON file with this exact structure:
 ```json
@@ -32,7 +32,7 @@ The output must be a JSON file with this exact structure:
 ```
 
 Success criteria:
-- The file `/output/summary.json` exists
+- The file `/workspace/output/summary.json` exists
 - The JSON is valid and contains exactly these five fields
 - All numeric values accurately reflect the data in the NetCDF file
 - `station_count` and `observations_per_station` are integers

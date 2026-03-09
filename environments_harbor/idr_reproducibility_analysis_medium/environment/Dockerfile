@@ -16,10 +16,12 @@ RUN apt-get update && apt-get install -y bedtools && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /data /output
+RUN mkdir -p /workspace/data /workspace/output /workspace/output/idr_reproducibility_analysis_medium/files/data
 
-COPY data/experiment1_peaks.bed /data/experiment1_peaks.bed
-COPY data/experiment2_peaks.bed /data/experiment2_peaks.bed
+COPY data/experiment1_peaks.bed /workspace/data/experiment1_peaks.bed
+COPY data/experiment2_peaks.bed /workspace/data/experiment2_peaks.bed
+COPY data/experiment1_peaks.bed /workspace/output/idr_reproducibility_analysis_medium/files/data/experiment1_peaks.bed
+COPY data/experiment2_peaks.bed /workspace/output/idr_reproducibility_analysis_medium/files/data/experiment2_peaks.bed
 
 WORKDIR /workspace
 

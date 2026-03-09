@@ -57,6 +57,15 @@ def test_variable_values_in_range():
             assert 0 <= val <= 255, \
                 f"Variable {var} has value {val}, must be in range [0, 255]"
 
+def test_overflow_is_possible():
+    """Test that result.txt claims OVERFLOW_POSSIBLE (expression (a*b)+(c<<3)-d can easily overflow)"""
+    result_path = Path("/workspace/output/result.txt")
+    lines = result_path.read_text().strip().split('\n')
+    first_line = lines[0].strip()
+    assert first_line == "OVERFLOW_POSSIBLE", \
+        f"Expected OVERFLOW_POSSIBLE for expression '(a * b) + (c << 3) - d' " \
+        f"(e.g., a=255,b=255 gives a*b=65025 > 255), got '{first_line}'"
+
 def test_overflow_verification():
     """Test that if overflow is claimed, the provided values actually cause overflow"""
     result_path = Path("/workspace/output/result.txt")

@@ -128,6 +128,23 @@ def test_multiple_files_processed():
     output_path = Path("/output/payroll_consolidated.json")
     with open(output_path, 'r') as f:
         data = json.load(f)
-    
+
     # With 5 payroll files, we should have at least 20 records (5 per file minimum)
     assert len(data["records"]) >= 20, f"Expected at least 20 records from multiple files, got {len(data['records'])}"
+
+
+def test_total_record_count_is_471():
+    """Test that all 471 records from the 5 payroll files are parsed correctly"""
+    # payroll_2021_q1.txt: 90 records (format: E00001)
+    # payroll_2021_q2.txt: 90 records (format: EMP10001)
+    # payroll_2022_h1.txt: 96 records (format: E00001)
+    # payroll_2022_h2.txt: 100 records (format: E00001)
+    # payroll_2023_q1.txt: 95 records (format: EID0000001)
+    # Total: 90 + 90 + 96 + 100 + 95 = 471
+    output_path = Path("/output/payroll_consolidated.json")
+    with open(output_path, 'r') as f:
+        data = json.load(f)
+    assert data["total_records"] == 471, \
+        f"Expected 471 total records across all 5 payroll files, got {data['total_records']}"
+    assert len(data["records"]) == 471, \
+        f"Expected 471 records in the records array, got {len(data['records'])}"

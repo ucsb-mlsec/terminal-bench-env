@@ -11,9 +11,9 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /data /solution
+RUN mkdir -p /workspace/data /workspace/solution
 
-COPY data/vpc_flowlogs.txt /data/vpc_flowlogs.txt
+COPY data/vpc_flowlogs.txt /workspace/data/vpc_flowlogs.txt
 
 WORKDIR /workspace
 

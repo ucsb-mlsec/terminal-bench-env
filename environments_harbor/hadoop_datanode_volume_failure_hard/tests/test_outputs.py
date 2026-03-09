@@ -94,6 +94,35 @@ def test_min_replication_value_reasonable():
     assert min_replication >= 0, f"min_replication should be non-negative, got: {min_replication}"
     assert min_replication <= 3, f"min_replication should not exceed default replication factor of 3, got: {min_replication}"
 
+def test_failed_volumes_correct_count():
+    """Test that failed_volumes correctly reflects unique failed volumes from all datanode logs"""
+    analysis_path = Path("/solution/analysis.txt")
+    lines = analysis_path.read_text().strip().split('\n')
+    failed_volumes = int(re.match(r'^failed_volumes=(\d+)$', lines[0]).group(1))
+    # Logs show I/O errors/FATAL for: /mnt/disk1, /mnt/disk2, /mnt/disk3, /mnt/disk5, /mnt/disk6, /mnt/disk7
+    # That is 6 unique failed volume paths across all 3 datanodes
+    assert failed_volumes == 6, \
+        f"failed_volumes should be 6 (disk1, disk2, disk3, disk5, disk6, disk7 across all datanodes), got {failed_volumes}"
+
+def test_at_risk_blocks_nonzero_with_failures():
+    """Test that at_risk_blocks is non-zero since multiple volumes have failed"""
+    analysis_path = Path("/solution/analysis.txt")
+    lines = analysis_path.read_text().strip().split('\n')
+    at_risk_blocks = int(re.match(r'^at_risk_blocks=(\d+)$', lines[1]).group(1))
+    # With 6 failed volumes out of 7 configured, almost all blocks are at risk
+    assert at_risk_blocks > 0, \
+        "at_risk_blocks should be positive since 6 of 7 data volumes have failed"
+
+def test_min_replication_after_failures():
+    """Test that min_replication reflects severely degraded replication due to 6 of 7 volumes failing"""
+    analysis_path = Path("/solution/analysis.txt")
+    lines = analysis_path.read_text().strip().split('\n')
+    min_replication = int(re.match(r'^min_replication=(\d+)$', lines[2]).group(1))
+    # With most volumes failing, some blocks may have 0 surviving replicas
+    # min_replication should be <=2 (likely 1 or lower) given the extensive failures
+    assert min_replication <= 2, \
+        f"min_replication should be <=2 given that 6 of 7 data volumes have failed, got {min_replication}"
+
 def test_analysis_logic_consistency():
     """Test that if there are failed volumes, there should be at-risk blocks (logical consistency)"""
     analysis_path = Path("/solution/analysis.txt")

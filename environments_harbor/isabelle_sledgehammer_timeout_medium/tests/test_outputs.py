@@ -83,6 +83,27 @@ def test_correct_timeout_failures_count():
             assert reported_failures > 0, \
                 f"Build log shows timeout issues but analysis reports {reported_failures} failures"
 
+def test_timeout_failures_count_is_five():
+    """Test that exactly 5 timeout failures are reported as shown in build_output.log"""
+    analysis_path = Path("/workspace/analysis.txt")
+    content = analysis_path.read_text().strip()
+    lines = content.split('\n')
+    reported_failures = int(lines[0].split('=')[1].strip())
+    # build_output.log shows exactly 5 lemmas timed out:
+    # functor_composition, monad_left_identity, induction_base_case, fold_map_fusion, homomorphism_preserves
+    assert reported_failures == 5, \
+        f"TIMEOUT_FAILURES should be 5 (matches build_output.log which shows 5 lemmas timed out), got {reported_failures}"
+
+def test_required_timeout_exceeds_current():
+    """Test that REQUIRED_TIMEOUT is greater than the current 30-second timeout"""
+    analysis_path = Path("/workspace/analysis.txt")
+    content = analysis_path.read_text().strip()
+    lines = content.split('\n')
+    required_timeout = int(lines[1].split('=')[1].strip())
+    # sledgehammer_config has timeout=30; all 5 failures hit exactly 30s so required timeout must be >30
+    assert required_timeout > 30, \
+        f"REQUIRED_TIMEOUT should be greater than 30 (current timeout from sledgehammer_config), got {required_timeout}"
+
 def test_required_timeout_is_reasonable():
     """Test that the required timeout value is reasonable given the failures"""
     analysis_path = Path("/workspace/analysis.txt")

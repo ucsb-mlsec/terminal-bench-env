@@ -90,6 +90,25 @@ def test_no_duplicate_keys():
     solution_path = Path("/solution/keys.txt")
     content = solution_path.read_text().strip()
     lines = [line.strip() for line in content.split('\n') if line.strip()]
-    
+
     unique_keys = set(lines)
     assert len(lines) == len(unique_keys), f"Found duplicate keys: {len(lines)} total, {len(unique_keys)} unique"
+
+
+def test_known_valid_keys_are_included():
+    """Test that known valid recovery keys from the log files are present in the output"""
+    # These keys appear in successful BitLocker operations across the log files:
+    # system_event.log: Volume C recovery key, Volume D unlock attempt, Volume E unlock
+    # recovery_info.txt: Volume C and D protector entries
+    # bitlocker_management.log: recovery key generated for Volume E
+    # security_audit.log: key backup and protector added events
+    known_valid_keys = {
+        '348291-527643-891047-236589-704821-563927-418360-925174',  # Vol C (system_event.log)
+        '582736-194028-736541-902847-365192-847205-621938-473856',  # Vol E unlocked (system_event.log)
+    }
+    solution_path = Path("/solution/keys.txt")
+    content = solution_path.read_text().strip()
+    extracted_keys = {line.strip() for line in content.split('\n') if line.strip()}
+    for key in known_valid_keys:
+        assert key in extracted_keys, \
+            f"Known valid key '{key}' from the log files was not extracted"

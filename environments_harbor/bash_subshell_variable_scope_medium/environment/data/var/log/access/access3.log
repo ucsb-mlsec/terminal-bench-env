@@ -1,100 +1,99 @@
-I'll start by examining the script to understand the issue, then fix it and generate the required log file.
-
-First, let me look at the script:
-
-```bash
-cat /opt/scripts/process_logs.sh
-```
-
-Since I need to see what's there first, let me create the scenario. The typical issue with Bash variable scope is when variables are modified inside a pipeline or subshell - they don't persist. Let me create the broken script first, then fix it:
-
-```bash
-#!/bin/bash
-
-# Initialize counters
-TOTAL_REQUESTS=0
-SUCCESS_COUNT=0
-CLIENT_ERRORS=0
-SERVER_ERRORS=0
-
-# Process all log files
-cat /var/log/access/*.log | while read line; do
-    # Extract HTTP status code
-    status=$(echo "$line" | awk '{print $9}')
-    
-    # Count total requests
-    ((TOTAL_REQUESTS++))
-    
-    # Count by status code
-    if [ "$status" = "200" ]; then
-        ((SUCCESS_COUNT++))
-    elif [[ "$status" =~ ^4 ]]; then
-        ((CLIENT_ERRORS++))
-    elif [[ "$status" =~ ^5 ]]; then
-        ((SERVER_ERRORS++))
-    fi
-done
-
-# Output results
-echo "TOTAL_REQUESTS=$TOTAL_REQUESTS"
-echo "SUCCESS_COUNT=$SUCCESS_COUNT"
-echo "CLIENT_ERRORS=$CLIENT_ERRORS"
-echo "SERVER_ERRORS=$SERVER_ERRORS"
-```
-
-The issue is that the `while read` loop is in a pipeline, creating a subshell where variable modifications don't persist.
-
-Now let me create the log file and fixed script:
-
-First, the log file content:
-
-10.20.30.15 - - [15/Jan/2024:08:15:22 +0000] "GET /api/status HTTP/1.1" 200 1523 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0"
-192.168.100.45 - - [15/Jan/2024:08:16:33 +0000] "POST /api/data HTTP/1.1" 200 2847 "-" "Mozilla/5.0 (X11; Linux x86_64) Firefox/121.0"
-10.20.30.22 - - [15/Jan/2024:08:17:45 +0000] "GET /health HTTP/1.1" 200 156 "-" "wget/1.21.3"
-192.168.100.67 - - [15/Jan/2024:08:18:12 +0000] "GET /metrics HTTP/1.1" 200 4521 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
-10.20.30.88 - - [15/Jan/2024:08:19:25 +0000] "GET /download/report.pdf HTTP/1.1" 200 9845 "-" "Mozilla/5.0 (Windows NT 10.0) Chrome/120.0.0.0"
-192.168.100.12 - - [15/Jan/2024:08:20:34 +0000] "GET /api/users HTTP/1.1" 404 512 "-" "Mozilla/5.0 (X11; Ubuntu; Linux x86_64) Firefox/121.0"
-10.20.30.99 - - [15/Jan/2024:08:21:47 +0000] "POST /api/login HTTP/1.1" 200 876 "-" "Mozilla/5.0 (iPhone; CPU iPhone OS 17_2)"
-192.168.100.33 - - [15/Jan/2024:08:22:56 +0000] "GET /dashboard HTTP/1.1" 200 6734 "-" "Mozilla/5.0 (Windows NT 10.0) Edge/120.0.0.0"
-10.20.30.44 - - [15/Jan/2024:08:23:18 +0000] "GET /api/config HTTP/1.1" 500 1024 "-" "curl/7.81.0"
-192.168.100.78 - - [15/Jan/2024:08:24:29 +0000] "GET /static/style.css HTTP/1.1" 200 3421 "-" "Mozilla/5.0 (Windows NT 10.0) Chrome/120.0.0.0"
-10.20.30.56 - - [15/Jan/2024:08:25:41 +0000] "GET /api/products HTTP/1.1" 200 5632 "-" "Mozilla/5.0 (X11; Linux x86_64) Firefox/121.0"
-192.168.100.91 - - [15/Jan/2024:08:26:52 +0000] "POST /api/orders HTTP/1.1" 200 2145 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
-10.20.30.23 - - [15/Jan/2024:08:27:14 +0000] "GET /images/logo.png HTTP/1.1" 200 8923 "-" "Mozilla/5.0 (Windows NT 10.0) Chrome/120.0.0.0"
-192.168.100.55 - - [15/Jan/2024:08:28:26 +0000] "GET /api/invalid HTTP/1.1" 404 487 "-" "Mozilla/5.0 (iPad; CPU OS 17_2)"
-10.20.30.77 - - [15/Jan/2024:08:29:37 +0000] "GET /admin/panel HTTP/1.1" 403 623 "-" "Mozilla/5.0 (Windows NT 10.0) Firefox/121.0"
-192.168.100.18 - - [15/Jan/2024:08:30:48 +0000] "GET /api/stats HTTP/1.1" 200 3845 "-" "Python-requests/2.31.0"
-10.20.30.92 - - [15/Jan/2024:08:31:59 +0000] "POST /api/upload HTTP/1.1" 200 1267 "-" "Mozilla/5.0 (X11; Linux x86_64) Chrome/120.0.0.0"
-192.168.100.41 - - [15/Jan/2024:08:32:11 +0000] "GET /download/data.csv HTTP/1.1" 200 7234 "-" "wget/1.21.3"
-10.20.30.63 - - [15/Jan/2024:08:33:22 +0000] "GET /api/reports HTTP/1.1" 500 2048 "-" "Mozilla/5.0 (Windows NT 10.0) Edge/120.0.0.0"
-192.168.100.29 - - [15/Jan/2024:08:34:33 +0000] "OPTIONS /api/data HTTP/1.1" 200 145 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
-10.20.30.71 - - [15/Jan/2024:08:35:44 +0000] "GET /health HTTP/1.1" 200 156 "-" "curl/7.81.0"
-192.168.100.85 - - [15/Jan/2024:08:36:55 +0000] "GET /api/search HTTP/1.1" 200 4521 "-" "Mozilla/5.0 (Windows NT 10.0) Chrome/120.0.0.0"
-10.20.30.38 - - [15/Jan/2024:08:37:16 +0000] "POST /api/feedback HTTP/1.1" 200 934 "-" "Mozilla/5.0 (X11; Ubuntu; Linux x86_64) Firefox/121.0"
-192.168.100.52 - - [15/Jan/2024:08:38:27 +0000] "GET /missing/page HTTP/1.1" 404 512 "-" "Mozilla/5.0 (iPhone; CPU iPhone OS 17_2)"
-10.20.30.14 - - [15/Jan/2024:08:39:38 +0000] "GET /api/notifications HTTP/1.1" 200 2876 "-" "Mozilla/5.0 (Windows NT 10.0) Chrome/120.0.0.0"
-192.168.100.66 - - [15/Jan/2024:08:40:49 +0000] "GET /download/guide.pdf HTTP/1.1" 200 9234 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
-10.20.30.81 - - [15/Jan/2024:08:41:11 +0000] "POST /api/settings HTTP/1.1" 200 1543 "-" "Mozilla/5.0 (X11; Linux x86_64) Firefox/121.0"
-192.168.100.24 - - [15/Jan/2024:08:42:22 +0000] "GET /static/app.js HTTP/1.1" 200 5632 "-" "Mozilla/5.0 (Windows NT 10.0) Edge/120.0.0.0"
-10.20.30.47 - - [15/Jan/2024:08:43:33 +0000] "GET /unauthorized HTTP/1.1" 403 678 "-" "curl/7.81.0"
-192.168.100.93 - - [15/Jan/2024:08:44:44 +0000] "GET /api/inventory HTTP/1.1" 502 1536 "-" "Mozilla/5.0 (Windows NT 10.0) Chrome/120.0.0.0"
-10.20.30.59 - - [15/Jan/2024:08:45:55 +0000] "GET /metrics HTTP/1.1" 200 4234 "-" "Python-requests/2.31.0"
-192.168.100.37 - - [15/Jan/2024:08:46:17 +0000] "POST /api/register HTTP/1.1" 200 1876 "-" "Mozilla/5.0 (iPad; CPU OS 17_2)"
-10.20.30.82 - - [15/Jan/2024:08:47:28 +0000] "GET /api/profile HTTP/1.1" 200 3421 "-" "Mozilla/5.0 (X11; Ubuntu; Linux x86_64) Firefox/121.0"
-192.168.100.19 - - [15/Jan/2024:08:48:39 +0000] "GET /notfound HTTP/1.1" 404 487 "-" "Mozilla/5.0 (Windows NT 10.0) Chrome/120.0.0.0"
-10.20.30.95 - - [15/Jan/2024:08:49:51 +0000] "GET /api/messages HTTP/1.1" 200 2765 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
-192.168.100.46 - - [15/Jan/2024:08:50:12 +0000] "POST /api/comments HTTP/1.1" 200 1234 "-" "Mozilla/5.0 (iPhone; CPU iPhone OS 17_2)"
-10.20.30.68 - - [15/Jan/2024:08:51:23 +0000] "GET /restricted HTTP/1.1" 403 745 "-" "Mozilla/5.0 (Windows NT 10.0) Firefox/121.0"
-192.168.100.73 - - [15/Jan/2024:08:52:34 +0000] "GET /api/tasks HTTP/1.1" 500 2048 "-" "curl/7.81.0"
-10.20.30.26 - - [15/Jan/2024:08:53:45 +0000] "GET /download/manual.pdf HTTP/1.1" 200 8765 "-" "wget/1.21.3"
-192.168.100.58 - - [15/Jan/2024:08:54:56 +0000] "GET /health HTTP/1.1" 200 156 "-" "Mozilla/5.0 (X11; Linux x86_64) Chrome/120.0.0.0"
-10.20.30.34 - - [15/Jan/2024:08:55:18 +0000] "POST /api/events HTTP/1.1" 200 3456 "-" "Mozilla/5.0 (Windows NT 10.0) Edge/120.0.0.0"
-192.168.100.87 - - [15/Jan/2024:08:56:29 +0000] "GET /bad/request HTTP/1.1" 400 534 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
-10.20.30.51 - - [15/Jan/2024:08:57:41 +0000] "GET /api/analytics HTTP/1.1" 200 6543 "-" "Python-requests/2.31.0"
-192.168.100.62 - - [15/Jan/2024:08:58:52 +0000] "GET /api/export HTTP/1.1" 502 1792 "-" "Mozilla/5.0 (Windows NT 10.0) Chrome/120.0.0.0"
-10.20.30.79 - - [15/Jan/2024:08:59:14 +0000] "GET /static/fonts.woff2 HTTP/1.1" 200 4567 "-" "Mozilla/5.0 (X11; Ubuntu; Linux x86_64) Firefox/121.0"
-192.168.100.31 - - [15/Jan/2024:09:00:25 +0000] "POST /api/authenticate HTTP/1.1" 200 2134 "-" "Mozilla/5.0 (iPhone; CPU iPhone OS 17_2)"
-10.20.30.65 - - [15/Jan/2024:09:01:36 +0000] "GET /api/permissions HTTP/1.1" 500 2048 "-" "Mozilla/5.0 (Windows NT 10.0) Chrome/120.0.0.0"
-192.168.100.49 - - [15/Jan/2024:09:02:47 +0000] "GET /invalid/path HTTP/1.1" 404 512 "-" "curl/7.81.0"
-10.20.30.72 - - [15/Jan/2024:09:03:58 +0000] "GET /api/summary HTTP/1.1" 200 5234 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
-192.168.100.84 - - [15/Jan/2024:09:04:19 +0000] "OPTIONS /api/users HTTP/1.1" 200 145 "-" "Mozilla/5.0 (Windows NT 10.0) Firefox/121.0"
+10.10.0.5 - - [15/Mar/2024:23:06:43 +0000] "GET /api/reports HTTP/1.1" 200 16149 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15"
+10.10.0.5 - - [15/Mar/2024:07:32:38 +0000] "POST /api/login HTTP/1.1" 200 2052 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+192.168.3.10 - - [15/Mar/2024:14:37:17 +0000] "POST /api/orders HTTP/1.1" 404 42690 "-" "python-requests/2.28.0"
+192.168.3.10 - - [15/Mar/2024:08:09:13 +0000] "DELETE /api/config HTTP/1.1" 200 45853 "-" "python-requests/2.28.0"
+10.10.0.15 - - [15/Mar/2024:11:38:16 +0000] "GET /api/users HTTP/1.1" 200 6438 "-" "curl/7.68.0"
+192.168.3.10 - - [15/Mar/2024:17:18:53 +0000] "PUT /api/logout HTTP/1.1" 201 8280 "-" "python-requests/2.28.0"
+10.10.0.15 - - [15/Mar/2024:07:49:18 +0000] "POST /api/orders HTTP/1.1" 404 4658 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+10.10.0.5 - - [15/Mar/2024:11:10:23 +0000] "GET /api/users HTTP/1.1" 200 18317 "-" "python-requests/2.28.0"
+10.10.0.15 - - [15/Mar/2024:20:10:34 +0000] "GET /admin/stats HTTP/1.1" 200 46094 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+10.0.5.23 - - [15/Mar/2024:10:53:49 +0000] "GET /api/logout HTTP/1.1" 200 17791 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15"
+192.168.3.10 - - [15/Mar/2024:06:58:36 +0000] "GET /api/data HTTP/1.1" 200 26390 "-" "curl/7.68.0"
+10.10.0.15 - - [15/Mar/2024:08:08:15 +0000] "GET /admin/stats HTTP/1.1" 201 26028 "-" "python-requests/2.28.0"
+192.168.3.200 - - [15/Mar/2024:07:08:32 +0000] "DELETE /api/update HTTP/1.1" 200 38342 "-" "python-requests/2.28.0"
+203.0.113.50 - - [15/Mar/2024:05:50:43 +0000] "GET /api/config HTTP/1.1" 200 7285 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15"
+172.20.1.100 - - [15/Mar/2024:08:35:55 +0000] "POST /api/users HTTP/1.1" 200 25109 "-" "python-requests/2.28.0"
+192.168.3.10 - - [15/Mar/2024:20:21:07 +0000] "POST /api/reports HTTP/1.1" 200 44776 "-" "curl/7.68.0"
+192.168.3.200 - - [15/Mar/2024:05:32:58 +0000] "GET /api/products HTTP/1.1" 200 312 "-" "curl/7.68.0"
+10.10.0.5 - - [15/Mar/2024:11:48:10 +0000] "POST /static/app.js HTTP/1.1" 403 33370 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15"
+192.168.3.10 - - [15/Mar/2024:09:15:03 +0000] "POST /static/style.css HTTP/1.1" 201 1376 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+10.0.5.23 - - [15/Mar/2024:02:48:34 +0000] "POST /api/users HTTP/1.1" 200 48066 "-" "python-requests/2.28.0"
+172.20.1.50 - - [15/Mar/2024:16:55:38 +0000] "GET /admin/stats HTTP/1.1" 201 36131 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15"
+172.20.1.100 - - [15/Mar/2024:09:25:42 +0000] "GET /api/search HTTP/1.1" 500 47936 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15"
+10.10.0.15 - - [15/Mar/2024:02:21:01 +0000] "GET /api/search HTTP/1.1" 200 8030 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15"
+10.0.5.23 - - [15/Mar/2024:02:57:02 +0000] "POST /api/orders HTTP/1.1" 200 4752 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+10.10.0.15 - - [15/Mar/2024:17:08:46 +0000] "GET /api/search HTTP/1.1" 200 18350 "-" "python-requests/2.28.0"
+203.0.113.50 - - [15/Mar/2024:03:42:27 +0000] "GET /api/config HTTP/1.1" 201 26777 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15"
+10.10.0.15 - - [15/Mar/2024:20:41:06 +0000] "GET /api/login HTTP/1.1" 200 47880 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+192.168.3.10 - - [15/Mar/2024:06:34:28 +0000] "GET /api/reports HTTP/1.1" 200 7261 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15"
+172.20.1.50 - - [15/Mar/2024:02:28:51 +0000] "GET /api/products HTTP/1.1" 200 30418 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15"
+10.10.0.5 - - [15/Mar/2024:07:10:26 +0000] "GET /admin/stats HTTP/1.1" 201 1067 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+203.0.113.50 - - [15/Mar/2024:00:24:16 +0000] "GET /api/orders HTTP/1.1" 200 3942 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15"
+203.0.113.50 - - [15/Mar/2024:06:18:13 +0000] "GET /api/login HTTP/1.1" 404 47974 "-" "python-requests/2.28.0"
+192.168.3.10 - - [15/Mar/2024:01:37:30 +0000] "POST /api/reports HTTP/1.1" 201 4094 "-" "curl/7.68.0"
+172.20.1.50 - - [15/Mar/2024:02:43:55 +0000] "GET /api/search HTTP/1.1" 200 12278 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+10.0.5.23 - - [15/Mar/2024:02:26:42 +0000] "GET /api/users HTTP/1.1" 204 16235 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+10.10.0.15 - - [15/Mar/2024:08:25:08 +0000] "GET /api/orders HTTP/1.1" 404 47036 "-" "curl/7.68.0"
+192.168.3.200 - - [15/Mar/2024:19:36:06 +0000] "GET /static/style.css HTTP/1.1" 500 4854 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+10.10.0.5 - - [15/Mar/2024:02:56:15 +0000] "GET /api/orders HTTP/1.1" 201 17480 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15"
+10.10.0.15 - - [15/Mar/2024:20:33:00 +0000] "GET /api/products HTTP/1.1" 200 35700 "-" "curl/7.68.0"
+192.168.3.200 - - [15/Mar/2024:23:35:09 +0000] "POST /api/users HTTP/1.1" 200 17432 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+192.168.3.200 - - [15/Mar/2024:21:40:54 +0000] "GET /api/update HTTP/1.1" 200 47129 "-" "curl/7.68.0"
+192.168.3.200 - - [15/Mar/2024:13:53:17 +0000] "GET /api/logout HTTP/1.1" 200 3429 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+192.168.3.10 - - [15/Mar/2024:23:28:35 +0000] "GET /static/style.css HTTP/1.1" 500 8673 "-" "curl/7.68.0"
+172.20.1.100 - - [15/Mar/2024:01:53:23 +0000] "POST /api/data HTTP/1.1" 200 5031 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15"
+172.20.1.50 - - [15/Mar/2024:01:57:22 +0000] "GET /api/products HTTP/1.1" 200 20302 "-" "curl/7.68.0"
+10.0.5.23 - - [15/Mar/2024:17:56:55 +0000] "POST /api/orders HTTP/1.1" 404 6836 "-" "curl/7.68.0"
+172.20.1.100 - - [15/Mar/2024:05:56:26 +0000] "POST /api/reports HTTP/1.1" 200 15614 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15"
+192.168.3.10 - - [15/Mar/2024:05:50:44 +0000] "GET /api/reports HTTP/1.1" 200 27082 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15"
+10.10.0.5 - - [15/Mar/2024:14:22:19 +0000] "GET /api/data HTTP/1.1" 201 14677 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15"
+10.0.5.23 - - [15/Mar/2024:08:55:04 +0000] "GET /api/data HTTP/1.1" 403 12756 "-" "python-requests/2.28.0"
+192.168.3.200 - - [15/Mar/2024:03:56:16 +0000] "GET /admin/stats HTTP/1.1" 201 26293 "-" "curl/7.68.0"
+172.20.1.50 - - [15/Mar/2024:23:50:20 +0000] "POST /static/app.js HTTP/1.1" 200 7204 "-" "python-requests/2.28.0"
+172.20.1.100 - - [15/Mar/2024:01:45:27 +0000] "POST /api/search HTTP/1.1" 200 25344 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15"
+192.168.3.10 - - [15/Mar/2024:13:04:42 +0000] "GET /api/config HTTP/1.1" 201 45113 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15"
+10.10.0.15 - - [15/Mar/2024:09:42:26 +0000] "POST /static/style.css HTTP/1.1" 403 8267 "-" "curl/7.68.0"
+10.10.0.15 - - [15/Mar/2024:13:42:24 +0000] "GET /api/reports HTTP/1.1" 200 36433 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15"
+172.20.1.50 - - [15/Mar/2024:09:13:27 +0000] "POST /api/update HTTP/1.1" 200 26712 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+10.10.0.15 - - [15/Mar/2024:15:50:57 +0000] "GET /api/logout HTTP/1.1" 200 44377 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15"
+172.20.1.50 - - [15/Mar/2024:07:43:19 +0000] "POST /api/users HTTP/1.1" 200 33880 "-" "curl/7.68.0"
+10.0.5.23 - - [15/Mar/2024:19:54:49 +0000] "GET /api/products HTTP/1.1" 200 3128 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15"
+10.10.0.5 - - [15/Mar/2024:22:24:31 +0000] "GET /api/login HTTP/1.1" 403 37827 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15"
+172.20.1.100 - - [15/Mar/2024:03:49:27 +0000] "GET /api/products HTTP/1.1" 403 45164 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+10.0.5.23 - - [15/Mar/2024:17:15:58 +0000] "GET /api/config HTTP/1.1" 404 34044 "-" "python-requests/2.28.0"
+10.10.0.5 - - [15/Mar/2024:14:39:52 +0000] "GET /api/products HTTP/1.1" 200 43850 "-" "curl/7.68.0"
+172.20.1.100 - - [15/Mar/2024:08:48:15 +0000] "POST /api/logout HTTP/1.1" 200 48836 "-" "python-requests/2.28.0"
+192.168.3.200 - - [15/Mar/2024:14:04:45 +0000] "DELETE /api/config HTTP/1.1" 201 31858 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15"
+192.168.3.200 - - [15/Mar/2024:04:14:24 +0000] "GET /static/app.js HTTP/1.1" 200 21052 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+172.20.1.50 - - [15/Mar/2024:17:29:26 +0000] "PUT /api/orders HTTP/1.1" 200 27288 "-" "python-requests/2.28.0"
+192.168.3.10 - - [15/Mar/2024:18:24:30 +0000] "GET /api/login HTTP/1.1" 200 38378 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+192.168.3.10 - - [15/Mar/2024:23:47:34 +0000] "GET /static/app.js HTTP/1.1" 500 25658 "-" "python-requests/2.28.0"
+10.0.5.23 - - [15/Mar/2024:12:21:42 +0000] "GET /api/orders HTTP/1.1" 200 28662 "-" "python-requests/2.28.0"
+172.20.1.100 - - [15/Mar/2024:18:36:42 +0000] "PUT /api/products HTTP/1.1" 200 8464 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+192.168.3.10 - - [15/Mar/2024:01:16:24 +0000] "GET /admin/stats HTTP/1.1" 200 8993 "-" "python-requests/2.28.0"
+10.10.0.15 - - [15/Mar/2024:13:16:53 +0000] "GET /api/logout HTTP/1.1" 200 22218 "-" "python-requests/2.28.0"
+10.10.0.5 - - [15/Mar/2024:07:41:04 +0000] "GET /api/data HTTP/1.1" 500 35451 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+192.168.3.10 - - [15/Mar/2024:04:15:08 +0000] "DELETE /api/data HTTP/1.1" 200 13165 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+203.0.113.50 - - [15/Mar/2024:08:49:23 +0000] "POST /api/users HTTP/1.1" 204 14384 "-" "python-requests/2.28.0"
+172.20.1.50 - - [15/Mar/2024:05:19:06 +0000] "POST /api/update HTTP/1.1" 500 47178 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+192.168.3.10 - - [15/Mar/2024:06:04:37 +0000] "GET /api/update HTTP/1.1" 404 24696 "-" "python-requests/2.28.0"
+10.0.5.23 - - [15/Mar/2024:18:50:02 +0000] "GET /api/reports HTTP/1.1" 500 19864 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+10.10.0.15 - - [15/Mar/2024:20:21:00 +0000] "GET /api/login HTTP/1.1" 403 24385 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+172.20.1.100 - - [15/Mar/2024:04:27:11 +0000] "GET /api/users HTTP/1.1" 200 23836 "-" "python-requests/2.28.0"
+192.168.3.200 - - [15/Mar/2024:23:37:17 +0000] "POST /api/config HTTP/1.1" 201 31786 "-" "python-requests/2.28.0"
+10.10.0.15 - - [15/Mar/2024:14:36:39 +0000] "GET /api/users HTTP/1.1" 200 29643 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15"
+172.20.1.100 - - [15/Mar/2024:06:22:51 +0000] "GET /api/data HTTP/1.1" 201 21400 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15"
+192.168.3.200 - - [15/Mar/2024:00:33:12 +0000] "GET /static/app.js HTTP/1.1" 400 46052 "-" "curl/7.68.0"
+10.10.0.5 - - [15/Mar/2024:15:41:45 +0000] "GET /api/reports HTTP/1.1" 200 32119 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15"
+203.0.113.50 - - [15/Mar/2024:12:44:15 +0000] "GET /api/config HTTP/1.1" 200 6198 "-" "curl/7.68.0"
+192.168.3.200 - - [15/Mar/2024:23:35:21 +0000] "POST /api/update HTTP/1.1" 200 31115 "-" "curl/7.68.0"
+10.10.0.15 - - [15/Mar/2024:03:46:12 +0000] "POST /api/logout HTTP/1.1" 200 20194 "-" "curl/7.68.0"
+10.10.0.15 - - [15/Mar/2024:06:47:30 +0000] "GET /api/reports HTTP/1.1" 201 45330 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15"
+192.168.3.200 - - [15/Mar/2024:06:18:14 +0000] "PUT /api/update HTTP/1.1" 500 34482 "-" "curl/7.68.0"
+10.10.0.15 - - [15/Mar/2024:01:03:35 +0000] "GET /static/app.js HTTP/1.1" 200 46500 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15"
+192.168.3.200 - - [15/Mar/2024:00:36:18 +0000] "POST /api/products HTTP/1.1" 403 49434 "-" "python-requests/2.28.0"
+203.0.113.50 - - [15/Mar/2024:15:07:52 +0000] "GET /api/logout HTTP/1.1" 200 12182 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+10.10.0.5 - - [15/Mar/2024:04:51:36 +0000] "GET /api/logout HTTP/1.1" 200 37915 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+192.168.3.200 - - [15/Mar/2024:19:50:39 +0000] "GET /api/orders HTTP/1.1" 200 36673 "-" "python-requests/2.28.0"
+10.0.5.23 - - [15/Mar/2024:18:27:19 +0000] "DELETE /api/search HTTP/1.1" 200 29624 "-" "python-requests/2.28.0"
+192.168.3.10 - - [15/Mar/2024:21:05:10 +0000] "POST /api/reports HTTP/1.1" 200 13717 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15"

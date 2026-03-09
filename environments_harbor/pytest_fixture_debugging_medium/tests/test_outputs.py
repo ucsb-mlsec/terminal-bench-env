@@ -63,3 +63,17 @@ def test_solution_identifies_correct_problem():
     
     assert fixture_name in expected_fixtures, f"Fixture name '{fixture_name}' doesn't match expected database-related fixtures"
     assert issue_type in expected_issues, f"Issue type '{issue_type}' should be 'cleanup' or 'teardown' for database state problems"
+
+def test_exact_fixture_and_issue():
+    """Test that the solution identifies the exact fixture and issue from conftest.py"""
+    solution_path = Path("/home/user/solution.txt")
+    content = solution_path.read_text().strip()
+    lines = content.split('\n')
+    fixture_name = lines[0].split('=', 1)[1].strip()
+    issue_type = lines[1].split('=', 1)[1].strip()
+    # From conftest.py: db_path fixture (scope='session') creates temp db file
+    # but has "Missing cleanup code here" comment -- the issue is cleanup
+    assert fixture_name == "db_path", \
+        f"Expected fixture='db_path' (the session-scoped fixture with missing cleanup), got '{fixture_name}'"
+    assert issue_type == "cleanup", \
+        f"Expected issue='cleanup' (conftest.py comment says 'Missing cleanup code here'), got '{issue_type}'"

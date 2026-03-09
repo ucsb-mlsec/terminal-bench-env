@@ -12,7 +12,7 @@ You've been provided with a log file containing raw SSE traffic captured from th
 Analyze the captured SSE traffic and identify all malformed events. For each problematic event, determine the specific issue preventing proper parsing.
 
 **Input:**
-The raw SSE traffic is available at: `/data/sse_traffic.log`
+The raw SSE traffic is available at: `/workspace/data/sse_traffic.log`
 
 This file contains the actual bytes sent by the server, including all SSE events, data fields, and formatting.
 
@@ -24,7 +24,7 @@ Your analysis must identify:
 4. Any other SSE specification violations
 
 **Solution Output:**
-Save your findings to: `/solution/validation_report.json`
+Save your findings to: `/workspace/solution/validation_report.json`
 
 The JSON file must contain a simple array of problem descriptions. Each entry should have:
 - `line`: The line number in the log file where the problem starts (integer)

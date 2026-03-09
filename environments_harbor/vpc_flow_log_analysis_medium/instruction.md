@@ -1,6 +1,6 @@
 You've been asked to analyze VPC flow logs to identify potential security issues in your cloud infrastructure. The security team needs a report on suspicious network activity patterns.
 
-A VPC flow log file is located at `/data/vpc_flowlogs.txt`. The file contains space-separated records with the following fields in order:
+A VPC flow log file is located at `/workspace/data/vpc_flowlogs.txt`. The file contains space-separated records with the following fields in order:
 - version
 - account-id
 - interface-id
@@ -24,7 +24,7 @@ Your task is to identify and report on three specific security concerns:
 
 3. **Unusual Protocol Usage**: Find any source IPs using ICMP protocol (protocol=1) that sent more than 100 packets total, which might indicate ICMP flooding or tunneling.
 
-Save your findings to `/solution/security_report.json` in the following format:
+Save your findings to `/workspace/solution/security_report.json` in the following format:
 
 ```json
 {

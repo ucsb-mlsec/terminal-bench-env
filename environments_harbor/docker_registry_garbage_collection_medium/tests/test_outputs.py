@@ -117,9 +117,25 @@ def test_space_values_reasonable():
     report_path = Path("/solution/cleanup_report.json")
     with open(report_path, 'r') as f:
         data = json.load(f)
-    
+
     assert data["space_before_mb"] >= 0, "space_before_mb cannot be negative"
     assert data["space_after_mb"] >= 0, "space_after_mb cannot be negative"
     assert data["space_freed_mb"] >= 0, "space_freed_mb cannot be negative"
     assert data["space_after_mb"] <= data["space_before_mb"], \
         "space_after_mb cannot be greater than space_before_mb"
+
+
+def test_known_unreferenced_blobs_removed():
+    """Test that the 7 specific files in /var/storage/blobs that are not in manifest.txt are removed"""
+    blobs_dir = Path("/var/storage/blobs")
+    # These files were in the blobs directory but NOT referenced in manifest.txt
+    # They correspond to the files in the environment that don't appear in manifest.txt
+    known_unreferenced = [
+        'blob_old001.dat', 'blob_old002.dat', 'blob_unused55.dat',
+        'blob_xyz123.dat', 'data_legacy99.bin', 'data_m9n8p7.bin', 'data_orphan.bin'
+    ]
+
+    for filename in known_unreferenced:
+        blob_path = blobs_dir / filename
+        assert not blob_path.exists(), \
+            f"Unreferenced file '{filename}' should have been removed by garbage collection"

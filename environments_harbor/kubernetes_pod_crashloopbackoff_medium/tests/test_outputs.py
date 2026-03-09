@@ -54,13 +54,33 @@ def test_solution_identifies_crashloopbackoff_issue():
     """Test that the solution addresses a CrashLoopBackOff-related issue"""
     solution_path = Path("/workspace/solution.txt")
     content = solution_path.read_text().lower()
-    
+
     # The solution should mention concepts related to container crashes
     relevant_keywords = [
         'port', 'environment', 'config', 'variable', 'mount', 'permission',
         'resource', 'memory', 'cpu', 'health', 'probe', 'readiness', 'liveness',
         'command', 'entrypoint', 'volume', 'path', 'dependency', 'connect'
     ]
-    
+
     has_relevant_keyword = any(keyword in content for keyword in relevant_keywords)
     assert has_relevant_keyword, "Solution does not appear to address a container configuration issue"
+
+
+def test_solution_identifies_deployment_yaml():
+    """Test that line 1 identifies deployment.yaml as the primary problem file"""
+    solution_path = Path("/workspace/solution.txt")
+    lines = solution_path.read_text().strip().split('\n')
+    first_line = lines[0].strip()
+    assert first_line == "deployment.yaml", \
+        f"Expected 'deployment.yaml' (liveness probe misconfigured to port 8080 while app runs on port 5000), got: {first_line}"
+
+
+def test_solution_identifies_port_mismatch():
+    """Test that lines 2-3 address the liveness probe port mismatch"""
+    solution_path = Path("/workspace/solution.txt")
+    lines = solution_path.read_text().strip().split('\n')
+    content = '\n'.join(lines[1:]).lower()
+    assert "port" in content, \
+        f"Solution should identify port mismatch (liveness probe checks 8080, app listens on 5000), got: {content}"
+    assert any(p in content for p in ["5000", "liveness", "probe"]), \
+        f"Solution should reference port 5000 or liveness probe, got: {content}"

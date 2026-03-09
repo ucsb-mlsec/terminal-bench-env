@@ -66,12 +66,43 @@ def test_gan_train_file_modified():
     """Test that the gan_train.py file was modified to fix the bug"""
     gan_train_path = Path("/workspace/gan_train.py")
     assert gan_train_path.exists(), "gan_train.py file does not exist"
-    
+
     # Read the file to ensure it's not empty and has been modified
     content = gan_train_path.read_text()
     assert len(content) > 0, "gan_train.py is empty"
-    
+
     # Check that it contains key GAN training components
     assert "generator" in content.lower() or "gen" in content.lower(), "gan_train.py should contain generator code"
     assert "discriminator" in content.lower() or "disc" in content.lower(), "gan_train.py should contain discriminator code"
     assert "optimizer" in content.lower(), "gan_train.py should contain optimizer code"
+
+
+def test_optimizer_g_step_is_uncommented():
+    """Test that optimizer_g.step() is called (not commented out - that was the bug)"""
+    import re
+    gan_train_path = Path("/workspace/gan_train.py")
+    content = gan_train_path.read_text()
+
+    # The bug was that optimizer_g.step() was commented out on lines 111-113
+    # Check that there is an active (uncommented) optimizer_g.step() call
+    active_step_pattern = re.compile(r'^\s*optimizer_g\.step\(\)', re.MULTILINE)
+    assert active_step_pattern.search(content), (
+        "optimizer_g.step() must be an active (uncommented) call in gan_train.py. "
+        "The bug was that this line was commented out, preventing generator weight updates."
+    )
+
+
+def test_generator_update_not_commented():
+    """Test that the generator optimizer step is not preceded by a comment marker"""
+    import re
+    gan_train_path = Path("/workspace/gan_train.py")
+    lines = gan_train_path.read_text().split('\n')
+
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        # Find any line that has optimizer_g.step() and is not a comment
+        if 'optimizer_g.step()' in stripped:
+            assert not stripped.startswith('#'), (
+                f"Line {i+1} has optimizer_g.step() commented out. "
+                "The fix requires uncommenting this line."
+            )

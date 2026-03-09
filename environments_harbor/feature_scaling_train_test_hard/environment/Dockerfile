@@ -20,6 +20,7 @@ RUN pip3 install --no-cache-dir --break-system-packages pandas scikit-learn nump
 RUN mkdir -p /home/user/ml_project /home/user/solution
 
 COPY data/data.csv /home/user/ml_project/data.csv
+COPY data/train_model.py /home/user/ml_project/train_model.py
 
 WORKDIR /home/user
 

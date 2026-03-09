@@ -104,13 +104,48 @@ def test_recommended_limit_is_reasonable():
 def test_recommended_limit_different_from_current():
     """Test that recommended_limit_bytes is different from current_limit_bytes"""
     fix_path = Path("/home/user/circuit_breaker_fix.json")
-    
+
     with open(fix_path, 'r') as f:
         data = json.load(f)
-    
+
     current_limit = data.get("current_limit_bytes")
     recommended_limit = data.get("recommended_limit_bytes")
-    
+
     # The recommendation should be different (likely higher to prevent errors)
     assert current_limit != recommended_limit, \
         "Recommended limit should be different from current limit to fix the issue"
+
+
+def test_triggered_breaker_is_request():
+    """Test that the triggered breaker is identified as 'request' (matches the error logs)"""
+    fix_path = Path("/home/user/circuit_breaker_fix.json")
+    with open(fix_path, 'r') as f:
+        data = json.load(f)
+
+    triggered = data.get("triggered_breaker", "")
+    assert triggered == "request", \
+        f"The triggered circuit breaker should be 'request' based on the error logs, got: '{triggered}'"
+
+
+def test_heap_size_is_8gb():
+    """Test that heap_size_gb is 8 (as configured in jvm.options with -Xmx8g)"""
+    fix_path = Path("/home/user/circuit_breaker_fix.json")
+    with open(fix_path, 'r') as f:
+        data = json.load(f)
+
+    heap_size = data.get("heap_size_gb")
+    assert heap_size == 8 or abs(heap_size - 8) < 0.01, \
+        f"Heap size should be 8 GB (from -Xmx8g in jvm.options), got: {heap_size}"
+
+
+def test_current_limit_matches_40_percent_of_8gb():
+    """Test that current_limit_bytes corresponds to 40% of 8GB heap"""
+    fix_path = Path("/home/user/circuit_breaker_fix.json")
+    with open(fix_path, 'r') as f:
+        data = json.load(f)
+
+    current_limit = data.get("current_limit_bytes")
+    # 40% of 8GB = 0.4 * 8 * 1024^3 = 3,435,973,836 bytes
+    expected = int(0.4 * 8 * 1024 * 1024 * 1024)
+    assert abs(current_limit - expected) < 1000000, \
+        f"current_limit_bytes should be ~{expected} (40% of 8GB), got: {current_limit}"

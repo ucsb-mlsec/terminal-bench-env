@@ -13,11 +13,11 @@ RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.
 
 RUN pip3 install --no-cache-dir --break-system-packages numpy pandas
 
-RUN mkdir -p /data/experiments /solution /output
+RUN mkdir -p /workspace/data/experiments /workspace/solution /workspace/output
 
-COPY data/experiment_001.npy /data/experiments/experiment_001.npy
-COPY data/experiment_002.npy /data/experiments/experiment_002.npy
-COPY data/experiment_003.npy /data/experiments/experiment_003.npy
+COPY data/experiment_001.npy /workspace/data/experiments/experiment_001.npy
+COPY data/experiment_002.npy /workspace/data/experiments/experiment_002.npy
+COPY data/experiment_003.npy /workspace/data/experiments/experiment_003.npy
 
 WORKDIR /workspace
 

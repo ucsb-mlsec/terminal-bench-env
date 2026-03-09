@@ -23,7 +23,7 @@ RUN apt-get update && apt-get install -y bedtools && \
 
 RUN pip3 install --no-cache-dir --break-system-packages pandas numpy
 
-RUN mkdir -p /workspace/peaks /workspace/reference /output
+RUN mkdir -p /workspace/peaks /workspace/reference /workspace/output
 
 COPY data/peaks/called_peaks.bed /workspace/peaks/called_peaks.bed
 COPY data/peaks/fragment_counts.tsv /workspace/peaks/fragment_counts.tsv

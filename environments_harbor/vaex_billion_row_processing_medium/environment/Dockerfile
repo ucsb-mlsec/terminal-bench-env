@@ -14,13 +14,13 @@ RUN pip3 install --no-cache-dir --break-system-packages polars
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /data /solution
+RUN mkdir -p /workspace/data /workspace/solution
 
 RUN pip3 install --no-cache-dir --break-system-packages pandas
 
-COPY data/sensor_readings.csv /data/sensor_readings.csv
+COPY data/sensor_readings.csv /workspace/data/sensor_readings.csv
 
-WORKDIR /solution
+WORKDIR /workspace
 
 # Mapped from docker-compose.yaml
 ENV TEST_DIR=/tests

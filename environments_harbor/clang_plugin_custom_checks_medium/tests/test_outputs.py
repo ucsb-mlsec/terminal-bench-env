@@ -133,11 +133,31 @@ def test_function_names_are_valid():
     report_path = Path("/workspace/leak_report.txt")
     content = report_path.read_text().strip()
     lines = content.split('\n')
-    
+
     # Function name should be a valid C++ identifier
     func_pattern = r'^[a-zA-Z_][a-zA-Z0-9_]*$'
-    
+
     for line in lines:
         parts = line.split(':')
         func_name = parts[2]
         assert re.match(func_pattern, func_name), f"Invalid function name '{func_name}' in: {line}"
+
+
+def test_basic_leaks_detects_all_four_leaks():
+    """Test that all 4 memory leaks in basic_leaks.cpp are detected:
+    createObject (obj), allocateBuffer (buffer), multipleAllocs (b), earlyReturn (data)."""
+    report_path = Path("/workspace/leak_report.txt")
+    content = report_path.read_text()
+    basic_lines = [l for l in content.strip().split('\n') if 'basic_leaks.cpp' in l]
+    assert len(basic_lines) >= 4, \
+        f"Expected at least 4 leaks in basic_leaks.cpp (createObject/obj, allocateBuffer/buffer, multipleAllocs/b, earlyReturn/data), got {len(basic_lines)}"
+
+
+def test_basic_leaks_includes_known_functions():
+    """Test that known leaking functions in basic_leaks.cpp are identified."""
+    report_path = Path("/workspace/leak_report.txt")
+    content = report_path.read_text()
+    known_leakers = ['createObject', 'allocateBuffer', 'multipleAllocs', 'earlyReturn']
+    for func in known_leakers:
+        assert func in content, \
+            f"Expected leaking function '{func}' from basic_leaks.cpp to appear in report"

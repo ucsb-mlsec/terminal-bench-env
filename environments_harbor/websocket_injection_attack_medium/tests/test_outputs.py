@@ -70,10 +70,26 @@ def test_password_looks_like_hash():
     output_path = Path("/tmp/attack_analysis.txt")
     lines = output_path.read_text().strip().split('\n')
     password = lines[2].replace("PASSWORD: ", "", 1).strip()
-    
+
     # Check if it's hexadecimal (common for password hashes)
     is_hex = all(c in '0123456789abcdefABCDEF' for c in password)
     # Common hash lengths: MD5=32, SHA1=40, SHA256=64, etc.
     reasonable_length = len(password) >= 32
-    
+
     assert is_hex and reasonable_length, f"Password hash should be a hexadecimal string of at least 32 characters, got: {password}"
+
+def test_correct_admin_username():
+    """Test that USERNAME is admin_root (admin account discovered via SQL injection in captured_traffic.jsonl)"""
+    output_path = Path("/tmp/attack_analysis.txt")
+    lines = output_path.read_text().strip().split('\n')
+    username = lines[1].replace("USERNAME: ", "", 1).strip()
+    assert username == 'admin_root', \
+        f"Expected USERNAME=admin_root (admin user from SQL injection in captured_traffic.jsonl), got '{username}'"
+
+def test_correct_password_hash():
+    """Test that PASSWORD hash is e10adc3949ba59abbe56e057f20f883e (admin_root's hash from captured traffic)"""
+    output_path = Path("/tmp/attack_analysis.txt")
+    lines = output_path.read_text().strip().split('\n')
+    password = lines[2].replace("PASSWORD: ", "", 1).strip().lower()
+    assert password == 'e10adc3949ba59abbe56e057f20f883e', \
+        f"Expected PASSWORD=e10adc3949ba59abbe56e057f20f883e (admin_root hash from captured_traffic.jsonl), got '{password}'"

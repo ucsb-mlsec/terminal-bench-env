@@ -10,7 +10,7 @@ The class includes a `fill()` method that accepts an associative array of data a
 **The Problem:**
 The current configuration is preventing users from updating their profile information correctly. The application needs to allow mass assignment for these user profile fields:
 - name
-- email  
+- email
 - bio
 - avatar_url
 - timezone

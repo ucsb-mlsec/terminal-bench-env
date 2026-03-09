@@ -24,11 +24,11 @@ RUN pip3 install --no-cache-dir --break-system-packages \
     pyarrow \
     fastparquet
 
-RUN mkdir -p /data/accounts /output
+RUN mkdir -p /workspace/data/accounts /workspace/output
 
-COPY data/accounts/base_snapshot.parquet /data/accounts/base_snapshot.parquet
-COPY data/accounts/changes_batch1.parquet /data/accounts/changes_batch1.parquet
-COPY data/accounts/changes_batch2.parquet /data/accounts/changes_batch2.parquet
+COPY data/accounts/base_snapshot.parquet /workspace/data/accounts/base_snapshot.parquet
+COPY data/accounts/changes_batch1.parquet /workspace/data/accounts/changes_batch1.parquet
+COPY data/accounts/changes_batch2.parquet /workspace/data/accounts/changes_batch2.parquet
 
 WORKDIR /workspace
 

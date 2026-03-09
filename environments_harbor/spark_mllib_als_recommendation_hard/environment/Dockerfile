@@ -25,10 +25,10 @@ RUN pip3 install --no-cache-dir --break-system-packages \
     pandas \
     numpy
 
-RUN mkdir -p /data /output
+RUN mkdir -p /workspace/data /workspace/output
 
-COPY data/ratings.csv /data/ratings.csv
-COPY data/test_pairs.csv /data/test_pairs.csv
+COPY data/ratings.csv /workspace/data/ratings.csv
+COPY data/test_pairs.csv /workspace/data/test_pairs.csv
 
 WORKDIR /workspace
 

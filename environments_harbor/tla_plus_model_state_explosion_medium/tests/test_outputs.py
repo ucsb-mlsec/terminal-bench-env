@@ -67,14 +67,28 @@ def test_analysis_addresses_state_explosion_issue():
     analysis_path = Path("/workspace/analysis.txt")
     content = analysis_path.read_text().strip()
     lines = [line.strip() for line in content.split('\n') if line.strip()]
-    
+
     # The overall analysis should be coherent and related to TLA+ state explosion
     full_text = content.lower()
-    
+
     # Should not be placeholder text
     placeholder_phrases = ['todo', 'tbd', 'fix me', 'xxx', 'example', 'placeholder']
     has_placeholder = any(phrase in full_text for phrase in placeholder_phrases)
     assert not has_placeholder, "Analysis appears to contain placeholder text"
-    
+
     # Should have reasonable content length (not too short)
     assert len(full_text) > 30, "Analysis is too brief to be meaningful"
+
+
+def test_correct_variable_identified():
+    """Test that the 'messages' variable is identified as the state explosion cause"""
+    analysis_path = Path("/workspace/analysis.txt")
+    content = analysis_path.read_text().strip()
+    lines = [line.strip() for line in content.split('\n') if line.strip()]
+
+    line1 = lines[0]
+
+    # In two_phase_commit.tla, the 'messages' variable accumulates all messages ever sent
+    # via set union (never pruned), causing state explosion
+    assert "messages" in line1.lower(), \
+        f"Line 1 should identify the 'messages' variable as the cause, got: {line1}"

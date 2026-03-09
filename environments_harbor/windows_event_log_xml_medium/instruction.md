@@ -16,7 +16,7 @@ Your task is to extract and analyze failed login attempts to identify potential 
 
 **Output Requirements:**
 
-Save your results to `/output/security_report.json` as a JSON file with this simple structure:
+Save your results to `/workspace/output/security_report.json` as a JSON file with this simple structure:
 
 ```json
 {

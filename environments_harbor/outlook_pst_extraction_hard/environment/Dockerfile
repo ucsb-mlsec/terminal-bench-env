@@ -11,11 +11,11 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /data/email_archives /solution /output
+RUN mkdir -p /workspace/data/email_archives /workspace/solution /workspace/output
 
-COPY data/email_archives/sales_2023.mbox /data/email_archives/sales_2023.mbox
-COPY data/email_archives/support_2023.mbox /data/email_archives/support_2023.mbox
-COPY data/email_archives/internal_2023.mbox /data/email_archives/internal_2023.mbox
+COPY data/email_archives/sales_2023.mbox /workspace/data/email_archives/sales_2023.mbox
+COPY data/email_archives/support_2023.mbox /workspace/data/email_archives/support_2023.mbox
+COPY data/email_archives/internal_2023.mbox /workspace/data/email_archives/internal_2023.mbox
 
 WORKDIR /workspace
 

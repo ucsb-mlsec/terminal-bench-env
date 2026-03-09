@@ -11,10 +11,11 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /data /output
+RUN mkdir -p /workspace/data /workspace/output /workspace/output/chipseeker_peak_annotation_medium/files/data
 
-COPY data/peaks.bed /data/peaks.bed
-COPY data/genes.tsv /data/genes.tsv
+COPY data/peaks.bed /workspace/data/peaks.bed
+COPY data/genes.tsv /workspace/data/genes.tsv
+COPY data/peaks.bed /workspace/output/chipseeker_peak_annotation_medium/files/data/peaks.bed
 
 WORKDIR /workspace
 

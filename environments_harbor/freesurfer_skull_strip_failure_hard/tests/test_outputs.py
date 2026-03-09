@@ -70,12 +70,12 @@ def test_diagnosis_accuracy():
     diagnosis_path = Path("/workspace/diagnosis.txt")
     content = diagnosis_path.read_text().strip()
     lines = content.split('\n')
-    
+
     # Parse the diagnosis
     error_type = lines[0].split(": ", 1)[1].strip()
     failed_parameter = lines[1].split(": ", 1)[1].strip()
     affected_subjects = lines[2].split(": ", 1)[1].strip()
-    
+
     # The diagnosis should be based on evidence from the log files
     # This test verifies the format is complete and parseable
     assert error_type in ["memory_limit", "missing_dependency", "parameter_invalid", "file_permission"], \
@@ -83,3 +83,37 @@ def test_diagnosis_accuracy():
     assert len(failed_parameter) > 0, "FAILED_PARAMETER must not be empty"
     assert affected_subjects == "all" or affected_subjects.isdigit(), \
         "AFFECTED_SUBJECTS must be 'all' or a number"
+
+
+def test_error_type_is_memory_limit():
+    """Test that ERROR_TYPE is memory_limit.
+    subject_001_recon.log shows 'malloc failed: Cannot allocate memory' requesting 4096MB
+    while freesurfer_config.txt sets max_memory_mb=2048, causing the memory allocation failure."""
+    diagnosis_path = Path("/workspace/diagnosis.txt")
+    lines = diagnosis_path.read_text().strip().split('\n')
+
+    error_type = lines[0].split(": ", 1)[1].strip()
+    assert error_type == "memory_limit", \
+        f"Expected ERROR_TYPE: memory_limit (malloc failed due to max_memory_mb=2048 in config), got '{error_type}'"
+
+
+def test_failed_parameter_is_max_memory_mb():
+    """Test that FAILED_PARAMETER is max_memory_mb.
+    freesurfer_config.txt has max_memory_mb=2048 but mri_watershed requested 4096MB."""
+    diagnosis_path = Path("/workspace/diagnosis.txt")
+    lines = diagnosis_path.read_text().strip().split('\n')
+
+    failed_parameter = lines[1].split(": ", 1)[1].strip()
+    assert failed_parameter == "max_memory_mb", \
+        f"Expected FAILED_PARAMETER: max_memory_mb (config parameter causing the memory limit), got '{failed_parameter}'"
+
+
+def test_affected_subjects_is_3():
+    """Test that AFFECTED_SUBJECTS is 3.
+    subjects_list.txt contains subject_001, subject_002, subject_003 — all three failed."""
+    diagnosis_path = Path("/workspace/diagnosis.txt")
+    lines = diagnosis_path.read_text().strip().split('\n')
+
+    affected_subjects = lines[2].split(": ", 1)[1].strip()
+    assert affected_subjects == "3", \
+        f"Expected AFFECTED_SUBJECTS: 3 (all subjects in subjects_list.txt failed), got '{affected_subjects}'"

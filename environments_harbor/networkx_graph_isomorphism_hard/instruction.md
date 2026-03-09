@@ -2,7 +2,7 @@ You are working with a pharmaceutical research team analyzing structural similar
 
 Your task is to identify all pairs of isomorphic molecular graphs from a collection of chemical compounds and determine which structures are actually identical despite having different atom orderings.
 
-The molecular structures are stored in `/data/molecules/` as individual graph files in edge list format. Each file represents a single molecule where:
+The molecular structures are stored in `/workspace/data/molecules/` as individual graph files in edge list format. Each file represents a single molecule where:
 - Nodes represent atoms (labeled with element symbols)
 - Edges represent chemical bonds
 - File naming: `molecule_<id>.edges` and `molecule_<id>.atoms`
@@ -21,7 +21,7 @@ Your solution must:
 
 Performance requirement: The solution must complete within 5 minutes for the given dataset size.
 
-Save your results to `/output/isomorphic_pairs.json` in the following format:
+Save your results to `/workspace/output/isomorphic_pairs.json` in the following format:
 
 ```json
 {

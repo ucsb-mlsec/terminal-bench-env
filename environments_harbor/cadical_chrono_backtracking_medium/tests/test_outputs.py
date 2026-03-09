@@ -97,3 +97,24 @@ def test_log_files_exist():
     for filename in required_files:
         file_path = log_dir / filename
         assert file_path.exists(), f"Required log file {filename} does not exist"
+
+
+def test_best_problem_is_problem2():
+    """Test that problem2 is identified as having the highest chronological backtracking speedup.
+    Log data: problem1 speedup=2.58 (25.80/10.00), problem2 speedup=3.33 (18.23/5.47),
+    problem3 speedup=1.48 (22.10/14.89). Problem2 has the largest speedup."""
+    result_path = Path("/workspace/result.txt")
+    lines = result_path.read_text().strip().split('\n')
+    problem_name = lines[0].split('=')[1]
+    assert problem_name == "problem2", \
+        f"Expected best_problem=problem2 (speedup 3.33, highest of the three), got: {problem_name}"
+
+
+def test_speedup_matches_problem2_logs():
+    """Test that the reported speedup matches the actual ratio from problem2's log files.
+    problem2_nonchrono.log=18.23s, problem2_chrono.log=5.47s → speedup=18.23/5.47≈3.33."""
+    result_path = Path("/workspace/result.txt")
+    lines = result_path.read_text().strip().split('\n')
+    speedup_value = float(lines[1].split('=')[1])
+    assert abs(speedup_value - 3.33) < 0.01, \
+        f"Expected speedup=3.33 (18.23s / 5.47s for problem2), got: {speedup_value}"

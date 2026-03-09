@@ -84,5 +84,25 @@ def test_total_rejected_positive():
     output_path = Path("/workspace/output/rejection_summary.json")
     with open(output_path, 'r') as f:
         data = json.load(f)
-    
+
     assert data["total_rejected"] > 0, "total_rejected must be greater than 0"
+
+
+def test_exact_total_rejected_count():
+    """Test that total_rejected equals exactly 50 (the total rows across all three .rej files).
+    customer_import_001.rej: 19 rows, customer_import_002.rej: 16 rows,
+    customer_import_003.rej: 15 rows. Total = 50 rejected rows."""
+    output_path = Path("/workspace/output/rejection_summary.json")
+    rej_dir = Path("/workspace/data/rejected")
+
+    # Compute actual total from the .rej files
+    total_from_files = 0
+    for rej_file in sorted(rej_dir.glob("*.rej")):
+        lines = [line for line in rej_file.read_text().strip().split('\n') if line.strip()]
+        total_from_files += len(lines)
+
+    with open(output_path, 'r') as f:
+        data = json.load(f)
+
+    assert data["total_rejected"] == total_from_files, \
+        f"Expected total_rejected={total_from_files} (rows across all 3 .rej files), got {data['total_rejected']}"

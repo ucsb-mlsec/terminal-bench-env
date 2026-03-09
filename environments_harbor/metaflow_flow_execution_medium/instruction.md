@@ -2,7 +2,7 @@ You need to create a Metaflow workflow that processes a dataset of product sales
 
 **The Situation:**
 
-A CSV file containing product sales data is located at `/workspace/sales_data.csv`. The file has three columns: product_id, quantity, and price. Your task is to build a Metaflow workflow that processes this data.
+A CSV file containing product sales data is located at `/workspace/data/sales_data.csv`. The file has three columns: product_id, quantity, and price. Your task is to build a Metaflow workflow that processes this data.
 
 The workflow must accomplish the following:
 1. Read the sales data from the CSV file
@@ -19,7 +19,7 @@ The workflow must accomplish the following:
 
 **Input Data:**
 
-The file `/workspace/sales_data.csv` is already present with the following format:
+The file `/workspace/data/sales_data.csv` is already present with the following format:
 ```
 product_id,quantity,price
 P001,5,29.99

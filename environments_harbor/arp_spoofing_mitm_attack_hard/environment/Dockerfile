@@ -11,9 +11,9 @@ RUN apt-get update && \
 # Install test dependencies
 RUN pip3 install --no-cache-dir --break-system-packages pytest==8.4.1 pandas==2.3.2 scipy==1.16.1
 
-RUN mkdir -p /evidence /solution
+RUN mkdir -p /workspace/data /solution
 
-COPY data/network_events.csv /evidence/network_events.csv
+COPY data/network_events.csv /workspace/data/network_events.csv
 
 WORKDIR /workspace
 

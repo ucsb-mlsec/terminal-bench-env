@@ -2,9 +2,9 @@ A transportation analytics team is experiencing inconsistent results when analyz
 
 **Situation:**
 You have ride data from San Francisco, New York, and Chicago in CSV files located at:
-- `/data/rides/san_francisco.csv`
-- `/data/rides/new_york.csv`
-- `/data/rides/chicago.csv`
+- `/workspace/data/rides/san_francisco.csv`
+- `/workspace/data/rides/new_york.csv`
+- `/workspace/data/rides/chicago.csv`
 
 Each CSV contains these columns: `ride_id,pickup_lat,pickup_lon,timestamp,fare_amount`
 
@@ -31,7 +31,7 @@ For data quality:
 
 **Output Requirements:**
 
-Save your results to: `/solution/top_density_cells.json`
+Save your results to: `/workspace/solution/top_density_cells.json`
 
 The output must be a JSON file with this exact structure:
 

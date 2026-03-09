@@ -120,7 +120,32 @@ def test_recovery_identified_padding_issues():
     report_path = Path("/home/user/recovery_report.json")
     with open(report_path, 'r') as f:
         data = json.load(f)
-    
+
     # The task specifically mentions many entries lost padding characters
     assert data["recoverable"] > 0, \
         "No recoverable entries found, but log files contain tokens with padding issues"
+
+
+def test_critical_services_includes_known_services():
+    """Test that critical_services includes service names from the log files"""
+    # api_gateway.log contains api_gateway, auth_service, load_balancer, rate_limiter
+    # security/security.log contains security_scanner, firewall_service, intrusion_detection
+    report_path = Path("/home/user/recovery_report.json")
+    with open(report_path, 'r') as f:
+        data = json.load(f)
+    services = set(data["critical_services"])
+    known_services = {"api_gateway", "auth_service", "load_balancer", "rate_limiter",
+                      "security_scanner", "firewall_service", "intrusion_detection"}
+    found = services.intersection(known_services)
+    assert len(found) > 0, \
+        f"critical_services should include at least one known service {known_services}, got {services}"
+
+
+def test_total_entries_covers_multiple_files():
+    """Test that total_entries reflects processing of multiple log files (at least 100 entries)"""
+    # api_gateway.log alone has many entries; multiple files exist with diverse services
+    report_path = Path("/home/user/recovery_report.json")
+    with open(report_path, 'r') as f:
+        data = json.load(f)
+    assert data["total_entries"] >= 50, \
+        f"total_entries should be at least 50 (multiple log files present), got {data['total_entries']}"

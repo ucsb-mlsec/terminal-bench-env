@@ -15,9 +15,9 @@ RUN apt-get update && \
     apt-get install -y jq && \
     rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /data /solution
+RUN mkdir -p /workspace/data /workspace/solution
 
-COPY data/nested_accounts.json /data/nested_accounts.json
+COPY data/nested_accounts.json /workspace/data/nested_accounts.json
 
 WORKDIR /workspace
 

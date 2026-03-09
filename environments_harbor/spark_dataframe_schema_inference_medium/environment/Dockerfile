@@ -32,11 +32,11 @@ ENV PYSPARK_PYTHON=python3
 
 RUN pip3 install --no-cache-dir --break-system-packages pyspark==3.5.0
 
-RUN mkdir -p /data/transactions /solution
+RUN mkdir -p /workspace/data/transactions /workspace/solution
 
-COPY data/transactions/transactions_01.csv /data/transactions/transactions_01.csv
-COPY data/transactions/transactions_02.csv /data/transactions/transactions_02.csv
-COPY data/transactions/transactions_03.csv /data/transactions/transactions_03.csv
+COPY data/transactions/transactions_01.csv /workspace/data/transactions/transactions_01.csv
+COPY data/transactions/transactions_02.csv /workspace/data/transactions/transactions_02.csv
+COPY data/transactions/transactions_03.csv /workspace/data/transactions/transactions_03.csv
 
 WORKDIR /workspace
 

@@ -134,3 +134,30 @@ def test_health_status_consistency():
         active_healthy = [item for item in health_data if item.get('environment') == active_env and item.get('status') == 'healthy']
         assert len(active_healthy) == healthy_services, \
             f"health_status.json shows {len(active_healthy)} healthy services in {active_env}, but reconciled_state.txt shows {healthy_services}"
+
+
+def test_active_environment_is_blue():
+    """Test that blue is identified as the correct active environment"""
+    # deployment_state.yaml shows rollback_attempted=true, rollback_status=failed
+    # (green was deployed but rollback to blue was attempted)
+    # health_status.json shows: blue has 3/3 healthy services, green has 1 unhealthy (web-service)
+    # Therefore blue should be the reconciled active environment (healthy and was the rollback target)
+    output_path = Path("/tmp/reconciled_state.txt")
+    content = output_path.read_text().strip()
+    active_env_lines = [line for line in content.split('\n') if line.startswith('active_environment=')]
+    assert len(active_env_lines) == 1
+    active_env = active_env_lines[0].split('=')[1].strip()
+    assert active_env == "blue", \
+        f"active_environment should be 'blue' (all 3 blue services healthy; rollback to blue was attempted due to green's unhealthy web-service), got '{active_env}'"
+
+
+def test_healthy_services_is_three():
+    """Test that healthy_services is 3 (all blue services are healthy)"""
+    # health_status.json: blue environment has api-service, web-service, worker-service all healthy
+    output_path = Path("/tmp/reconciled_state.txt")
+    content = output_path.read_text().strip()
+    healthy_lines = [line for line in content.split('\n') if line.startswith('healthy_services=')]
+    assert len(healthy_lines) == 1
+    healthy_count = int(healthy_lines[0].split('=')[1].strip())
+    assert healthy_count == 3, \
+        f"healthy_services should be 3 (blue: api-service, web-service, worker-service all healthy), got {healthy_count}"

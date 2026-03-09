@@ -15,14 +15,14 @@ RUN apt-get update && \
     apt-get install -y build-essential gcc make && \
     rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /workspace/src /workspace/include
+RUN mkdir -p /workspace/output/makefile_order_only_prerequisites_medium/files/src /workspace/output/makefile_order_only_prerequisites_medium/files/include
 
-COPY src/main.c /workspace/src/main.c
-COPY src/utils.c /workspace/src/utils.c
-COPY include/utils.h /workspace/include/utils.h
-COPY Makefile /workspace/Makefile
+COPY src/main.c /workspace/output/makefile_order_only_prerequisites_medium/files/src/main.c
+COPY src/utils.c /workspace/output/makefile_order_only_prerequisites_medium/files/src/utils.c
+COPY include/utils.h /workspace/output/makefile_order_only_prerequisites_medium/files/include/utils.h
+COPY Makefile /workspace/output/makefile_order_only_prerequisites_medium/files/Makefile
 
-WORKDIR /workspace
+WORKDIR /workspace/output/makefile_order_only_prerequisites_medium/files
 
 # Mapped from docker-compose.yaml
 ENV TEST_DIR=/tests

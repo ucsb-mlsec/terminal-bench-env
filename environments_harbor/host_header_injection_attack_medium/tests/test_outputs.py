@@ -93,6 +93,25 @@ def test_vulnerable_code_line_exists_in_app():
         assert vulnerable_line <= len(lines), \
             f"vulnerable_code_line {vulnerable_line} exceeds total lines in app.py ({len(lines)})"
 
+def test_vulnerable_code_line_is_correct():
+    """Test that the vulnerable code line number is correctly identified as line 90 in app.py"""
+    report_path = Path("/home/agent/security_report.json")
+    with open(report_path, 'r') as f:
+        data = json.load(f)
+    # app.py line 90 contains: reset_url = f"https://{request.headers.get('Host')}/reset?token={token}"
+    # which is the vulnerable Host header usage in the /reset-password route
+    assert data["vulnerable_code_line"] == 90, \
+        f"vulnerable_code_line should be 90 (the Host header injection point in app.py), got {data['vulnerable_code_line']}"
+
+def test_total_injection_attempts_from_log():
+    """Test that the total injection attempts match the count in access.log"""
+    report_path = Path("/home/agent/security_report.json")
+    with open(report_path, 'r') as f:
+        data = json.load(f)
+    # access.log contains 49 POST /reset-password requests with malicious Host headers
+    assert data["total_injection_attempts"] == 49, \
+        f"total_injection_attempts should be 49 (from access.log), got {data['total_injection_attempts']}"
+
 def test_attack_impact_describes_security_issue():
     """Test that attack_impact contains relevant security terms"""
     report_path = Path("/home/agent/security_report.json")
