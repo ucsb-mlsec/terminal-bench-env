@@ -34,7 +34,6 @@ Our TermiGen-32B achieves:
 | TerminalBench 1.0 | **31.3%** |
 | TerminalBench 2.0 | **19.3%** |
 | SWE-Bench Verified | **21.4%** |
-| SWE-Bench Pro | **~5.7%** |
 
 - **+26.8%** absolute improvement over base Qwen2.5-Coder-32B on TerminalBench 1.0
 - **+11.3%** absolute improvement over o4-mini with Codex CLI on TerminalBench 1.0
@@ -264,18 +263,7 @@ harbor run -d swebench-verified \
   --n-concurrent 4 --n-attempts 1 -e e2b
 ```
 
-### SWE-Bench Pro (~5.7%)
-
-```bash
-MODEL_NAME=UCSB-SURFI/TermiGen-32B \
-MODEL_ENDPOINT=http://127.0.0.1:8001/v1 \
-harbor run -d swebenchpro \
-  --agent-import-path bash_agent_harbor:BashAgent \
-  --job-name swebench_pro_termigen \
-  --n-concurrent 4 --n-attempts 1 -e e2b
-```
-
-> **Note:** These benchmarks use the [e2b](https://e2b.dev) cloud sandbox (`-e e2b`). You can also use local Docker (`-e docker`) but some SWE-Bench Pro tasks with large Docker images (>10GB) may fail on e2b due to template build limits.
+> **Note:** These benchmarks use the [e2b](https://e2b.dev) cloud sandbox (`-e e2b`). You can also use local Docker (`-e docker`).
 
 <!-- ---
 
