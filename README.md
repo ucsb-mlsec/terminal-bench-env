@@ -18,7 +18,9 @@ Official implementation and datasets for **TermiGen**, a framework for training 
 This repository provides:
 
 1. **3,500+ Verified Docker Environments** - Executable tasks across 11 categories. The TerminalBench 1.0 format is provided as a ZIP archive (because some tasks involve GitHub repositories containing .git metadata), while the Harbor 2.0 format is provided directly as the `environments_harbor/` directory.
-2. **BashAgent** - Minimal ReAct-style agent implementation (`bash_agent.py`)
+2. **BashAgent** - Minimal ReAct-style agent implementation:
+   - `bash_agent.py` - For [TerminalBench](https://github.com/laude-institute/terminal-bench) (`tb`) framework
+   - `bash_agent_harbor.py` - For [Harbor](https://github.com/laude-institute/harbor) evaluation framework
 
 
 ---
@@ -30,10 +32,12 @@ Our TermiGen-32B achieves:
 | Benchmark | Pass@1 |
 |-----------|--------|
 | TerminalBench 1.0 | **31.3%** |
-| TerminalBench 2.0 | **18.0%** |
+| TerminalBench 2.0 | **19.3%** |
+| SWE-Bench Verified | **21.4%** |
+| SWE-Bench Pro | **~5.7%** |
 
-- **+26.8%** absolute improvement over base Qwen2.5-Coder-32B
-- **+11.3%** absolute improvement over o4-mini with Codex CLI
+- **+26.8%** absolute improvement over base Qwen2.5-Coder-32B on TerminalBench 1.0
+- **+11.3%** absolute improvement over o4-mini with Codex CLI on TerminalBench 1.0
 
 ---
 
@@ -109,12 +113,20 @@ tb run --dataset terminal-bench-core==0.1.1 --agent-import-path bash_agent:BashA
 ```bash
 pip install harbor
 
-# Run agent using Harbor eval harness
-harbor run -d hello-world \
-  --agent-import-path bash_agent:BashAgent \
-  -m UCSB-SURFI/TermiGen-32B \
-  --ak model_endpoint=http://localhost:8000/v1 \
-  --debug
+# Run agent on local tasks
+harbor run -p environments_harbor/ \
+  --agent-import-path bash_agent_harbor:BashAgent \
+  -t hello-world --debug
+
+# Run agent on Terminal-Bench 2.0 (downloads from registry)
+harbor run -d terminal-bench@2.0 \
+  --agent-import-path bash_agent_harbor:BashAgent \
+  --n-concurrent 4 --n-attempts 5 -e e2b
+
+# Run agent on SWE-Bench Verified
+harbor run -d swebench-verified \
+  --agent-import-path bash_agent_harbor:BashAgent \
+  --n-concurrent 4 -e e2b
 ```
 
 ---
@@ -177,7 +189,8 @@ task_name/
 ```
 terminal-bench-env/
 ├── README.md                      # This file
-├── bash_agent.py                  # Minimal ReAct agent implementation
+├── bash_agent.py                  # BashAgent for TerminalBench (tb) framework
+├── bash_agent_harbor.py           # BashAgent for Harbor framework
 ├── termigen_env.zip               # 3,500+ Docker tasks (TerminalBench 1.0 format)
 ├── environments/                  # Extracted from termigen_env.zip (after unzip)
 └── environments_harbor/           # 3,500+ Docker tasks in Harbor 2.0 format
@@ -187,20 +200,31 @@ terminal-bench-env/
 
 ## 🤖 BashAgent
 
-The `bash_agent.py` provides a minimal terminal agent implementation. 
+Two implementations are provided for different evaluation frameworks:
 
-- `model_endpoint`: Model API URL (OpenAI-compatible)
-- `model_name`: Model identifier  
+### `bash_agent.py` (TerminalBench / `tb` framework)
+- Interacts with the environment via `TmuxSession` (send_keys, incremental output)
+- Supports asciinema recording and detailed failure mode tracking
+- `command_duration_sec`: Command timeout in seconds (default: 10.0)
+
+### `bash_agent_harbor.py` (Harbor framework)
+- Async implementation using Harbor's `BaseEnvironment.exec()` API
+- Compatible with Harbor's e2b, Docker, Daytona, and other environment backends
+- `timeout_sec`: Command timeout in seconds (default: 120)
+
+### Shared Configuration
+
+Both agents accept the following via environment variables or constructor args:
+- `MODEL_ENDPOINT`: Model API URL (OpenAI-compatible, default: `http://172.17.0.1:8001/v1`)
+- `MODEL_NAME`: Model identifier
 - `max_episodes`: Max conversation turns (default: 1000)
 - `temperature`: Sampling temperature (default: 0.6)
-- `max_tokens`: Max tokens per generation (default: 5000)
-- `command_duration_sec`: Command timeout in seconds (default: 10.0).
 
 ### Model Compatibility
 
 ✅ **Fully supported**: Qwen2.5-Coder, TermiGen models (support "tool" message role)
 
-⚠️ **Requires modification**: Models without "tool" role support need line 411 changed:
+⚠️ **Requires modification**: Models without "tool" role support need the observation message role changed:
 ```python
 # Change from:
 {"role": "tool", "content": observation}
@@ -208,6 +232,50 @@ The `bash_agent.py` provides a minimal terminal agent implementation.
 # To:
 {"role": "user", "content": f"Observation: {observation}"}
 ```
+
+---
+
+## 🔄 Reproducing Benchmark Results
+
+### Terminal-Bench 2.0 (19.3%)
+
+```bash
+# 1. Deploy model
+vllm serve UCSB-SURFI/TermiGen-32B --port 8001 --tensor-parallel-size 2
+
+# 2. Run evaluation (89 tasks × 5 attempts)
+MODEL_NAME=UCSB-SURFI/TermiGen-32B \
+MODEL_ENDPOINT=http://127.0.0.1:8001/v1 \
+harbor run -d terminal-bench@2.0 \
+  --agent-import-path bash_agent_harbor:BashAgent \
+  --job-name tb2_termigen \
+  --n-concurrent 4 --n-attempts 5 -e e2b
+```
+
+### SWE-Bench Verified (21.4%)
+
+```bash
+# Same model deployment as above, then:
+MODEL_NAME=UCSB-SURFI/TermiGen-32B \
+MODEL_ENDPOINT=http://127.0.0.1:8001/v1 \
+harbor run -d swebench-verified \
+  --agent-import-path bash_agent_harbor:BashAgent \
+  --job-name swebench_verified_termigen \
+  --n-concurrent 4 --n-attempts 1 -e e2b
+```
+
+### SWE-Bench Pro (~5.7%)
+
+```bash
+MODEL_NAME=UCSB-SURFI/TermiGen-32B \
+MODEL_ENDPOINT=http://127.0.0.1:8001/v1 \
+harbor run -d swebenchpro \
+  --agent-import-path bash_agent_harbor:BashAgent \
+  --job-name swebench_pro_termigen \
+  --n-concurrent 4 --n-attempts 1 -e e2b
+```
+
+> **Note:** These benchmarks use the [e2b](https://e2b.dev) cloud sandbox (`-e e2b`). You can also use local Docker (`-e docker`) but some SWE-Bench Pro tasks with large Docker images (>10GB) may fail on e2b due to template build limits.
 
 <!-- ---
 
