@@ -103,6 +103,7 @@ class BashAgent(BaseAgent):
         self._timestamped_markers: List[Tuple[float, str]] = []  # For asciinema debugging
         self._total_input_tokens = 0
         self._total_output_tokens = 0
+        self._last_reasoning = None
         
         # Initialize OpenAI client (api_key="EMPTY" is a placeholder for vLLM-compatible APIs)
         self.client = OpenAI(
@@ -129,11 +130,12 @@ class BashAgent(BaseAgent):
         """
         # Reset conversation state for new task
         self._conversation_history = [
-            {"role": "system", "content": "You are an expert technical assistant with access to bash tools. You can execute bash commands to help solve complex technical problems. When you need to run commands, use the bash tool with the following format:\n\n<tool_call>\n{\"name\": \"bash\", \"arguments\": {\"command\": \"your_command_here\"}}\n</tool_call>\n\nAlways think through problems step by step, analyze the situation, and then execute appropriate commands to solve the task. You can run one command at a time and analyze its output to make informed decisions."},
+            {"role": "system", "content": "You are an expert technical assistant with access to bash tools. You can execute bash commands to help solve complex technical problems. When you need to run commands, use the bash tool with the following format:\n\n<tool_call>\n{\"name\": \"bash\", \"arguments\": {\"command\": \"your_command_here\"}}\n</tool_call>\n\nAlways think through problems step by step, analyze the situation, and then execute appropriate commands to solve the task. You can run one command at a time and analyze its output to make informed decisions. When the task is complete, include the phrase 'Task is complete.' in your response and do not make any further tool calls."},
         ]
         self._timestamped_markers = []
         self._total_input_tokens = 0
         self._total_output_tokens = 0
+        self._last_reasoning = None
         self.has_tool_call = True  # Track if agent is proposing tool calls
         
         try:
@@ -378,6 +380,9 @@ class BashAgent(BaseAgent):
             # Save response to file if logging enabled
             if response_path is not None:
                 response_path.write_text(response)
+                _r = getattr(self, "_last_reasoning", None)
+                if _r:
+                    (response_path.parent / "reasoning.txt").write_text(_r)
                 
             return response
             
@@ -433,10 +438,11 @@ class BashAgent(BaseAgent):
             # vLLM and some Qwen deployments put content in reasoning_content instead of content
             message = chat_response.choices[0].message
             response_content = message.content
+            self._last_reasoning = getattr(message, 'reasoning_content', None) or getattr(message, 'reasoning', None)
             
             # Fallback to reasoning_content if content is None (vLLM format)
-            if response_content is None and hasattr(message, 'reasoning_content'):
-                response_content = message.reasoning_content
+            if response_content is None:
+                response_content = self._last_reasoning
                 self._logger.debug(f"Using reasoning_content: {response_content}")
             else:
                 self._logger.debug(f"Using content: {response_content}")
